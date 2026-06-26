@@ -1,6 +1,6 @@
 # Architecture
 
-## Phase 1
+## Phase 2
 
 The repository starts as a small monorepo with a single implemented app:
 
@@ -13,8 +13,31 @@ The API owns all backend behavior. The frontend and shared packages can be added
 Current request flow:
 
 ```text
-HTTP client -> Fastify API -> route handler
+HTTP client -> Fastify API -> route handler -> Prisma Client -> PostgreSQL
 ```
 
-No database is required in Phase 1.
+The database layer is now represented by Prisma.
 
+Current backend structure:
+
+```text
+apps/api
+  prisma
+    migrations
+    schema.prisma
+  src
+    db
+      client.ts
+    app.ts
+    server.ts
+```
+
+`src/db/client.ts` exports one shared Prisma client for backend code. Future route modules should import that client instead of constructing their own `PrismaClient` instances.
+
+The first database models are authentication and access-control foundations:
+
+- `User`
+- `AccessRequest`
+- `ApprovedEmail`
+
+Financial data models are intentionally not included yet.

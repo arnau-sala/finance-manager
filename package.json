@@ -8,10 +8,16 @@
   "scripts": {
     "dev:api": "npm run dev --workspace apps/api",
     "build:api": "npm run build --workspace apps/api",
-    "start:api": "npm run start --workspace apps/api"
+    "start:api": "npm run start --workspace apps/api",
+    "db:generate": "npm run db:generate --workspace apps/api",
+    "db:migrate": "npm run db:migrate --workspace apps/api",
+    "db:deploy": "npm run db:deploy --workspace apps/api",
+    "db:studio": "npm run db:studio --workspace apps/api"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3"
   }
 }
-
