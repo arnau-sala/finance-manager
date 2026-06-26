@@ -1,0 +1,17 @@
+{
+  "name": "finance-manager",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace apps/api",
+    "build:api": "npm run build --workspace apps/api",
+    "start:api": "npm run start --workspace apps/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+
