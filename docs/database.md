@@ -4,6 +4,8 @@
 
 The API uses PostgreSQL through Prisma.
 
+Prisma is managed from the repository root because the database schema belongs to the backend app, but the commands are run as monorepo-level maintenance tasks.
+
 Schema location:
 
 ```text

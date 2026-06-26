@@ -9,15 +9,18 @@
     "dev:api": "npm run dev --workspace apps/api",
     "build:api": "npm run build --workspace apps/api",
     "start:api": "npm run start --workspace apps/api",
-    "db:generate": "npm run db:generate --workspace apps/api",
-    "db:migrate": "npm run db:migrate --workspace apps/api",
-    "db:deploy": "npm run db:deploy --workspace apps/api",
-    "db:studio": "npm run db:studio --workspace apps/api"
+    "db:generate": "node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",
+    "db:migrate": "node -r dotenv/config ./node_modules/prisma/build/index.js migrate dev --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",
+    "db:deploy": "node -r dotenv/config ./node_modules/prisma/build/index.js migrate deploy --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",
+    "db:studio": "node -r dotenv/config ./node_modules/prisma/build/index.js studio --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3"
   }
 }
