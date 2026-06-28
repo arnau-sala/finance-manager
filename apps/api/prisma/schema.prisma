@@ -44,7 +44,8 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  approvedEmails ApprovedEmail[] @relation("ApprovedEmailApprover")
+  approvedEmails             ApprovedEmail[]      @relation("ApprovedEmailApprover")
+  managedAccessRequestEvents AccessRequestEvent[] @relation("AccessRequestEventAdmin")
 }
 
 model AccessRequest {
@@ -59,24 +60,27 @@ model AccessRequest {
 
 model AccessRequestEvent {
   id              String                      @id @default(cuid())
-  createdAt       DateTime                    @default(now())
+  timestamp       DateTime                    @default(now())
   type            AccessRequestEventType
   actorType       AccessRequestEventActorType
   accessRequestId String?
   email           String
   name            String
   message         String
+  adminId         String?
   discardReason   AccessRequestDiscardReason?
 
   accessRequest AccessRequest? @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
+  admin         User?          @relation("AccessRequestEventAdmin", fields: [adminId], references: [id], onDelete: Restrict)
 
   @@index([accessRequestId])
+  @@index([adminId])
 }
 
 model ApprovedEmail {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  approvedAt   DateTime @default(now())
+  id           String    @id @default(cuid())
+  email        String    @unique
+  approvedAt   DateTime  @default(now())
   approvedById String?
   usedAt       DateTime?
 

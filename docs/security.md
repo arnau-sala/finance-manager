@@ -11,7 +11,7 @@ Security decisions already in place:
 - Real credentials, production database URLs, and secrets must not be committed.
 - Financial data must not be added to the repository.
 - User emails are unique in the `User` and `ApprovedEmail` tables.
-- Admin review metadata is represented with nullable reviewer fields for future approval flows.
+- Approval events and approved emails have nullable administrator references until authenticated administrators exist.
 
 The current schema does not allow financial records yet. When financial models are added, every private financial table must include an owner field such as `userId`.
 
@@ -27,4 +27,4 @@ The public access-request endpoint:
 
 A sender can always inspect their own HTTP request and submitted fields in browser developer tools. What remains private is the server-side decision and database destination: no second HTTP request is made, and the response does not identify whether the email is registered, approved, pending, or new.
 
-The `/admin/*` read routes, including `/admin/access-request-events`, do not yet authenticate users. Their path name alone provides no security, so they are restricted to local development and must gain server-side authentication and role authorization before deployment.
+The `/admin/*` routes do not yet authenticate sessions. The approval endpoint therefore records `adminId` as null and must only be used during local development. These routes must gain session-based authentication and role authorization before deployment.

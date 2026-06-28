@@ -18,6 +18,7 @@ Implemented:
 - `GET /admin/access-requests/:id`
 - `GET /admin/access-request-events`
 - `GET /admin/access-request-events/:id`
+- `POST /admin/access-requests/:id/approve`
 
 ## Health Endpoint
 
@@ -96,6 +97,24 @@ Get one access-request event:
 ```http
 GET /admin/access-request-events/:id
 ```
+
+Approve a pending request:
+
+```http
+POST /admin/access-requests/:id/approve
+```
+
+This endpoint must be called with the `POST` method; opening the URL in a browser sends `GET` and will not approve the request. In Postman, select `POST` and `Body -> none`.
+
+Expected response:
+
+```json
+{
+  "message": "Access request approved."
+}
+```
+
+Approval creates or updates `ApprovedEmail`, records an `ACCESS_REQUEST_APPROVED` event, and removes the request from the pending queue. It does not require a body until administrator sessions exist. An unknown request ID returns `404 Not Found`.
 
 Timestamps use ISO 8601, for example `2026-06-28T12:30:00.000Z`.
 

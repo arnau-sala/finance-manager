@@ -21,14 +21,15 @@ function toAdminResponse(accessRequest: AccessRequest) {
 function toAdminEventResponse(event: AccessRequestEvent) {
   return {
     id: event.id,
-    createdAt: event.createdAt.toISOString(),
+    timestamp: event.timestamp.toISOString(),
     type: event.type,
     actorType: event.actorType,
-    accessRequestId: event.accessRequestId,
     email: event.email,
     name: event.name,
     message: event.message,
+    adminId: event.adminId,
     discardReason: event.discardReason,
+    accessRequestId: event.accessRequestId
   };
 }
 
@@ -45,7 +46,7 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
 
   app.get("/admin/access-request-events", async () => {
     const events = await db.accessRequestEvent.findMany({
-      orderBy: { createdAt: "desc" }
+      orderBy: { timestamp: "desc" }
     });
 
     return {
@@ -69,6 +70,64 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return toAdminEventResponse(event);
+  });
+
+  app.post("/admin/access-requests/:id/approve", async (request, reply) => {
+    const parsedParams = idParamsSchema.safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid access request id." });
+    }
+
+    const result = await db.$transaction(async (transaction) => {
+      const accessRequest = await transaction.accessRequest.findUnique({
+        where: { id: parsedParams.data.id }
+      });
+
+      if (!accessRequest) {
+        return "ACCESS_REQUEST_NOT_FOUND" as const;
+      }
+
+      const deletion = await transaction.accessRequest.deleteMany({
+        where: { id: accessRequest.id }
+      });
+
+      if (deletion.count === 0) {
+        return "ACCESS_REQUEST_NOT_FOUND" as const;
+      }
+
+      const approvedAt = new Date();
+
+      await transaction.approvedEmail.upsert({
+        where: { email: accessRequest.email },
+        create: {
+          email: accessRequest.email,
+          approvedAt
+        },
+        update: {
+          approvedAt,
+          approvedById: null
+        }
+      });
+
+      await transaction.accessRequestEvent.create({
+        data: {
+          email: accessRequest.email,
+          name: accessRequest.name,
+          message: accessRequest.message,
+          type: "ACCESS_REQUEST_APPROVED",
+          actorType: "ADMIN"
+        }
+      });
+
+      return "APPROVED" as const;
+    });
+
+    if (result === "ACCESS_REQUEST_NOT_FOUND") {
+      return reply.code(404).send({ error: "Access request not found." });
+    }
+
+    return reply.send({ message: "Access request approved." });
   });
 
   app.get("/admin/access-requests/:id", async (request, reply) => {

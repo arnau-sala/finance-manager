@@ -64,19 +64,19 @@ npm run db:deploy
 
 `User` stores registered users and their role/status.
 
-`AccessRequest` is the current pending queue. Its email is unique, and its email, name, and message fields are required. A row will be removed when a later phase approves or denies it.
+`AccessRequest` is the current pending queue. Its email is unique, and its email, name, and message fields are required. Approval removes the row; denial will do the same when that action is implemented.
 
 `AccessRequestEvent` is the permanent structured history. New pending requests create an `ACCESS_REQUEST_CREATED` event with actor `VISITOR`. Valid-looking submissions that are not added to the queue create an `ACCESS_REQUEST_DISCARDED` event with actor `SYSTEM` and one of these reasons:
 
 - `EMAIL_ALREADY_REGISTERED`
 - `ACCESS_REQUEST_ALREADY_EXISTS`
 
-Created events reference their pending `AccessRequest`. The relation uses `onDelete: SetNull`, so the event remains after a future approval or denial removes the pending row.
+Created events reference their pending `AccessRequest`. The relation uses `onDelete: SetNull`, so the event remains after approval removes the pending row and will behave the same way for future denial.
 
-The event enum also contains `ACCESS_REQUEST_APPROVED` and `ACCESS_REQUEST_DENIED`, and the actor enum contains `ADMIN`, for the next administrative actions. They are not used yet.
+Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's email, name, and message while leaving `adminId`, `discardReason`, and `accessRequestId` null until administrator sessions exist. `ACCESS_REQUEST_DENIED` remains reserved for the next administrative action.
 
 Malformed submissions are rejected before database access and do not create events.
 
-`ApprovedEmail` stores emails approved by an admin before registration.
+`ApprovedEmail` stores emails approved for future registration. Until administrator sessions exist, `approvedById` remains null.
 
 No financial tables exist yet.

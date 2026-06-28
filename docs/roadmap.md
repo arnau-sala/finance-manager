@@ -27,11 +27,12 @@
 - Separate the pending queue from the permanent structured event log.
 - Add pending-request list and detail endpoints.
 - Add event list and detail endpoints for local administrative review.
+- Allow a pending request to be approved through the local administrative endpoint.
 - Keep the public result independent from the internal database decision.
 
 ## Remaining Phase 4 Work
 
 - Authenticate administrative requests.
 - Require the `ADMIN` role on every `/admin/*` endpoint.
-- Add approve and deny actions.
-- Remove a request from the pending queue after either action.
+- Add the deny action.
+- Remove a request from the pending queue after denial.
