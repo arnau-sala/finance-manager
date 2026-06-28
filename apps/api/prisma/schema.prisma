@@ -69,6 +69,7 @@ model AccessRequestEvent {
   message         String
   adminId         String?
   discardReason   AccessRequestDiscardReason?
+  denialReason    String?
 
   accessRequest AccessRequest? @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
   admin         User?          @relation("AccessRequestEventAdmin", fields: [adminId], references: [id], onDelete: Restrict)

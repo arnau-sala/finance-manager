@@ -8,6 +8,12 @@ const idParamsSchema = z.object({
   id: z.string().trim().min(1)
 });
 
+const denyAccessRequestBodySchema = z
+  .object({
+    reason: z.string().trim().min(1).max(1000)
+  })
+  .strict();
+
 function toAdminResponse(accessRequest: AccessRequest) {
   return {
     id: accessRequest.id,
@@ -29,6 +35,7 @@ function toAdminEventResponse(event: AccessRequestEvent) {
     message: event.message,
     adminId: event.adminId,
     discardReason: event.discardReason,
+    denialReason: event.denialReason,
     accessRequestId: event.accessRequestId
   };
 }
@@ -128,6 +135,56 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.send({ message: "Access request approved." });
+  });
+
+  app.post("/admin/access-requests/:id/deny", async (request, reply) => {
+    const parsedParams = idParamsSchema.safeParse(request.params);
+    const parsedBody = denyAccessRequestBodySchema.safeParse(request.body);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid access request id." });
+    }
+
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: "Invalid denial reason." });
+    }
+
+    const result = await db.$transaction(async (transaction) => {
+      const accessRequest = await transaction.accessRequest.findUnique({
+        where: { id: parsedParams.data.id }
+      });
+
+      if (!accessRequest) {
+        return "ACCESS_REQUEST_NOT_FOUND" as const;
+      }
+
+      const deletion = await transaction.accessRequest.deleteMany({
+        where: { id: accessRequest.id }
+      });
+
+      if (deletion.count === 0) {
+        return "ACCESS_REQUEST_NOT_FOUND" as const;
+      }
+
+      await transaction.accessRequestEvent.create({
+        data: {
+          email: accessRequest.email,
+          name: accessRequest.name,
+          message: accessRequest.message,
+          type: "ACCESS_REQUEST_DENIED",
+          actorType: "ADMIN",
+          denialReason: parsedBody.data.reason
+        }
+      });
+
+      return "DENIED" as const;
+    });
+
+    if (result === "ACCESS_REQUEST_NOT_FOUND") {
+      return reply.code(404).send({ error: "Access request not found." });
+    }
+
+    return reply.send({ message: "Access request denied." });
   });
 
   app.get("/admin/access-requests/:id", async (request, reply) => {

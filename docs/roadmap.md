@@ -28,11 +28,10 @@
 - Add pending-request list and detail endpoints.
 - Add event list and detail endpoints for local administrative review.
 - Allow a pending request to be approved through the local administrative endpoint.
+- Allow a pending request to be denied with a mandatory reason.
 - Keep the public result independent from the internal database decision.
 
 ## Remaining Phase 4 Work
 
 - Authenticate administrative requests.
 - Require the `ADMIN` role on every `/admin/*` endpoint.
-- Add the deny action.
-- Remove a request from the pending queue after denial.

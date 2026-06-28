@@ -60,8 +60,8 @@ valid input -> registered email -> discarded event
 
 Every branch performs its database write on the server and produces the same public `202` response. There is no internal HTTP request for a browser to observe.
 
-`AccessRequest` represents current state, while `AccessRequestEvent` preserves the history of valid access-related activity. Approval now appends to this history, while the denial event type remains reserved for the next action.
+`AccessRequest` represents current state, while `AccessRequestEvent` preserves the history of valid access-related activity. Approval and denial both append administrative events to this history.
 
-Approving a request is atomic: the backend records the approved email and administrative event, then removes the pending request as part of the same database transaction.
+Administrative decisions are atomic. Approval records the approved email and event before completing the transaction; denial records its mandatory reason and event. Both remove the pending request in the same transaction.
 
 Administrative reads and approval live in their own route module. Authentication middleware will be added when the project has a real login/session foundation; until then, these routes are for local development only.

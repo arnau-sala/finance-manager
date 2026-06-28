@@ -64,16 +64,18 @@ npm run db:deploy
 
 `User` stores registered users and their role/status.
 
-`AccessRequest` is the current pending queue. Its email is unique, and its email, name, and message fields are required. Approval removes the row; denial will do the same when that action is implemented.
+`AccessRequest` is the current pending queue. Its email is unique, and its email, name, and message fields are required. Approval and denial both remove the row.
 
 `AccessRequestEvent` is the permanent structured history. New pending requests create an `ACCESS_REQUEST_CREATED` event with actor `VISITOR`. Valid-looking submissions that are not added to the queue create an `ACCESS_REQUEST_DISCARDED` event with actor `SYSTEM` and one of these reasons:
 
 - `EMAIL_ALREADY_REGISTERED`
 - `ACCESS_REQUEST_ALREADY_EXISTS`
 
-Created events reference their pending `AccessRequest`. The relation uses `onDelete: SetNull`, so the event remains after approval removes the pending row and will behave the same way for future denial.
+Created events reference their pending `AccessRequest`. The relation uses `onDelete: SetNull`, so the event remains after approval or denial removes the pending row.
 
-Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's email, name, and message while leaving `adminId`, `discardReason`, and `accessRequestId` null until administrator sessions exist. `ACCESS_REQUEST_DENIED` remains reserved for the next administrative action.
+Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's email, name, and message while leaving `adminId`, `discardReason`, `denialReason`, and `accessRequestId` null until administrator sessions exist.
+
+Denial events use `ACCESS_REQUEST_DENIED` and actor `ADMIN`. They copy the same request fields and require a free-text `denialReason`, while `adminId`, `discardReason`, and `accessRequestId` remain null for now.
 
 Malformed submissions are rejected before database access and do not create events.
 

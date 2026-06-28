@@ -19,6 +19,7 @@ Implemented:
 - `GET /admin/access-request-events`
 - `GET /admin/access-request-events/:id`
 - `POST /admin/access-requests/:id/approve`
+- `POST /admin/access-requests/:id/deny`
 
 ## Health Endpoint
 
@@ -115,6 +116,29 @@ Expected response:
 ```
 
 Approval creates or updates `ApprovedEmail`, records an `ACCESS_REQUEST_APPROVED` event, and removes the request from the pending queue. It does not require a body until administrator sessions exist. An unknown request ID returns `404 Not Found`.
+
+Deny a pending request:
+
+```http
+POST /admin/access-requests/:id/deny
+Content-Type: application/json
+```
+
+```json
+{
+  "reason": "Reason for denying this request."
+}
+```
+
+The reason is required, trimmed, and limited to 1000 characters. Denial records an `ACCESS_REQUEST_DENIED` event and removes the request from the pending queue without creating an `ApprovedEmail`.
+
+Expected response:
+
+```json
+{
+  "message": "Access request denied."
+}
+```
 
 Timestamps use ISO 8601, for example `2026-06-28T12:30:00.000Z`.
 
