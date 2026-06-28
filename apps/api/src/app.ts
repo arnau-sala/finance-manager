@@ -1,5 +1,7 @@
 import Fastify from "fastify";
 
+import { accessRequestRoutes } from "./routes/access-requests.js";
+
 export function buildApp() {
   const app = Fastify({
     logger: true
@@ -9,6 +11,7 @@ export function buildApp() {
     return { status: "ok" };
   });
 
+  app.register(accessRequestRoutes);
+
   return app;
 }
-

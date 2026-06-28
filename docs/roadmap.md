@@ -14,8 +14,13 @@
 - Add the first migration.
 - Add a shared database client module.
 
+## Phase 3: Public Access Requests
+
+- Add `POST /access-requests`.
+- Validate and normalize public input.
+- Avoid duplicate pending requests.
+- Keep responses neutral to avoid exposing account or approval state.
+
 ## Next Phase
 
-- Phase 3: add public access requests.
-
-Phase 3 should add `POST /access-requests` with validation, email normalization, duplicate-pending handling, and neutral public responses.
+- Phase 4: add authenticated admin review, approval, and denial of access requests.

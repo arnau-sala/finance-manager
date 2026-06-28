@@ -66,6 +66,8 @@ npm run db:deploy
 
 `AccessRequest` stores visitor requests for access approval.
 
+A partial unique index on `AccessRequest.email` prevents more than one pending request for the same normalized email. Historical approved or denied rows remain compatible with the data model.
+
 `ApprovedEmail` stores emails approved by an admin before registration.
 
 No financial tables exist yet.

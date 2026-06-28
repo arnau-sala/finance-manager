@@ -1,6 +1,6 @@
 # Architecture
 
-## Phase 2
+## Phase 3
 
 The repository starts as a small monorepo with a single implemented app:
 
@@ -28,6 +28,8 @@ apps/api
   src
     db
       client.ts
+    routes
+      access-requests.ts
     app.ts
     server.ts
 ```
@@ -43,3 +45,5 @@ The first database models are authentication and access-control foundations:
 - `ApprovedEmail`
 
 Financial data models are intentionally not included yet.
+
+Public access requests are handled by a focused Fastify route module. The route validates and normalizes input before querying Prisma, while `app.ts` remains responsible only for assembling the API.

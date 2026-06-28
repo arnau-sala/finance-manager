@@ -1,6 +1,6 @@
 # Security
 
-## Phase 2
+## Phase 3
 
 The project now has the first private-data schema foundations, but no user-facing database endpoints yet.
 
@@ -15,4 +15,12 @@ Security decisions already in place:
 
 The current schema does not allow financial records yet. When financial models are added, every private financial table must include an owner field such as `userId`.
 
-Future phases will add request validation, authentication, authorization, ownership checks, and tests around private resources.
+The public access-request endpoint:
+
+- Validates the entire request body and rejects unknown fields.
+- Normalizes email addresses by trimming whitespace and converting them to lowercase.
+- Limits names to 100 characters and messages to 1000 characters.
+- Returns the same neutral response for new, pending, denied, approved, and registered email addresses.
+- Uses a database constraint to prevent duplicate pending requests during concurrent calls.
+
+Authentication, authorization, ownership checks, and their security tests belong to later phases.
