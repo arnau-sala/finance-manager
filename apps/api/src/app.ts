@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 
+import { adminAccessRequestRoutes } from "./routes/admin-access-requests.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
 
 export function buildApp() {
@@ -12,6 +13,7 @@ export function buildApp() {
   });
 
   app.register(accessRequestRoutes);
+  app.register(adminAccessRequestRoutes);
 
   return app;
 }

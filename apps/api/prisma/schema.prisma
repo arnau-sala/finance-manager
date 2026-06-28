@@ -17,10 +17,22 @@ enum UserStatus {
   SUSPENDED
 }
 
-enum AccessRequestStatus {
-  PENDING
-  APPROVED
-  DENIED
+enum AccessRequestEventType {
+  ACCESS_REQUEST_CREATED
+  ACCESS_REQUEST_DISCARDED
+  ACCESS_REQUEST_APPROVED
+  ACCESS_REQUEST_DENIED
+}
+
+enum AccessRequestDiscardReason {
+  EMAIL_ALREADY_REGISTERED
+  ACCESS_REQUEST_ALREADY_EXISTS
+}
+
+enum AccessRequestEventActorType {
+  VISITOR
+  SYSTEM
+  ADMIN
 }
 
 model User {
@@ -32,25 +44,33 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  reviewedAccessRequests AccessRequest[] @relation("AccessRequestReviewer")
-  approvedEmails         ApprovedEmail[] @relation("ApprovedEmailApprover")
+  approvedEmails ApprovedEmail[] @relation("ApprovedEmailApprover")
 }
 
 model AccessRequest {
-  id           String              @id @default(cuid())
-  email        String
-  name         String?
-  message      String?
-  status       AccessRequestStatus @default(PENDING)
-  createdAt    DateTime            @default(now())
-  reviewedAt   DateTime?
-  reviewedById String?
+  id        String   @id @default(cuid())
+  timestamp DateTime @default(now())
+  email     String   @unique
+  name      String
+  message   String
 
-  reviewedBy User? @relation("AccessRequestReviewer", fields: [reviewedById], references: [id])
+  events AccessRequestEvent[]
+}
 
-  @@index([email])
-  @@index([status])
-  @@index([reviewedById])
+model AccessRequestEvent {
+  id              String                      @id @default(cuid())
+  createdAt       DateTime                    @default(now())
+  type            AccessRequestEventType
+  actorType       AccessRequestEventActorType
+  accessRequestId String?
+  email           String
+  name            String
+  message         String
+  discardReason   AccessRequestDiscardReason?
+
+  accessRequest AccessRequest? @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
+
+  @@index([accessRequestId])
 }
 
 model ApprovedEmail {
@@ -64,4 +84,3 @@ model ApprovedEmail {
 
   @@index([approvedById])
 }
-

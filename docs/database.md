@@ -64,9 +64,18 @@ npm run db:deploy
 
 `User` stores registered users and their role/status.
 
-`AccessRequest` stores visitor requests for access approval.
+`AccessRequest` is the current pending queue. Its email is unique, and its email, name, and message fields are required. A row will be removed when a later phase approves or denies it.
 
-A partial unique index on `AccessRequest.email` prevents more than one pending request for the same normalized email. Historical approved or denied rows remain compatible with the data model.
+`AccessRequestEvent` is the permanent structured history. New pending requests create an `ACCESS_REQUEST_CREATED` event with actor `VISITOR`. Valid-looking submissions that are not added to the queue create an `ACCESS_REQUEST_DISCARDED` event with actor `SYSTEM` and one of these reasons:
+
+- `EMAIL_ALREADY_REGISTERED`
+- `ACCESS_REQUEST_ALREADY_EXISTS`
+
+Created events reference their pending `AccessRequest`. The relation uses `onDelete: SetNull`, so the event remains after a future approval or denial removes the pending row.
+
+The event enum also contains `ACCESS_REQUEST_APPROVED` and `ACCESS_REQUEST_DENIED`, and the actor enum contains `ADMIN`, for the next administrative actions. They are not used yet.
+
+Malformed submissions are rejected before database access and do not create events.
 
 `ApprovedEmail` stores emails approved by an admin before registration.
 

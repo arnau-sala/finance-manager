@@ -1,6 +1,6 @@
 # Architecture
 
-## Phase 3
+## Phase 4 Foundation
 
 The repository starts as a small monorepo with a single implemented app:
 
@@ -29,6 +29,7 @@ apps/api
     db
       client.ts
     routes
+      admin-access-requests.ts
       access-requests.ts
     app.ts
     server.ts
@@ -42,8 +43,23 @@ The first database models are authentication and access-control foundations:
 
 - `User`
 - `AccessRequest`
+- `AccessRequestEvent`
 - `ApprovedEmail`
 
 Financial data models are intentionally not included yet.
 
 Public access requests are handled by a focused Fastify route module. The route validates and normalizes input before querying Prisma, while `app.ts` remains responsible only for assembling the API.
+
+The public flow makes one internal database decision:
+
+```text
+valid input -> registered email -> discarded event
+            -> existing/approved request -> discarded event
+            -> new email -> pending access request + created event
+```
+
+Every branch performs its database write on the server and produces the same public `202` response. There is no internal HTTP request for a browser to observe.
+
+`AccessRequest` represents current state, while `AccessRequestEvent` preserves the history of valid access-related activity. Event types for approval and denial exist in the schema so those actions can append to the same history later, but no approval or denial behavior exists yet.
+
+Administrative reads live in their own route module. Authentication middleware will be added when the project has a real login/session foundation; until then, these routes are for local development only.

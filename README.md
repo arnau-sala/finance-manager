@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 3 adds the public access-request flow on top of the API and database foundations.
+Phase 4 starts the administrative access-request review flow.
 
 Implemented:
 
@@ -13,6 +13,11 @@ Implemented:
 - Initial SQL migration
 - Shared Prisma client module for the API
 - `POST /access-requests` with input validation and neutral responses
+- Permanent access-request event log
+- `GET /admin/access-requests`
+- `GET /admin/access-requests/:id`
+- `GET /admin/access-request-events`
+- `GET /admin/access-request-events/:id`
 
 ## Health Endpoint
 
@@ -64,7 +69,37 @@ A valid request returns HTTP `202 Accepted`:
 }
 ```
 
-The same neutral response is returned when the email already has a request, is approved, or is registered.
+All three fields are required. A syntactically valid submission always receives the same response, including when its email already has a request, is approved, or is registered.
+
+## Review Pending Requests
+
+List pending requests:
+
+```http
+GET /admin/access-requests
+```
+
+Get one pending request:
+
+```http
+GET /admin/access-requests/:id
+```
+
+List access-request events:
+
+```http
+GET /admin/access-request-events
+```
+
+Get one access-request event:
+
+```http
+GET /admin/access-request-events/:id
+```
+
+Timestamps use ISO 8601, for example `2026-06-28T12:30:00.000Z`.
+
+These `/admin` routes are currently available only as a local development foundation. They do not yet authenticate or authorize an administrator and must not be exposed publicly in this state.
 
 ## Database
 

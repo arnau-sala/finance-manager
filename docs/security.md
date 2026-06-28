@@ -1,8 +1,8 @@
 # Security
 
-## Phase 3
+## Phase 4 Foundation
 
-The project now has the first private-data schema foundations, but no user-facing database endpoints yet.
+The project now persists public access requests and exposes local administrative read endpoints.
 
 Security decisions already in place:
 
@@ -20,7 +20,11 @@ The public access-request endpoint:
 - Validates the entire request body and rejects unknown fields.
 - Normalizes email addresses by trimming whitespace and converting them to lowercase.
 - Limits names to 100 characters and messages to 1000 characters.
-- Returns the same neutral response for new, pending, denied, approved, and registered email addresses.
+- Requires non-empty email, name, and message fields.
+- Returns the same status and body for every syntactically valid submission.
 - Uses a database constraint to prevent duplicate pending requests during concurrent calls.
+- Stores every valid access-request outcome in a structured server-side event log without exposing the event or discard reason publicly.
 
-Authentication, authorization, ownership checks, and their security tests belong to later phases.
+A sender can always inspect their own HTTP request and submitted fields in browser developer tools. What remains private is the server-side decision and database destination: no second HTTP request is made, and the response does not identify whether the email is registered, approved, pending, or new.
+
+The `/admin/*` read routes, including `/admin/access-request-events`, do not yet authenticate users. Their path name alone provides no security, so they are restricted to local development and must gain server-side authentication and role authorization before deployment.

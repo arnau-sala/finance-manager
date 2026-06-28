@@ -21,6 +21,17 @@
 - Avoid duplicate pending requests.
 - Keep responses neutral to avoid exposing account or approval state.
 
-## Next Phase
+## Phase 4: Administrative Review Foundation
 
-- Phase 4: add authenticated admin review, approval, and denial of access requests.
+- Make access-request fields mandatory.
+- Separate the pending queue from the permanent structured event log.
+- Add pending-request list and detail endpoints.
+- Add event list and detail endpoints for local administrative review.
+- Keep the public result independent from the internal database decision.
+
+## Remaining Phase 4 Work
+
+- Authenticate administrative requests.
+- Require the `ADMIN` role on every `/admin/*` endpoint.
+- Add approve and deny actions.
+- Remove a request from the pending queue after either action.
