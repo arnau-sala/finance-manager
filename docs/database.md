@@ -71,11 +71,15 @@ npm run db:deploy
 - `EMAIL_ALREADY_REGISTERED`
 - `ACCESS_REQUEST_ALREADY_EXISTS`
 
-Created events reference their pending `AccessRequest`. The relation uses `onDelete: SetNull`, so the event remains after approval or denial removes the pending row.
+Created events store the pending request ID in `accessRequestId`. This field is intentionally not a foreign key: it is a permanent historical reference that remains available after approval or denial deletes the pending row.
 
-Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's email, name, and message while leaving `adminId`, `discardReason`, `denialReason`, and `accessRequestId` null until administrator sessions exist.
+Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's ID, email, name, and message while leaving `adminId`, `discardReason`, and `denialReason` null until administrator sessions exist.
 
-Denial events use `ACCESS_REQUEST_DENIED` and actor `ADMIN`. They copy the same request fields and require a free-text `denialReason`, while `adminId`, `discardReason`, and `accessRequestId` remain null for now.
+Denial events use `ACCESS_REQUEST_DENIED` and actor `ADMIN`. They copy the same request fields, including its ID, and require a free-text `denialReason`, while `adminId` and `discardReason` remain null for now.
+
+Automatic `ACCESS_REQUEST_DISCARDED` events always leave `accessRequestId` null, including duplicate submissions. They describe an input discarded by the system rather than a lifecycle action on the pending request.
+
+PostgreSQL enforces this distinction: discarded events must have a null reference, while creation, approval, and denial events must have a non-null `accessRequestId`. Historical lifecycle events erased by the previous foreign-key behavior use their creation event ID as a stable reference when the original value was no longer recoverable.
 
 Malformed submissions are rejected before database access and do not create events.
 

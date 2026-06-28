@@ -54,8 +54,6 @@ model AccessRequest {
   email     String   @unique
   name      String
   message   String
-
-  events AccessRequestEvent[]
 }
 
 model AccessRequestEvent {
@@ -71,8 +69,7 @@ model AccessRequestEvent {
   discardReason   AccessRequestDiscardReason?
   denialReason    String?
 
-  accessRequest AccessRequest? @relation(fields: [accessRequestId], references: [id], onDelete: SetNull)
-  admin         User?          @relation("AccessRequestEventAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+  admin User? @relation("AccessRequestEventAdmin", fields: [adminId], references: [id], onDelete: Restrict)
 
   @@index([accessRequestId])
   @@index([adminId])

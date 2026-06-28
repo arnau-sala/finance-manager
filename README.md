@@ -99,6 +99,8 @@ Get one access-request event:
 GET /admin/access-request-events/:id
 ```
 
+Creation, approval, and denial events keep the original `accessRequestId` as a permanent historical reference. Automatic `ACCESS_REQUEST_DISCARDED` events never receive a request ID.
+
 Approve a pending request:
 
 ```http

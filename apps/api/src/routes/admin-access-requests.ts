@@ -123,7 +123,8 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
           name: accessRequest.name,
           message: accessRequest.message,
           type: "ACCESS_REQUEST_APPROVED",
-          actorType: "ADMIN"
+          actorType: "ADMIN",
+          accessRequestId: accessRequest.id
         }
       });
 
@@ -173,6 +174,7 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
           message: accessRequest.message,
           type: "ACCESS_REQUEST_DENIED",
           actorType: "ADMIN",
+          accessRequestId: accessRequest.id,
           denialReason: parsedBody.data.reason
         }
       });

@@ -64,4 +64,6 @@ Every branch performs its database write on the server and produces the same pub
 
 Administrative decisions are atomic. Approval records the approved email and event before completing the transaction; denial records its mandatory reason and event. Both remove the pending request in the same transaction.
 
+`AccessRequestEvent.accessRequestId` is an immutable historical reference rather than a foreign-key relation. Creation, approval, and denial events require it, allowing administrative decisions to retain the original request ID after the pending row is deleted. Automatic system discards always leave it null.
+
 Administrative reads and approval live in their own route module. Authentication middleware will be added when the project has a real login/session foundation; until then, these routes are for local development only.
