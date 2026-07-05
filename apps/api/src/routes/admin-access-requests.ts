@@ -112,8 +112,7 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
           approvedAt
         },
         update: {
-          approvedAt,
-          approvedById: null
+          approvedAt
         }
       });
 
