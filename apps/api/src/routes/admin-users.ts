@@ -7,13 +7,13 @@ import {
 } from "../auth/authenticated-user.js";
 import { db } from "../db/client.js";
 
-const accountIdParamsSchema = z
+const userIdParamsSchema = z
   .object({
     id: z.cuid()
   })
   .strict();
 
-export const accountRoutes: FastifyPluginAsync = async (app) => {
+export const adminUserRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", async (request, reply) => {
     const authenticatedUser = await getAuthenticatedUser(request);
 
@@ -26,31 +26,31 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
     }
   });
 
-  app.get("/accounts", async (_request, reply) => {
-    const accounts = await db.user.findMany({
+  app.get("/admin/users", async (_request, reply) => {
+    const users = await db.user.findMany({
       select: publicUserSelect,
       orderBy: { createdAt: "desc" }
     });
 
-    return reply.send({ accounts });
+    return reply.send({ users });
   });
 
-  app.get("/accounts/:id", async (request, reply) => {
-    const parsedParams = accountIdParamsSchema.safeParse(request.params);
+  app.get("/admin/users/:id", async (request, reply) => {
+    const parsedParams = userIdParamsSchema.safeParse(request.params);
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid account id." });
+      return reply.code(400).send({ error: "Invalid user id." });
     }
 
-    const account = await db.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: parsedParams.data.id },
       select: publicUserSelect
     });
 
-    if (!account) {
-      return reply.code(404).send({ error: "Account not found." });
+    if (!user) {
+      return reply.code(404).send({ error: "User not found." });
     }
 
-    return reply.send({ account });
+    return reply.send({ user });
   });
 };

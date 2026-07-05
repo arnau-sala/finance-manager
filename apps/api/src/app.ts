@@ -1,12 +1,12 @@
 import Fastify from "fastify";
 
 import { registerSecureSession } from "./auth/session.js";
-import { accountRoutes } from "./routes/accounts.js";
 import { adminAccessRequestRoutes } from "./routes/admin-access-requests.js";
+import { adminUserRoutes } from "./routes/admin-users.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
+import { authMeRoutes } from "./routes/auth-me.js";
 import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
-import { myAccountRoutes } from "./routes/my-account.js";
 import { transactionRoutes } from "./routes/transactions.js";
 
 export function buildApp() {
@@ -22,9 +22,9 @@ export function buildApp() {
 
   app.register(accessRequestRoutes);
   app.register(adminAccessRequestRoutes);
+  app.register(adminUserRoutes);
   app.register(authRoutes);
-  app.register(accountRoutes);
-  app.register(myAccountRoutes);
+  app.register(authMeRoutes);
   app.register(categoryRoutes);
   app.register(transactionRoutes);
 

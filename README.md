@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 7 documents and expands the authenticated API surface, starting with administrative account listing.
+Phase 7 documents and expands the authenticated API surface, starting with administrative user management.
 
 Implemented:
 
@@ -23,9 +23,9 @@ Implemented:
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
-- `GET /accounts` (`ADMIN` only)
-- `GET /accounts/:id` (`ADMIN` only)
-- `GET /myaccount`
+- `GET /admin/users` (`ADMIN` only)
+- `GET /admin/users/:id` (`ADMIN` only)
+- `GET /auth/me`
 - `GET /categories`
 - `GET /transactions`
 - `GET /transactions/:id`
@@ -225,21 +225,21 @@ Calling logout without an active session returns `401 Unauthorized`:
 }
 ```
 
-## List Accounts
+## List Users
 
 An active session for a user with role `ADMIN` is required:
 
 ```http
-GET /accounts
+GET /admin/users
 ```
 
-A successful request returns accounts ordered by creation date, newest first:
+A successful request returns users ordered by creation date, newest first:
 
 ```json
 {
-  "accounts": [
+  "users": [
     {
-      "id": "account-id",
+      "id": "user-id",
       "email": "user@example.com",
       "role": "USER",
       "status": "APPROVED",
@@ -251,19 +251,19 @@ A successful request returns accounts ordered by creation date, newest first:
 
 Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden` with `{"error":"Administrator access required."}`.
 
-## Get Account
+## Get User
 
-An active session for a user with role `ADMIN` and a valid account CUID are required:
+An active session for a user with role `ADMIN` and a valid user CUID are required:
 
 ```http
-GET /accounts/:id
+GET /admin/users/:id
 ```
 
-A successful request returns the same public fields as the account list:
+A successful request returns the same public fields as the user list:
 
 ```json
 {
-  "account": {
+  "user": {
     "id": "cmr81aoib0000kzsowdqjw84x",
     "email": "user@example.com",
     "role": "USER",
@@ -273,21 +273,21 @@ A successful request returns the same public fields as the account list:
 }
 ```
 
-An invalid ID format returns `400 Bad Request`. A valid CUID without a matching account returns `404 Not Found`.
+An invalid ID format returns `400 Bad Request`. A valid CUID without a matching user returns `404 Not Found`.
 
-## Get My Account
+## Get Current User
 
 An active session is required:
 
 ```http
-GET /myaccount
+GET /auth/me
 ```
 
 The endpoint returns the public information for the user represented by the current session:
 
 ```json
 {
-  "account": {
+  "user": {
     "id": "cmr81aoib0000kzsowdqjw84x",
     "email": "user@example.com",
     "role": "USER",
@@ -298,7 +298,7 @@ The endpoint returns the public information for the user represented by the curr
 }
 ```
 
-`updatedAt` is `null` until the account is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
+`updatedAt` is `null` until the user is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
 
 ## List Categories
 
@@ -349,7 +349,7 @@ The endpoint returns only transactions owned by the current session user, includ
 }
 ```
 
-An account without transactions receives `{"transactions":[]}`. A request without a valid session returns `401 Unauthorized`.
+A user without transactions receives `{"transactions":[]}`. A request without a valid session returns `401 Unauthorized`.
 
 ## Get My Transaction
 

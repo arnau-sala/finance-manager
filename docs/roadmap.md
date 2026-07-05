@@ -52,10 +52,6 @@
 - Create a secure cookie session after login.
 - Add `POST /auth/logout` and require an active session.
 
-## Remaining Phase 5 Work
-
-- Add `GET /auth/me`.
-
 ## Phase 6A: Basic Transaction Creation
 
 - Add the `Transaction` model and `TransactionType` enum.
@@ -88,18 +84,18 @@
 
 - Add user-created category management in a later version.
 
-## Phase 7A: Administrative Account Listing
+## Phase 7A: Administrative User Listing
 
-- Add authenticated `GET /accounts`.
-- Add authenticated `GET /accounts/:id` with CUID validation.
+- Add authenticated `GET /admin/users`.
+- Add authenticated `GET /admin/users/:id` with CUID validation.
 - Restrict the endpoint to users with role `ADMIN`.
 - Return only ID, email, role, status, and creation timestamp.
 
-## Phase 7B: Current Account Profile
+## Phase 7B: Current User Profile
 
-- Add authenticated `GET /myaccount`.
-- Resolve the account exclusively from the secure session.
-- Reuse the public fields exposed by administrative account reads and include `updatedAt`.
+- Add authenticated `GET /auth/me`.
+- Resolve the user exclusively from the secure session.
+- Reuse the public fields exposed by administrative user reads and include `updatedAt`.
 
 ## Phase 7C: Current User Transactions
 

@@ -33,12 +33,12 @@ apps/api
       password.ts
       session.ts
     routes
-      accounts.ts
+      admin-users.ts
       admin-access-requests.ts
       access-requests.ts
       auth.ts
       categories.ts
-      my-account.ts
+      auth-me.ts
       transactions.ts
     app.ts
     server.ts
@@ -87,9 +87,9 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 
 `auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. Transaction routes use this server-derived ID; clients cannot select the owner of financial data.
 
-`routes/accounts.ts` exposes administrative account list and detail endpoints. A plugin-scoped hook resolves the current user from the session and checks the `ADMIN` role for every account route. Both queries share an explicit Prisma selection so password hashes and unrelated fields cannot enter responses.
+`routes/admin-users.ts` exposes administrative user list and detail endpoints. A plugin-scoped hook resolves the current user from the session and checks the `ADMIN` role for every user-management route. Both queries share an explicit Prisma selection so password hashes and unrelated fields cannot enter responses.
 
-`routes/my-account.ts` returns the public profile selected by the current secure session. It includes `updatedAt` in addition to the fields shared with administrative account reads.
+`routes/auth-me.ts` returns the public profile selected by the current secure session. It includes `updatedAt` in addition to the fields shared with administrative user reads.
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. Only the scalar `categoryId` is stored on transactions; Prisma relation fields are intentionally omitted.
 

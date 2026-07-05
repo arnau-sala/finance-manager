@@ -48,17 +48,15 @@ Login security decisions:
 - Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
 - Logout requires an active session and deletes its cookie.
 
-Authenticated user lookup through `GET /auth/me` remains pending.
+Administrative user listing security decisions:
 
-Account listing security decisions:
-
-- `GET /accounts` and `GET /accounts/:id` require an active session and an `APPROVED` account.
+- `GET /admin/users` and `GET /admin/users/:id` require an active session and an `APPROVED` user.
 - Authenticated non-administrators receive `403 Forbidden`.
 - Account detail IDs must be valid CUIDs before reaching the database.
 - The database query selects only ID, email, role, status, and creation timestamp.
 - Password hashes and update timestamps are never loaded into the endpoint response.
 
-`GET /myaccount` requires an active approved-user session and returns the shared public account fields plus `updatedAt`. The account ID is always derived from the encrypted session cookie rather than request input.
+`GET /auth/me` requires an active approved-user session and returns the shared public user fields plus `updatedAt`. The user ID is always derived from the encrypted session cookie rather than request input.
 
 Transaction security decisions:
 
