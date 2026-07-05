@@ -85,7 +85,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
             email,
             passwordHash,
             role: "USER",
-            status: "APPROVED"
+            status: "APPROVED",
+            updatedAt: null
           },
           select: {
             id: true,

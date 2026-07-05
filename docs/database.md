@@ -87,6 +87,8 @@ Malformed submissions are rejected before database access and do not create even
 
 `User.passwordHash` stores an Argon2id hash, never the original password. New registrations explicitly receive role `USER` and status `APPROVED`.
 
+`User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
+
 `AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. It remains null until authenticated administrative actions can obtain the administrator ID from the session.
 
 No financial tables exist yet.
