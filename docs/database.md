@@ -93,4 +93,4 @@ Malformed submissions are rejected before database access and do not create even
 
 `Transaction` stores the first financial records. Each row contains an immutable owner `userId`, type `INCOME` or `EXPENSE`, a required description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
 
-The `(userId, occurredAt)` index supports future user-scoped chronological lists. Transaction deletion filters by both `id` and the authenticated `userId`; the database never deletes a row owned by another user.
+The `(userId, occurredAt)` index supports future user-scoped chronological lists. Transaction editing and deletion filter by both `id` and the authenticated `userId`; the database never mutates a row owned by another user.

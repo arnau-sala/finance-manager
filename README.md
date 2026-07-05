@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 6 adds authenticated creation and owner-only deletion of basic financial transactions.
+Phase 6 adds authenticated creation, editing, and owner-only deletion of basic financial transactions.
 
 Implemented:
 
@@ -24,6 +24,7 @@ Implemented:
 - `POST /auth/login`
 - `POST /auth/logout`
 - `POST /transactions`
+- `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
 
 ## Health Endpoint
@@ -263,6 +264,26 @@ An unknown transaction ID and a transaction owned by another user both return th
   "error": "Transaction not found."
 }
 ```
+
+## Update Transaction
+
+An active login session is required, and the transaction must belong to that user:
+
+```http
+PATCH /transactions/:id
+Content-Type: application/json
+```
+
+Send only the fields that must change. All fields are optional, and an empty object is accepted:
+
+```json
+{
+  "description": "Updated description",
+  "amount": "35.20"
+}
+```
+
+The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
 
 ## Database
 

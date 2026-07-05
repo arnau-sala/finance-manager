@@ -83,4 +83,4 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 
 `auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. Transaction routes use this server-derived ID; clients cannot select the owner of financial data.
 
-Phase 6 currently supports transaction creation and deletion. Deletion combines the transaction ID with the authenticated `userId` in one database operation, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Accounts, categories, transaction listing, and editing remain deferred.
+Phase 6 currently supports transaction creation, partial editing, and deletion. Mutations combine the transaction ID with the authenticated `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Accounts, categories, and transaction listing remain deferred.

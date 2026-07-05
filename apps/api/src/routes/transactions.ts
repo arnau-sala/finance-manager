@@ -44,12 +44,27 @@ const amountSchema = z
   })
   .transform((amount) => Number(decimalToCents(amount)));
 
+const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
+const transactionDescriptionSchema = z.string().trim().min(1).max(100);
+const transactionDateSchema = z
+  .iso.datetime({ offset: true })
+  .transform((date) => new Date(date));
+
 const createTransactionBodySchema = z
   .object({
-    type: z.enum(["INCOME", "EXPENSE"]),
-    description: z.string().trim().min(1).max(100),
-    date: z.iso.datetime({ offset: true }).transform((date) => new Date(date)).optional(),
+    type: transactionTypeSchema,
+    description: transactionDescriptionSchema,
+    date: transactionDateSchema.optional(),
     amount: amountSchema
+  })
+  .strict();
+
+const updateTransactionBodySchema = z
+  .object({
+    type: transactionTypeSchema.optional(),
+    description: transactionDescriptionSchema.optional(),
+    date: transactionDateSchema.optional(),
+    amount: amountSchema.optional()
   })
   .strict();
 
@@ -133,5 +148,68 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
     }
 
     return reply.send({ message: "Transaction deleted." });
+  });
+
+  app.patch("/transactions/:id", async (request, reply) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const parsedParams = transactionParamsSchema.safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid transaction id." });
+    }
+
+    const parsedBody = updateTransactionBodySchema.safeParse(request.body ?? {});
+
+    if (!parsedBody.success) {
+      return reply.code(400).send({
+        error: "Invalid transaction data.",
+        issues: parsedBody.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message
+        }))
+      });
+    }
+
+    const { type, description, date, amount } = parsedBody.data;
+
+    if (Object.keys(parsedBody.data).length === 0) {
+      const transaction = await db.transaction.findFirst({
+        where: {
+          id: parsedParams.data.id,
+          userId
+        },
+        select: { id: true }
+      });
+
+      if (!transaction) {
+        return reply.code(404).send({ error: "Transaction not found." });
+      }
+
+      return reply.send({ message: "Transaction updated." });
+    }
+
+    const update = await db.transaction.updateMany({
+      where: {
+        id: parsedParams.data.id,
+        userId
+      },
+      data: {
+        type,
+        description,
+        occurredAt: date,
+        amountCents: amount
+      }
+    });
+
+    if (update.count === 0) {
+      return reply.code(404).send({ error: "Transaction not found." });
+    }
+
+    return reply.send({ message: "Transaction updated." });
   });
 };

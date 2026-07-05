@@ -70,7 +70,14 @@
 - Restrict deletion to the transaction owner derived from the session.
 - Return the same not-found response for missing and foreign-owned transactions.
 
+## Phase 6C: Transaction Editing
+
+- Add authenticated `PATCH /transactions/:id`.
+- Update only supplied fields while preserving creation validation rules.
+- Accept empty edits without changing stored data.
+- Apply the same owner-only and indistinguishable not-found behavior as deletion.
+
 ## Remaining Phase 6 Work
 
 - Add accounts and categories when their first behavior is implemented.
-- Add transaction listing and editing in later API work.
+- Add transaction listing in later API work.

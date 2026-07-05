@@ -58,5 +58,7 @@ Transaction security decisions:
 - Amounts are positive integer cents in PostgreSQL, avoiding floating-point money errors.
 - PostgreSQL also rejects non-positive amounts and blank descriptions.
 - Deletion filters by transaction ID and authenticated `userId` in one database operation.
+- Partial editing applies the same ownership filter and validates every supplied field.
+- Empty edits verify ownership and succeed without changing stored data.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.
