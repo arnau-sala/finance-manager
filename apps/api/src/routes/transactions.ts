@@ -114,6 +114,35 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get("/transactions/:id", async (request, reply) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const parsedParams = transactionParamsSchema.safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid transaction id." });
+    }
+
+    const transaction = await db.transaction.findFirst({
+      where: {
+        id: parsedParams.data.id,
+        userId
+      }
+    });
+
+    if (!transaction) {
+      return reply.code(404).send({ error: "Transaction not found." });
+    }
+
+    return reply.send({
+      transaction: toTransactionResponse(transaction)
+    });
+  });
+
   app.post("/transactions", async (request, reply) => {
     const userId = await getAuthenticatedUserId(request);
 

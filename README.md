@@ -28,6 +28,7 @@ Implemented:
 - `GET /myaccount`
 - `GET /categories`
 - `GET /transactions`
+- `GET /transactions/:id`
 - `POST /transactions`
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
@@ -349,6 +350,33 @@ The endpoint returns only transactions owned by the current session user, includ
 ```
 
 An account without transactions receives `{"transactions":[]}`. A request without a valid session returns `401 Unauthorized`.
+
+## Get My Transaction
+
+An active session is required:
+
+```http
+GET /transactions/:id
+```
+
+The endpoint returns the requested transaction only when it belongs to the current session user:
+
+```json
+{
+  "transaction": {
+    "id": "transaction-id",
+    "userId": "current-user-id",
+    "type": "EXPENSE",
+    "categoryId": "expense-groceries",
+    "amount": "42.50",
+    "description": "Weekly groceries",
+    "date": "2026-07-05T16:30:00.000Z",
+    "createdAt": "2026-07-05T16:31:00.000Z"
+  }
+}
+```
+
+A missing transaction and one owned by another user both return `404 Not Found` with `{"error":"Transaction not found."}`. Administrators receive no ownership bypass.
 
 ## Create Transaction
 

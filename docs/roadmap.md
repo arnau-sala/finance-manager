@@ -104,6 +104,7 @@
 ## Phase 7C: Current User Transactions
 
 - Add authenticated `GET /transactions`.
+- Add owner-only `GET /transactions/:id`.
 - Return only records owned by the current session user.
 - Apply the same ownership rule to administrators.
 - Order results by transaction date, newest first.
