@@ -6,6 +6,7 @@ import { adminAccessRequestRoutes } from "./routes/admin-access-requests.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
+import { myAccountRoutes } from "./routes/my-account.js";
 import { transactionRoutes } from "./routes/transactions.js";
 
 export function buildApp() {
@@ -23,6 +24,7 @@ export function buildApp() {
   app.register(adminAccessRequestRoutes);
   app.register(authRoutes);
   app.register(accountRoutes);
+  app.register(myAccountRoutes);
   app.register(categoryRoutes);
   app.register(transactionRoutes);
 

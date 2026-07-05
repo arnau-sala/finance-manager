@@ -2,6 +2,19 @@ import type { FastifyRequest } from "fastify";
 
 import { db } from "../db/client.js";
 
+export const publicUserSelect = {
+  id: true,
+  email: true,
+  role: true,
+  status: true,
+  createdAt: true
+} as const;
+
+const authenticatedUserSelect = {
+  ...publicUserSelect,
+  updatedAt: true
+} as const;
+
 export async function getAuthenticatedUser(request: FastifyRequest) {
   const sessionUserId = request.session.get("userId");
 
@@ -14,10 +27,7 @@ export async function getAuthenticatedUser(request: FastifyRequest) {
       id: sessionUserId,
       status: "APPROVED"
     },
-    select: {
-      id: true,
-      role: true
-    }
+    select: authenticatedUserSelect
   });
 
   if (!user) {

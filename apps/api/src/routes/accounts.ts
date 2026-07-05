@@ -1,7 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
-import { getAuthenticatedUser } from "../auth/authenticated-user.js";
+import {
+  getAuthenticatedUser,
+  publicUserSelect
+} from "../auth/authenticated-user.js";
 import { db } from "../db/client.js";
 
 const accountIdParamsSchema = z
@@ -9,14 +12,6 @@ const accountIdParamsSchema = z
     id: z.cuid()
   })
   .strict();
-
-const publicAccountSelect = {
-  id: true,
-  email: true,
-  role: true,
-  status: true,
-  createdAt: true
-} as const;
 
 export const accountRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", async (request, reply) => {
@@ -33,7 +28,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
   app.get("/accounts", async (_request, reply) => {
     const accounts = await db.user.findMany({
-      select: publicAccountSelect,
+      select: publicUserSelect,
       orderBy: { createdAt: "desc" }
     });
 
@@ -49,7 +44,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
     const account = await db.user.findUnique({
       where: { id: parsedParams.data.id },
-      select: publicAccountSelect
+      select: publicUserSelect
     });
 
     if (!account) {

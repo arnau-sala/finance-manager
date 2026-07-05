@@ -58,6 +58,8 @@ Account listing security decisions:
 - The database query selects only ID, email, role, status, and creation timestamp.
 - Password hashes and update timestamps are never loaded into the endpoint response.
 
+`GET /myaccount` requires an active approved-user session and returns the shared public account fields plus `updatedAt`. The account ID is always derived from the encrypted session cookie rather than request input.
+
 Transaction security decisions:
 
 - An active session and an existing `APPROVED` user are required.

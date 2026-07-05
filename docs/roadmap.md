@@ -95,3 +95,9 @@
 - Add authenticated `GET /accounts/:id` with CUID validation.
 - Restrict the endpoint to users with role `ADMIN`.
 - Return only ID, email, role, status, and creation timestamp.
+
+## Phase 7B: Current Account Profile
+
+- Add authenticated `GET /myaccount`.
+- Resolve the account exclusively from the secure session.
+- Reuse the public fields exposed by administrative account reads and include `updatedAt`.

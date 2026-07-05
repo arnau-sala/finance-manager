@@ -25,6 +25,7 @@ Implemented:
 - `POST /auth/logout`
 - `GET /accounts` (`ADMIN` only)
 - `GET /accounts/:id` (`ADMIN` only)
+- `GET /myaccount`
 - `GET /categories`
 - `POST /transactions`
 - `PATCH /transactions/:id`
@@ -271,6 +272,31 @@ A successful request returns the same public fields as the account list:
 ```
 
 An invalid ID format returns `400 Bad Request`. A valid CUID without a matching account returns `404 Not Found`.
+
+## Get My Account
+
+An active session is required:
+
+```http
+GET /myaccount
+```
+
+The endpoint returns the public information for the user represented by the current session:
+
+```json
+{
+  "account": {
+    "id": "cmr81aoib0000kzsowdqjw84x",
+    "email": "user@example.com",
+    "role": "USER",
+    "status": "APPROVED",
+    "createdAt": "2026-07-05T18:30:00.000Z",
+    "updatedAt": null
+  }
+}
+```
+
+`updatedAt` is `null` until the account is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
 
 ## List Categories
 
