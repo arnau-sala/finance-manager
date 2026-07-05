@@ -5,3 +5,7 @@ export function hashPassword(password: string) {
     type: argon2.argon2id
   });
 }
+
+export function verifyPassword(passwordHash: string, password: string) {
+  return argon2.verify(passwordHash, password);
+}

@@ -38,4 +38,10 @@ Registration security decisions:
 - Non-approved, used, and registered emails return the same public error.
 - Successful responses expose only the user ID, email, role, status, and creation timestamp.
 
-Registration does not create a session. Login, secure cookies, logout, and authenticated user lookup belong to phase 5B.
+Login security decisions:
+
+- Unknown emails, incorrect passwords, and suspended users return the same `401` response.
+- Unknown emails still run an Argon2id verification against a dummy hash to reduce timing differences.
+- Password hashes and user details are never returned by login.
+
+Login does not create a session yet. Secure cookies, logout, and authenticated user lookup remain pending.

@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 5A adds registration for approved email addresses.
+Phase 5B adds credential verification after approved-email registration.
 
 Implemented:
 
@@ -21,6 +21,7 @@ Implemented:
 - `POST /admin/access-requests/:id/approve`
 - `POST /admin/access-requests/:id/deny`
 - `POST /auth/register`
+- `POST /auth/login`
 
 ## Health Endpoint
 
@@ -167,6 +168,30 @@ Content-Type: application/json
 The two passwords must match exactly. The password must contain between 9 and 128 characters, including at least one uppercase letter, one digit, and one special character. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
 
 Non-approved, already-used, and already-registered emails receive the same `403 Forbidden` response. Registration does not create a login session yet.
+
+## Login
+
+```http
+POST /auth/login
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "user@example.com",
+  "password": "SecurePass1!"
+}
+```
+
+Valid credentials for an approved user return:
+
+```json
+{
+  "message": "Login successful."
+}
+```
+
+Unknown emails, incorrect passwords, and suspended users receive the same `401 Unauthorized` response. Login only verifies credentials for now; it does not create a session or cookie yet.
 
 ## Database
 

@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
-import { hashPassword } from "../auth/password.js";
+import { hashPassword, verifyPassword } from "../auth/password.js";
 import { db } from "../db/client.js";
 
 const passwordSchema = z
@@ -34,7 +34,20 @@ const registrationUnavailableResponse = {
   error: "Registration is not available for this email."
 };
 
+const loginBodySchema = z
+  .object({
+    email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
+    password: z.string().min(1).max(128)
+  })
+  .strict();
+
+const invalidCredentialsResponse = {
+  error: "Invalid email or password."
+};
+
 export const authRoutes: FastifyPluginAsync = async (app) => {
+  const dummyPasswordHash = await hashPassword("Dummy-password1!");
+
   app.post("/auth/register", async (request, reply) => {
     const parsedBody = registerBodySchema.safeParse(request.body);
 
@@ -113,5 +126,33 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       throw error;
     }
+  });
+
+  app.post("/auth/login", async (request, reply) => {
+    const parsedBody = loginBodySchema.safeParse(request.body);
+
+    if (!parsedBody.success) {
+      return reply.code(400).send({ error: "Invalid login data." });
+    }
+
+    const { email, password } = parsedBody.data;
+    const user = await db.user.findUnique({
+      where: { email },
+      select: {
+        passwordHash: true,
+        status: true
+      }
+    });
+
+    const passwordMatches = await verifyPassword(
+      user?.passwordHash ?? dummyPasswordHash,
+      password
+    );
+
+    if (!user || !passwordMatches || user.status !== "APPROVED") {
+      return reply.code(401).send(invalidCredentialsResponse);
+    }
+
+    return reply.send({ message: "Login successful." });
   });
 };

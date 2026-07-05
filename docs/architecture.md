@@ -72,3 +72,5 @@ Administrative decisions are atomic. Approval records the approved email and eve
 Administrative reads and approval live in their own route module. Authentication middleware will be added when the project has a real login/session foundation; until then, these routes are for local development only.
 
 Registration lives in `routes/auth.ts`, while password hashing is isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
+
+Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists. Session creation is intentionally deferred.

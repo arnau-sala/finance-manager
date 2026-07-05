@@ -44,6 +44,14 @@
 - Create users as `USER` and `APPROVED`.
 - Mark the approved email as used atomically.
 
-## Next Phase
+## Phase 5B: Login Verification
 
-- Phase 5B: add login, logout, cookie-based sessions, and `GET /auth/me`.
+- Add `POST /auth/login`.
+- Verify Argon2id credentials.
+- Return the same error for unknown emails, incorrect passwords, and suspended users.
+
+## Remaining Phase 5 Work
+
+- Add cookie-based sessions.
+- Add `POST /auth/logout`.
+- Add `GET /auth/me`.
