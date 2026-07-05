@@ -45,14 +45,15 @@ apps/api
 
 Prisma dependencies and database scripts live in the root package so the generated client and migration commands are managed once for the monorepo.
 
-The first database models are authentication and access-control foundations:
+The database models cover authentication, access-control foundations, and basic financial records:
 
 - `User`
 - `AccessRequest`
 - `AccessRequestEvent`
 - `ApprovedEmail`
+- `Transaction`
 
-Financial data models are intentionally not included yet.
+Accounts and categories remain deferred until their first behavior is implemented.
 
 Public access requests are handled by a focused Fastify route module. The route validates and normalizes input before querying Prisma, while `app.ts` remains responsible only for assembling the API.
 
@@ -80,6 +81,6 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 
 `auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores only `userId`; logout requires that value and deletes the session cookie. Sessions last up to seven days.
 
-`auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. The transaction route uses this server-derived ID; clients cannot select the owner of financial data.
+`auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. Transaction routes use this server-derived ID; clients cannot select the owner of financial data.
 
-Phase 6A introduces only transaction creation. Accounts, categories, transaction listing, editing, and deletion remain intentionally deferred.
+Phase 6 currently supports transaction creation and deletion. Deletion combines the transaction ID with the authenticated `userId` in one database operation, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Accounts, categories, transaction listing, and editing remain deferred.

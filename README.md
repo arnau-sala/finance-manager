@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 6A adds authenticated creation of basic financial transactions.
+Phase 6 adds authenticated creation and owner-only deletion of basic financial transactions.
 
 Implemented:
 
@@ -24,6 +24,7 @@ Implemented:
 - `POST /auth/login`
 - `POST /auth/logout`
 - `POST /transactions`
+- `DELETE /transactions/:id`
 
 ## Health Endpoint
 
@@ -238,6 +239,30 @@ Content-Type: application/json
 `type` must be `INCOME` or `EXPENSE`. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is optional and defaults to the request time. When provided, it must be an ISO 8601 timestamp with a timezone.
 
 The backend obtains `userId` exclusively from the session and stores the amount as integer cents.
+
+## Delete Transaction
+
+An active login session is required, and the transaction must belong to that user:
+
+```http
+DELETE /transactions/:id
+```
+
+A successful deletion returns `200 OK`:
+
+```json
+{
+  "message": "Transaction deleted."
+}
+```
+
+An unknown transaction ID and a transaction owned by another user both return the same `404 Not Found` response:
+
+```json
+{
+  "error": "Transaction not found."
+}
+```
 
 ## Database
 

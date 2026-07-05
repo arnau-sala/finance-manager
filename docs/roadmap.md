@@ -64,7 +64,13 @@
 - Validate type, amount, description, and optional occurrence date.
 - Assign ownership from the secure session.
 
+## Phase 6B: Transaction Deletion
+
+- Add authenticated `DELETE /transactions/:id`.
+- Restrict deletion to the transaction owner derived from the session.
+- Return the same not-found response for missing and foreign-owned transactions.
+
 ## Remaining Phase 6 Work
 
 - Add accounts and categories when their first behavior is implemented.
-- Add transaction listing, editing, and deletion in later API work.
+- Add transaction listing and editing in later API work.

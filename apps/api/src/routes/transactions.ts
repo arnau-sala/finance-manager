@@ -53,6 +53,12 @@ const createTransactionBodySchema = z
   })
   .strict();
 
+const transactionParamsSchema = z
+  .object({
+    id: z.string().trim().min(1)
+  })
+  .strict();
+
 function centsToDecimal(amountCents: number) {
   const wholePart = Math.floor(amountCents / 100);
   const decimalPart = (amountCents % 100).toString().padStart(2, "0");
@@ -100,5 +106,32 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         createdAt: transaction.createdAt.toISOString()
       }
     });
+  });
+
+  app.delete("/transactions/:id", async (request, reply) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const parsedParams = transactionParamsSchema.safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid transaction id." });
+    }
+
+    const deletion = await db.transaction.deleteMany({
+      where: {
+        id: parsedParams.data.id,
+        userId
+      }
+    });
+
+    if (deletion.count === 0) {
+      return reply.code(404).send({ error: "Transaction not found." });
+    }
+
+    return reply.send({ message: "Transaction deleted." });
   });
 };

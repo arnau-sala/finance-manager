@@ -50,11 +50,13 @@ Login security decisions:
 
 Authenticated user lookup through `GET /auth/me` remains pending.
 
-Transaction creation security decisions:
+Transaction security decisions:
 
 - An active session and an existing `APPROVED` user are required.
 - `userId` is read from the encrypted session and is never accepted from the request body.
 - Description, amount, type, and date are validated before persistence.
 - Amounts are positive integer cents in PostgreSQL, avoiding floating-point money errors.
 - PostgreSQL also rejects non-positive amounts and blank descriptions.
+- Deletion filters by transaction ID and authenticated `userId` in one database operation.
+- Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.
