@@ -35,3 +35,15 @@
 
 - Authenticate administrative requests.
 - Require the `ADMIN` role on every `/admin/*` endpoint.
+
+## Phase 5A: Registration
+
+- Add `POST /auth/register`.
+- Require an unused approved email.
+- Hash passwords with Argon2id.
+- Create users as `USER` and `APPROVED`.
+- Mark the approved email as used atomically.
+
+## Next Phase
+
+- Phase 5B: add login, logout, cookie-based sessions, and `GET /auth/me`.

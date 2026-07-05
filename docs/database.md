@@ -83,6 +83,8 @@ PostgreSQL enforces this distinction: discarded events must have a null referenc
 
 Malformed submissions are rejected before database access and do not create events.
 
-`ApprovedEmail` stores emails approved for future registration. Until administrator sessions exist, `approvedById` remains null.
+`ApprovedEmail` stores emails approved for registration. A successful registration sets `usedAt` in the same transaction that creates the `User`, preventing one approval from being consumed twice. Until administrator sessions exist, `approvedById` remains null.
+
+`User.passwordHash` stores an Argon2id hash, never the original password. New registrations explicitly receive role `USER` and status `APPROVED`.
 
 No financial tables exist yet.

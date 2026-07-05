@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 4 starts the administrative access-request review flow.
+Phase 5A adds registration for approved email addresses.
 
 Implemented:
 
@@ -20,6 +20,7 @@ Implemented:
 - `GET /admin/access-request-events/:id`
 - `POST /admin/access-requests/:id/approve`
 - `POST /admin/access-requests/:id/deny`
+- `POST /auth/register`
 
 ## Health Endpoint
 
@@ -145,6 +146,26 @@ Expected response:
 Timestamps use ISO 8601, for example `2026-06-28T12:30:00.000Z`.
 
 These `/admin` routes are currently available only as a local development foundation. They do not yet authenticate or authorize an administrator and must not be exposed publicly in this state.
+
+## Register
+
+Only an unused email from `ApprovedEmail` can register:
+
+```http
+POST /auth/register
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "approved@example.com",
+  "password": "a-secure-password"
+}
+```
+
+Passwords must contain between 12 and 128 characters. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
+
+Non-approved, already-used, and already-registered emails receive the same `403 Forbidden` response. Registration does not create a login session yet.
 
 ## Database
 

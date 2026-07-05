@@ -28,3 +28,14 @@ The public access-request endpoint:
 A sender can always inspect their own HTTP request and submitted fields in browser developer tools. What remains private is the server-side decision and database destination: no second HTTP request is made, and the response does not identify whether the email is registered, approved, pending, or new.
 
 The `/admin/*` routes do not yet authenticate sessions. Approval and denial therefore record `adminId` as null and must only be used during local development. Denial reasons are administrative data and must not be exposed through public responses. These routes must gain session-based authentication and role authorization before deployment.
+
+Registration security decisions:
+
+- Email addresses are trimmed, lowercased, and validated.
+- Passwords must contain between 12 and 128 characters.
+- Passwords are hashed with Argon2id and are never returned by the API.
+- User creation and approval consumption share one transaction.
+- Non-approved, used, and registered emails return the same public error.
+- Successful responses expose only the user ID, email, role, status, and creation timestamp.
+
+Registration does not create a session. Login, secure cookies, logout, and authenticated user lookup belong to phase 5B.
