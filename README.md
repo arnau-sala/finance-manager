@@ -22,6 +22,7 @@ Implemented:
 - `POST /admin/access-requests/:id/deny`
 - `POST /auth/register`
 - `POST /auth/login`
+- `POST /auth/logout`
 
 ## Health Endpoint
 
@@ -191,7 +192,29 @@ Valid credentials for an approved user return:
 }
 ```
 
-Unknown emails, incorrect passwords, and suspended users receive the same `401 Unauthorized` response. Login only verifies credentials for now; it does not create a session or cookie yet.
+Unknown emails, incorrect passwords, and suspended users receive the same `401 Unauthorized` response. Successful login creates a secure cookie session.
+
+## Logout
+
+```http
+POST /auth/logout
+```
+
+The request must include the session cookie created by login. A valid logout returns:
+
+```json
+{
+  "message": "Logout successful."
+}
+```
+
+Calling logout without an active session returns `401 Unauthorized`:
+
+```json
+{
+  "error": "No active session."
+}
+```
 
 ## Database
 
@@ -202,6 +225,7 @@ Required values:
 ```env
 NODE_ENV=development
 PORT=3001
+SESSION_KEY=<64-character-hexadecimal-key>
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_manager?schema=public"
 ```
 

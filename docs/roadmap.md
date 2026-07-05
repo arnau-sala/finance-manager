@@ -49,9 +49,9 @@
 - Add `POST /auth/login`.
 - Verify Argon2id credentials.
 - Return the same error for unknown emails, incorrect passwords, and suspended users.
+- Create a secure cookie session after login.
+- Add `POST /auth/logout` and require an active session.
 
 ## Remaining Phase 5 Work
 
-- Add cookie-based sessions.
-- Add `POST /auth/logout`.
 - Add `GET /auth/me`.

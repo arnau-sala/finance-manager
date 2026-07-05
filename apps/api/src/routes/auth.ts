@@ -139,6 +139,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
     const user = await db.user.findUnique({
       where: { email },
       select: {
+        id: true,
         passwordHash: true,
         status: true
       }
@@ -153,6 +154,21 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(401).send(invalidCredentialsResponse);
     }
 
+    request.session.regenerate();
+    request.session.set("userId", user.id);
+
     return reply.send({ message: "Login successful." });
+  });
+
+  app.post("/auth/logout", async (request, reply) => {
+    const userId = request.session.get("userId");
+
+    if (!userId) {
+      return reply.code(401).send({ error: "No active session." });
+    }
+
+    request.session.delete();
+
+    return reply.send({ message: "Logout successful." });
   });
 };

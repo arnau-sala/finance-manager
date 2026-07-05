@@ -30,6 +30,7 @@ apps/api
       client.ts
     auth
       password.ts
+      session.ts
     routes
       admin-access-requests.ts
       access-requests.ts
@@ -73,4 +74,6 @@ Administrative reads and approval live in their own route module. Authentication
 
 Registration lives in `routes/auth.ts`, while password hashing is isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
 
-Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists. Session creation is intentionally deferred.
+Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
+
+`auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores only `userId`; logout requires that value and deletes the session cookie. Sessions last up to seven days.

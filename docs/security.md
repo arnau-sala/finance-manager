@@ -43,5 +43,9 @@ Login security decisions:
 - Unknown emails, incorrect passwords, and suspended users return the same `401` response.
 - Unknown emails still run an Argon2id verification against a dummy hash to reduce timing differences.
 - Password hashes and user details are never returned by login.
+- Successful login regenerates the session and stores only the user ID.
+- Session cookies are encrypted, `HttpOnly`, `SameSite=Lax`, and limited to seven days.
+- Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
+- Logout requires an active session and deletes its cookie.
 
-Login does not create a session yet. Secure cookies, logout, and authenticated user lookup remain pending.
+Authenticated user lookup through `GET /auth/me` remains pending.
