@@ -159,11 +159,12 @@ Content-Type: application/json
 ```json
 {
   "email": "approved@example.com",
-  "password": "a-secure-password"
+  "password": "SecurePass1!",
+  "passwordConfirmation": "SecurePass1!"
 }
 ```
 
-Passwords must contain between 12 and 128 characters. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
+The two passwords must match exactly. The password must contain between 9 and 128 characters, including at least one uppercase letter, one digit, and one special character. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
 
 Non-approved, already-used, and already-registered emails receive the same `403 Forbidden` response. Registration does not create a login session yet.
 

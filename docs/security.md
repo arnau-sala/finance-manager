@@ -31,7 +31,8 @@ The `/admin/*` routes do not yet authenticate sessions and must only be used dur
 Registration security decisions:
 
 - Email addresses are trimmed, lowercased, and validated.
-- Passwords must contain between 12 and 128 characters.
+- Registration requires matching `password` and `passwordConfirmation` fields.
+- Passwords must contain between 9 and 128 characters, with at least one uppercase letter, one digit, and one special character.
 - Passwords are hashed with Argon2id and are never returned by the API.
 - User creation and approval consumption share one transaction.
 - Non-approved, used, and registered emails return the same public error.

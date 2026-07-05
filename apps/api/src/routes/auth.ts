@@ -5,12 +5,30 @@ import { z } from "zod";
 import { hashPassword } from "../auth/password.js";
 import { db } from "../db/client.js";
 
+const passwordSchema = z
+  .string()
+  .min(9, "Password must contain more than 8 characters.")
+  .max(128, "Password must contain at most 128 characters.")
+  .regex(/\p{Lu}/u, "Password must contain at least one uppercase letter.")
+  .regex(/\p{Nd}/u, "Password must contain at least one digit.")
+  .regex(/(?:\p{P}|\p{S})/u, "Password must contain at least one special character.");
+
 const registerBodySchema = z
   .object({
     email: z.string().trim().email().max(254).transform((email) => email.toLowerCase()),
-    password: z.string().min(12).max(128)
+    password: passwordSchema,
+    passwordConfirmation: z.string()
   })
-  .strict();
+  .strict()
+  .superRefine(({ password, passwordConfirmation }, context) => {
+    if (password !== passwordConfirmation) {
+      context.addIssue({
+        code: "custom",
+        path: ["passwordConfirmation"],
+        message: "Passwords do not match."
+      });
+    }
+  });
 
 const registrationUnavailableResponse = {
   error: "Registration is not available for this email."
