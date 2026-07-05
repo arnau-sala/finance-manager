@@ -89,7 +89,7 @@ Malformed submissions are rejected before database access and do not create even
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
-`AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. It remains null until authenticated administrative actions can obtain the administrator ID from the session.
+`AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. Administrative routes are authenticated; wiring the verified administrator ID into new approval and denial events remains separate follow-up work.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 

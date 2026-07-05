@@ -77,7 +77,7 @@ Administrative decisions are atomic. Approval records the approved email and eve
 
 `AccessRequestEvent.accessRequestId` is an immutable historical reference rather than a foreign-key relation. Creation, approval, and denial events require it, allowing administrative decisions to retain the original request ID after the pending row is deleted. Automatic system discards always leave it null.
 
-Administrative reads and approval live in their own route module. Authentication middleware will be added when the project has a real login/session foundation; until then, these routes are for local development only.
+Administrative access-request routes and user-management routes share `auth/require-administrator.ts`. Each administrative module registers it as a plugin-scoped `preHandler`, so every route verifies an active approved user and the `ADMIN` role before executing its handler.
 
 Registration lives in `routes/auth.ts`, while password hashing is isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
 

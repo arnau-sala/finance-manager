@@ -2,6 +2,7 @@ import type { AccessRequest, AccessRequestEvent } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
+import { requireAdministrator } from "../auth/require-administrator.js";
 import { db } from "../db/client.js";
 
 const idParamsSchema = z.object({
@@ -41,6 +42,8 @@ function toAdminEventResponse(event: AccessRequestEvent) {
 }
 
 export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
+  app.addHook("preHandler", requireAdministrator);
+
   app.get("/admin/access-requests", async () => {
     const accessRequests = await db.accessRequest.findMany({
       orderBy: { timestamp: "desc" }

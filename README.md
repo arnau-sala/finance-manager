@@ -87,6 +87,8 @@ All three fields are required. A syntactically valid submission always receives 
 
 ## Review Pending Requests
 
+Every endpoint in this section requires an active session for a user with role `ADMIN`.
+
 List pending requests:
 
 ```http
@@ -129,7 +131,7 @@ Expected response:
 }
 ```
 
-Approval creates or updates `ApprovedEmail`, records an `ACCESS_REQUEST_APPROVED` event, and removes the request from the pending queue. It does not require a body until administrator sessions exist. An unknown request ID returns `404 Not Found`.
+Approval creates or updates `ApprovedEmail`, records an `ACCESS_REQUEST_APPROVED` event, and removes the request from the pending queue. It does not require a body. An unknown request ID returns `404 Not Found`.
 
 Deny a pending request:
 
@@ -156,7 +158,7 @@ Expected response:
 
 Timestamps use ISO 8601, for example `2026-06-28T12:30:00.000Z`.
 
-These `/admin` routes are currently available only as a local development foundation. They do not yet authenticate or authorize an administrator and must not be exposed publicly in this state.
+Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden`.
 
 ## Register
 

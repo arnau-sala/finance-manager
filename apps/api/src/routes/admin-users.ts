@@ -1,10 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
-import {
-  getAuthenticatedUser,
-  publicUserSelect
-} from "../auth/authenticated-user.js";
+import { publicUserSelect } from "../auth/authenticated-user.js";
+import { requireAdministrator } from "../auth/require-administrator.js";
 import { db } from "../db/client.js";
 
 const userIdParamsSchema = z
@@ -14,17 +12,7 @@ const userIdParamsSchema = z
   .strict();
 
 export const adminUserRoutes: FastifyPluginAsync = async (app) => {
-  app.addHook("preHandler", async (request, reply) => {
-    const authenticatedUser = await getAuthenticatedUser(request);
-
-    if (!authenticatedUser) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
-
-    if (authenticatedUser.role !== "ADMIN") {
-      return reply.code(403).send({ error: "Administrator access required." });
-    }
-  });
+  app.addHook("preHandler", requireAdministrator);
 
   app.get("/admin/users", async (_request, reply) => {
     const users = await db.user.findMany({

@@ -26,7 +26,7 @@ The public access-request endpoint:
 
 A sender can always inspect their own HTTP request and submitted fields in browser developer tools. What remains private is the server-side decision and database destination: no second HTTP request is made, and the response does not identify whether the email is registered, approved, pending, or new.
 
-The `/admin/*` routes do not yet authenticate sessions and must only be used during local development. The event log has a nullable `adminId`, but it must be populated from a verified session rather than a client-supplied value. Denial reasons are administrative data and must not be exposed through public responses. These routes must gain session-based authentication and role authorization before deployment.
+Every `/admin/*` route uses the shared `requireAdministrator` pre-handler. Missing or invalid sessions receive `401`, while authenticated non-administrators receive `403`. The event log has a nullable `adminId`, which must be populated from the verified session rather than client input. Denial reasons are administrative data and are not exposed through public responses.
 
 Registration security decisions:
 
@@ -50,9 +50,9 @@ Login security decisions:
 
 Administrative user listing security decisions:
 
-- `GET /admin/users` and `GET /admin/users/:id` require an active session and an `APPROVED` user.
+- `GET /admin/users` and `GET /admin/users/:id` require an active session for an `APPROVED` administrator.
 - Authenticated non-administrators receive `403 Forbidden`.
-- Account detail IDs must be valid CUIDs before reaching the database.
+- User detail IDs must be valid CUIDs before reaching the database.
 - The database query selects only ID, email, role, status, and creation timestamp.
 - Password hashes and update timestamps are never loaded into the endpoint response.
 

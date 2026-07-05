@@ -31,11 +31,6 @@
 - Allow a pending request to be denied with a mandatory reason.
 - Keep the public result independent from the internal database decision.
 
-## Remaining Phase 4 Work
-
-- Authenticate administrative requests.
-- Require the `ADMIN` role on every `/admin/*` endpoint.
-
 ## Phase 5A: Registration
 
 - Add `POST /auth/register`.
