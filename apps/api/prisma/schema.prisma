@@ -17,6 +17,11 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
 enum AccessRequestEventType {
   ACCESS_REQUEST_CREATED
   ACCESS_REQUEST_DISCARDED
@@ -74,4 +79,16 @@ model ApprovedEmail {
   email      String    @unique
   approvedAt DateTime  @default(now())
   usedAt     DateTime?
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  userId      String
+  type        TransactionType
+  amountCents Int
+  description String          @db.VarChar(100)
+  occurredAt  DateTime
+  createdAt   DateTime        @default(now())
+
+  @@index([userId, occurredAt])
 }

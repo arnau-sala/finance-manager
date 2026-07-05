@@ -55,3 +55,16 @@
 ## Remaining Phase 5 Work
 
 - Add `GET /auth/me`.
+
+## Phase 6A: Basic Transaction Creation
+
+- Add the `Transaction` model and `TransactionType` enum.
+- Store monetary values as integer cents.
+- Add authenticated `POST /transactions`.
+- Validate type, amount, description, and optional occurrence date.
+- Assign ownership from the secure session.
+
+## Remaining Phase 6 Work
+
+- Add accounts and categories when their first behavior is implemented.
+- Add transaction listing, editing, and deletion in later API work.

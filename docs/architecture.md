@@ -29,12 +29,14 @@ apps/api
     db
       client.ts
     auth
+      authenticated-user.ts
       password.ts
       session.ts
     routes
       admin-access-requests.ts
       access-requests.ts
       auth.ts
+      transactions.ts
     app.ts
     server.ts
 ```
@@ -77,3 +79,7 @@ Registration lives in `routes/auth.ts`, while password hashing is isolated in `a
 Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
 
 `auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores only `userId`; logout requires that value and deletes the session cookie. Sessions last up to seven days.
+
+`auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. The transaction route uses this server-derived ID; clients cannot select the owner of financial data.
+
+Phase 6A introduces only transaction creation. Accounts, categories, transaction listing, editing, and deletion remain intentionally deferred.

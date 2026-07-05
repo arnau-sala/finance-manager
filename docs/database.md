@@ -91,4 +91,8 @@ Malformed submissions are rejected before database access and do not create even
 
 `AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. It remains null until authenticated administrative actions can obtain the administrator ID from the session.
 
+`Transaction` stores the first financial records. Each row contains an immutable owner `userId`, type `INCOME` or `EXPENSE`, a required description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
+
+The `(userId, occurredAt)` index supports future user-scoped chronological lists. Every future transaction query must filter by `userId` from the authenticated session.
+
 No financial tables exist yet.

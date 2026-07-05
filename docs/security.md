@@ -49,3 +49,12 @@ Login security decisions:
 - Logout requires an active session and deletes its cookie.
 
 Authenticated user lookup through `GET /auth/me` remains pending.
+
+Transaction creation security decisions:
+
+- An active session and an existing `APPROVED` user are required.
+- `userId` is read from the encrypted session and is never accepted from the request body.
+- Description, amount, type, and date are validated before persistence.
+- Amounts are positive integer cents in PostgreSQL, avoiding floating-point money errors.
+- PostgreSQL also rejects non-positive amounts and blank descriptions.
+- Future reads and mutations must always filter transactions by the authenticated `userId`.

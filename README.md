@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 5B adds credential verification after approved-email registration.
+Phase 6A adds authenticated creation of basic financial transactions.
 
 Implemented:
 
@@ -23,6 +23,7 @@ Implemented:
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
+- `POST /transactions`
 
 ## Health Endpoint
 
@@ -215,6 +216,28 @@ Calling logout without an active session returns `401 Unauthorized`:
   "error": "No active session."
 }
 ```
+
+## Create Transaction
+
+An active login session is required:
+
+```http
+POST /transactions
+Content-Type: application/json
+```
+
+```json
+{
+  "type": "EXPENSE",
+  "description": "Weekly groceries",
+  "amount": "42.50",
+  "date": "2026-07-05T18:30:00+02:00"
+}
+```
+
+`type` must be `INCOME` or `EXPENSE`. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is optional and defaults to the request time. When provided, it must be an ISO 8601 timestamp with a timezone.
+
+The backend obtains `userId` exclusively from the session and stores the amount as integer cents.
 
 ## Database
 
