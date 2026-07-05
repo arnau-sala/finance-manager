@@ -24,6 +24,7 @@ Implemented:
 - `POST /auth/login`
 - `POST /auth/logout`
 - `GET /accounts` (`ADMIN` only)
+- `GET /accounts/:id` (`ADMIN` only)
 - `GET /categories`
 - `POST /transactions`
 - `PATCH /transactions/:id`
@@ -246,6 +247,30 @@ A successful request returns accounts ordered by creation date, newest first:
 ```
 
 Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden` with `{"error":"Administrator access required."}`.
+
+## Get Account
+
+An active session for a user with role `ADMIN` and a valid account CUID are required:
+
+```http
+GET /accounts/:id
+```
+
+A successful request returns the same public fields as the account list:
+
+```json
+{
+  "account": {
+    "id": "cmr81aoib0000kzsowdqjw84x",
+    "email": "user@example.com",
+    "role": "USER",
+    "status": "APPROVED",
+    "createdAt": "2026-07-05T18:30:00.000Z"
+  }
+}
+```
+
+An invalid ID format returns `400 Bad Request`. A valid CUID without a matching account returns `404 Not Found`.
 
 ## List Categories
 

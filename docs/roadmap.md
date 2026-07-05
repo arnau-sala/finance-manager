@@ -92,5 +92,6 @@
 ## Phase 7A: Administrative Account Listing
 
 - Add authenticated `GET /accounts`.
+- Add authenticated `GET /accounts/:id` with CUID validation.
 - Restrict the endpoint to users with role `ADMIN`.
 - Return only ID, email, role, status, and creation timestamp.
