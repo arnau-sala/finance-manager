@@ -81,14 +81,24 @@ model ApprovedEmail {
   usedAt     DateTime?
 }
 
+model Category {
+  id   String          @id @default(cuid())
+  name String
+  type TransactionType
+
+  @@unique([name, type])
+}
+
 model Transaction {
   id          String          @id @default(cuid())
   userId      String
   type        TransactionType
+  categoryId  String
   amountCents Int
   description String          @db.VarChar(100)
   occurredAt  DateTime
   createdAt   DateTime        @default(now())
 
   @@index([userId, occurredAt])
+  @@index([categoryId])
 }

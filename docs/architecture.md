@@ -36,6 +36,7 @@ apps/api
       admin-access-requests.ts
       access-requests.ts
       auth.ts
+      categories.ts
       transactions.ts
     app.ts
     server.ts
@@ -51,9 +52,10 @@ The database models cover authentication, access-control foundations, and basic 
 - `AccessRequest`
 - `AccessRequestEvent`
 - `ApprovedEmail`
+- `Category`
 - `Transaction`
 
-Accounts and categories remain deferred until their first behavior is implemented.
+Accounts remain deferred until their first behavior is implemented.
 
 Public access requests are handled by a focused Fastify route module. The route validates and normalizes input before querying Prisma, while `app.ts` remains responsible only for assembling the API.
 
@@ -83,4 +85,6 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 
 `auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. Transaction routes use this server-derived ID; clients cannot select the owner of financial data.
 
-Phase 6 currently supports transaction creation, partial editing, and deletion. Mutations combine the transaction ID with the authenticated `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Accounts, categories, and transaction listing remain deferred.
+Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. Only the scalar `categoryId` is stored on transactions; Prisma relation fields are intentionally omitted.
+
+Transaction mutations combine the transaction ID with the authenticated `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Accounts and transaction listing remain deferred.

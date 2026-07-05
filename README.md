@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 6 adds authenticated creation, editing, and owner-only deletion of basic financial transactions.
+Phase 6 adds authenticated financial transactions with predefined income and expense categories.
 
 Implemented:
 
@@ -23,6 +23,7 @@ Implemented:
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
+- `GET /categories`
 - `POST /transactions`
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
@@ -219,6 +220,28 @@ Calling logout without an active session returns `401 Unauthorized`:
 }
 ```
 
+## List Categories
+
+An active login session is required:
+
+```http
+GET /categories
+```
+
+Use `GET /categories?type=EXPENSE` or `GET /categories?type=INCOME` to filter the catalog. Each category contains the stable `id` required by transaction creation and editing:
+
+```json
+{
+  "categories": [
+    {
+      "id": "expense-groceries",
+      "name": "Groceries",
+      "type": "EXPENSE"
+    }
+  ]
+}
+```
+
 ## Create Transaction
 
 An active login session is required:
@@ -231,13 +254,14 @@ Content-Type: application/json
 ```json
 {
   "type": "EXPENSE",
+  "categoryId": "expense-groceries",
   "description": "Weekly groceries",
   "amount": "42.50",
   "date": "2026-07-05T18:30:00+02:00"
 }
 ```
 
-`type` must be `INCOME` or `EXPENSE`. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is optional and defaults to the request time. When provided, it must be an ISO 8601 timestamp with a timezone.
+`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is optional and defaults to the request time. When provided, it must be an ISO 8601 timestamp with a timezone.
 
 The backend obtains `userId` exclusively from the session and stores the amount as integer cents.
 
@@ -278,12 +302,13 @@ Send only the fields that must change. All fields are optional, and an empty obj
 
 ```json
 {
+  "categoryId": "expense-dining-out",
   "description": "Updated description",
   "amount": "35.20"
 }
 ```
 
-The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
+The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
 
 ## Database
 

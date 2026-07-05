@@ -77,7 +77,15 @@
 - Accept empty edits without changing stored data.
 - Apply the same owner-only and indistinguishable not-found behavior as deletion.
 
+## Phase 6D: Predefined Categories
+
+- Add the global `Category` model and predefined English catalog.
+- Add authenticated `GET /categories` with an optional transaction-type filter.
+- Require a compatible category when creating or editing transactions.
+- Backfill existing transactions with the corresponding fallback category.
+
 ## Remaining Phase 6 Work
 
-- Add accounts and categories when their first behavior is implemented.
+- Add accounts when their first behavior is implemented.
+- Add user-created category management in a later version.
 - Add transaction listing in later API work.

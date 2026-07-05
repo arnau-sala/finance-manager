@@ -91,6 +91,16 @@ Malformed submissions are rejected before database access and do not create even
 
 `AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. It remains null until authenticated administrative actions can obtain the administrator ID from the session.
 
-`Transaction` stores the first financial records. Each row contains an immutable owner `userId`, type `INCOME` or `EXPENSE`, a required description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
+`Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 
-The `(userId, occurredAt)` index supports future user-scoped chronological lists. Transaction editing and deletion filter by both `id` and the authenticated `userId`; the database never mutates a row owned by another user.
+Expense categories: Bars & Restaurants, Education, Gifts, Groceries, Health, Housing, Parties, Shopping, Sports, Subscriptions, Transportation, Travel, and Other.
+
+Income categories: Allowance, Freelance, Gifts, Investments, Salary, Sales, and Other.
+
+Category responses place expenses first. Within each type, names are alphabetical with `Other` always last.
+
+`Transaction` stores the first financial records. Each row contains an immutable owner `userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
+
+`categoryId` is stored as a scalar reference without a Prisma relation field, matching the project's current approach for ownership and administrative references. The API validates that the category exists and matches the transaction type. The migration assigns existing transactions to `Other Expense` or `Other Income` according to their type before making `categoryId` mandatory.
+
+The `(userId, occurredAt)` index supports future user-scoped chronological lists, while the `categoryId` index supports category filtering. Transaction editing and deletion filter by both `id` and the authenticated `userId`; the database never mutates a row owned by another user.

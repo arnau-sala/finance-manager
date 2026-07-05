@@ -54,7 +54,9 @@ Transaction security decisions:
 
 - An active session and an existing `APPROVED` user are required.
 - `userId` is read from the encrypted session and is never accepted from the request body.
-- Description, amount, type, and date are validated before persistence.
+- Description, amount, type, category, and date are validated before persistence.
+- Categories must exist and match the transaction type on creation and editing.
+- Category references are validated by the API before transaction writes.
 - Amounts are positive integer cents in PostgreSQL, avoiding floating-point money errors.
 - PostgreSQL also rejects non-positive amounts and blank descriptions.
 - Deletion filters by transaction ID and authenticated `userId` in one database operation.

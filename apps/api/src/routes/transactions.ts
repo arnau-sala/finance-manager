@@ -53,6 +53,7 @@ const transactionDateSchema = z
 const createTransactionBodySchema = z
   .object({
     type: transactionTypeSchema,
+    categoryId: z.string().trim().min(1),
     description: transactionDescriptionSchema,
     date: transactionDateSchema.optional(),
     amount: amountSchema
@@ -62,6 +63,7 @@ const createTransactionBodySchema = z
 const updateTransactionBodySchema = z
   .object({
     type: transactionTypeSchema.optional(),
+    categoryId: z.string().trim().min(1).optional(),
     description: transactionDescriptionSchema.optional(),
     date: transactionDateSchema.optional(),
     amount: amountSchema.optional()
@@ -100,10 +102,25 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
+    const category = await db.category.findFirst({
+      where: {
+        id: parsedBody.data.categoryId,
+        type: parsedBody.data.type
+      },
+      select: { id: true }
+    });
+
+    if (!category) {
+      return reply
+        .code(400)
+        .send({ error: "Invalid category for transaction type." });
+    }
+
     const transaction = await db.transaction.create({
       data: {
         userId,
         type: parsedBody.data.type,
+        categoryId: category.id,
         amountCents: parsedBody.data.amount,
         description: parsedBody.data.description,
         occurredAt: parsedBody.data.date ?? new Date()
@@ -115,6 +132,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         id: transaction.id,
         userId: transaction.userId,
         type: transaction.type,
+        categoryId: transaction.categoryId,
         amount: centsToDecimal(transaction.amountCents),
         description: transaction.description,
         date: transaction.occurredAt.toISOString(),
@@ -175,22 +193,41 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       });
     }
 
-    const { type, description, date, amount } = parsedBody.data;
+    const transaction = await db.transaction.findFirst({
+      where: {
+        id: parsedParams.data.id,
+        userId
+      },
+      select: {
+        id: true,
+        type: true,
+        categoryId: true
+      }
+    });
+
+    if (!transaction) {
+      return reply.code(404).send({ error: "Transaction not found." });
+    }
 
     if (Object.keys(parsedBody.data).length === 0) {
-      const transaction = await db.transaction.findFirst({
-        where: {
-          id: parsedParams.data.id,
-          userId
-        },
-        select: { id: true }
-      });
-
-      if (!transaction) {
-        return reply.code(404).send({ error: "Transaction not found." });
-      }
-
       return reply.send({ message: "Transaction updated." });
+    }
+
+    const { type, categoryId, description, date, amount } = parsedBody.data;
+    const resultingType = type ?? transaction.type;
+    const resultingCategoryId = categoryId ?? transaction.categoryId;
+    const category = await db.category.findFirst({
+      where: {
+        id: resultingCategoryId,
+        type: resultingType
+      },
+      select: { id: true }
+    });
+
+    if (!category) {
+      return reply
+        .code(400)
+        .send({ error: "Invalid category for transaction type." });
     }
 
     const update = await db.transaction.updateMany({
@@ -200,6 +237,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       },
       data: {
         type,
+        categoryId,
         description,
         occurredAt: date,
         amountCents: amount
