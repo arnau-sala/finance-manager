@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 6 adds authenticated financial transactions with predefined income and expense categories.
+Phase 7 documents and expands the authenticated API surface, starting with administrative account listing.
 
 Implemented:
 
@@ -23,6 +23,7 @@ Implemented:
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
+- `GET /accounts` (`ADMIN` only)
 - `GET /categories`
 - `POST /transactions`
 - `PATCH /transactions/:id`
@@ -219,6 +220,32 @@ Calling logout without an active session returns `401 Unauthorized`:
   "error": "No active session."
 }
 ```
+
+## List Accounts
+
+An active session for a user with role `ADMIN` is required:
+
+```http
+GET /accounts
+```
+
+A successful request returns accounts ordered by creation date, newest first:
+
+```json
+{
+  "accounts": [
+    {
+      "id": "account-id",
+      "email": "user@example.com",
+      "role": "USER",
+      "status": "APPROVED",
+      "createdAt": "2026-07-05T18:30:00.000Z"
+    }
+  ]
+}
+```
+
+Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden` with `{"error":"Administrator access required."}`.
 
 ## List Categories
 

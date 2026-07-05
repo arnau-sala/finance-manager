@@ -50,6 +50,13 @@ Login security decisions:
 
 Authenticated user lookup through `GET /auth/me` remains pending.
 
+Account listing security decisions:
+
+- `GET /accounts` requires an active session and an `APPROVED` account.
+- Authenticated non-administrators receive `403 Forbidden`.
+- The database query selects only ID, email, role, status, and creation timestamp.
+- Password hashes and update timestamps are never loaded into the endpoint response.
+
 Transaction security decisions:
 
 - An active session and an existing `APPROVED` user are required.

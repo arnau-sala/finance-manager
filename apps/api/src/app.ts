@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 
 import { registerSecureSession } from "./auth/session.js";
+import { accountRoutes } from "./routes/accounts.js";
 import { adminAccessRequestRoutes } from "./routes/admin-access-requests.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authRoutes } from "./routes/auth.js";
@@ -21,6 +22,7 @@ export function buildApp() {
   app.register(accessRequestRoutes);
   app.register(adminAccessRequestRoutes);
   app.register(authRoutes);
+  app.register(accountRoutes);
   app.register(categoryRoutes);
   app.register(transactionRoutes);
 

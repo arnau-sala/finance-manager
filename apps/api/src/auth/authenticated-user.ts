@@ -2,7 +2,7 @@ import type { FastifyRequest } from "fastify";
 
 import { db } from "../db/client.js";
 
-export async function getAuthenticatedUserId(request: FastifyRequest) {
+export async function getAuthenticatedUser(request: FastifyRequest) {
   const sessionUserId = request.session.get("userId");
 
   if (!sessionUserId) {
@@ -14,7 +14,10 @@ export async function getAuthenticatedUserId(request: FastifyRequest) {
       id: sessionUserId,
       status: "APPROVED"
     },
-    select: { id: true }
+    select: {
+      id: true,
+      role: true
+    }
   });
 
   if (!user) {
@@ -22,5 +25,10 @@ export async function getAuthenticatedUserId(request: FastifyRequest) {
     return null;
   }
 
-  return user.id;
+  return user;
+}
+
+export async function getAuthenticatedUserId(request: FastifyRequest) {
+  const user = await getAuthenticatedUser(request);
+  return user?.id ?? null;
 }

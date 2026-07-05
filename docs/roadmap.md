@@ -86,6 +86,11 @@
 
 ## Remaining Phase 6 Work
 
-- Add accounts when their first behavior is implemented.
 - Add user-created category management in a later version.
 - Add transaction listing in later API work.
+
+## Phase 7A: Administrative Account Listing
+
+- Add authenticated `GET /accounts`.
+- Restrict the endpoint to users with role `ADMIN`.
+- Return only ID, email, role, status, and creation timestamp.
