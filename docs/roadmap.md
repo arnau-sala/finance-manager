@@ -87,7 +87,6 @@
 ## Remaining Phase 6 Work
 
 - Add user-created category management in a later version.
-- Add transaction listing in later API work.
 
 ## Phase 7A: Administrative Account Listing
 
@@ -101,3 +100,10 @@
 - Add authenticated `GET /myaccount`.
 - Resolve the account exclusively from the secure session.
 - Reuse the public fields exposed by administrative account reads and include `updatedAt`.
+
+## Phase 7C: Current User Transactions
+
+- Add authenticated `GET /transactions`.
+- Return only records owned by the current session user.
+- Apply the same ownership rule to administrators.
+- Order results by transaction date, newest first.

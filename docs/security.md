@@ -64,6 +64,7 @@ Transaction security decisions:
 
 - An active session and an existing `APPROVED` user are required.
 - `userId` is read from the encrypted session and is never accepted from the request body.
+- Transaction listing always filters by the session `userId`; the `ADMIN` role has no bypass.
 - Description, amount, type, category, and date are validated before persistence.
 - Categories must exist and match the transaction type on creation and editing.
 - Category references are validated by the API before transaction writes.

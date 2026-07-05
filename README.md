@@ -27,6 +27,7 @@ Implemented:
 - `GET /accounts/:id` (`ADMIN` only)
 - `GET /myaccount`
 - `GET /categories`
+- `GET /transactions`
 - `POST /transactions`
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
@@ -319,6 +320,35 @@ Use `GET /categories?type=EXPENSE` or `GET /categories?type=INCOME` to filter th
   ]
 }
 ```
+
+## List My Transactions
+
+An active session is required:
+
+```http
+GET /transactions
+```
+
+The endpoint returns only transactions owned by the current session user, including when that user has role `ADMIN`. Results are ordered by transaction date, newest first:
+
+```json
+{
+  "transactions": [
+    {
+      "id": "transaction-id",
+      "userId": "current-user-id",
+      "type": "EXPENSE",
+      "categoryId": "expense-groceries",
+      "amount": "42.50",
+      "description": "Weekly groceries",
+      "date": "2026-07-05T16:30:00.000Z",
+      "createdAt": "2026-07-05T16:31:00.000Z"
+    }
+  ]
+}
+```
+
+An account without transactions receives `{"transactions":[]}`. A request without a valid session returns `401 Unauthorized`.
 
 ## Create Transaction
 

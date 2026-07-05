@@ -1,3 +1,4 @@
+import type { Transaction } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
@@ -82,7 +83,37 @@ function centsToDecimal(amountCents: number) {
   return `${wholePart}.${decimalPart}`;
 }
 
+function toTransactionResponse(transaction: Transaction) {
+  return {
+    id: transaction.id,
+    userId: transaction.userId,
+    type: transaction.type,
+    categoryId: transaction.categoryId,
+    amount: centsToDecimal(transaction.amountCents),
+    description: transaction.description,
+    date: transaction.occurredAt.toISOString(),
+    createdAt: transaction.createdAt.toISOString()
+  };
+}
+
 export const transactionRoutes: FastifyPluginAsync = async (app) => {
+  app.get("/transactions", async (request, reply) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const transactions = await db.transaction.findMany({
+      where: { userId },
+      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }]
+    });
+
+    return reply.send({
+      transactions: transactions.map(toTransactionResponse)
+    });
+  });
+
   app.post("/transactions", async (request, reply) => {
     const userId = await getAuthenticatedUserId(request);
 
@@ -128,16 +159,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.code(201).send({
-      transaction: {
-        id: transaction.id,
-        userId: transaction.userId,
-        type: transaction.type,
-        categoryId: transaction.categoryId,
-        amount: centsToDecimal(transaction.amountCents),
-        description: transaction.description,
-        date: transaction.occurredAt.toISOString(),
-        createdAt: transaction.createdAt.toISOString()
-      }
+      transaction: toTransactionResponse(transaction)
     });
   });
 

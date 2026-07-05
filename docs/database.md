@@ -103,4 +103,4 @@ Category responses place expenses first. Within each type, names are alphabetica
 
 `categoryId` is stored as a scalar reference without a Prisma relation field, matching the project's current approach for ownership and administrative references. The API validates that the category exists and matches the transaction type. The migration assigns existing transactions to `Other Expense` or `Other Income` according to their type before making `categoryId` mandatory.
 
-The `(userId, occurredAt)` index supports future user-scoped chronological lists, while the `categoryId` index supports category filtering. Transaction editing and deletion filter by both `id` and the authenticated `userId`; the database never mutates a row owned by another user.
+The `(userId, occurredAt)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering. Listing filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
