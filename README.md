@@ -8,31 +8,54 @@ Phase 8 starts the basic statistics layer for authenticated financial data.
 
 Implemented:
 
+Core:
+
 - `GET /health`
 - Prisma schema for `User`, `AccessRequest`, and `ApprovedEmail`
 - Initial SQL migration
 - Shared Prisma client module for the API
+
+Access requests:
+
 - `POST /access-requests` with input validation and neutral responses
 - Permanent access-request event log
+
+Admin access requests:
+
 - `GET /admin/access-requests`
 - `GET /admin/access-requests/:id`
 - `GET /admin/access-request-events`
 - `GET /admin/access-request-events/:id`
 - `POST /admin/access-requests/:id/approve`
 - `POST /admin/access-requests/:id/deny`
+
+Authentication:
+
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
+- `GET /auth/me`
+
+Admin users:
+
 - `GET /admin/users` (`ADMIN` only)
 - `GET /admin/users/:id` (`ADMIN` only)
-- `GET /auth/me`
+
+Categories:
+
 - `GET /categories`
+
+Transactions:
+
 - `GET /transactions`
 - `GET /transactions/categories/:category`
 - `GET /transactions/:id`
 - `POST /transactions`
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
+
+Statistics:
+
 - `GET /statistics/balance`
 - `GET /statistics/balance/:month/:year`
 - `GET /statistics/balance/:month`
