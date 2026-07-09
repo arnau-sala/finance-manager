@@ -95,6 +95,7 @@
 ## Phase 7C: Current User Transactions
 
 - Add authenticated `GET /transactions`.
+- Add authenticated `GET /transactions/categories/:category`.
 - Add owner-only `GET /transactions/:id`.
 - Return only records owned by the current session user.
 - Apply the same ownership rule to administrators.

@@ -101,6 +101,12 @@ const transactionParamsSchema = z
   })
   .strict();
 
+const transactionCategoryParamsSchema = z
+  .object({
+    category: z.string().trim().min(1)
+  })
+  .strict();
+
 function toTransactionWithCategory(row: TransactionWithCategoryRow) {
   return {
     id: row.id,
@@ -157,6 +163,49 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         FROM "Transaction" t
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
+        ORDER BY t."occurredAt" DESC, t."createdAt" DESC
+      `
+    );
+
+    return reply.send({
+      transactions: transactions
+        .map(toTransactionWithCategory)
+        .map(toTransactionResponse)
+    });
+  });
+
+  app.get("/transactions/categories/:category", async (request, reply) => {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const parsedParams = transactionCategoryParamsSchema.safeParse(
+      request.params
+    );
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid category id." });
+    }
+
+    const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
+      Prisma.sql`
+        SELECT
+          t."id" AS "id",
+          t."userId" AS "userId",
+          t."type" AS "type",
+          t."categoryId" AS "categoryId",
+          t."amountCents" AS "amountCents",
+          t."description" AS "description",
+          t."occurredAt" AS "occurredAt",
+          t."createdAt" AS "createdAt",
+          c."name" AS "categoryName",
+          c."type" AS "categoryType"
+        FROM "Transaction" t
+        INNER JOIN "Category" c ON c."id" = t."categoryId"
+        WHERE t."userId" = ${userId}
+          AND t."categoryId" = ${parsedParams.data.category}
         ORDER BY t."occurredAt" DESC, t."createdAt" DESC
       `
     );

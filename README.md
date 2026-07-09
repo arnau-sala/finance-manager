@@ -28,6 +28,7 @@ Implemented:
 - `GET /auth/me`
 - `GET /categories`
 - `GET /transactions`
+- `GET /transactions/categories/:category`
 - `GET /transactions/:id`
 - `POST /transactions`
 - `PATCH /transactions/:id`
@@ -372,6 +373,40 @@ The endpoint returns only transactions owned by the current session user, includ
 ```
 
 A user without transactions receives `{"transactions":[]}`. A request without a valid session returns `401 Unauthorized`.
+
+## List My Transactions By Category
+
+An active session is required:
+
+```http
+GET /transactions/categories/:category
+```
+
+`:category` is the category ID, for example `income-salary` or `expense-housing`. The endpoint returns only transactions owned by the current session user and assigned to that category:
+
+```json
+{
+  "transactions": [
+    {
+      "id": "transaction-id",
+      "userId": "current-user-id",
+      "type": "EXPENSE",
+      "categoryId": "expense-housing",
+      "category": {
+        "id": "expense-housing",
+        "name": "Housing",
+        "type": "EXPENSE"
+      },
+      "amount": "850.00",
+      "description": "Rent",
+      "date": "2026-07-01T08:00:00.000Z",
+      "createdAt": "2026-07-01T08:01:00.000Z"
+    }
+  ]
+}
+```
+
+A category without matching transactions returns `{"transactions":[]}`. Administrators receive no ownership bypass.
 
 ## Get My Transaction
 

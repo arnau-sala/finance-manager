@@ -74,6 +74,7 @@ Transaction security decisions:
 - Deletion filters by transaction ID and authenticated `userId` in one database operation.
 - Partial editing applies the same ownership filter and validates every supplied field.
 - Empty edits verify ownership and succeed without changing stored data.
+- Category-filtered transaction reads filter by category ID and authenticated `userId`.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
 - Statistics endpoints must filter transactions by the authenticated `userId`.
 - `GET /statistics/balance` returns only the caller's own totals, including for administrators.
