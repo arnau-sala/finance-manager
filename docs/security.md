@@ -76,4 +76,5 @@ Transaction security decisions:
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
 - Statistics endpoints must filter transactions by the authenticated `userId`.
 - `GET /statistics/balance` returns only the caller's own totals, including for administrators.
+- `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same owner-only rule to monthly totals.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.

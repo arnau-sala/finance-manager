@@ -33,6 +33,8 @@ Implemented:
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
 - `GET /statistics/balance`
+- `GET /statistics/balance/:month/:year`
+- `GET /statistics/balance/:month`
 
 ## Health Endpoint
 
@@ -470,6 +472,40 @@ The endpoint sums only the transactions owned by the current session user. Admin
 ```
 
 `totalBalance` is calculated as income minus expenses. A user without transactions receives zero values. A request without a valid session returns `401 Unauthorized`.
+
+## Get My Monthly Balance
+
+An active login session is required:
+
+```http
+GET /statistics/balance/:month/:year
+```
+
+`month` must be a number from `1` to `12`. `year` must be a number from `2000` to the current year. The year can be omitted, in which case the API uses the current year:
+
+```http
+GET /statistics/balance/6
+```
+
+Example:
+
+```http
+GET /statistics/balance/6/2026
+```
+
+Expected response:
+
+```json
+{
+  "balance": {
+    "totalIncome": "1000.00",
+    "totalSpent": "250.00",
+    "totalBalance": "750.00"
+  }
+}
+```
+
+The endpoint only sums transactions owned by the current session user and returns zero values when there are no transactions in that month.
 
 ## Database
 

@@ -106,3 +106,10 @@
 - Sum only transactions owned by the current session user.
 - Return total income, total spent, and total balance.
 - Keep administrators limited to their own financial data.
+
+## Phase 8B: Monthly Balance Statistics
+
+- Add authenticated `GET /statistics/balance/:month/:year`.
+- Add authenticated `GET /statistics/balance/:month`, defaulting to the current year.
+- Validate numeric month and year route parameters.
+- Return zero totals when the selected month has no transactions.
