@@ -101,6 +101,6 @@ Category responses place expenses first. Within each type, names are alphabetica
 
 `Transaction` stores the first financial records. Each row contains an immutable owner `userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
 
-`categoryId` is stored as a scalar reference without a Prisma relation field, matching the project's current approach for ownership and administrative references. The API validates that the category exists and matches the transaction type. The migration assigns existing transactions to `Other Expense` or `Other Income` according to their type before making `categoryId` mandatory.
+`Transaction.userId` references `User.id`, and `Transaction.categoryId` references `Category.id`. Both foreign keys use `ON DELETE RESTRICT` to prevent accidental removal of users or categories with existing financial records. The API still validates that the category exists and matches the transaction type before writes.
 
-The `(userId, occurredAt)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering. Listing filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
+The `(userId, occurredAt)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.

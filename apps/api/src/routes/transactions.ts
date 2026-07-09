@@ -1,10 +1,33 @@
-import type { Transaction } from "@prisma/client";
+import {
+  Prisma,
+  type Category,
+  type Transaction,
+  type TransactionType
+} from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
+
+type TransactionCategory = Pick<Category, "id" | "name" | "type">;
+type TransactionWithCategory = Transaction & {
+  category: TransactionCategory;
+};
+
+type TransactionWithCategoryRow = {
+  id: string;
+  userId: string;
+  type: TransactionType;
+  categoryId: string;
+  amountCents: number;
+  description: string;
+  occurredAt: Date;
+  createdAt: Date;
+  categoryName: string;
+  categoryType: TransactionType;
+};
 
 const MAX_AMOUNT_CENTS = 2_147_483_647n;
 const DECIMAL_AMOUNT_PATTERN = /^\d+(?:\.\d{1,2})?$/;
@@ -78,12 +101,31 @@ const transactionParamsSchema = z
   })
   .strict();
 
-function toTransactionResponse(transaction: Transaction) {
+function toTransactionWithCategory(row: TransactionWithCategoryRow) {
+  return {
+    id: row.id,
+    userId: row.userId,
+    type: row.type,
+    categoryId: row.categoryId,
+    amountCents: row.amountCents,
+    description: row.description,
+    occurredAt: row.occurredAt,
+    createdAt: row.createdAt,
+    category: {
+      id: row.categoryId,
+      name: row.categoryName,
+      type: row.categoryType
+    }
+  };
+}
+
+function toTransactionResponse(transaction: TransactionWithCategory) {
   return {
     id: transaction.id,
     userId: transaction.userId,
     type: transaction.type,
     categoryId: transaction.categoryId,
+    category: transaction.category,
     amount: centsToDecimal(transaction.amountCents),
     description: transaction.description,
     date: transaction.occurredAt.toISOString(),
@@ -99,13 +141,30 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(401).send({ error: "Authentication required." });
     }
 
-    const transactions = await db.transaction.findMany({
-      where: { userId },
-      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }]
-    });
+    const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
+      Prisma.sql`
+        SELECT
+          t."id" AS "id",
+          t."userId" AS "userId",
+          t."type" AS "type",
+          t."categoryId" AS "categoryId",
+          t."amountCents" AS "amountCents",
+          t."description" AS "description",
+          t."occurredAt" AS "occurredAt",
+          t."createdAt" AS "createdAt",
+          c."name" AS "categoryName",
+          c."type" AS "categoryType"
+        FROM "Transaction" t
+        INNER JOIN "Category" c ON c."id" = t."categoryId"
+        WHERE t."userId" = ${userId}
+        ORDER BY t."occurredAt" DESC, t."createdAt" DESC
+      `
+    );
 
     return reply.send({
-      transactions: transactions.map(toTransactionResponse)
+      transactions: transactions
+        .map(toTransactionWithCategory)
+        .map(toTransactionResponse)
     });
   });
 
@@ -122,19 +181,34 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(400).send({ error: "Invalid transaction id." });
     }
 
-    const transaction = await db.transaction.findFirst({
-      where: {
-        id: parsedParams.data.id,
-        userId
-      }
-    });
+    const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
+      Prisma.sql`
+        SELECT
+          t."id" AS "id",
+          t."userId" AS "userId",
+          t."type" AS "type",
+          t."categoryId" AS "categoryId",
+          t."amountCents" AS "amountCents",
+          t."description" AS "description",
+          t."occurredAt" AS "occurredAt",
+          t."createdAt" AS "createdAt",
+          c."name" AS "categoryName",
+          c."type" AS "categoryType"
+        FROM "Transaction" t
+        INNER JOIN "Category" c ON c."id" = t."categoryId"
+        WHERE t."id" = ${parsedParams.data.id}
+          AND t."userId" = ${userId}
+        LIMIT 1
+      `
+    );
+    const transaction = transactions[0];
 
     if (!transaction) {
       return reply.code(404).send({ error: "Transaction not found." });
     }
 
     return reply.send({
-      transaction: toTransactionResponse(transaction)
+      transaction: toTransactionResponse(toTransactionWithCategory(transaction))
     });
   });
 
@@ -162,7 +236,11 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         id: parsedBody.data.categoryId,
         type: parsedBody.data.type
       },
-      select: { id: true }
+      select: {
+        id: true,
+        name: true,
+        type: true
+      }
     });
 
     if (!category) {
@@ -183,7 +261,10 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
     });
 
     return reply.code(201).send({
-      transaction: toTransactionResponse(transaction)
+      transaction: toTransactionResponse({
+        ...transaction,
+        category
+      })
     });
   });
 

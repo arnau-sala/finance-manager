@@ -94,13 +94,13 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 
 `routes/auth-me.ts` returns the public profile selected by the current secure session. It includes `updatedAt` in addition to the fields shared with administrative user reads.
 
-Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. Only the scalar `categoryId` is stored on transactions; Prisma relation fields are intentionally omitted.
+Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`, while still exposing scalar `userId` and `categoryId` for simple ownership filters and API responses.
 
 Transaction reads and mutations derive `userId` exclusively from the secure session. Listing and detail retrieval therefore return only the caller's transactions, with no administrative bypass. ID-based operations combine the transaction ID with that `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Financial account containers remain deferred.
 
 `routes/statistics.ts` owns the first read-only statistics endpoints. `GET /statistics/balance` groups all of the current user's transactions by type and returns total income, total spent, and income-minus-expense balance. `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same calculation to a calendar month, with the short form defaulting to the current year. `GET /statistics/balance/year/:year` and `GET /statistics/balance/year` apply it to a full calendar year. They use the same session-derived ownership rule as transaction reads, so administrators do not receive cross-user financial totals.
 
-`GET /statistics/categories` and `GET /statistics/categories/:type` aggregate the caller's transactions by category. Percentages are calculated separately for `EXPENSE` and `INCOME`, categories without transactions are omitted, and integer percentages are adjusted to total exactly 100 within each returned type.
+`GET /statistics/categories` and `GET /statistics/categories/:type` aggregate the caller's transactions by category with a single database join between `Transaction` and `Category`. Percentages are calculated separately for `EXPENSE` and `INCOME`, categories without transactions are omitted, and integer percentages are adjusted to total exactly 100 within each returned type.
 
 `services/statistics-service.ts` contains reusable statistics queries so route modules can expose different statistics views without duplicating database aggregation logic.
 

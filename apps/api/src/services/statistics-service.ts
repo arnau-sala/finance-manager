@@ -1,4 +1,4 @@
-import type { Prisma, TransactionType } from "@prisma/client";
+import { Prisma, type TransactionType } from "@prisma/client";
 
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
@@ -13,6 +13,13 @@ type CategoryTotal = {
   type: TransactionType;
   amountCents: number;
   transactionCount: number;
+};
+
+type CategoryTotalRow = {
+  category: string;
+  type: TransactionType;
+  amountCents: bigint | number;
+  transactionCount: bigint | number;
 };
 
 export async function getUserBalance(
@@ -118,58 +125,32 @@ export async function getUserCategoryStatistics(
   userId: string,
   type?: TransactionType
 ) {
-  const categoryTotals = await db.transaction.groupBy({
-    by: ["categoryId", "type"],
-    where: {
-      userId,
-      type
-    },
-    _sum: {
-      amountCents: true
-    },
-    _count: {
-      _all: true
-    }
-  });
-
-  const categoryIds = categoryTotals.map((categoryTotal) => {
-    return categoryTotal.categoryId;
-  });
-
-  const categories = await db.category.findMany({
-    where: {
-      id: {
-        in: categoryIds
-      }
-    },
-    select: {
-      id: true,
-      name: true,
-      type: true
-    }
-  });
-
-  const categoriesById = new Map(
-    categories.map((category) => [category.id, category])
+  const categoryTotals = await db.$queryRaw<CategoryTotalRow[]>(
+    Prisma.sql`
+      SELECT
+        c."name" AS "category",
+        t."type" AS "type",
+        SUM(t."amountCents") AS "amountCents",
+        COUNT(*) AS "transactionCount"
+      FROM "Transaction" t
+      INNER JOIN "Category" c ON c."id" = t."categoryId"
+      WHERE t."userId" = ${userId}
+      ${type ? Prisma.sql`AND t."type" = ${type}::"TransactionType"` : Prisma.empty}
+      GROUP BY c."name", t."type"
+    `
   );
 
   const totals = categoryTotals
     .map((categoryTotal) => {
-      const category = categoriesById.get(categoryTotal.categoryId);
-
-      if (!category) {
-        return null;
-      }
-
       return {
-        category: category.name,
+        category: categoryTotal.category,
         type: categoryTotal.type,
-        amountCents: categoryTotal._sum.amountCents ?? 0,
-        transactionCount: categoryTotal._count._all
+        amountCents: Number(categoryTotal.amountCents),
+        transactionCount: Number(categoryTotal.transactionCount)
       };
     })
-    .filter((categoryTotal): categoryTotal is CategoryTotal => {
-      return categoryTotal !== null && categoryTotal.amountCents > 0;
+    .filter((categoryTotal) => {
+      return categoryTotal.amountCents > 0;
     });
 
   const categoryStatistics = ["EXPENSE", "INCOME"].flatMap(

@@ -349,6 +349,11 @@ The endpoint returns only transactions owned by the current session user, includ
       "userId": "current-user-id",
       "type": "EXPENSE",
       "categoryId": "expense-groceries",
+      "category": {
+        "id": "expense-groceries",
+        "name": "Groceries",
+        "type": "EXPENSE"
+      },
       "amount": "42.50",
       "description": "Weekly groceries",
       "date": "2026-07-05T16:30:00.000Z",
@@ -377,6 +382,11 @@ The endpoint returns the requested transaction only when it belongs to the curre
     "userId": "current-user-id",
     "type": "EXPENSE",
     "categoryId": "expense-groceries",
+    "category": {
+      "id": "expense-groceries",
+      "name": "Groceries",
+      "type": "EXPENSE"
+    },
     "amount": "42.50",
     "description": "Weekly groceries",
     "date": "2026-07-05T16:30:00.000Z",
@@ -408,7 +418,7 @@ Content-Type: application/json
 
 `type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is optional and defaults to the request time. When provided, it must be an ISO 8601 timestamp with a timezone.
 
-The backend obtains `userId` exclusively from the session and stores the amount as integer cents.
+The backend obtains `userId` exclusively from the session and stores the amount as integer cents. Transaction responses include the selected category's ID, name, and type.
 
 ## Delete Transaction
 

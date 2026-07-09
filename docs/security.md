@@ -68,6 +68,7 @@ Transaction security decisions:
 - Description, amount, type, category, and date are validated before persistence.
 - Categories must exist and match the transaction type on creation and editing.
 - Category references are validated by the API before transaction writes.
+- PostgreSQL foreign keys reject transactions that reference missing users or categories.
 - Amounts are positive integer cents in PostgreSQL, avoiding floating-point money errors.
 - PostgreSQL also rejects non-positive amounts and blank descriptions.
 - Deletion filters by transaction ID and authenticated `userId` in one database operation.
