@@ -99,3 +99,10 @@
 - Return only records owned by the current session user.
 - Apply the same ownership rule to administrators.
 - Order results by transaction date, newest first.
+
+## Phase 8A: Basic Balance Statistics
+
+- Add authenticated `GET /statistics/balance`.
+- Sum only transactions owned by the current session user.
+- Return total income, total spent, and total balance.
+- Keep administrators limited to their own financial data.

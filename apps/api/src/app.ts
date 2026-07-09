@@ -7,6 +7,7 @@ import { accessRequestRoutes } from "./routes/access-requests.js";
 import { authMeRoutes } from "./routes/auth-me.js";
 import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
+import { statisticsRoutes } from "./routes/statistics.js";
 import { transactionRoutes } from "./routes/transactions.js";
 
 export function buildApp() {
@@ -26,6 +27,7 @@ export function buildApp() {
   app.register(authRoutes);
   app.register(authMeRoutes);
   app.register(categoryRoutes);
+  app.register(statisticsRoutes);
   app.register(transactionRoutes);
 
   return app;

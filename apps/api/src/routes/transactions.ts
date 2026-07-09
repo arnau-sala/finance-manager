@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import { db } from "../db/client.js";
+import { centsToDecimal } from "../money/cents.js";
 
 const MAX_AMOUNT_CENTS = 2_147_483_647n;
 const DECIMAL_AMOUNT_PATTERN = /^\d+(?:\.\d{1,2})?$/;
@@ -76,12 +77,6 @@ const transactionParamsSchema = z
     id: z.string().trim().min(1)
   })
   .strict();
-
-function centsToDecimal(amountCents: number) {
-  const wholePart = Math.floor(amountCents / 100);
-  const decimalPart = (amountCents % 100).toString().padStart(2, "0");
-  return `${wholePart}.${decimalPart}`;
-}
 
 function toTransactionResponse(transaction: Transaction) {
   return {

@@ -39,7 +39,10 @@ apps/api
       auth.ts
       categories.ts
       auth-me.ts
+      statistics.ts
       transactions.ts
+    money
+      cents.ts
     app.ts
     server.ts
 ```
@@ -94,3 +97,7 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. Only the scalar `categoryId` is stored on transactions; Prisma relation fields are intentionally omitted.
 
 Transaction reads and mutations derive `userId` exclusively from the secure session. Listing and detail retrieval therefore return only the caller's transactions, with no administrative bypass. ID-based operations combine the transaction ID with that `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Financial account containers remain deferred.
+
+`routes/statistics.ts` owns the first read-only statistics endpoint. `GET /statistics/balance` groups the current user's transactions by type and returns total income, total spent, and income-minus-expense balance. It uses the same session-derived ownership rule as transaction reads, so administrators do not receive cross-user financial totals.
+
+`money/cents.ts` centralizes integer-cent formatting for API responses that expose money as decimal strings.

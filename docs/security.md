@@ -74,4 +74,6 @@ Transaction security decisions:
 - Partial editing applies the same ownership filter and validates every supplied field.
 - Empty edits verify ownership and succeed without changing stored data.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
+- Statistics endpoints must filter transactions by the authenticated `userId`.
+- `GET /statistics/balance` returns only the caller's own totals, including for administrators.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.

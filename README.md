@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 7 documents and expands the authenticated API surface, starting with administrative user management.
+Phase 8 starts the basic statistics layer for authenticated financial data.
 
 Implemented:
 
@@ -32,6 +32,7 @@ Implemented:
 - `POST /transactions`
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
+- `GET /statistics/balance`
 
 ## Health Endpoint
 
@@ -447,6 +448,28 @@ Send only the fields that must change. All fields are optional, and an empty obj
 ```
 
 The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
+
+## Get My Balance
+
+An active login session is required:
+
+```http
+GET /statistics/balance
+```
+
+The endpoint sums only the transactions owned by the current session user. Administrators receive their own balance, not a global balance:
+
+```json
+{
+  "balance": {
+    "totalIncome": "1500.00",
+    "totalSpent": "420.50",
+    "totalBalance": "1079.50"
+  }
+}
+```
+
+`totalBalance` is calculated as income minus expenses. A user without transactions receives zero values. A request without a valid session returns `401 Unauthorized`.
 
 ## Database
 
