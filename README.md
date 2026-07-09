@@ -38,8 +38,8 @@ Authentication:
 
 Admin users:
 
-- `GET /admin/users` (`ADMIN` only)
-- `GET /admin/users/:id` (`ADMIN` only)
+- `GET /admin/users`
+- `GET /admin/users/:id`
 
 Categories:
 
