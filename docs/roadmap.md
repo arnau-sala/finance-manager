@@ -113,3 +113,10 @@
 - Add authenticated `GET /statistics/balance/:month`, defaulting to the current year.
 - Validate numeric month and year route parameters.
 - Return zero totals when the selected month has no transactions.
+
+## Phase 8C: Yearly Balance Statistics
+
+- Add authenticated `GET /statistics/balance/year/:year`.
+- Add authenticated `GET /statistics/balance/year`, defaulting to the current year.
+- Reuse the shared user-balance aggregation service.
+- Return zero totals when the selected year has no transactions.

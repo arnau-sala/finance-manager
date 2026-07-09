@@ -10,10 +10,18 @@ import { getUserBalance } from "../services/statistics-service.js";
 
 const monthSchema = z.coerce.number().int().min(1).max(12);
 
-function getBalanceParamsSchema(currentYear: number) {
+function getMonthlyBalanceParamsSchema(currentYear: number) {
   return z
     .object({
       month: monthSchema,
+      year: z.coerce.number().int().min(2000).max(currentYear).optional()
+    })
+    .strict();
+}
+
+function getYearlyBalanceParamsSchema(currentYear: number) {
+  return z
+    .object({
       year: z.coerce.number().int().min(2000).max(currentYear).optional()
     })
     .strict();
@@ -23,6 +31,13 @@ function getMonthDateRange(month: number, year: number) {
   return {
     from: new Date(year, month - 1, 1),
     to: new Date(year, month, 1)
+  };
+}
+
+function getYearDateRange(year: number) {
+  return {
+    from: new Date(year, 0, 1),
+    to: new Date(year + 1, 0, 1)
   };
 }
 
@@ -38,7 +53,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const currentYear = new Date().getFullYear();
-    const parsedParams = getBalanceParamsSchema(currentYear).safeParse(
+    const parsedParams = getMonthlyBalanceParamsSchema(currentYear).safeParse(
       request.params
     );
 
@@ -51,6 +66,33 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       userId,
       getMonthDateRange(month, year)
     );
+
+    return reply.send({
+      balance
+    });
+  }
+
+  async function getYearlyBalance(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const parsedParams = getYearlyBalanceParamsSchema(currentYear).safeParse(
+      request.params
+    );
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid balance period." });
+    }
+
+    const { year = currentYear } = parsedParams.data;
+    const balance = await getUserBalance(userId, getYearDateRange(year));
 
     return reply.send({
       balance
@@ -71,6 +113,8 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     });
   });
 
+  app.get("/statistics/balance/year", getYearlyBalance);
+  app.get("/statistics/balance/year/:year", getYearlyBalance);
   app.get("/statistics/balance/:month", getMonthlyBalance);
   app.get("/statistics/balance/:month/:year", getMonthlyBalance);
 };

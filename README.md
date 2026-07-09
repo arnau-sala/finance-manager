@@ -35,6 +35,8 @@ Implemented:
 - `GET /statistics/balance`
 - `GET /statistics/balance/:month/:year`
 - `GET /statistics/balance/:month`
+- `GET /statistics/balance/year/:year`
+- `GET /statistics/balance/year`
 
 ## Health Endpoint
 
@@ -506,6 +508,40 @@ Expected response:
 ```
 
 The endpoint only sums transactions owned by the current session user and returns zero values when there are no transactions in that month.
+
+## Get My Yearly Balance
+
+An active login session is required:
+
+```http
+GET /statistics/balance/year/:year
+```
+
+`year` must be a number from `2000` to the current year. The year can be omitted, in which case the API uses the current year:
+
+```http
+GET /statistics/balance/year
+```
+
+Example:
+
+```http
+GET /statistics/balance/year/2026
+```
+
+Expected response:
+
+```json
+{
+  "balance": {
+    "totalIncome": "12000.00",
+    "totalSpent": "3600.00",
+    "totalBalance": "8400.00"
+  }
+}
+```
+
+The endpoint only sums transactions owned by the current session user and returns zero values when there are no transactions in that year.
 
 ## Database
 
