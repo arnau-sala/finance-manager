@@ -79,5 +79,7 @@ Transaction security decisions:
 - `GET /statistics/balance` returns only the caller's own totals, including for administrators.
 - `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same owner-only rule to monthly totals.
 - `GET /statistics/balance/year/:year` and `GET /statistics/balance/year` apply the same owner-only rule to yearly totals.
-- `GET /statistics/categories` and `GET /statistics/categories/:type` aggregate only the caller's own transactions.
+- `GET /statistics/categories` and `GET /statistics/categories/type/:type` aggregate only the caller's own transactions.
+- Period-filtered category statistics apply the same owner-only rule and never accept `userId` from the request.
+- Typed period category statistics only accept `income` or `expense` as the type segment.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.

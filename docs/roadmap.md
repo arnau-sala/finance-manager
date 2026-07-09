@@ -124,7 +124,24 @@
 ## Phase 8D: Category Percentage Statistics
 
 - Add authenticated `GET /statistics/categories`.
-- Add authenticated `GET /statistics/categories/:type`.
+- Add authenticated `GET /statistics/categories/type/:type`.
 - Calculate category percentages independently within each transaction type.
 - Return integer percentages that sum to exactly 100 per returned type.
 - Exclude categories without transactions.
+
+## Phase 8E: Period Category Percentage Statistics
+
+- Add authenticated `GET /statistics/categories/:month/:year`.
+- Add authenticated `GET /statistics/categories/:month`, defaulting to the current year.
+- Add authenticated `GET /statistics/categories/year/:year`.
+- Add authenticated `GET /statistics/categories/year`, defaulting to the current year.
+- Apply the same exact integer percentage logic to period-filtered category totals.
+
+## Phase 8F: Typed Period Category Percentage Statistics
+
+- Add authenticated `GET /statistics/categories/type/:type/:month/:year`.
+- Add authenticated `GET /statistics/categories/type/:type/:month`, defaulting to the current year.
+- Add authenticated `GET /statistics/categories/type/:type/year/:year`.
+- Add authenticated `GET /statistics/categories/type/:type/year`, defaulting to the current year.
+- Restrict `:type` to `income` or `expense`.
+- Combine transaction type and period filters in the same category-percentage query.

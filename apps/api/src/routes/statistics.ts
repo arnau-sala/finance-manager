@@ -12,14 +12,37 @@ import {
 } from "../services/statistics-service.js";
 
 const monthSchema = z.coerce.number().int().min(1).max(12);
-const categoryStatisticsParamsSchema = z
+const categoryTypeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .pipe(z.enum(["INCOME", "EXPENSE"]));
+
+const categoryTypeParamsSchema = z
   .object({
-    type: z
-      .string()
-      .trim()
-      .toUpperCase()
-      .pipe(z.enum(["INCOME", "EXPENSE"]))
-      .optional()
+    type: categoryTypeSchema
+  })
+  .strict();
+
+const categoryStatisticsMonthlyParamsSchema = z
+  .object({
+    month: monthSchema,
+    year: z.coerce.number().int().min(2000).optional()
+  })
+  .strict();
+
+const typedMonthlyCategoryStatisticsParamsSchema = z
+  .object({
+    type: categoryTypeSchema,
+    month: monthSchema,
+    year: z.coerce.number().int().min(2000).optional()
+  })
+  .strict();
+
+const typedYearlyCategoryStatisticsParamsSchema = z
+  .object({
+    type: categoryTypeSchema,
+    year: z.coerce.number().int().min(2000).optional()
   })
   .strict();
 
@@ -112,6 +135,136 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     });
   }
 
+  async function getMonthlyCategoryStatistics(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const parsedParams = categoryStatisticsMonthlyParamsSchema
+      .extend({
+        year: z.coerce.number().int().min(2000).max(currentYear).optional()
+      })
+      .safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid category period." });
+    }
+
+    const { month, year = currentYear } = parsedParams.data;
+    const categories = await getUserCategoryStatistics(
+      userId,
+      undefined,
+      getMonthDateRange(month, year)
+    );
+
+    return reply.send({
+      categories
+    });
+  }
+
+  async function getTypedMonthlyCategoryStatistics(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const parsedParams = typedMonthlyCategoryStatisticsParamsSchema
+      .extend({
+        year: z.coerce.number().int().min(2000).max(currentYear).optional()
+      })
+      .safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid category period." });
+    }
+
+    const { type, month, year = currentYear } = parsedParams.data;
+    const categories = await getUserCategoryStatistics(
+      userId,
+      type,
+      getMonthDateRange(month, year)
+    );
+
+    return reply.send({
+      categories
+    });
+  }
+
+  async function getYearlyCategoryStatistics(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const parsedParams = getYearlyBalanceParamsSchema(currentYear).safeParse(
+      request.params
+    );
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid category period." });
+    }
+
+    const { year = currentYear } = parsedParams.data;
+    const categories = await getUserCategoryStatistics(
+      userId,
+      undefined,
+      getYearDateRange(year)
+    );
+
+    return reply.send({
+      categories
+    });
+  }
+
+  async function getTypedYearlyCategoryStatistics(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const currentYear = new Date().getFullYear();
+    const parsedParams = typedYearlyCategoryStatisticsParamsSchema
+      .extend({
+        year: z.coerce.number().int().min(2000).max(currentYear).optional()
+      })
+      .safeParse(request.params);
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid category period." });
+    }
+
+    const { type, year = currentYear } = parsedParams.data;
+    const categories = await getUserCategoryStatistics(
+      userId,
+      type,
+      getYearDateRange(year)
+    );
+
+    return reply.send({
+      categories
+    });
+  }
+
   async function getCategoryStatistics(
     request: FastifyRequest,
     reply: FastifyReply
@@ -122,9 +275,24 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(401).send({ error: "Authentication required." });
     }
 
-    const parsedParams = categoryStatisticsParamsSchema.safeParse(
-      request.params
-    );
+    const categories = await getUserCategoryStatistics(userId);
+
+    return reply.send({
+      categories
+    });
+  }
+
+  async function getTypedCategoryStatistics(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const parsedParams = categoryTypeParamsSchema.safeParse(request.params);
 
     if (!parsedParams.success) {
       return reply.code(400).send({ error: "Invalid category type." });
@@ -159,5 +327,31 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
   app.get("/statistics/balance/:month", getMonthlyBalance);
   app.get("/statistics/balance/:month/:year", getMonthlyBalance);
   app.get("/statistics/categories", getCategoryStatistics);
-  app.get("/statistics/categories/:type", getCategoryStatistics);
+  app.get("/statistics/categories/type/:type", getTypedCategoryStatistics);
+  app.get("/statistics/categories/year", getYearlyCategoryStatistics);
+  app.get("/statistics/categories/year/:year", getYearlyCategoryStatistics);
+  app.get(
+    "/statistics/categories/type/:type/year/:year",
+    getTypedYearlyCategoryStatistics
+  );
+  app.get(
+    "/statistics/categories/type/:type/year",
+    getTypedYearlyCategoryStatistics
+  );
+  app.get(
+    "/statistics/categories/type/:type/:month/:year",
+    getTypedMonthlyCategoryStatistics
+  );
+  app.get(
+    "/statistics/categories/type/:type/:month",
+    getTypedMonthlyCategoryStatistics
+  );
+  app.get(
+    "/statistics/categories/:month/:year",
+    getMonthlyCategoryStatistics
+  );
+  app.get(
+    "/statistics/categories/:month",
+    getMonthlyCategoryStatistics
+  );
 };

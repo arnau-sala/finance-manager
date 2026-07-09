@@ -38,7 +38,15 @@ Implemented:
 - `GET /statistics/balance/year/:year`
 - `GET /statistics/balance/year`
 - `GET /statistics/categories`
-- `GET /statistics/categories/:type`
+- `GET /statistics/categories/type/:type`
+- `GET /statistics/categories/:month/:year`
+- `GET /statistics/categories/:month`
+- `GET /statistics/categories/year/:year`
+- `GET /statistics/categories/year`
+- `GET /statistics/categories/type/:type/:month/:year`
+- `GET /statistics/categories/type/:type/:month`
+- `GET /statistics/categories/type/:type/year/:year`
+- `GET /statistics/categories/type/:type/year`
 
 ## Health Endpoint
 
@@ -566,8 +574,40 @@ GET /statistics/categories
 Use a type path parameter to return only one transaction type:
 
 ```http
-GET /statistics/categories/expense
-GET /statistics/categories/income
+GET /statistics/categories/type/expense
+GET /statistics/categories/type/income
+```
+
+Use a numeric month and year to calculate category percentages only for that month:
+
+```http
+GET /statistics/categories/:month/:year
+```
+
+The year can be omitted, in which case the API uses the current year:
+
+```http
+GET /statistics/categories/6
+```
+
+Use the yearly endpoints to calculate category percentages for a full calendar year:
+
+```http
+GET /statistics/categories/year/:year
+GET /statistics/categories/year
+```
+
+Use `income` or `expense` after the fixed `type` segment to combine transaction type and period filters:
+
+```http
+GET /statistics/categories/type/expense/:month/:year
+GET /statistics/categories/type/income/:month/:year
+GET /statistics/categories/type/expense/:month
+GET /statistics/categories/type/income/:month
+GET /statistics/categories/type/expense/year/:year
+GET /statistics/categories/type/income/year/:year
+GET /statistics/categories/type/expense/year
+GET /statistics/categories/type/income/year
 ```
 
 The endpoint returns only categories that have at least one transaction for the current user. Percentages are calculated within each transaction type, so expense categories add up to `100` and income categories add up to `100` independently:
@@ -594,7 +634,7 @@ The endpoint returns only categories that have at least one transaction for the 
 }
 ```
 
-Percentages are whole numbers and are adjusted so each returned type totals exactly `100`. Empty types return an empty list.
+Percentages are whole numbers and are adjusted so each returned type totals exactly `100`. Empty types or periods return an empty list.
 
 ## Database
 

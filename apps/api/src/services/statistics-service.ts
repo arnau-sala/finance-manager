@@ -123,7 +123,8 @@ function getExactIntegerPercentages(categoryTotals: CategoryTotal[]) {
 
 export async function getUserCategoryStatistics(
   userId: string,
-  type?: TransactionType
+  type?: TransactionType,
+  dateRange?: BalanceDateRange
 ) {
   const categoryTotals = await db.$queryRaw<CategoryTotalRow[]>(
     Prisma.sql`
@@ -136,6 +137,14 @@ export async function getUserCategoryStatistics(
       INNER JOIN "Category" c ON c."id" = t."categoryId"
       WHERE t."userId" = ${userId}
       ${type ? Prisma.sql`AND t."type" = ${type}::"TransactionType"` : Prisma.empty}
+      ${
+        dateRange
+          ? Prisma.sql`
+              AND t."occurredAt" >= ${dateRange.from}
+              AND t."occurredAt" < ${dateRange.to}
+            `
+          : Prisma.empty
+      }
       GROUP BY c."name", t."type"
     `
   );
