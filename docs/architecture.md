@@ -100,6 +100,8 @@ Transaction reads and mutations derive `userId` exclusively from the secure sess
 
 `routes/statistics.ts` owns the first read-only statistics endpoints. `GET /statistics/balance` groups all of the current user's transactions by type and returns total income, total spent, and income-minus-expense balance. `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same calculation to a calendar month, with the short form defaulting to the current year. `GET /statistics/balance/year/:year` and `GET /statistics/balance/year` apply it to a full calendar year. They use the same session-derived ownership rule as transaction reads, so administrators do not receive cross-user financial totals.
 
-`services/statistics-service.ts` contains the reusable balance query so route modules can expose different statistics views without duplicating database aggregation logic.
+`GET /statistics/categories` and `GET /statistics/categories/:type` aggregate the caller's transactions by category. Percentages are calculated separately for `EXPENSE` and `INCOME`, categories without transactions are omitted, and integer percentages are adjusted to total exactly 100 within each returned type.
+
+`services/statistics-service.ts` contains reusable statistics queries so route modules can expose different statistics views without duplicating database aggregation logic.
 
 `money/cents.ts` centralizes integer-cent formatting for API responses that expose money as decimal strings.

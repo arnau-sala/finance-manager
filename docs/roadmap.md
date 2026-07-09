@@ -120,3 +120,11 @@
 - Add authenticated `GET /statistics/balance/year`, defaulting to the current year.
 - Reuse the shared user-balance aggregation service.
 - Return zero totals when the selected year has no transactions.
+
+## Phase 8D: Category Percentage Statistics
+
+- Add authenticated `GET /statistics/categories`.
+- Add authenticated `GET /statistics/categories/:type`.
+- Calculate category percentages independently within each transaction type.
+- Return integer percentages that sum to exactly 100 per returned type.
+- Exclude categories without transactions.

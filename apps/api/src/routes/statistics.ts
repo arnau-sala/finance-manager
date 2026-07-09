@@ -6,9 +6,22 @@ import type {
 import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
-import { getUserBalance } from "../services/statistics-service.js";
+import {
+  getUserBalance,
+  getUserCategoryStatistics
+} from "../services/statistics-service.js";
 
 const monthSchema = z.coerce.number().int().min(1).max(12);
+const categoryStatisticsParamsSchema = z
+  .object({
+    type: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .pipe(z.enum(["INCOME", "EXPENSE"]))
+      .optional()
+  })
+  .strict();
 
 function getMonthlyBalanceParamsSchema(currentYear: number) {
   return z
@@ -99,6 +112,34 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     });
   }
 
+  async function getCategoryStatistics(
+    request: FastifyRequest,
+    reply: FastifyReply
+  ) {
+    const userId = await getAuthenticatedUserId(request);
+
+    if (!userId) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    const parsedParams = categoryStatisticsParamsSchema.safeParse(
+      request.params
+    );
+
+    if (!parsedParams.success) {
+      return reply.code(400).send({ error: "Invalid category type." });
+    }
+
+    const categories = await getUserCategoryStatistics(
+      userId,
+      parsedParams.data.type
+    );
+
+    return reply.send({
+      categories
+    });
+  }
+
   app.get("/statistics/balance", async (request, reply) => {
     const userId = await getAuthenticatedUserId(request);
 
@@ -117,4 +158,6 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
   app.get("/statistics/balance/year/:year", getYearlyBalance);
   app.get("/statistics/balance/:month", getMonthlyBalance);
   app.get("/statistics/balance/:month/:year", getMonthlyBalance);
+  app.get("/statistics/categories", getCategoryStatistics);
+  app.get("/statistics/categories/:type", getCategoryStatistics);
 };

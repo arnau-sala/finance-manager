@@ -37,6 +37,8 @@ Implemented:
 - `GET /statistics/balance/:month`
 - `GET /statistics/balance/year/:year`
 - `GET /statistics/balance/year`
+- `GET /statistics/categories`
+- `GET /statistics/categories/:type`
 
 ## Health Endpoint
 
@@ -542,6 +544,47 @@ Expected response:
 ```
 
 The endpoint only sums transactions owned by the current session user and returns zero values when there are no transactions in that year.
+
+## Get My Category Percentages
+
+An active login session is required:
+
+```http
+GET /statistics/categories
+```
+
+Use a type path parameter to return only one transaction type:
+
+```http
+GET /statistics/categories/expense
+GET /statistics/categories/income
+```
+
+The endpoint returns only categories that have at least one transaction for the current user. Percentages are calculated within each transaction type, so expense categories add up to `100` and income categories add up to `100` independently:
+
+```json
+{
+  "categories": [
+    {
+      "category": "Groceries",
+      "type": "EXPENSE",
+      "percentage": 34
+    },
+    {
+      "category": "Transportation",
+      "type": "EXPENSE",
+      "percentage": 33
+    },
+    {
+      "category": "Travel",
+      "type": "EXPENSE",
+      "percentage": 33
+    }
+  ]
+}
+```
+
+Percentages are whole numbers and are adjusted so each returned type totals exactly `100`. Empty types return an empty list.
 
 ## Database
 
