@@ -9,10 +9,9 @@ Security decisions already in place:
 - The backend is the only place where future sensitive logic should run.
 - `CONTEXT.md` and `apps/api/.env` are ignored by Git.
 - Real credentials, production database URLs, and secrets must not be committed.
-- Financial data must not be added to the repository.
 - User emails are unique in the `User` and `ApprovedEmail` tables.
 
-The current schema does not allow financial records yet. When financial models are added, every private financial table must include an owner field such as `userId`.
+Every private financial table must include an owner field such as `userId`.
 
 The public access-request endpoint:
 
@@ -50,6 +49,14 @@ Login security decisions:
 - Session cookies are encrypted, `HttpOnly`, `SameSite=Lax`, and limited to seven days.
 - Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
 - Logout requires an active session and deletes its cookie.
+
+Origin protection decisions:
+
+- Mutating requests (`POST`, `PUT`, `PATCH`, and `DELETE`) with an `Origin` header must come from an allowed origin.
+- Requests without an `Origin` header are allowed so Postman, CLI tools, and same-server internal calls keep working.
+- Local development allows common localhost frontend/API origins by default.
+- Production must set `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
+- Disallowed browser origins receive `403 Forbidden` with `{"error":"Origin not allowed."}`.
 
 Rate limiting decisions:
 

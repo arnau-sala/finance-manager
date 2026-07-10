@@ -9,6 +9,7 @@ import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
 import { statisticsRoutes } from "./routes/statistics.js";
 import { transactionRoutes } from "./routes/transactions.js";
+import { registerOriginCheck } from "./security/origin-check.js";
 import { registerRateLimit } from "./security/rate-limit.js";
 
 export function buildApp() {
@@ -17,6 +18,7 @@ export function buildApp() {
   });
 
   registerSecureSession(app);
+  registerOriginCheck(app);
   registerRateLimit(app);
 
   app.get("/health", async () => {
