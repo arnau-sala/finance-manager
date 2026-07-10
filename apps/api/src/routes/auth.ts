@@ -83,7 +83,6 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { email, password } = parsedBody.data;
-      const passwordHash = await hashPassword(password);
 
       try {
         const user = await db.$transaction(async (transaction) => {
@@ -113,6 +112,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           if (approvalClaim.count !== 1) {
             return null;
           }
+
+          const passwordHash = await hashPassword(password);
 
           return transaction.user.create({
             data: {
