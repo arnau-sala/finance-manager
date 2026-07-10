@@ -11,12 +11,14 @@ import { statisticsRoutes } from "./routes/statistics.js";
 import { transactionRoutes } from "./routes/transactions.js";
 import { registerOriginCheck } from "./security/origin-check.js";
 import { registerRateLimit } from "./security/rate-limit.js";
+import { registerSecurityHeaders } from "./security/security-headers.js";
 
 export function buildApp() {
   const app = Fastify({
     logger: true,
   });
 
+  registerSecurityHeaders(app);
   registerSecureSession(app);
   registerOriginCheck(app);
   registerRateLimit(app);

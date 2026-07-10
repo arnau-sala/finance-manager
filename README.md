@@ -12,6 +12,7 @@ Core:
 
 - `GET /health`
 - API rate limiting for public, authenticated, financial, and administrative routes
+- Security headers through Helmet
 - Prisma schema for `User`, `AccessRequest`, and `ApprovedEmail`
 - Initial SQL migration
 - Shared Prisma client module for the API

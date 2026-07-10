@@ -58,6 +58,14 @@ Origin protection decisions:
 - Production must set `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
 - Disallowed browser origins receive `403 Forbidden` with `{"error":"Origin not allowed."}`.
 
+Security header decisions:
+
+- The API uses Helmet globally to send standard defensive HTTP headers.
+- `X-Content-Type-Options`, `X-Frame-Options`, referrer policy, and related browser-hardening headers are enabled through Helmet defaults.
+- The referrer policy is `no-referrer` because API responses should not depend on or leak navigation context.
+- Content Security Policy is disabled for now because the API does not serve the frontend. A strict CSP should be designed when the production web interface and asset origins are known.
+- Cross-Origin Embedder Policy is disabled for now to avoid unnecessary friction with future frontend tooling and third-party integrations.
+
 Rate limiting decisions:
 
 - A global IP-based limit protects the full API from broad request floods.
