@@ -127,9 +127,11 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
         create: {
           email: accessRequest.email,
           approvedAt,
+          approvedBy: admin.id,
         },
         update: {
           approvedAt,
+          approvedBy: admin.id,
         },
       });
 

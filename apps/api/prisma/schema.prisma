@@ -80,6 +80,7 @@ model ApprovedEmail {
   id         String    @id @default(cuid())
   email      String    @unique
   approvedAt DateTime  @default(now())
+  approvedBy String?
   usedAt     DateTime?
 }
 
