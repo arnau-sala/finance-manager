@@ -28,6 +28,8 @@ A sender can always inspect their own HTTP request and submitted fields in brows
 
 Every `/admin/*` route uses the shared `requireAdministrator` pre-handler. Missing or invalid sessions receive `401`, while authenticated non-administrators receive `403`. Approval and denial events store `adminId` from the verified session rather than client input. Denial reasons are administrative data and are not exposed through public responses.
 
+Administrative access-request lists are paginated. Pending requests default to 50 items with a maximum of 100. The permanent event log defaults to 100 items with a maximum of 200.
+
 Registration security decisions:
 
 - Email addresses are trimmed, lowercased, and validated.
@@ -81,6 +83,7 @@ Administrative user listing security decisions:
 - User detail IDs must be valid CUIDs before reaching the database.
 - The database query selects only ID, email, role, status, and creation timestamp.
 - Password hashes and update timestamps are never loaded into the endpoint response.
+- User lists are paginated with a default limit of 50 and maximum limit of 100.
 
 `GET /auth/me` requires an active approved-user session and returns the shared public user fields plus `updatedAt`. The user ID is always derived from the encrypted session cookie rather than request input.
 
@@ -89,6 +92,7 @@ Transaction security decisions:
 - An active session and an existing `APPROVED` user are required.
 - `userId` is read from the encrypted session and is never accepted from the request body.
 - Transaction listing always filters by the session `userId`; the `ADMIN` role has no bypass.
+- Transaction lists are paginated with a default limit of 100 and maximum limit of 200.
 - Transaction detail retrieval filters by both ID and session `userId`.
 - Missing and foreign-owned transaction details return the same `404` response.
 - Description, amount, type, category, and date are validated before persistence.

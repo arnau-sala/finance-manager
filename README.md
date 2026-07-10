@@ -135,6 +135,8 @@ List pending requests:
 GET /admin/access-requests
 ```
 
+Supports `limit` and `offset`. Default `limit` is `50`; maximum is `100`.
+
 Get one pending request:
 
 ```http
@@ -146,6 +148,8 @@ List access-request events:
 ```http
 GET /admin/access-request-events
 ```
+
+Supports `limit` and `offset`. Default `limit` is `100`; maximum is `200`.
 
 Get one access-request event:
 
@@ -287,9 +291,16 @@ A successful request returns users ordered by creation date, newest first:
       "status": "APPROVED",
       "createdAt": "2026-07-05T18:30:00.000Z"
     }
-  ]
+  ],
+  "pagination": {
+    "limit": 50,
+    "offset": 0,
+    "nextOffset": null
+  }
 }
 ```
+
+Supports `limit` and `offset`. Default `limit` is `50`; maximum is `100`. Use `nextOffset` as the next `offset` value; `null` means there are no more results.
 
 Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden` with `{"error":"Administrator access required."}`.
 
@@ -392,11 +403,16 @@ The endpoint returns only transactions owned by the current session user, includ
       "date": "2026-07-05T16:30:00.000Z",
       "createdAt": "2026-07-05T16:31:00.000Z"
     }
-  ]
+  ],
+  "pagination": {
+    "limit": 100,
+    "offset": 0,
+    "nextOffset": null
+  }
 }
 ```
 
-A user without transactions receives `{"transactions":[]}`. A request without a valid session returns `401 Unauthorized`.
+Supports `limit` and `offset`. Default `limit` is `100`; maximum is `200`. Use `nextOffset` as the next `offset` value; `null` means there are no more results. A user without transactions receives an empty `transactions` array. A request without a valid session returns `401 Unauthorized`.
 
 ## List My Transactions By Category
 
@@ -426,11 +442,16 @@ GET /transactions/categories/:category
       "date": "2026-07-01T08:00:00.000Z",
       "createdAt": "2026-07-01T08:01:00.000Z"
     }
-  ]
+  ],
+  "pagination": {
+    "limit": 100,
+    "offset": 0,
+    "nextOffset": null
+  }
 }
 ```
 
-A category without matching transactions returns `{"transactions":[]}`. Administrators receive no ownership bypass.
+Supports `limit` and `offset`. Default `limit` is `100`; maximum is `200`. A category without matching transactions returns an empty `transactions` array. Administrators receive no ownership bypass.
 
 ## Get My Transaction
 

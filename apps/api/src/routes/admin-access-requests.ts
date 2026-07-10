@@ -5,7 +5,21 @@ import { z } from "zod";
 import { getAuthenticatedUser } from "../auth/authenticated-user.js";
 import { requireAdministrator } from "../auth/require-administrator.js";
 import { db } from "../db/client.js";
+import {
+  getPaginatedResponse,
+  getPaginationQuerySchema,
+} from "../pagination.js";
 import { adminRateLimit } from "../security/rate-limit.js";
+
+const pendingRequestsPaginationQuerySchema = getPaginationQuerySchema({
+  defaultLimit: 50,
+  maxLimit: 100,
+});
+
+const eventLogPaginationQuerySchema = getPaginationQuerySchema({
+  defaultLimit: 100,
+  maxLimit: 200,
+});
 
 const idParamsSchema = z.object({
   id: z.string().trim().min(1),
@@ -47,23 +61,51 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
   app.addHook("preHandler", app.rateLimit(adminRateLimit));
   app.addHook("preHandler", requireAdministrator);
 
-  app.get("/admin/access-requests", async () => {
+  app.get("/admin/access-requests", async (request, reply) => {
+    const parsedQuery = pendingRequestsPaginationQuerySchema.safeParse(
+      request.query,
+    );
+
+    if (!parsedQuery.success) {
+      return reply.code(400).send({ error: "Invalid pagination query." });
+    }
+
+    const { limit, offset } = parsedQuery.data;
     const accessRequests = await db.accessRequest.findMany({
-      orderBy: { timestamp: "desc" },
+      orderBy: [{ timestamp: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      skip: offset,
     });
+    const paginatedAccessRequests = getPaginatedResponse(
+      accessRequests,
+      limit,
+      offset,
+    );
 
     return {
-      accessRequests: accessRequests.map(toAdminResponse),
+      accessRequests: paginatedAccessRequests.items.map(toAdminResponse),
+      pagination: paginatedAccessRequests.pagination,
     };
   });
 
-  app.get("/admin/access-request-events", async () => {
+  app.get("/admin/access-request-events", async (request, reply) => {
+    const parsedQuery = eventLogPaginationQuerySchema.safeParse(request.query);
+
+    if (!parsedQuery.success) {
+      return reply.code(400).send({ error: "Invalid pagination query." });
+    }
+
+    const { limit, offset } = parsedQuery.data;
     const events = await db.accessRequestEvent.findMany({
-      orderBy: { timestamp: "desc" },
+      orderBy: [{ timestamp: "desc" }, { id: "desc" }],
+      take: limit + 1,
+      skip: offset,
     });
+    const paginatedEvents = getPaginatedResponse(events, limit, offset);
 
     return {
-      accessRequestEvents: events.map(toAdminEventResponse),
+      accessRequestEvents: paginatedEvents.items.map(toAdminEventResponse),
+      pagination: paginatedEvents.pagination,
     };
   });
 

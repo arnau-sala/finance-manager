@@ -11,6 +11,10 @@ import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
 import {
+  getPaginatedResponse,
+  getPaginationQuerySchema,
+} from "../pagination.js";
+import {
   financialReadRateLimit,
   financialWriteRateLimit,
 } from "../security/rate-limit.js";
@@ -32,6 +36,11 @@ type TransactionWithCategoryRow = {
   categoryName: string;
   categoryType: TransactionType;
 };
+
+const transactionsPaginationQuerySchema = getPaginationQuerySchema({
+  defaultLimit: 100,
+  maxLimit: 200,
+});
 
 const MAX_AMOUNT_CENTS = 2_147_483_647n;
 const DECIMAL_AMOUNT_PATTERN = /^\d+(?:\.\d{1,2})?$/;
@@ -154,6 +163,15 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Authentication required." });
       }
 
+      const parsedQuery = transactionsPaginationQuerySchema.safeParse(
+        request.query,
+      );
+
+      if (!parsedQuery.success) {
+        return reply.code(400).send({ error: "Invalid pagination query." });
+      }
+
+      const { limit, offset } = parsedQuery.data;
       const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
         Prisma.sql`
         SELECT
@@ -170,14 +188,22 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         FROM "Transaction" t
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
-        ORDER BY t."occurredAt" DESC, t."createdAt" DESC
+        ORDER BY t."occurredAt" DESC, t."createdAt" DESC, t."id" DESC
+        LIMIT ${limit + 1}
+        OFFSET ${offset}
       `,
+      );
+      const paginatedTransactions = getPaginatedResponse(
+        transactions,
+        limit,
+        offset,
       );
 
       return reply.send({
-        transactions: transactions
+        transactions: paginatedTransactions.items
           .map(toTransactionWithCategory)
           .map(toTransactionResponse),
+        pagination: paginatedTransactions.pagination,
       });
     },
   );
@@ -200,6 +226,15 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid category id." });
       }
 
+      const parsedQuery = transactionsPaginationQuerySchema.safeParse(
+        request.query,
+      );
+
+      if (!parsedQuery.success) {
+        return reply.code(400).send({ error: "Invalid pagination query." });
+      }
+
+      const { limit, offset } = parsedQuery.data;
       const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
         Prisma.sql`
         SELECT
@@ -217,14 +252,22 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
           AND t."categoryId" = ${parsedParams.data.category}
-        ORDER BY t."occurredAt" DESC, t."createdAt" DESC
+        ORDER BY t."occurredAt" DESC, t."createdAt" DESC, t."id" DESC
+        LIMIT ${limit + 1}
+        OFFSET ${offset}
       `,
+      );
+      const paginatedTransactions = getPaginatedResponse(
+        transactions,
+        limit,
+        offset,
       );
 
       return reply.send({
-        transactions: transactions
+        transactions: paginatedTransactions.items
           .map(toTransactionWithCategory)
           .map(toTransactionResponse),
+        pagination: paginatedTransactions.pagination,
       });
     },
   );
