@@ -1,6 +1,7 @@
 node_modules/
 
 apps/api/dist/
+apps/web/dist/
 apps/api/.env
 
 CONTEXT.md

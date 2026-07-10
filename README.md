@@ -4,13 +4,15 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 9 hardens the API security layer before frontend work begins.
+Frontend work has started with the initial web app scaffold and login preview screen.
 
 Implemented:
 
 Core:
 
 - `GET /health`
+- Initial Vite/React web app scaffold
+- Login/sign-up preview screen
 - API rate limiting for public, authenticated, financial, and administrative routes
 - Origin checks for mutating browser requests
 - Security headers through Helmet
@@ -100,6 +102,14 @@ npm run dev:api
 ```
 
 The API listens on `http://localhost:3001` by default.
+
+Run the frontend:
+
+```bash
+npm run dev:web
+```
+
+The frontend listens on `http://localhost:5173` by default.
 
 Mutating browser requests must come from an allowed origin. Local development allows common localhost origins by default. In production, configure `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
 
