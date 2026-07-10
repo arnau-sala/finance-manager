@@ -94,7 +94,7 @@ Login reuses the password module to verify Argon2id hashes. Unknown emails are c
 
 `routes/auth-me.ts` returns the public profile selected by the current secure session. It includes `updatedAt` in addition to the fields shared with administrative user reads.
 
-Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`, while still exposing scalar `userId` and `categoryId` for simple ownership filters and API responses.
+Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views.
 
 Transaction reads and mutations derive `userId` exclusively from the secure session. Listing, category-filtered listing, and detail retrieval therefore return only the caller's transactions, with no administrative bypass. ID-based operations combine the transaction ID with that `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Financial account containers remain deferred.
 

@@ -141,7 +141,6 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
 function toTransactionResponse(transaction: TransactionWithCategory) {
   return {
     id: transaction.id,
-    userId: transaction.userId,
     type: transaction.type,
     categoryId: transaction.categoryId,
     category: transaction.category,

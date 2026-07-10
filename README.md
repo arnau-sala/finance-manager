@@ -390,7 +390,6 @@ The endpoint returns only transactions owned by the current session user, includ
   "transactions": [
     {
       "id": "transaction-id",
-      "userId": "current-user-id",
       "type": "EXPENSE",
       "categoryId": "expense-groceries",
       "category": {
@@ -429,7 +428,6 @@ GET /transactions/categories/:category
   "transactions": [
     {
       "id": "transaction-id",
-      "userId": "current-user-id",
       "type": "EXPENSE",
       "categoryId": "expense-housing",
       "category": {
@@ -467,7 +465,6 @@ The endpoint returns the requested transaction only when it belongs to the curre
 {
   "transaction": {
     "id": "transaction-id",
-    "userId": "current-user-id",
     "type": "EXPENSE",
     "categoryId": "expense-groceries",
     "category": {
