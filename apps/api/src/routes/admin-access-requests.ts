@@ -2,6 +2,7 @@ import type { AccessRequest, AccessRequestEvent } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
+import { getAuthenticatedUser } from "../auth/authenticated-user.js";
 import { requireAdministrator } from "../auth/require-administrator.js";
 import { db } from "../db/client.js";
 import { adminRateLimit } from "../security/rate-limit.js";
@@ -88,9 +89,18 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
 
   app.post("/admin/access-requests/:id/approve", async (request, reply) => {
     const parsedParams = idParamsSchema.safeParse(request.params);
+    const admin = await getAuthenticatedUser(request);
 
     if (!parsedParams.success) {
       return reply.code(400).send({ error: "Invalid access request id." });
+    }
+
+    if (!admin) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    if (admin.role !== "ADMIN") {
+      return reply.code(403).send({ error: "Administrator access required." });
     }
 
     const result = await db.$transaction(async (transaction) => {
@@ -131,6 +141,7 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
           type: "ACCESS_REQUEST_APPROVED",
           actorType: "ADMIN",
           accessRequestId: accessRequest.id,
+          adminId: admin.id,
         },
       });
 
@@ -147,6 +158,7 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
   app.post("/admin/access-requests/:id/deny", async (request, reply) => {
     const parsedParams = idParamsSchema.safeParse(request.params);
     const parsedBody = denyAccessRequestBodySchema.safeParse(request.body);
+    const admin = await getAuthenticatedUser(request);
 
     if (!parsedParams.success) {
       return reply.code(400).send({ error: "Invalid access request id." });
@@ -154,6 +166,14 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
 
     if (!parsedBody.success) {
       return reply.code(400).send({ error: "Invalid denial reason." });
+    }
+
+    if (!admin) {
+      return reply.code(401).send({ error: "Authentication required." });
+    }
+
+    if (admin.role !== "ADMIN") {
+      return reply.code(403).send({ error: "Administrator access required." });
     }
 
     const result = await db.$transaction(async (transaction) => {
@@ -182,6 +202,7 @@ export const adminAccessRequestRoutes: FastifyPluginAsync = async (app) => {
           actorType: "ADMIN",
           accessRequestId: accessRequest.id,
           denialReason: parsedBody.data.reason,
+          adminId: admin.id,
         },
       });
 

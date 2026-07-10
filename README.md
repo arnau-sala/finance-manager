@@ -171,7 +171,7 @@ Expected response:
 }
 ```
 
-Approval creates or updates `ApprovedEmail`, records an `ACCESS_REQUEST_APPROVED` event, and removes the request from the pending queue. It does not require a body. An unknown request ID returns `404 Not Found`.
+Approval creates or updates `ApprovedEmail`, records an `ACCESS_REQUEST_APPROVED` event with the approving admin's session user ID in `adminId`, and removes the request from the pending queue. It does not require a body. An unknown request ID returns `404 Not Found`.
 
 Deny a pending request:
 
@@ -186,7 +186,7 @@ Content-Type: application/json
 }
 ```
 
-The reason is required, trimmed, and limited to 1000 characters. Denial records an `ACCESS_REQUEST_DENIED` event and removes the request from the pending queue without creating an `ApprovedEmail`.
+The reason is required, trimmed, and limited to 1000 characters. Denial records an `ACCESS_REQUEST_DENIED` event with the denying admin's session user ID in `adminId` and removes the request from the pending queue without creating an `ApprovedEmail`.
 
 Expected response:
 

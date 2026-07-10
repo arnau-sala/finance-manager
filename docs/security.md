@@ -26,7 +26,7 @@ The public access-request endpoint:
 
 A sender can always inspect their own HTTP request and submitted fields in browser developer tools. What remains private is the server-side decision and database destination: no second HTTP request is made, and the response does not identify whether the email is registered, approved, pending, or new.
 
-Every `/admin/*` route uses the shared `requireAdministrator` pre-handler. Missing or invalid sessions receive `401`, while authenticated non-administrators receive `403`. The event log has a nullable `adminId`, which must be populated from the verified session rather than client input. Denial reasons are administrative data and are not exposed through public responses.
+Every `/admin/*` route uses the shared `requireAdministrator` pre-handler. Missing or invalid sessions receive `401`, while authenticated non-administrators receive `403`. Approval and denial events store `adminId` from the verified session rather than client input. Denial reasons are administrative data and are not exposed through public responses.
 
 Registration security decisions:
 

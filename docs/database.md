@@ -73,9 +73,9 @@ npm run db:deploy
 
 Created events store the pending request ID in `accessRequestId`. This field is intentionally not a foreign key: it is a permanent historical reference that remains available after approval or denial deletes the pending row.
 
-Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's ID, email, name, and message while leaving `discardReason` and `denialReason` null.
+Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's ID, email, name, and message, store the approving administrator ID in `adminId`, and leave `discardReason` and `denialReason` null.
 
-Denial events use `ACCESS_REQUEST_DENIED` and actor `ADMIN`. They copy the same request fields, including its ID, and require a free-text `denialReason`, while `discardReason` remains null.
+Denial events use `ACCESS_REQUEST_DENIED` and actor `ADMIN`. They copy the same request fields, including its ID, store the denying administrator ID in `adminId`, and require a free-text `denialReason`, while `discardReason` remains null.
 
 Automatic `ACCESS_REQUEST_DISCARDED` events always leave `accessRequestId` null, including duplicate submissions. They describe an input discarded by the system rather than a lifecycle action on the pending request.
 
@@ -89,7 +89,7 @@ Malformed submissions are rejected before database access and do not create even
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
-`AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. Administrative routes are authenticated; wiring the verified administrator ID into new approval and denial events remains separate follow-up work.
+`AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. Approval and denial events populate it from the verified administrator session; visitor and system events leave it null.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 
