@@ -11,6 +11,7 @@ Implemented:
 Core:
 
 - `GET /health`
+- API rate limiting for public, authenticated, financial, and administrative routes
 - Prisma schema for `User`, `AccessRequest`, and `ApprovedEmail`
 - Initial SQL migration
 - Shared Prisma client module for the API

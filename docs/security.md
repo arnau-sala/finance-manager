@@ -48,6 +48,31 @@ Login security decisions:
 - Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
 - Logout requires an active session and deletes its cookie.
 
+Rate limiting decisions:
+
+- A global IP-based limit protects the full API from broad request floods.
+- Login is limited by IP and normalized email, allowing normal human mistakes while slowing repeated attempts against the same account from the same source.
+- Registration is limited by IP and normalized email because password hashing is intentionally expensive.
+- Public access requests are limited by IP and normalized email to reduce spam while preserving neutral public responses.
+- Authenticated financial reads are limited by session user when available, falling back to IP for unauthenticated requests.
+- Financial writes have a stricter session/IP limit than reads.
+- Administrative routes share an admin-specific session/IP limit in addition to requiring an approved administrator.
+- Rate-limited requests return `429 Too Many Requests` with a retry hint.
+- The current rate-limit store is in memory, which is suitable for the local MVP. A production multi-instance deployment must use a shared store such as Redis.
+
+Current limits:
+
+| Area | Limit | Key |
+| :---: | :---: | :---: |
+| Global API | 300/min | IP |
+| Login | 20/15min | IP + email |
+| Register | 8/15min | IP + email |
+| Logout | 30/min | session/IP |
+| Access requests | 10/hour | IP + email |
+| Financial reads | 180/min | session/IP |
+| Financial writes | 60/min | session/IP |
+| Admin routes | 120/min | session/IP |
+
 Administrative user listing security decisions:
 
 - `GET /admin/users` and `GET /admin/users/:id` require an active session for an `APPROVED` administrator.

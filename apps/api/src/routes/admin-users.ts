@@ -4,20 +4,22 @@ import { z } from "zod";
 import { publicUserSelect } from "../auth/authenticated-user.js";
 import { requireAdministrator } from "../auth/require-administrator.js";
 import { db } from "../db/client.js";
+import { adminRateLimit } from "../security/rate-limit.js";
 
 const userIdParamsSchema = z
   .object({
-    id: z.cuid()
+    id: z.cuid(),
   })
   .strict();
 
 export const adminUserRoutes: FastifyPluginAsync = async (app) => {
+  app.addHook("preHandler", app.rateLimit(adminRateLimit));
   app.addHook("preHandler", requireAdministrator);
 
   app.get("/admin/users", async (_request, reply) => {
     const users = await db.user.findMany({
       select: publicUserSelect,
-      orderBy: { createdAt: "desc" }
+      orderBy: { createdAt: "desc" },
     });
 
     return reply.send({ users });
@@ -32,7 +34,7 @@ export const adminUserRoutes: FastifyPluginAsync = async (app) => {
 
     const user = await db.user.findUnique({
       where: { id: parsedParams.data.id },
-      select: publicUserSelect
+      select: publicUserSelect,
     });
 
     if (!user) {

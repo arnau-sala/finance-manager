@@ -2,7 +2,7 @@ import {
   Prisma,
   type Category,
   type Transaction,
-  type TransactionType
+  type TransactionType,
 } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
@@ -10,6 +10,10 @@ import { z } from "zod";
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
+import {
+  financialReadRateLimit,
+  financialWriteRateLimit,
+} from "../security/rate-limit.js";
 
 type TransactionCategory = Pick<Category, "id" | "name" | "type">;
 type TransactionWithCategory = Transaction & {
@@ -40,15 +44,15 @@ function decimalToCents(amount: string) {
 const amountSchema = z
   .union([z.string(), z.number().finite()])
   .transform((amount) =>
-    typeof amount === "number" ? amount.toString() : amount.trim()
+    typeof amount === "number" ? amount.toString() : amount.trim(),
   )
   .pipe(
     z
       .string()
       .regex(
         DECIMAL_AMOUNT_PATTERN,
-        "Amount must be a positive decimal with at most two decimal places."
-      )
+        "Amount must be a positive decimal with at most two decimal places.",
+      ),
   )
   .superRefine((amount, context) => {
     const amountCents = decimalToCents(amount);
@@ -56,14 +60,14 @@ const amountSchema = z
     if (amountCents <= 0n) {
       context.addIssue({
         code: "custom",
-        message: "Amount must be greater than zero."
+        message: "Amount must be greater than zero.",
       });
     }
 
     if (amountCents > MAX_AMOUNT_CENTS) {
       context.addIssue({
         code: "custom",
-        message: "Amount is too large."
+        message: "Amount is too large.",
       });
     }
   })
@@ -71,8 +75,8 @@ const amountSchema = z
 
 const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 const transactionDescriptionSchema = z.string().trim().min(1).max(100);
-const transactionDateSchema = z
-  .iso.datetime({ offset: true })
+const transactionDateSchema = z.iso
+  .datetime({ offset: true })
   .transform((date) => new Date(date));
 
 const createTransactionBodySchema = z
@@ -81,7 +85,7 @@ const createTransactionBodySchema = z
     categoryId: z.string().trim().min(1),
     description: transactionDescriptionSchema,
     date: transactionDateSchema.optional(),
-    amount: amountSchema
+    amount: amountSchema,
   })
   .strict();
 
@@ -91,19 +95,19 @@ const updateTransactionBodySchema = z
     categoryId: z.string().trim().min(1).optional(),
     description: transactionDescriptionSchema.optional(),
     date: transactionDateSchema.optional(),
-    amount: amountSchema.optional()
+    amount: amountSchema.optional(),
   })
   .strict();
 
 const transactionParamsSchema = z
   .object({
-    id: z.string().trim().min(1)
+    id: z.string().trim().min(1),
   })
   .strict();
 
 const transactionCategoryParamsSchema = z
   .object({
-    category: z.string().trim().min(1)
+    category: z.string().trim().min(1),
   })
   .strict();
 
@@ -120,8 +124,8 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
     category: {
       id: row.categoryId,
       name: row.categoryName,
-      type: row.categoryType
-    }
+      type: row.categoryType,
+    },
   };
 }
 
@@ -135,20 +139,23 @@ function toTransactionResponse(transaction: TransactionWithCategory) {
     amount: centsToDecimal(transaction.amountCents),
     description: transaction.description,
     date: transaction.occurredAt.toISOString(),
-    createdAt: transaction.createdAt.toISOString()
+    createdAt: transaction.createdAt.toISOString(),
   };
 }
 
 export const transactionRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/transactions", async (request, reply) => {
-    const userId = await getAuthenticatedUserId(request);
+  app.get(
+    "/transactions",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
 
-    if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
 
-    const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
-      Prisma.sql`
+      const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
+        Prisma.sql`
         SELECT
           t."id" AS "id",
           t."userId" AS "userId",
@@ -164,33 +171,37 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
         ORDER BY t."occurredAt" DESC, t."createdAt" DESC
-      `
-    );
+      `,
+      );
 
-    return reply.send({
-      transactions: transactions
-        .map(toTransactionWithCategory)
-        .map(toTransactionResponse)
-    });
-  });
+      return reply.send({
+        transactions: transactions
+          .map(toTransactionWithCategory)
+          .map(toTransactionResponse),
+      });
+    },
+  );
 
-  app.get("/transactions/categories/:category", async (request, reply) => {
-    const userId = await getAuthenticatedUserId(request);
+  app.get(
+    "/transactions/categories/:category",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
 
-    if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
 
-    const parsedParams = transactionCategoryParamsSchema.safeParse(
-      request.params
-    );
+      const parsedParams = transactionCategoryParamsSchema.safeParse(
+        request.params,
+      );
 
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid category id." });
-    }
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: "Invalid category id." });
+      }
 
-    const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
-      Prisma.sql`
+      const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
+        Prisma.sql`
         SELECT
           t."id" AS "id",
           t."userId" AS "userId",
@@ -207,31 +218,35 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         WHERE t."userId" = ${userId}
           AND t."categoryId" = ${parsedParams.data.category}
         ORDER BY t."occurredAt" DESC, t."createdAt" DESC
-      `
-    );
+      `,
+      );
 
-    return reply.send({
-      transactions: transactions
-        .map(toTransactionWithCategory)
-        .map(toTransactionResponse)
-    });
-  });
+      return reply.send({
+        transactions: transactions
+          .map(toTransactionWithCategory)
+          .map(toTransactionResponse),
+      });
+    },
+  );
 
-  app.get("/transactions/:id", async (request, reply) => {
-    const userId = await getAuthenticatedUserId(request);
+  app.get(
+    "/transactions/:id",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
 
-    if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
 
-    const parsedParams = transactionParamsSchema.safeParse(request.params);
+      const parsedParams = transactionParamsSchema.safeParse(request.params);
 
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid transaction id." });
-    }
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: "Invalid transaction id." });
+      }
 
-    const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
-      Prisma.sql`
+      const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
+        Prisma.sql`
         SELECT
           t."id" AS "id",
           t."userId" AS "userId",
@@ -248,182 +263,199 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         WHERE t."id" = ${parsedParams.data.id}
           AND t."userId" = ${userId}
         LIMIT 1
-      `
-    );
-    const transaction = transactions[0];
+      `,
+      );
+      const transaction = transactions[0];
 
-    if (!transaction) {
-      return reply.code(404).send({ error: "Transaction not found." });
-    }
+      if (!transaction) {
+        return reply.code(404).send({ error: "Transaction not found." });
+      }
 
-    return reply.send({
-      transaction: toTransactionResponse(toTransactionWithCategory(transaction))
-    });
-  });
-
-  app.post("/transactions", async (request, reply) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
-
-    const parsedBody = createTransactionBodySchema.safeParse(request.body);
-
-    if (!parsedBody.success) {
-      return reply.code(400).send({
-        error: "Invalid transaction data.",
-        issues: parsedBody.error.issues.map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message
-        }))
+      return reply.send({
+        transaction: toTransactionResponse(
+          toTransactionWithCategory(transaction),
+        ),
       });
-    }
+    },
+  );
 
-    const category = await db.category.findFirst({
-      where: {
-        id: parsedBody.data.categoryId,
-        type: parsedBody.data.type
-      },
-      select: {
-        id: true,
-        name: true,
-        type: true
+  app.post(
+    "/transactions",
+    { config: { rateLimit: financialWriteRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
       }
-    });
 
-    if (!category) {
-      return reply
-        .code(400)
-        .send({ error: "Invalid category for transaction type." });
-    }
+      const parsedBody = createTransactionBodySchema.safeParse(request.body);
 
-    const transaction = await db.transaction.create({
-      data: {
-        userId,
-        type: parsedBody.data.type,
-        categoryId: category.id,
-        amountCents: parsedBody.data.amount,
-        description: parsedBody.data.description,
-        occurredAt: parsedBody.data.date ?? new Date()
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid transaction data.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
       }
-    });
 
-    return reply.code(201).send({
-      transaction: toTransactionResponse({
-        ...transaction,
-        category
-      })
-    });
-  });
-
-  app.delete("/transactions/:id", async (request, reply) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
-
-    const parsedParams = transactionParamsSchema.safeParse(request.params);
-
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid transaction id." });
-    }
-
-    const deletion = await db.transaction.deleteMany({
-      where: {
-        id: parsedParams.data.id,
-        userId
-      }
-    });
-
-    if (deletion.count === 0) {
-      return reply.code(404).send({ error: "Transaction not found." });
-    }
-
-    return reply.send({ message: "Transaction deleted." });
-  });
-
-  app.patch("/transactions/:id", async (request, reply) => {
-    const userId = await getAuthenticatedUserId(request);
-
-    if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
-    }
-
-    const parsedParams = transactionParamsSchema.safeParse(request.params);
-
-    if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid transaction id." });
-    }
-
-    const parsedBody = updateTransactionBodySchema.safeParse(request.body ?? {});
-
-    if (!parsedBody.success) {
-      return reply.code(400).send({
-        error: "Invalid transaction data.",
-        issues: parsedBody.error.issues.map((issue) => ({
-          field: issue.path.join("."),
-          message: issue.message
-        }))
+      const category = await db.category.findFirst({
+        where: {
+          id: parsedBody.data.categoryId,
+          type: parsedBody.data.type,
+        },
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
       });
-    }
 
-    const transaction = await db.transaction.findFirst({
-      where: {
-        id: parsedParams.data.id,
-        userId
-      },
-      select: {
-        id: true,
-        type: true,
-        categoryId: true
+      if (!category) {
+        return reply
+          .code(400)
+          .send({ error: "Invalid category for transaction type." });
       }
-    });
 
-    if (!transaction) {
-      return reply.code(404).send({ error: "Transaction not found." });
-    }
+      const transaction = await db.transaction.create({
+        data: {
+          userId,
+          type: parsedBody.data.type,
+          categoryId: category.id,
+          amountCents: parsedBody.data.amount,
+          description: parsedBody.data.description,
+          occurredAt: parsedBody.data.date ?? new Date(),
+        },
+      });
 
-    if (Object.keys(parsedBody.data).length === 0) {
+      return reply.code(201).send({
+        transaction: toTransactionResponse({
+          ...transaction,
+          category,
+        }),
+      });
+    },
+  );
+
+  app.delete(
+    "/transactions/:id",
+    { config: { rateLimit: financialWriteRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedParams = transactionParamsSchema.safeParse(request.params);
+
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: "Invalid transaction id." });
+      }
+
+      const deletion = await db.transaction.deleteMany({
+        where: {
+          id: parsedParams.data.id,
+          userId,
+        },
+      });
+
+      if (deletion.count === 0) {
+        return reply.code(404).send({ error: "Transaction not found." });
+      }
+
+      return reply.send({ message: "Transaction deleted." });
+    },
+  );
+
+  app.patch(
+    "/transactions/:id",
+    { config: { rateLimit: financialWriteRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedParams = transactionParamsSchema.safeParse(request.params);
+
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: "Invalid transaction id." });
+      }
+
+      const parsedBody = updateTransactionBodySchema.safeParse(
+        request.body ?? {},
+      );
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid transaction data.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const transaction = await db.transaction.findFirst({
+        where: {
+          id: parsedParams.data.id,
+          userId,
+        },
+        select: {
+          id: true,
+          type: true,
+          categoryId: true,
+        },
+      });
+
+      if (!transaction) {
+        return reply.code(404).send({ error: "Transaction not found." });
+      }
+
+      if (Object.keys(parsedBody.data).length === 0) {
+        return reply.send({ message: "Transaction updated." });
+      }
+
+      const { type, categoryId, description, date, amount } = parsedBody.data;
+      const resultingType = type ?? transaction.type;
+      const resultingCategoryId = categoryId ?? transaction.categoryId;
+      const category = await db.category.findFirst({
+        where: {
+          id: resultingCategoryId,
+          type: resultingType,
+        },
+        select: { id: true },
+      });
+
+      if (!category) {
+        return reply
+          .code(400)
+          .send({ error: "Invalid category for transaction type." });
+      }
+
+      const update = await db.transaction.updateMany({
+        where: {
+          id: parsedParams.data.id,
+          userId,
+        },
+        data: {
+          type,
+          categoryId,
+          description,
+          occurredAt: date,
+          amountCents: amount,
+        },
+      });
+
+      if (update.count === 0) {
+        return reply.code(404).send({ error: "Transaction not found." });
+      }
+
       return reply.send({ message: "Transaction updated." });
-    }
-
-    const { type, categoryId, description, date, amount } = parsedBody.data;
-    const resultingType = type ?? transaction.type;
-    const resultingCategoryId = categoryId ?? transaction.categoryId;
-    const category = await db.category.findFirst({
-      where: {
-        id: resultingCategoryId,
-        type: resultingType
-      },
-      select: { id: true }
-    });
-
-    if (!category) {
-      return reply
-        .code(400)
-        .send({ error: "Invalid category for transaction type." });
-    }
-
-    const update = await db.transaction.updateMany({
-      where: {
-        id: parsedParams.data.id,
-        userId
-      },
-      data: {
-        type,
-        categoryId,
-        description,
-        occurredAt: date,
-        amountCents: amount
-      }
-    });
-
-    if (update.count === 0) {
-      return reply.code(404).send({ error: "Transaction not found." });
-    }
-
-    return reply.send({ message: "Transaction updated." });
-  });
+    },
+  );
 };

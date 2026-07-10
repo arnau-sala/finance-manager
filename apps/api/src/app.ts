@@ -9,13 +9,15 @@ import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
 import { statisticsRoutes } from "./routes/statistics.js";
 import { transactionRoutes } from "./routes/transactions.js";
+import { registerRateLimit } from "./security/rate-limit.js";
 
 export function buildApp() {
   const app = Fastify({
-    logger: true
+    logger: true,
   });
 
   registerSecureSession(app);
+  registerRateLimit(app);
 
   app.get("/health", async () => {
     return { status: "ok" };
