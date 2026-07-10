@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Phase 8 starts the basic statistics layer for authenticated financial data.
+Phase 9 hardens the API security layer before frontend work begins.
 
 Implemented:
 
@@ -12,7 +12,9 @@ Core:
 
 - `GET /health`
 - API rate limiting for public, authenticated, financial, and administrative routes
+- Origin checks for mutating browser requests
 - Security headers through Helmet
+- Pagination limits for growing list endpoints
 - Prisma schema for `User`, `AccessRequest`, and `ApprovedEmail`
 - Initial SQL migration
 - Shared Prisma client module for the API
