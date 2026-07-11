@@ -79,6 +79,14 @@ The app should be built so it can later support:
 - Home-screen installation on mobile.
 - Mobile safe areas.
 
+Viewport and safe-area rules:
+
+- Use `viewport-fit=cover` so iOS home-screen mode exposes safe-area insets correctly.
+- The mobile app is portrait-first. The web manifest declares `orientation: portrait`, and touch devices in landscape show `Landscape mode coming soon`.
+- Static screens, such as login and register, should fill exactly one viewport and avoid accidental body scroll.
+- Screens with real lists or long forms can scroll, but the scroll should belong to the screen content intentionally.
+- Layout padding on mobile should account for `env(safe-area-inset-*)` so content does not collide with notches, home indicators, or browser UI.
+
 ## Visual Style
 
 The visual direction is inspired by modern Apple-like interfaces:

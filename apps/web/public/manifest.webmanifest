@@ -1,0 +1,10 @@
+{
+  "name": "Finance Manager",
+  "short_name": "Finance",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F8FA",
+  "theme_color": "#F7F8FA"
+}
