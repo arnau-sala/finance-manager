@@ -23,7 +23,7 @@
 
 ## Phase 4: Administrative Review Foundation
 
-- Make access-request fields mandatory.
+- Require access-request email and name while keeping the administrator message optional.
 - Separate the pending queue from the permanent structured event log.
 - Add pending-request list and detail endpoints.
 - Add event list and detail endpoints for local administrative review.

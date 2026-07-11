@@ -327,11 +327,15 @@ Fields:
 
 - Email.
 - Name.
-- Message.
+- Message (optional note for the administrator).
 
 Security UX:
 
+- Validate the email, required name, and field lengths locally before calling the API.
+- Submit only from the explicit `Submit request` button.
 - Always show a neutral success message for syntactically valid requests.
+- After a successful response, show a simple confirmation screen with the normalized email, name, and submitted message, or `No message added` when it was left empty.
+- Support both the back button and an edge swipe to return from the form to the unauthenticated entry screen.
 
 ### 5. Dashboard
 

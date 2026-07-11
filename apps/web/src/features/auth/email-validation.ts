@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const emailSchema = z
+export const emailSchema = z
   .string()
   .trim()
   .min(1, "Enter your email address.")

@@ -64,7 +64,7 @@ npm run db:deploy
 
 `User` stores registered users and their role/status.
 
-`AccessRequest` is the current pending queue. Its email is unique, and its email, name, and message fields are required. Approval and denial both remove the row.
+`AccessRequest` is the current pending queue. Its email is unique; email and name must be non-empty, while an omitted message is persisted as an empty string. Approval and denial both remove the row.
 
 `AccessRequestEvent` is the permanent structured history. New pending requests create an `ACCESS_REQUEST_CREATED` event with actor `VISITOR`. Valid-looking submissions that are not added to the queue create an `ACCESS_REQUEST_DISCARDED` event with actor `SYSTEM` and one of these reasons:
 

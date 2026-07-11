@@ -14,7 +14,7 @@ const accessRequestBodySchema = z
       .max(254)
       .transform((email) => email.toLowerCase()),
     name: z.string().trim().min(1).max(100),
-    message: z.string().trim().min(1).max(1000),
+    message: z.string().trim().max(1000).optional().default(""),
   })
   .strict();
 

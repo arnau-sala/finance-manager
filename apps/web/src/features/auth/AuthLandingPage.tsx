@@ -32,6 +32,7 @@ function GoogleIcon() {
 
 type AuthLandingPageProps = {
   onEmailContinue: (email: string) => void;
+  onRequestAccess: () => void;
 };
 
 function isAutofilled(input: HTMLInputElement) {
@@ -42,7 +43,10 @@ function isAutofilled(input: HTMLInputElement) {
   }
 }
 
-export function AuthLandingPage({ onEmailContinue }: AuthLandingPageProps) {
+export function AuthLandingPage({
+  onEmailContinue,
+  onRequestAccess
+}: AuthLandingPageProps) {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
   const hasContinued = useRef(false);
@@ -157,7 +161,7 @@ export function AuthLandingPage({ onEmailContinue }: AuthLandingPageProps) {
           </div>
 
           <div className="auth-options">
-            <button className="auth-option" type="button">
+            <button className="auth-option" type="button" onClick={onRequestAccess}>
               <span className="auth-option-label">
                 <Mail aria-hidden="true" strokeWidth={1.8} />
                 Create an account

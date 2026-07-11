@@ -18,7 +18,7 @@ The public access-request endpoint:
 - Validates the entire request body and rejects unknown fields.
 - Normalizes email addresses by trimming whitespace and converting them to lowercase.
 - Limits names to 100 characters and messages to 1000 characters.
-- Requires non-empty email, name, and message fields.
+- Requires non-empty email and name fields; the optional message is still limited to 1000 characters.
 - Returns the same status and body for every syntactically valid submission.
 - Uses a database constraint to prevent duplicate pending requests during concurrent calls.
 - Stores every valid access-request outcome in a structured server-side event log without exposing the event or discard reason publicly.

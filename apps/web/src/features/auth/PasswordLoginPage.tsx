@@ -4,6 +4,7 @@ import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 import { login } from "./auth-api";
 import { validateEmail } from "./email-validation";
 import { validateLoginPassword } from "./password-validation";
+import { useBackSwipe } from "./use-back-swipe";
 
 type PasswordLoginPageProps = {
   email: string;
@@ -16,8 +17,6 @@ type InvalidFields = {
   password: boolean;
 };
 
-const SWIPE_START_AREA = 40;
-const SWIPE_DISTANCE = 72;
 const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
 
@@ -36,7 +35,7 @@ export function PasswordLoginPage({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordInput = useRef<HTMLInputElement>(null);
-  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const backSwipeHandlers = useBackSwipe(onBack);
 
   function togglePasswordVisibility() {
     setIsPasswordVisible((isVisible) => !isVisible);
@@ -51,31 +50,6 @@ export function PasswordLoginPage({
       input.focus({ preventScroll: true });
       input.setSelectionRange(password.length, password.length);
     });
-  }
-
-  function handlePointerDown(event: React.PointerEvent<HTMLElement>) {
-    if (event.pointerType === "touch" && event.clientX <= SWIPE_START_AREA) {
-      swipeStart.current = { x: event.clientX, y: event.clientY };
-    }
-  }
-
-  function handlePointerUp(event: React.PointerEvent<HTMLElement>) {
-    const start = swipeStart.current;
-    swipeStart.current = null;
-
-    if (!start || event.pointerType !== "touch") {
-      return;
-    }
-
-    const horizontalDistance = event.clientX - start.x;
-    const verticalDistance = Math.abs(event.clientY - start.y);
-
-    if (
-      horizontalDistance >= SWIPE_DISTANCE &&
-      horizontalDistance > verticalDistance * 1.2
-    ) {
-      onBack();
-    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -126,11 +100,7 @@ export function PasswordLoginPage({
   return (
     <main
       className="auth-screen auth-screen--static auth-screen--login"
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={() => {
-        swipeStart.current = null;
-      }}
+      {...backSwipeHandlers}
     >
       <button className="auth-back-button" type="button" onClick={onBack} aria-label="Go back">
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />

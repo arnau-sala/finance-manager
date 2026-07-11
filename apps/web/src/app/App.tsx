@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 
+import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
+import type { AccessRequestInput } from "../features/access-request/access-request-validation";
+import { RequestAccessPage } from "../features/access-request/RequestAccessPage";
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import { getCurrentSession, logout } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
 import { HomePage } from "../features/home/HomePage";
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
+type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
 
 export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
-  const [activeScreen, setActiveScreen] = useState<"landing" | "login">("landing");
+  const [activeScreen, setActiveScreen] = useState<AuthScreen>("landing");
   const [loginEmail, setLoginEmail] = useState("");
+  const [submittedAccessRequest, setSubmittedAccessRequest] =
+    useState<AccessRequestInput | null>(null);
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
+  const [accessRequestVersion, setAccessRequestVersion] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -40,7 +47,20 @@ export function App() {
     setActiveScreen("login");
   }
 
+  function openAccessRequest() {
+    setSubmittedAccessRequest(null);
+    setAccessRequestVersion((version) => version + 1);
+    setActiveScreen("access-request");
+  }
+
+  function showAccessRequestConfirmation(request: AccessRequestInput) {
+    setSubmittedAccessRequest(request);
+    setActiveScreen("access-request-success");
+  }
+
   function returnToLanding() {
+    setLoginEmail("");
+    setSubmittedAccessRequest(null);
     setLandingVersion((version) => version + 1);
     setActiveScreen("landing");
   }
@@ -72,6 +92,7 @@ export function App() {
         <AuthLandingPage
           key={landingVersion}
           onEmailContinue={openLogin}
+          onRequestAccess={openAccessRequest}
         />
       </div>
 
@@ -86,6 +107,31 @@ export function App() {
           onBack={returnToLanding}
           onLoginSuccess={() => setSessionStatus("authenticated")}
         />
+      </div>
+
+      <div
+        className="auth-flow-page auth-flow-page--access-request"
+        aria-hidden={activeScreen !== "access-request"}
+        inert={activeScreen !== "access-request"}
+      >
+        <RequestAccessPage
+          key={accessRequestVersion}
+          onBack={returnToLanding}
+          onRequestSubmitted={showAccessRequestConfirmation}
+        />
+      </div>
+
+      <div
+        className="auth-flow-page auth-flow-page--access-request-success"
+        aria-hidden={activeScreen !== "access-request-success"}
+        inert={activeScreen !== "access-request-success"}
+      >
+        {submittedAccessRequest ? (
+          <AccessRequestConfirmationPage
+            request={submittedAccessRequest}
+            onReturnToStart={returnToLanding}
+          />
+        ) : null}
       </div>
     </div>
   );

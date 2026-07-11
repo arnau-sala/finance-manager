@@ -140,7 +140,7 @@ A valid request returns HTTP `202 Accepted`:
 }
 ```
 
-All three fields are required. A syntactically valid submission always receives the same response, including when its email already has a request, is approved, or is registered.
+`email` and `name` are required. `message` is optional and is stored as an empty string when omitted. A syntactically valid submission always receives the same response, including when its email already has a request, is approved, or is registered.
 
 ## Review Pending Requests
 
