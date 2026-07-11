@@ -96,9 +96,10 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
           noValidate
         >
           <div className="auth-form-field">
-            <label htmlFor="login-email">Email address</label>
+            <span id="login-email-label">Email address</span>
             <input
               id="login-email"
+              aria-labelledby="login-email-label"
               name="email"
               type="email"
               inputMode="email"
@@ -109,12 +110,13 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
           </div>
 
           <div className="auth-form-field auth-password-field">
-            <label htmlFor="login-password">Password</label>
+            <span id="login-password-label">Password</span>
             <div className="auth-input-with-action">
               <input
                 key={isPasswordVisible ? "visible" : "masked"}
                 ref={passwordInput}
                 id="login-password"
+                aria-labelledby="login-password-label"
                 name="password"
                 type={
                   isPasswordVisible || supportsImmediatePasswordMask

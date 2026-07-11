@@ -454,7 +454,7 @@ button {
   gap: 8px;
 }
 
-.auth-form-field label {
+.auth-form-field > span {
   padding-left: 20px;
   color: var(--color-text-muted);
   font-size: 13px;
