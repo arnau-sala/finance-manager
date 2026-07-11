@@ -106,8 +106,11 @@ export function RequestAccessPage({
           <div className="auth-message">
             <h1 id="request-access-title">Request access</h1>
             <p className="auth-subtitle auth-request-subtitle">
-              Send your details for admin review. We'll email you once a decision is made;
-              if approved, you can finish creating your account.
+              Send your details for admin review.
+              <br />
+              We'll email you once a decision is made.
+              <br />
+              If approved, you can finish creating your account.
             </p>
           </div>
         </header>
@@ -130,6 +133,7 @@ export function RequestAccessPage({
               autoCorrect="off"
               spellCheck={false}
               required
+              placeholder="Enter your email address"
               value={email}
               maxLength={254}
               aria-invalid={invalidFields.email === true}
@@ -150,6 +154,7 @@ export function RequestAccessPage({
               type="text"
               autoComplete="name"
               required
+              placeholder="Enter your name"
               value={name}
               maxLength={100}
               aria-invalid={invalidFields.name === true}
