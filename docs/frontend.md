@@ -79,6 +79,21 @@ The app should be built so it can later support:
 - Home-screen installation on mobile.
 - Mobile safe areas.
 
+App icon:
+
+- The canonical icon file is `apps/web/public/icons/app-icon.png`.
+- Use a square PNG, ideally `1024x1024px` or larger.
+- Avoid transparency if possible because mobile platforms can render transparent app icons inconsistently.
+- Keep the symbol centered with enough internal padding so it works when masked by Android or rounded by iOS.
+- The source file is used directly in the login screen.
+- iOS home-screen installs use `apps/web/public/apple-touch-icon.png`, a `180x180px` PNG without transparency, served from `/apple-touch-icon.png`.
+- PWA manifest icons use generated `192x192px` and `512x512px` PNG files without transparency.
+- Browser tabs use a generated `32x32px` favicon PNG.
+- Icon URLs include a version query so replacing an icon can invalidate the aggressive iOS Web Clip cache.
+- For iPhone testing through VS Code port forwarding, only frontend port `5173` should be public. Ports `3001` and `5555` must remain private.
+- A private VS Code tunnel redirects iOS's unauthenticated icon request to GitHub sign-in, causing WebKit to generate a letter icon. Set port `5173` to `Port Visibility: Public` while testing installation.
+- Verify the public URL in a private Safari tab by opening `/apple-touch-icon.png`. It must return the PNG directly without a sign-in redirect, tunnel warning page, React fallback, or 404.
+
 Viewport and safe-area rules:
 
 - Use `viewport-fit=cover` so iOS home-screen mode exposes safe-area insets correctly.
@@ -115,9 +130,15 @@ Core colors:
 | `--color-border` | `#D9DEE7` | Dividers and input borders |
 | `--color-text` | `#111827` | Primary text |
 | `--color-text-muted` | `#667085` | Secondary text |
-| `--color-primary` | `#2563EB` | Primary actions and active navigation |
-| `--color-primary-pressed` | `#1D4ED8` | Pressed primary actions |
-| `--color-primary-soft` | `#DBEAFE` | Selected/soft primary backgrounds |
+| `--color-primary` | `#0F766E` | Primary actions and active navigation |
+| `--color-primary-hover` | `#0D6B63` | Hover state when a desktop interaction needs it |
+| `--color-primary-pressed` | `#115E59` | Pressed primary actions |
+| `--color-primary-soft` | `#E7F6F3` | Subtle active and informational backgrounds |
+| `--color-primary-soft-strong` | `#CDEBE5` | Selected chips, badges, and stronger highlights |
+| `--color-primary-border` | `#9FD8CE` | Borders paired with branded soft backgrounds |
+| `--color-primary-accent` | `#4FAF9F` | Charts, indicators, and small visual details |
+| `--color-focus-ring` | `rgba(15, 118, 110, 0.25)` | Focus indication |
+| `--color-on-primary` | `#FFFFFF` | Text and icons on primary controls |
 | `--color-success` | `#16A34A` | Income, success states |
 | `--color-success-soft` | `#DCFCE7` | Soft income/success backgrounds |
 | `--color-danger` | `#DC2626` | Expense, destructive actions |
@@ -127,18 +148,32 @@ Core colors:
 
 Usage rules:
 
-- Primary blue is for navigation, confirmation, and focused states.
-- Green is reserved for income or success.
+- Petroleum green is the brand and interaction color. Use it for primary actions,
+  active navigation, important links, and focus states.
+- Keep main surfaces white and the interface predominantly neutral. Soft green
+  belongs only to selected, active, or intentionally highlighted elements.
+- Use the darker primary only for pressed states. Use the accent sparingly for
+  charts, secondary icons, and small indicators.
+- Primary buttons use the brand color with white text. Secondary buttons stay
+  white or neutral unless selected or focused.
+- Semantic success green is reserved for income, confirmation, and positive results.
 - Red is reserved for expenses, errors, and destructive actions.
 - Keep most UI neutral. Semantic colors should highlight meaning, not dominate the screen.
 - Do not use a one-color theme. The app should not feel entirely blue, beige, purple, or gray.
+- Brand green and semantic success green must remain separate: primary expresses
+  interaction, while success expresses income, confirmation, or a positive result.
+- Never rely on color alone for financial types or states; pair it with text,
+  labels, or icons.
+- Component styles must consume the centralized tokens in `styles/tokens.css`.
+  Direct color values are reserved for external brands such as Google.
 
 ## Typography
 
 Initial recommendation:
 
-- Use system font stack first: `-apple-system`, `BlinkMacSystemFont`, `Segoe UI`, `Inter`, `sans-serif`.
+- Use the locally bundled Inter family in light and regular weights.
 - Avoid oversized type except on focused summary moments like the dashboard balance.
+- Avoid bold text as a default hierarchy tool; prefer size, spacing, and light-to-regular weight changes.
 - Keep letter spacing at `0`.
 
 Suggested scale:
@@ -246,6 +281,17 @@ MVP content:
 ### 2. Login
 
 Purpose: authenticate an approved user.
+
+The unauthenticated entry screen combines the available access paths in one
+static, mobile-first layout:
+
+- Email entry starts the normal login flow; password entry belongs to the next screen.
+- Create an account leads to the access-request flow.
+- Continue with Google is visually available for future OAuth integration.
+- The initial logo and slogan are placeholders until the product identity is finalized.
+- The entry screen uses a flat white canvas, without a card around the main content.
+- Controls do not use hover animations or desktop-specific sizing; they remain touch-first.
+- The screen must not scroll, zoom, or overscroll when all content fits in the viewport.
 
 Fields:
 
