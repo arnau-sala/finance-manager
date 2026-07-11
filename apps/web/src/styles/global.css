@@ -678,19 +678,40 @@ button {
 }
 
 .auth-request-success-icon {
+  position: relative;
   width: 64px;
   height: 64px;
   display: grid;
   place-items: center;
   color: var(--color-primary-pressed);
   background: var(--color-primary-soft);
-  border: 1px solid var(--color-primary-border);
   border-radius: 50%;
+  animation: request-success-pop 520ms cubic-bezier(0.18, 0.88, 0.22, 1.15) 180ms both;
+}
+
+.auth-request-success-icon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    conic-gradient(
+      var(--color-primary) var(--success-ring-angle),
+      var(--color-primary-border) 0
+    );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 0);
+  animation: request-success-ring 780ms ease-out 160ms both;
 }
 
 .auth-request-success-icon svg {
+  position: relative;
+  z-index: 1;
   width: 28px;
   height: 28px;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  animation: request-success-check 520ms ease-out 650ms both;
 }
 
 .auth-request-summary {
@@ -920,6 +941,46 @@ button {
   }
 }
 
+@property --success-ring-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes request-success-ring {
+  from {
+    --success-ring-angle: 0deg;
+  }
+
+  to {
+    --success-ring-angle: 360deg;
+  }
+}
+
+@keyframes request-success-check {
+  from {
+    opacity: 0;
+    stroke-dashoffset: 40;
+    transform: scale(0.86);
+  }
+
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+    transform: scale(1);
+  }
+}
+
+@keyframes request-success-pop {
+  from {
+    transform: scale(0.92);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
 @media (max-height: 680px) and (orientation: portrait) {
   .auth-panel {
     gap: 34px;
@@ -1046,6 +1107,13 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .auth-flow-page {
     transition-duration: 1ms;
+  }
+
+  .auth-request-success-icon,
+  .auth-request-success-icon::before,
+  .auth-request-success-icon svg {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
   }
 }
 
