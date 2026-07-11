@@ -1,9 +1,19 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 
+import { login } from "./auth-api";
+import { validateEmail } from "./email-validation";
+import { validateLoginPassword } from "./password-validation";
+
 type PasswordLoginPageProps = {
   email: string;
   onBack: () => void;
+  onLoginSuccess: () => void;
+};
+
+type InvalidFields = {
+  email: boolean;
+  password: boolean;
 };
 
 const SWIPE_START_AREA = 40;
@@ -11,10 +21,20 @@ const SWIPE_DISTANCE = 72;
 const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
 
-export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLoginPageProps) {
+export function PasswordLoginPage({
+  email: initialEmail,
+  onBack,
+  onLoginSuccess
+}: PasswordLoginPageProps) {
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [invalidFields, setInvalidFields] = useState<InvalidFields>({
+    email: false,
+    password: false
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordInput = useRef<HTMLInputElement>(null);
   const swipeStart = useRef<{ x: number; y: number } | null>(null);
 
@@ -58,6 +78,51 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
     }
   }
 
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
+    const parsedEmail = validateEmail(email);
+
+    if (!parsedEmail.success) {
+      setInvalidFields({ email: true, password: false });
+      setFormError(parsedEmail.error.issues[0]?.message ?? "Enter a valid email address.");
+      return;
+    }
+
+    const parsedPassword = validateLoginPassword(password);
+
+    if (!parsedPassword.success) {
+      setInvalidFields({ email: false, password: true });
+      setFormError(parsedPassword.error.issues[0]?.message ?? "Enter your password.");
+      return;
+    }
+
+    setFormError(null);
+    setInvalidFields({ email: false, password: false });
+    setIsSubmitting(true);
+
+    try {
+      await login({
+        email: parsedEmail.data,
+        password: parsedPassword.data
+      });
+      onLoginSuccess();
+    } catch (error) {
+      setInvalidFields({ email: true, password: true });
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Login failed.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
     <main
       className="auth-screen auth-screen--static auth-screen--login"
@@ -92,7 +157,7 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
 
         <form
           className="auth-login-form"
-          onSubmit={(event) => event.preventDefault()}
+          onSubmit={handleSubmit}
           noValidate
         >
           <div className="auth-form-field">
@@ -105,7 +170,15 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
               inputMode="email"
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              aria-invalid={invalidFields.email}
+              aria-describedby={formError ? "login-form-error" : undefined}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                if (formError) {
+                  setFormError(null);
+                  setInvalidFields({ email: false, password: false });
+                }
+              }}
             />
           </div>
 
@@ -132,7 +205,15 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
                 spellCheck={false}
                 placeholder="Enter your password"
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
+                aria-invalid={invalidFields.password}
+                aria-describedby={formError ? "login-form-error" : undefined}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  if (formError) {
+                    setFormError(null);
+                    setInvalidFields({ email: false, password: false });
+                  }
+                }}
               />
               <button
                 type="button"
@@ -149,8 +230,17 @@ export function PasswordLoginPage({ email: initialEmail, onBack }: PasswordLogin
             </div>
           </div>
 
-          <button className="auth-primary-button" type="submit">
-            Continue
+          <p
+            id="login-form-error"
+            className="auth-field-message auth-field-message--error auth-login-error"
+            role="alert"
+            aria-live="polite"
+          >
+            {formError ?? "\u00a0"}
+          </p>
+
+          <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Checking..." : "Continue"}
           </button>
         </form>
       </section>

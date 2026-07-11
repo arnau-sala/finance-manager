@@ -487,6 +487,11 @@ button {
   box-shadow: 0 0 0 4px var(--color-focus-ring);
 }
 
+.auth-form-field input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
+}
+
 .auth-password-input {
   user-select: none;
   -webkit-user-select: none;
@@ -552,6 +557,34 @@ button {
 
 .auth-primary-button:active {
   background: var(--color-primary-pressed);
+}
+
+.auth-primary-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.auth-login-error {
+  margin: -4px 0 -10px;
+}
+
+.app-loading-screen,
+.home-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.home-screen h1 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 300;
+  letter-spacing: 0;
 }
 
 @media (max-height: 680px) and (orientation: portrait) {

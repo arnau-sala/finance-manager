@@ -1,13 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
+import { getCurrentSession } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
+import { HomePage } from "../features/home/HomePage";
+
+type SessionStatus = "checking" | "anonymous" | "authenticated";
 
 export function App() {
+  const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
   const [activeScreen, setActiveScreen] = useState<"landing" | "login">("landing");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    getCurrentSession()
+      .then((hasActiveSession) => {
+        if (isMounted) {
+          setSessionStatus(hasActiveSession ? "authenticated" : "anonymous");
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSessionStatus("anonymous");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function openLogin(email: string) {
     setLoginEmail(email);
@@ -18,6 +43,14 @@ export function App() {
   function returnToLanding() {
     setLandingVersion((version) => version + 1);
     setActiveScreen("landing");
+  }
+
+  if (sessionStatus === "checking") {
+    return <div className="app-loading-screen" aria-label="Loading" />;
+  }
+
+  if (sessionStatus === "authenticated") {
+    return <HomePage />;
   }
 
   return (
@@ -42,6 +75,7 @@ export function App() {
           key={`${loginVersion}:${loginEmail}`}
           email={loginEmail}
           onBack={returnToLanding}
+          onLoginSuccess={() => setSessionStatus("authenticated")}
         />
       </div>
     </div>
