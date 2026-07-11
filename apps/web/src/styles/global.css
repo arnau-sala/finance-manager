@@ -651,6 +651,9 @@ button {
   border-radius: 0;
   cursor: pointer;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
   font-size: 20px;
   font-weight: 400;
   transition:
