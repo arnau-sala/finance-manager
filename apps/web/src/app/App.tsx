@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
-import { getCurrentSession } from "../features/auth/auth-api";
+import { getCurrentSession, logout } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
 import { HomePage } from "../features/home/HomePage";
 
@@ -45,12 +45,21 @@ export function App() {
     setActiveScreen("landing");
   }
 
+  async function handleLogout() {
+    await logout();
+    setLoginEmail("");
+    setLoginVersion((version) => version + 1);
+    setLandingVersion((version) => version + 1);
+    setActiveScreen("landing");
+    setSessionStatus("anonymous");
+  }
+
   if (sessionStatus === "checking") {
     return <div className="app-loading-screen" aria-label="Loading" />;
   }
 
   if (sessionStatus === "authenticated") {
-    return <HomePage />;
+    return <HomePage onLogout={handleLogout} />;
   }
 
   return (
