@@ -24,8 +24,9 @@ export function AccessRequestConfirmationPage({
           <div className="auth-message">
             <h1 id="request-success-title">Request received</h1>
             <p className="auth-subtitle">
-              Your details were sent successfully. We'll email you after the request has been
-              reviewed.
+              Your details were sent successfully.
+              <br />
+              We'll email you after review.
             </p>
           </div>
         </header>
