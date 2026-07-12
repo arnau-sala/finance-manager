@@ -87,8 +87,12 @@ export async function getGoogleAccessRequestContext() {
 }
 
 export async function logout() {
-  await fetch("/api/auth/logout", {
+  const response = await fetch("/api/auth/logout", {
     method: "POST",
     credentials: "include"
   });
+
+  if (!response.ok && response.status !== 401) {
+    throw new Error(await readErrorMessage(response, "Unable to log out."));
+  }
 }

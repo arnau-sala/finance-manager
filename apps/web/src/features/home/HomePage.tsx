@@ -7,26 +7,28 @@ import { ProfilePage } from "./ProfilePage";
 
 type HomePageProps = {
   user: SessionUser;
+  onLogout: () => Promise<void>;
 };
 
 type HomeSectionProps = {
   user: SessionUser;
+  onLogout: () => Promise<void>;
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
   home: () => <HomeSection title="Home" />,
   moves: () => <HomeSection title="Moves" />,
   stats: () => <HomeSection title="Stats" />,
-  profile: ({ user }) => <ProfilePage user={user} />
+  profile: ({ user, onLogout }) => <ProfilePage user={user} onLogout={onLogout} />
 };
 
-export function HomePage({ user }: HomePageProps) {
+export function HomePage({ user, onLogout }: HomePageProps) {
   const [activeSection, setActiveSection] = useState<HomeSectionId>("home");
   const ActiveSection = homeSections[activeSection];
 
   return (
     <main className="home-screen">
-      {ActiveSection({ user })}
+      {ActiveSection({ user, onLogout })}
 
       <HomeFooterNav
         activeSection={activeSection}

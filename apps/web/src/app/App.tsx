@@ -7,6 +7,7 @@ import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import {
   getCurrentSession,
   getGoogleAccessRequestContext,
+  logout,
   type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
@@ -151,12 +152,25 @@ export function App() {
     setSessionStatus("authenticated");
   }
 
+  async function handleLogout() {
+    await logout();
+    setSessionUser(null);
+    setLoginEmail("");
+    setSubmittedAccessRequest(null);
+    setGoogleAccessRequest(null);
+    setLandingError(null);
+    setLoginVersion((version) => version + 1);
+    setLandingVersion((version) => version + 1);
+    setActiveScreen("landing");
+    setSessionStatus("anonymous");
+  }
+
   if (sessionStatus === "checking") {
     return <div className="app-loading-screen" aria-label="Loading" />;
   }
 
   if (sessionStatus === "authenticated" && sessionUser) {
-    return <HomePage user={sessionUser} />;
+    return <HomePage user={sessionUser} onLogout={handleLogout} />;
   }
 
   return (

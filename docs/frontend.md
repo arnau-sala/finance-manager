@@ -22,6 +22,7 @@ Recommended stack:
 - React Router for routing.
 - TanStack Query for server state once API usage grows beyond simple auth flows.
 - Plain CSS modules or a small design-token CSS layer first; avoid a heavy UI framework until there is a clear need.
+- Reusable confirmation dialogs live in `components/ui` and use the existing React and design-token CSS layer; adding a second UI framework is deferred until multiple components justify it.
 - Recharts or Visx later for statistics charts. Start simple; do not introduce chart complexity before the stats screens need it.
 - Deploy the frontend on Vercel for the MVP.
 

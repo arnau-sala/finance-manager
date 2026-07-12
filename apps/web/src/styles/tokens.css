@@ -23,5 +23,8 @@
   --color-warning: #d97706;
   --color-warning-soft: #fef3c7;
 
+  --color-overlay: rgba(17, 24, 39, 0.42);
+
   --shadow-screen-transition: -18px 0 40px rgba(17, 24, 39, 0.12);
+  --shadow-dialog: 0 18px 50px rgba(17, 24, 39, 0.18);
 }
