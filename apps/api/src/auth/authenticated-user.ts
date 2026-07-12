@@ -5,6 +5,7 @@ import { db } from "../db/client.js";
 export const publicUserSelect = {
   id: true,
   email: true,
+  name: true,
   role: true,
   status: true,
   createdAt: true
@@ -12,6 +13,7 @@ export const publicUserSelect = {
 
 const authenticatedUserSelect = {
   ...publicUserSelect,
+  authProvider: true,
   updatedAt: true
 } as const;
 

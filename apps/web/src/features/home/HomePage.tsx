@@ -1,36 +1,32 @@
 import { type ReactNode, useState } from "react";
 
+import type { SessionUser } from "../auth/auth-api";
 import { HomeFooterNav } from "./HomeFooterNav";
 import type { HomeSectionId } from "./home-sections";
+import { ProfilePage } from "./ProfilePage";
 
 type HomePageProps = {
-  onLogout: () => void;
+  user: SessionUser;
 };
 
 type HomeSectionProps = {
-  onLogout: () => void;
+  user: SessionUser;
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
   home: () => <HomeSection title="Home" />,
   moves: () => <HomeSection title="Moves" />,
   stats: () => <HomeSection title="Stats" />,
-  profile: ({ onLogout }) => (
-    <HomeSection title="Profile">
-      <button className="home-logout-button" type="button" onClick={onLogout}>
-        Log out
-      </button>
-    </HomeSection>
-  )
+  profile: ({ user }) => <ProfilePage user={user} />
 };
 
-export function HomePage({ onLogout }: HomePageProps) {
+export function HomePage({ user }: HomePageProps) {
   const [activeSection, setActiveSection] = useState<HomeSectionId>("home");
   const ActiveSection = homeSections[activeSection];
 
   return (
     <main className="home-screen">
-      {ActiveSection({ onLogout })}
+      {ActiveSection({ user })}
 
       <HomeFooterNav
         activeSection={activeSection}

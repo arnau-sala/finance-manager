@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
+import { publicUserSelect } from "../auth/authenticated-user.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { db } from "../db/client.js";
 import {
@@ -29,6 +30,7 @@ const registerBodySchema = z
       .email()
       .max(254)
       .transform((email) => email.toLowerCase()),
+    name: z.string().trim().min(1).max(100),
     password: passwordSchema,
     passwordConfirmation: z.string(),
   })
@@ -82,7 +84,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const { email, password } = parsedBody.data;
+      const { email, name, password } = parsedBody.data;
 
       try {
         const user = await db.$transaction(async (transaction) => {
@@ -118,19 +120,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           return transaction.user.create({
             data: {
               email,
+              name,
               passwordHash,
               authProvider: "PASSWORD",
               role: "USER",
               status: "APPROVED",
               updatedAt: null,
             },
-            select: {
-              id: true,
-              email: true,
-              role: true,
-              status: true,
-              createdAt: true,
-            },
+            select: publicUserSelect,
           });
         });
 

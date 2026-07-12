@@ -83,11 +83,11 @@ Administrative decisions are atomic. Approval records the approved email and eve
 
 Administrative access-request routes and user-management routes share `auth/require-administrator.ts`. Each administrative module registers it as a plugin-scoped `preHandler`, so every route verifies an active approved user and the `ADMIN` role before executing its handler.
 
-Registration lives in `routes/auth.ts`, while password hashing is isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
+Registration lives in `routes/auth.ts`, requires the user's name, and keeps password hashing isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
 
 Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
 
-Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side OAuth 2.0 / OpenID Connect flow, validates the callback `state`, verifies the Google ID token, and then either starts a session for an existing Google user, creates a Google user from an unused approved email, or stores the verified email/name in the encrypted session so the frontend can open a prefilled Google access-request form.
+Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side OAuth 2.0 / OpenID Connect flow, validates the callback `state`, verifies the Google ID token, and then either starts a session for an existing Google user, creates a Google user with its verified profile name from an unused approved email, or stores the verified email/name in the encrypted session so the frontend can open a prefilled Google access-request form.
 
 `POST /access-requests/google` lives beside the normal access-request endpoint. It accepts only the optional user message, reads the verified Google email/name from the session, appends the internal Google source marker to the stored message, and then reuses the same pending-request/event-log persistence path.
 
@@ -97,7 +97,7 @@ Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side 
 
 `routes/admin-users.ts` exposes administrative user list and detail endpoints. A plugin-scoped hook resolves the current user from the session and checks the `ADMIN` role for every user-management route. Both queries share an explicit Prisma selection so password hashes and unrelated fields cannot enter responses.
 
-`routes/auth-me.ts` returns the public profile selected by the current secure session. It includes `updatedAt` in addition to the fields shared with administrative user reads.
+`routes/auth-me.ts` returns the public profile selected by the current secure session. It includes the required name, authentication provider, and `updatedAt` in addition to the fields shared with administrative user reads. The frontend uses the provider to offer Google linking only to password accounts.
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views.
 

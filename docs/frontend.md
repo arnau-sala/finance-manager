@@ -296,6 +296,7 @@ static, mobile-first layout:
 Fields:
 
 - Email.
+- Name.
 - Password.
 
 States:

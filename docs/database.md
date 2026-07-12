@@ -66,7 +66,7 @@ npm run db:deploy
 
 ## Current Models
 
-`User` stores registered users, their role/status, and their authentication provider.
+`User` stores registered users, their required display name, role/status, and authentication provider. Names are limited to 100 characters and cannot be null.
 
 `AccessRequest` is the current pending queue. Its email is unique; email and name must be non-empty, while an omitted message is persisted as an empty string. Approval and denial both remove the row.
 
@@ -95,7 +95,7 @@ Malformed submissions are rejected before database access and do not create even
 
 `User.googleSubject` stores Google's stable account identifier for `GOOGLE` users. It is unique and is used together with the verified Google ID token so sign-in does not rely only on a changeable email address.
 
-New password registrations explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email receive provider `GOOGLE`, no password hash, and the verified Google subject.
+New password registrations require a name and explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email store Google's verified profile name and receive provider `GOOGLE`, no password hash, and the verified Google subject.
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 

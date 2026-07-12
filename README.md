@@ -237,12 +237,13 @@ Content-Type: application/json
 ```json
 {
   "email": "approved@example.com",
+  "name": "Alex Morgan",
   "password": "SecurePass1!",
   "passwordConfirmation": "SecurePass1!"
 }
 ```
 
-The two passwords must match exactly. The password must contain between 9 and 128 characters, including at least one uppercase letter, one digit, and one special character. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
+`name` is required, trimmed, and limited to 100 characters. The two passwords must match exactly. The password must contain between 9 and 128 characters, including at least one uppercase letter, one digit, and one special character. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
 
 Non-approved, already-used, and already-registered emails receive the same `403 Forbidden` response. Registration does not create a login session yet.
 
@@ -286,7 +287,7 @@ GET /auth/google/callback
 
 The backend verifies the Google ID token with the configured client ID before trusting the email. If an approved Google account already exists, the callback creates the normal secure session and redirects back to the frontend.
 
-If the Google email is approved but no user exists yet, the backend creates a `GOOGLE` user without a password, consumes the approval, starts a session, and redirects back to the frontend.
+If the Google email is approved but no user exists yet, the backend creates a `GOOGLE` user with Google's verified profile name and without a password, consumes the approval, starts a session, and redirects back to the frontend.
 
 If the Google identity cannot be logged in directly, the callback stores the verified Google email and profile name in the encrypted session and redirects to a Google access-request form. The frontend reads that temporary context through:
 
@@ -294,7 +295,7 @@ If the Google identity cannot be logged in directly, the callback stores the ver
 GET /auth/google/request-context
 ```
 
-The Google access-request form shows the verified email and name as prefilled read-only fields. The user can add an optional message and submit:
+The Google access-request form keeps the verified email read-only, prefills an editable name, and accepts an optional message:
 
 ```http
 POST /access-requests/google
@@ -303,11 +304,12 @@ Content-Type: application/json
 
 ```json
 {
+  "name": "Alex Morgan",
   "message": "Optional note for the administrator."
 }
 ```
 
-The backend reads the verified email and name from the session, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral access-request persistence rules as `POST /access-requests`.
+The backend reads the verified email from the session, validates the submitted name, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral access-request persistence rules as `POST /access-requests`.
 
 Local Google configuration requires these values in `apps/api/.env`:
 
@@ -358,6 +360,7 @@ A successful request returns users ordered by creation date, newest first:
     {
       "id": "user-id",
       "email": "user@example.com",
+      "name": "Alex Morgan",
       "role": "USER",
       "status": "APPROVED",
       "createdAt": "2026-07-05T18:30:00.000Z"
@@ -390,6 +393,7 @@ A successful request returns the same public fields as the user list:
   "user": {
     "id": "cmr81aoib0000kzsowdqjw84x",
     "email": "user@example.com",
+    "name": "Alex Morgan",
     "role": "USER",
     "status": "APPROVED",
     "createdAt": "2026-07-05T18:30:00.000Z"
@@ -414,6 +418,8 @@ The endpoint returns the public information for the user represented by the curr
   "user": {
     "id": "cmr81aoib0000kzsowdqjw84x",
     "email": "user@example.com",
+    "name": "Alex Morgan",
+    "authProvider": "PASSWORD",
     "role": "USER",
     "status": "APPROVED",
     "createdAt": "2026-07-05T18:30:00.000Z",

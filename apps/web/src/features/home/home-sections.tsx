@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { CircleUserRound, House, ReceiptText, TrendingUp } from "lucide-react";
+import { ChartNoAxesCombined, CircleUserRound, House, ReceiptText } from "lucide-react";
 
 export type HomeSectionId = "home" | "moves" | "stats" | "profile";
 
@@ -12,6 +12,6 @@ export type HomeNavItem = {
 export const homeNavItems: HomeNavItem[] = [
   { id: "home", label: "home", icon: House },
   { id: "moves", label: "moves", icon: ReceiptText },
-  { id: "stats", label: "stats", icon: TrendingUp },
+  { id: "stats", label: "stats", icon: ChartNoAxesCombined },
   { id: "profile", label: "profile", icon: CircleUserRound }
 ];

@@ -7,7 +7,7 @@ import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import {
   getCurrentSession,
   getGoogleAccessRequestContext,
-  logout
+  type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
 import { HomePage } from "../features/home/HomePage";
@@ -17,6 +17,7 @@ type AuthScreen = "landing" | "login" | "access-request" | "access-request-succe
 
 export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [activeScreen, setActiveScreen] = useState<AuthScreen>("landing");
   const [loginEmail, setLoginEmail] = useState("");
   const [submittedAccessRequest, setSubmittedAccessRequest] =
@@ -77,12 +78,13 @@ export function App() {
     }
 
     getCurrentSession()
-      .then(async (hasActiveSession) => {
+      .then((user) => {
         if (!isMounted) {
           return;
         }
 
-        if (hasActiveSession) {
+        if (user) {
+          setSessionUser(user);
           setSessionStatus("authenticated");
           return;
         }
@@ -138,23 +140,23 @@ export function App() {
     window.location.assign("/api/auth/google/start");
   }
 
-  async function handleLogout() {
-    await logout();
-    setLoginEmail("");
-    setGoogleAccessRequest(null);
-    setLandingError(null);
-    setLoginVersion((version) => version + 1);
-    setLandingVersion((version) => version + 1);
-    setActiveScreen("landing");
-    setSessionStatus("anonymous");
+  async function handleLoginSuccess() {
+    const user = await getCurrentSession();
+
+    if (!user) {
+      throw new Error("Unable to load your account.");
+    }
+
+    setSessionUser(user);
+    setSessionStatus("authenticated");
   }
 
   if (sessionStatus === "checking") {
     return <div className="app-loading-screen" aria-label="Loading" />;
   }
 
-  if (sessionStatus === "authenticated") {
-    return <HomePage onLogout={handleLogout} />;
+  if (sessionStatus === "authenticated" && sessionUser) {
+    return <HomePage user={sessionUser} />;
   }
 
   return (
@@ -183,7 +185,7 @@ export function App() {
           key={`${loginVersion}:${loginEmail}`}
           email={loginEmail}
           onBack={returnToLanding}
-          onLoginSuccess={() => setSessionStatus("authenticated")}
+          onLoginSuccess={handleLoginSuccess}
         />
       </div>
 

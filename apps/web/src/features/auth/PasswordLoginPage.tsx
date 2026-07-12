@@ -8,7 +8,7 @@ import { validateLoginPassword } from "./password-validation";
 type PasswordLoginPageProps = {
   email: string;
   onBack: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: () => void | Promise<void>;
 };
 
 type InvalidFields = {
@@ -82,7 +82,7 @@ export function PasswordLoginPage({
         email: parsedEmail.data,
         password: parsedPassword.data
       });
-      onLoginSuccess();
+      await onLoginSuccess();
     } catch (error) {
       setInvalidFields({ email: true, password: true });
       setFormError(

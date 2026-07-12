@@ -32,13 +32,14 @@ Administrative access-request lists are paginated. Pending requests default to 5
 Registration security decisions:
 
 - Email addresses are trimmed, lowercased, and validated.
+- Names are required, trimmed, and limited to 100 characters.
 - Registration requires matching `password` and `passwordConfirmation` fields.
 - Passwords must contain between 9 and 128 characters, with at least one uppercase letter, one digit, and one special character.
 - Passwords are hashed with Argon2id and are never returned by the API.
 - Password hashing happens only after the email is confirmed as approved and unused.
 - User creation and approval consumption share one transaction.
 - Non-approved, used, and registered emails return the same public error.
-- Successful responses expose only the user ID, email, role, status, and creation timestamp.
+- Successful responses expose only the user ID, email, name, role, status, and creation timestamp.
 
 Login security decisions:
 
@@ -58,10 +59,10 @@ Google sign-in security decisions:
 - Google ID tokens are verified server-side with Google's official Node.js auth library and the configured client ID as audience.
 - The backend requires a verified Google email before using it.
 - Existing `GOOGLE` users can sign in only when Google's stable `sub` identifier matches the stored `googleSubject`.
-- If an approved email has no user yet, Google sign-in creates a `GOOGLE` user without a password and consumes the approval in the same transaction.
+- If an approved email has no user yet, Google sign-in creates a `GOOGLE` user with the verified profile name and without a password, then consumes the approval in the same transaction.
 - Password users are not silently converted to Google users.
-- Google identities that cannot log in directly are stored temporarily in the encrypted session and sent to a Google access-request form with read-only verified email/name fields.
-- `POST /access-requests/google` ignores email and name from the request body, reads them from the verified Google session context, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral persistence rules as the normal access-request endpoint.
+- Google identities that cannot log in directly are stored temporarily in the encrypted session and sent to a Google access-request form with a read-only verified email and an editable prefilled name.
+- `POST /access-requests/google` ignores email from the request body, reads it from the verified Google session context, validates the submitted name, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral persistence rules as the normal access-request endpoint.
 - Public Google access-request outcomes remain neutral: the frontend cannot distinguish registered, pending, approved, or newly created request states unless the result is an actual successful login for the Google account owner.
 
 Origin protection decisions:

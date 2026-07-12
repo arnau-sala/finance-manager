@@ -148,6 +148,7 @@ async function handleGoogleIdentity(
     const user = await transaction.user.create({
       data: {
         email: identity.email,
+        name: identity.name,
         passwordHash: null,
         authProvider: "GOOGLE",
         googleSubject: identity.googleSubject,
@@ -247,7 +248,11 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       });
       const payload = ticket.getPayload();
       const email = payload?.email?.trim().toLowerCase();
-      const name = payload?.name?.trim() || email?.split("@")[0] || "Google user";
+      const name = (
+        payload?.name?.trim() ||
+        email?.split("@")[0] ||
+        "Google user"
+      ).slice(0, 100);
 
       if (!payload?.sub || !email || payload.email_verified !== true) {
         return reply.redirect(failureRedirectUrl);

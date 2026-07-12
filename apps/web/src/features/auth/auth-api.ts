@@ -15,6 +15,21 @@ type GoogleAccessRequestContext = {
   };
 };
 
+export type SessionUser = {
+  id: string;
+  email: string;
+  name: string;
+  authProvider: "PASSWORD" | "GOOGLE";
+  role: "USER" | "ADMIN";
+  status: "APPROVED" | "SUSPENDED";
+  createdAt: string;
+  updatedAt: string | null;
+};
+
+type CurrentSessionResponse = {
+  user: SessionUser;
+};
+
 async function readErrorMessage(response: Response, fallback: string) {
   try {
     const body = (await response.json()) as ApiErrorResponse;
@@ -45,7 +60,16 @@ export async function getCurrentSession() {
     credentials: "include"
   });
 
-  return response.ok;
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("Unable to load the current session.");
+  }
+
+  const body = (await response.json()) as CurrentSessionResponse;
+  return body.user;
 }
 
 export async function getGoogleAccessRequestContext() {

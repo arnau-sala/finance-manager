@@ -35,6 +35,7 @@
 
 - Add `POST /auth/register`.
 - Require an unused approved email.
+- Require and persist the user's name.
 - Hash passwords with Argon2id.
 - Create users as `USER` and `APPROVED`.
 - Mark the approved email as used atomically.
