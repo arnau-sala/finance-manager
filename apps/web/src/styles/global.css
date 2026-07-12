@@ -778,7 +778,7 @@ button {
   inset:
     max(24px, env(safe-area-inset-top))
     max(24px, env(safe-area-inset-right))
-    calc(104px + env(safe-area-inset-bottom))
+    calc(90px + env(safe-area-inset-bottom))
     max(24px, env(safe-area-inset-left));
   display: grid;
   gap: 20px;
@@ -1097,9 +1097,9 @@ button {
   --footer-active-color: var(--color-primary);
   position: absolute;
   right: max(30px, env(safe-area-inset-right));
-  bottom: max(18px, env(safe-area-inset-bottom));
+  bottom: max(8px, calc(env(safe-area-inset-bottom) - 4px));
   left: max(30px, env(safe-area-inset-left));
-  height: 64px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1114,7 +1114,7 @@ button {
   position: relative;
   width: 34px;
   min-width: 34px;
-  height: 52px;
+  height: 44px;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -1155,7 +1155,7 @@ button {
 
 .home-footer-nav__icon {
   width: 34px;
-  height: 42px;
+  height: 36px;
   display: grid;
   place-items: center;
   flex: 0 0 34px;
@@ -1173,7 +1173,7 @@ button {
   max-width: 0;
   overflow: hidden;
   opacity: 0;
-  padding-bottom: 8px;
+  padding-bottom: 6px;
   text-overflow: ellipsis;
   text-transform: capitalize;
   transform: translateX(10px);
