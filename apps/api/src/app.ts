@@ -4,6 +4,7 @@ import { registerSecureSession } from "./auth/session.js";
 import { adminAccessRequestRoutes } from "./routes/admin-access-requests.js";
 import { adminUserRoutes } from "./routes/admin-users.js";
 import { accessRequestRoutes } from "./routes/access-requests.js";
+import { authGoogleRoutes } from "./routes/auth-google.js";
 import { authMeRoutes } from "./routes/auth-me.js";
 import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
@@ -30,6 +31,7 @@ export function buildApp() {
   app.register(accessRequestRoutes);
   app.register(adminAccessRequestRoutes);
   app.register(adminUserRoutes);
+  app.register(authGoogleRoutes);
   app.register(authRoutes);
   app.register(authMeRoutes);
   app.register(categoryRoutes);

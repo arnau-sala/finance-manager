@@ -119,6 +119,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
             data: {
               email,
               passwordHash,
+              authProvider: "PASSWORD",
               role: "USER",
               status: "APPROVED",
               updatedAt: null,
@@ -167,16 +168,24 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         select: {
           id: true,
           passwordHash: true,
+          authProvider: true,
           status: true,
         },
       });
 
+      const userCanUsePassword =
+        user?.authProvider === "PASSWORD" && Boolean(user.passwordHash);
       const passwordMatches = await verifyPassword(
-        user?.passwordHash ?? dummyPasswordHash,
+        userCanUsePassword ? user.passwordHash! : dummyPasswordHash,
         password,
       );
 
-      if (!user || !passwordMatches || user.status !== "APPROVED") {
+      if (
+        !user ||
+        !userCanUsePassword ||
+        !passwordMatches ||
+        user.status !== "APPROVED"
+      ) {
         return reply.code(401).send(invalidCredentialsResponse);
       }
 

@@ -44,11 +44,23 @@ Login security decisions:
 
 - Unknown emails, incorrect passwords, and suspended users return the same `401` response.
 - Unknown emails still run an Argon2id verification against a dummy hash to reduce timing differences.
+- Password login only accepts users whose `authProvider` is `PASSWORD`.
 - Password hashes and user details are never returned by login.
 - Successful login regenerates the session and stores only the user ID.
 - Session cookies are encrypted, `HttpOnly`, `SameSite=Lax`, and limited to seven days.
 - Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
 - Logout requires an active session and deletes its cookie.
+
+Google sign-in security decisions:
+
+- Google sign-in uses a backend OAuth 2.0 / OpenID Connect redirect flow.
+- The backend stores a random `state` value in the encrypted session and validates it on callback before exchanging the authorization code.
+- Google ID tokens are verified server-side with Google's official Node.js auth library and the configured client ID as audience.
+- The backend requires a verified Google email before using it.
+- Existing `GOOGLE` users can sign in only when Google's stable `sub` identifier matches the stored `googleSubject`.
+- If an approved email has no user yet, Google sign-in creates a `GOOGLE` user without a password and consumes the approval in the same transaction.
+- Password users are not silently converted to Google users. A Google attempt with an existing password email receives the same neutral request-received frontend result as other non-created requests.
+- Public Google access-request outcomes remain neutral: the frontend cannot distinguish registered, pending, approved, or newly created request states unless the result is an actual successful login for the Google account owner.
 
 Origin protection decisions:
 
@@ -85,6 +97,7 @@ Current limits:
 | Global API | 300/min | IP |
 | Login | 20/15min | IP + email |
 | Register | 8/15min | IP + email |
+| Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
 | Access requests | 10/hour | IP + email |
 | Financial reads | 180/min | session/IP |

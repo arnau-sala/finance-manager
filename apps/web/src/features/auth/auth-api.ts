@@ -7,6 +7,14 @@ type ApiErrorResponse = {
   error?: string;
 };
 
+type GoogleAccessRequestResult = {
+  request: {
+    email: string;
+    name: string;
+    message: string;
+  };
+};
+
 async function readErrorMessage(response: Response, fallback: string) {
   try {
     const body = (await response.json()) as ApiErrorResponse;
@@ -38,6 +46,20 @@ export async function getCurrentSession() {
   });
 
   return response.ok;
+}
+
+export async function getGoogleAccessRequestResult() {
+  const response = await fetch("/api/auth/google/request-result", {
+    method: "GET",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw new Error("Google request result not found.");
+  }
+
+  const body = (await response.json()) as GoogleAccessRequestResult;
+  return body.request;
 }
 
 export async function logout() {

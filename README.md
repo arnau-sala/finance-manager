@@ -4,7 +4,7 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Frontend work has started with the initial web app scaffold and login preview screen.
+Frontend work has started with the initial mobile-first auth screens and Google sign-in foundation.
 
 Implemented:
 
@@ -39,6 +39,9 @@ Authentication:
 
 - `POST /auth/register`
 - `POST /auth/login`
+- `GET /auth/google/start`
+- `GET /auth/google/callback`
+- `GET /auth/google/request-result`
 - `POST /auth/logout`
 - `GET /auth/me`
 
@@ -265,6 +268,43 @@ Valid credentials for an approved user return:
 ```
 
 Unknown emails, incorrect passwords, and suspended users receive the same `401 Unauthorized` response. Successful login creates a secure cookie session.
+
+## Continue With Google
+
+Google sign-in starts from the browser:
+
+```http
+GET /auth/google/start
+```
+
+The backend redirects the user to Google using OAuth 2.0 / OpenID Connect. Google redirects back to:
+
+```http
+GET /auth/google/callback
+```
+
+The backend verifies the Google ID token with the configured client ID before trusting the email. If an approved Google account already exists, the callback creates the normal secure session and redirects back to the frontend.
+
+If the Google email is approved but no user exists yet, the backend creates a `GOOGLE` user without a password, consumes the approval, starts a session, and redirects back to the frontend.
+
+If the email is not approved and has no pending request, the backend creates a neutral access request using the Google email and profile name with the message `Requested access using Google sign-in.` Existing password accounts, pending requests, used approvals, or registered emails still redirect to the same neutral frontend result so the browser cannot distinguish those states.
+
+The frontend reads the temporary neutral result once through:
+
+```http
+GET /auth/google/request-result
+```
+
+Local Google configuration requires these values in `apps/api/.env`:
+
+```env
+WEB_APP_URL=http://localhost:5173
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
+```
+
+The Google Cloud OAuth client must include the exact `GOOGLE_REDIRECT_URI` as an authorized redirect URI.
 
 ## Logout
 
@@ -741,6 +781,10 @@ NODE_ENV=development
 PORT=3001
 SESSION_KEY=<64-character-hexadecimal-key>
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_manager?schema=public"
+WEB_APP_URL=http://localhost:5173
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 ```
 
 Generate Prisma Client:

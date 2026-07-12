@@ -33,6 +33,9 @@ function GoogleIcon() {
 type AuthLandingPageProps = {
   onEmailContinue: (email: string) => void;
   onRequestAccess: () => void;
+  onGoogleContinue: () => void;
+  externalError?: string | null;
+  onClearExternalError?: () => void;
 };
 
 function isAutofilled(input: HTMLInputElement) {
@@ -45,7 +48,10 @@ function isAutofilled(input: HTMLInputElement) {
 
 export function AuthLandingPage({
   onEmailContinue,
-  onRequestAccess
+  onRequestAccess,
+  onGoogleContinue,
+  externalError = null,
+  onClearExternalError
 }: AuthLandingPageProps) {
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -128,6 +134,7 @@ export function AuthLandingPage({
               onChange={(event) => {
                 const input = event.currentTarget;
                 setEmail(input.value);
+                onClearExternalError?.();
                 if (emailError) {
                   setEmailError(null);
                 }
@@ -153,7 +160,7 @@ export function AuthLandingPage({
             role="alert"
             aria-live="polite"
           >
-            {emailError ?? "\u00a0"}
+            {emailError ?? externalError ?? "\u00a0"}
           </p>
 
           <div className="auth-divider" aria-hidden="true">
@@ -169,7 +176,11 @@ export function AuthLandingPage({
               <ArrowRight className="auth-option-arrow" aria-hidden="true" />
             </button>
 
-            <button className="auth-option auth-option--google" type="button">
+            <button
+              className="auth-option auth-option--google"
+              type="button"
+              onClick={onGoogleContinue}
+            >
               <span className="auth-option-label">
                 <GoogleIcon />
                 Continue with Google

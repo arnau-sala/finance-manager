@@ -30,6 +30,10 @@ Expected values:
 NODE_ENV=development
 PORT=3001
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_manager?schema=public"
+WEB_APP_URL=http://localhost:5173
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 ```
 
 Replace the PostgreSQL user, password, host, port, or database name with your local setup.
@@ -62,7 +66,7 @@ npm run db:deploy
 
 ## Current Models
 
-`User` stores registered users and their role/status.
+`User` stores registered users, their role/status, and their authentication provider.
 
 `AccessRequest` is the current pending queue. Its email is unique; email and name must be non-empty, while an omitted message is persisted as an empty string. Approval and denial both remove the row.
 
@@ -85,7 +89,13 @@ Malformed submissions are rejected before database access and do not create even
 
 `ApprovedEmail` stores emails approved for registration. `approvedBy` stores the administrator user ID that authorized the email, without adding a relation field to `User`. A successful registration sets `usedAt` in the same transaction that creates the `User`, preventing one approval from being consumed twice.
 
-`User.passwordHash` stores an Argon2id hash, never the original password. New registrations explicitly receive role `USER` and status `APPROVED`.
+`User.authProvider` identifies whether the account signs in with `PASSWORD` or `GOOGLE`. MVP accounts use one provider only.
+
+`User.passwordHash` stores an Argon2id hash, never the original password. It is required for `PASSWORD` users and null for `GOOGLE` users.
+
+`User.googleSubject` stores Google's stable account identifier for `GOOGLE` users. It is unique and is used together with the verified Google ID token so sign-in does not rely only on a changeable email address.
+
+New password registrations explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email receive provider `GOOGLE`, no password hash, and the verified Google subject.
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 

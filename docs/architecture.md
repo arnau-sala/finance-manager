@@ -36,6 +36,7 @@ apps/api
       admin-users.ts
       admin-access-requests.ts
       access-requests.ts
+      auth-google.ts
       auth.ts
       categories.ts
       auth-me.ts
@@ -85,6 +86,8 @@ Administrative access-request routes and user-management routes share `auth/requ
 Registration lives in `routes/auth.ts`, while password hashing is isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
 
 Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
+
+Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side OAuth 2.0 / OpenID Connect flow, validates the callback `state`, verifies the Google ID token, and then either starts a session for an existing Google user, creates a Google user from an unused approved email, or records a neutral access-request outcome.
 
 `auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores only `userId`; logout requires that value and deletes the session cookie. Sessions last up to seven days.
 

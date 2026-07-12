@@ -287,7 +287,7 @@ static, mobile-first layout:
 
 - Email entry starts the normal login flow; password entry belongs to the next screen.
 - Create an account leads to the access-request flow.
-- Continue with Google is visually available for future OAuth integration.
+- Continue with Google starts the backend OAuth flow. A successful Google account session enters the app; a non-approved account returns to the neutral access-request confirmation.
 - The initial logo and slogan are placeholders until the product identity is finalized.
 - The entry screen uses a flat white canvas, without a card around the main content.
 - Controls do not use hover animations or desktop-specific sizing; they remain touch-first.
@@ -334,6 +334,7 @@ Security UX:
 - Validate the email, required name, and field lengths locally before calling the API.
 - Submit only from the explicit `Submit request` button.
 - Always show a neutral success message for syntactically valid requests.
+- Google access requests also use neutral copy and do not reveal whether the email is registered, pending, approved, or newly requested.
 - After a successful response, show a simple confirmation screen with the normalized email, name, and submitted message, or `No message added` when it was left empty.
 - Support both the back button and an edge swipe to return from the form to the unauthenticated entry screen.
 

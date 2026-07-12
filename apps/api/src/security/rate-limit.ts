@@ -60,6 +60,13 @@ export const authLogoutRateLimit = {
     getSessionOrIpKey(request, "auth-logout"),
 };
 
+export const authGoogleRateLimit = {
+  hook: "preHandler" as const,
+  max: 30,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) => `auth-google:${request.ip}`,
+};
+
 export const accessRequestRateLimit = {
   hook: "preHandler" as const,
   max: 10,
