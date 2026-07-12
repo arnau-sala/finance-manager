@@ -35,6 +35,15 @@ export function App() {
     );
   }
 
+  function returnToLanding() {
+    setLoginEmail("");
+    setSubmittedAccessRequest(null);
+    setGoogleAccessRequest(null);
+    setLandingError(null);
+    setLandingVersion((version) => version + 1);
+    setActiveScreen("landing");
+  }
+
   useEffect(() => {
     let isMounted = true;
     const url = new URL(window.location.href);
@@ -122,15 +131,6 @@ export function App() {
     setGoogleAccessRequest(null);
     setSubmittedAccessRequest(request);
     setActiveScreen("access-request-success");
-  }
-
-  function returnToLanding() {
-    setLoginEmail("");
-    setSubmittedAccessRequest(null);
-    setGoogleAccessRequest(null);
-    setLandingError(null);
-    setLandingVersion((version) => version + 1);
-    setActiveScreen("landing");
   }
 
   function continueWithGoogle() {

@@ -4,7 +4,6 @@ import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 import { login } from "./auth-api";
 import { validateEmail } from "./email-validation";
 import { validateLoginPassword } from "./password-validation";
-import { useBackSwipe } from "./use-back-swipe";
 
 type PasswordLoginPageProps = {
   email: string;
@@ -35,7 +34,6 @@ export function PasswordLoginPage({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const passwordInput = useRef<HTMLInputElement>(null);
-  const backSwipeHandlers = useBackSwipe(onBack);
 
   function togglePasswordVisibility() {
     setIsPasswordVisible((isVisible) => !isVisible);
@@ -98,10 +96,7 @@ export function PasswordLoginPage({
   }
 
   return (
-    <main
-      className="auth-screen auth-screen--static auth-screen--login"
-      {...backSwipeHandlers}
-    >
+    <main className="auth-screen auth-screen--static auth-screen--login">
       <button className="auth-back-button" type="button" onClick={onBack} aria-label="Go back">
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
       </button>

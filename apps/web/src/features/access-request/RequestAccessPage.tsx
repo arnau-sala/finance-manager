@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
-import { useBackSwipe } from "../auth/use-back-swipe";
 import {
   getGoogleAccessRequestMessage,
   submitAccessRequest,
@@ -34,7 +33,6 @@ export function RequestAccessPage({
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const backSwipeHandlers = useBackSwipe(onBack);
   const isGoogleRequest = mode === "google";
 
   function clearFieldError(field: AccessRequestField) {
@@ -106,10 +104,7 @@ export function RequestAccessPage({
   }
 
   return (
-    <main
-      className="auth-screen auth-screen--login auth-screen--request"
-      {...backSwipeHandlers}
-    >
+    <main className="auth-screen auth-screen--login auth-screen--request">
       <button className="auth-back-button" type="button" onClick={onBack} aria-label="Go back">
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
       </button>
