@@ -1,36 +1,25 @@
-import type { ElementType } from "react";
-import { useState } from "react";
-import { CircleUserRound, House, ReceiptText, TrendingUp } from "lucide-react";
+import { homeNavItems, type HomeSectionId } from "./home-sections";
 
-type FooterNavItem = {
-  label: string;
-  icon: ElementType<{ className?: string }>;
+type HomeFooterNavProps = {
+  activeSection: HomeSectionId;
+  onSectionChange: (section: HomeSectionId) => void;
 };
 
-const footerItems: FooterNavItem[] = [
-  { label: "home", icon: House },
-  { label: "moves", icon: ReceiptText },
-  { label: "stats", icon: TrendingUp },
-  { label: "profile", icon: CircleUserRound }
-];
-
-export function HomeFooterNav() {
-  const [activeIndex, setActiveIndex] = useState(0);
-
+export function HomeFooterNav({ activeSection, onSectionChange }: HomeFooterNavProps) {
   return (
     <nav className="home-footer-nav" aria-label="Primary navigation">
-      {footerItems.map((item, index) => {
+      {homeNavItems.map((item) => {
         const Icon = item.icon;
-        const isActive = index === activeIndex;
+        const isActive = item.id === activeSection;
 
         return (
           <button
-            key={item.label}
+            key={item.id}
             className={`home-footer-nav__item${isActive ? " is-active" : ""}`}
             type="button"
             aria-label={item.label}
             aria-current={isActive ? "page" : undefined}
-            onClick={() => setActiveIndex(index)}
+            onClick={() => onSectionChange(item.id)}
           >
             <span className="home-footer-nav__icon" aria-hidden="true">
               <Icon className="home-footer-nav__icon-svg" />
