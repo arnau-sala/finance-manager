@@ -226,7 +226,7 @@ button {
 }
 
 .auth-brand {
-  margin: -10px 0 16px;
+  margin: 2px 0 16px;
   color: var(--color-primary);
   font-size: 14px;
   font-weight: 400;
@@ -1012,7 +1012,7 @@ button {
   }
 
   .auth-brand {
-    margin: -8px 0 8px;
+    margin: 0 0 8px;
   }
 
   .auth-header h1 {
