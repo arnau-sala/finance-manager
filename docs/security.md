@@ -59,7 +59,9 @@ Google sign-in security decisions:
 - The backend requires a verified Google email before using it.
 - Existing `GOOGLE` users can sign in only when Google's stable `sub` identifier matches the stored `googleSubject`.
 - If an approved email has no user yet, Google sign-in creates a `GOOGLE` user without a password and consumes the approval in the same transaction.
-- Password users are not silently converted to Google users. A Google attempt with an existing password email receives the same neutral request-received frontend result as other non-created requests.
+- Password users are not silently converted to Google users.
+- Google identities that cannot log in directly are stored temporarily in the encrypted session and sent to a Google access-request form with read-only verified email/name fields.
+- `POST /access-requests/google` ignores email and name from the request body, reads them from the verified Google session context, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral persistence rules as the normal access-request endpoint.
 - Public Google access-request outcomes remain neutral: the frontend cannot distinguish registered, pending, approved, or newly created request states unless the result is an actual successful login for the Google account owner.
 
 Origin protection decisions:

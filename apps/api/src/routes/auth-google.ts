@@ -1,14 +1,11 @@
 import { randomBytes } from "node:crypto";
 
-import { Prisma } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 
 import { db } from "../db/client.js";
 import { authGoogleRateLimit } from "../security/rate-limit.js";
-
-const GOOGLE_ACCESS_REQUEST_MESSAGE = "Requested access using Google sign-in.";
 
 const googleCallbackQuerySchema = z
   .object({
@@ -31,15 +28,14 @@ type GoogleIdentity = {
   googleSubject: string;
 };
 
-type GoogleAccessRequestSnapshot = {
+type GoogleAccessRequestContext = {
   email: string;
   name: string;
-  message: string;
 };
 
 type GoogleAuthResult =
   | { type: "login"; userId: string }
-  | { type: "request-received"; request: GoogleAccessRequestSnapshot };
+  | { type: "request-access"; request: GoogleAccessRequestContext };
 
 function getGoogleOAuthConfig(): GoogleOAuthConfig | null {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -80,161 +76,90 @@ function getFrontendRedirectUrl(
   return url.toString();
 }
 
-function getAccessRequestSnapshot(identity: GoogleIdentity) {
+function getAccessRequestContext(identity: GoogleIdentity) {
   return {
     email: identity.email,
     name: identity.name,
-    message: GOOGLE_ACCESS_REQUEST_MESSAGE,
   };
-}
-
-async function createDiscardedAccessRequestEvent(
-  data: GoogleAccessRequestSnapshot,
-  discardReason: "EMAIL_ALREADY_REGISTERED" | "ACCESS_REQUEST_ALREADY_EXISTS",
-) {
-  await db.accessRequestEvent.create({
-    data: {
-      ...data,
-      type: "ACCESS_REQUEST_DISCARDED",
-      discardReason,
-      actorType: "SYSTEM",
-    },
-  });
 }
 
 async function handleGoogleIdentity(
   identity: GoogleIdentity,
 ): Promise<GoogleAuthResult> {
-  const requestSnapshot = getAccessRequestSnapshot(identity);
+  const requestContext = getAccessRequestContext(identity);
 
-  try {
-    return await db.$transaction(async (transaction) => {
-      const [userByGoogleSubject, userByEmail] = await Promise.all([
-        transaction.user.findUnique({
-          where: { googleSubject: identity.googleSubject },
-          select: {
-            id: true,
-            authProvider: true,
-            googleSubject: true,
-            status: true,
-          },
-        }),
-        transaction.user.findUnique({
-          where: { email: identity.email },
-          select: {
-            id: true,
-            authProvider: true,
-            googleSubject: true,
-            status: true,
-          },
-        }),
-      ]);
-
-      const existingUser = userByGoogleSubject ?? userByEmail;
-
-      if (existingUser) {
-        if (
-          existingUser.authProvider === "GOOGLE" &&
-          existingUser.googleSubject === identity.googleSubject &&
-          existingUser.status === "APPROVED"
-        ) {
-          return { type: "login", userId: existingUser.id };
-        }
-
-        await transaction.accessRequestEvent.create({
-          data: {
-            ...requestSnapshot,
-            type: "ACCESS_REQUEST_DISCARDED",
-            discardReason: "EMAIL_ALREADY_REGISTERED",
-            actorType: "SYSTEM",
-          },
-        });
-
-        return { type: "request-received", request: requestSnapshot };
-      }
-
-      const [approvedEmail, existingAccessRequest] = await Promise.all([
-        transaction.approvedEmail.findUnique({
-          where: { email: identity.email },
-          select: { id: true, usedAt: true },
-        }),
-        transaction.accessRequest.findUnique({
-          where: { email: identity.email },
-          select: { id: true },
-        }),
-      ]);
-
-      if (approvedEmail && !approvedEmail.usedAt) {
-        const approvalClaim = await transaction.approvedEmail.updateMany({
-          where: {
-            id: approvedEmail.id,
-            usedAt: null,
-          },
-          data: { usedAt: new Date() },
-        });
-
-        if (approvalClaim.count !== 1) {
-          return { type: "request-received", request: requestSnapshot };
-        }
-
-        const user = await transaction.user.create({
-          data: {
-            email: identity.email,
-            passwordHash: null,
-            authProvider: "GOOGLE",
-            googleSubject: identity.googleSubject,
-            role: "USER",
-            status: "APPROVED",
-            updatedAt: null,
-          },
-          select: { id: true },
-        });
-
-        return { type: "login", userId: user.id };
-      }
-
-      if (approvedEmail || existingAccessRequest) {
-        await transaction.accessRequestEvent.create({
-          data: {
-            ...requestSnapshot,
-            type: "ACCESS_REQUEST_DISCARDED",
-            discardReason: "ACCESS_REQUEST_ALREADY_EXISTS",
-            actorType: "SYSTEM",
-          },
-        });
-
-        return { type: "request-received", request: requestSnapshot };
-      }
-
-      const accessRequest = await transaction.accessRequest.create({
-        data: requestSnapshot,
-      });
-
-      await transaction.accessRequestEvent.create({
-        data: {
-          ...requestSnapshot,
-          accessRequestId: accessRequest.id,
-          type: "ACCESS_REQUEST_CREATED",
-          actorType: "VISITOR",
+  return db.$transaction(async (transaction) => {
+    const [userByGoogleSubject, userByEmail] = await Promise.all([
+      transaction.user.findUnique({
+        where: { googleSubject: identity.googleSubject },
+        select: {
+          id: true,
+          authProvider: true,
+          googleSubject: true,
+          status: true,
         },
-      });
+      }),
+      transaction.user.findUnique({
+        where: { email: identity.email },
+        select: {
+          id: true,
+          authProvider: true,
+          googleSubject: true,
+          status: true,
+        },
+      }),
+    ]);
 
-      return { type: "request-received", request: requestSnapshot };
-    });
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      await createDiscardedAccessRequestEvent(
-        requestSnapshot,
-        "ACCESS_REQUEST_ALREADY_EXISTS",
-      );
-      return { type: "request-received", request: requestSnapshot };
+    const existingUser = userByGoogleSubject ?? userByEmail;
+
+    if (existingUser) {
+      if (
+        existingUser.authProvider === "GOOGLE" &&
+        existingUser.googleSubject === identity.googleSubject &&
+        existingUser.status === "APPROVED"
+      ) {
+        return { type: "login", userId: existingUser.id };
+      }
+
+      return { type: "request-access", request: requestContext };
     }
 
-    throw error;
-  }
+    const approvedEmail = await transaction.approvedEmail.findUnique({
+      where: { email: identity.email },
+      select: { id: true, usedAt: true },
+    });
+
+    if (!approvedEmail || approvedEmail.usedAt) {
+      return { type: "request-access", request: requestContext };
+    }
+
+    const approvalClaim = await transaction.approvedEmail.updateMany({
+      where: {
+        id: approvedEmail.id,
+        usedAt: null,
+      },
+      data: { usedAt: new Date() },
+    });
+
+    if (approvalClaim.count !== 1) {
+      return { type: "request-access", request: requestContext };
+    }
+
+    const user = await transaction.user.create({
+      data: {
+        email: identity.email,
+        passwordHash: null,
+        authProvider: "GOOGLE",
+        googleSubject: identity.googleSubject,
+        role: "USER",
+        status: "APPROVED",
+        updatedAt: null,
+      },
+      select: { id: true },
+    });
+
+    return { type: "login", userId: user.id };
+  });
 }
 
 export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
@@ -256,6 +181,9 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const state = randomBytes(32).toString("hex");
       const client = createGoogleClient(config);
 
+      request.session.set("userId", "");
+      request.session.set("googleAccessRequestEmail", "");
+      request.session.set("googleAccessRequestName", "");
       request.session.set("googleOAuthState", state);
 
       return reply.redirect(
@@ -337,35 +265,30 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         return reply.redirect(getFrontendRedirectUrl(config, "login-success"));
       }
 
+      request.session.set("userId", "");
       request.session.set("googleAccessRequestEmail", result.request.email);
       request.session.set("googleAccessRequestName", result.request.name);
-      request.session.set("googleAccessRequestMessage", result.request.message);
 
-      return reply.redirect(getFrontendRedirectUrl(config, "request-received"));
+      return reply.redirect(getFrontendRedirectUrl(config, "request-access"));
     },
   );
 
   app.get(
-    "/auth/google/request-result",
+    "/auth/google/request-context",
     { config: { rateLimit: authGoogleRateLimit } },
     async (request, reply) => {
       const email = request.session.get("googleAccessRequestEmail");
       const name = request.session.get("googleAccessRequestName");
-      const message = request.session.get("googleAccessRequestMessage");
-
-      request.session.set("googleAccessRequestEmail", "");
-      request.session.set("googleAccessRequestName", "");
-      request.session.set("googleAccessRequestMessage", "");
 
       if (!email || !name) {
-        return reply.code(404).send({ error: "Google request result not found." });
+        return reply.code(404).send({ error: "Google request context not found." });
       }
 
       return reply.send({
         request: {
           email,
           name,
-          message: message ?? "",
+          message: "",
         },
       });
     },

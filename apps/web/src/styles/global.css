@@ -533,6 +533,17 @@ button {
   box-shadow: 0 0 0 4px var(--color-focus-ring);
 }
 
+.auth-form-field input[readonly] {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.auth-form-field input[readonly]:focus {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  box-shadow: none;
+}
+
 .auth-form-field input[aria-invalid="true"],
 .auth-form-field textarea[aria-invalid="true"] {
   border-color: var(--color-danger);

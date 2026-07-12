@@ -9,7 +9,6 @@ declare module "@fastify/secure-session" {
     googleOAuthState: string;
     googleAccessRequestEmail: string;
     googleAccessRequestName: string;
-    googleAccessRequestMessage: string;
   }
 }
 

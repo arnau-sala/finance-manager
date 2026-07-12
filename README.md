@@ -24,6 +24,7 @@ Core:
 Access requests:
 
 - `POST /access-requests` with input validation and neutral responses
+- `POST /access-requests/google` for verified Google access-request submissions
 - Permanent access-request event log
 
 Admin access requests:
@@ -41,7 +42,7 @@ Authentication:
 - `POST /auth/login`
 - `GET /auth/google/start`
 - `GET /auth/google/callback`
-- `GET /auth/google/request-result`
+- `GET /auth/google/request-context`
 - `POST /auth/logout`
 - `GET /auth/me`
 
@@ -287,13 +288,26 @@ The backend verifies the Google ID token with the configured client ID before tr
 
 If the Google email is approved but no user exists yet, the backend creates a `GOOGLE` user without a password, consumes the approval, starts a session, and redirects back to the frontend.
 
-If the email is not approved and has no pending request, the backend creates a neutral access request using the Google email and profile name with the message `Requested access using Google sign-in.` Existing password accounts, pending requests, used approvals, or registered emails still redirect to the same neutral frontend result so the browser cannot distinguish those states.
-
-The frontend reads the temporary neutral result once through:
+If the Google identity cannot be logged in directly, the callback stores the verified Google email and profile name in the encrypted session and redirects to a Google access-request form. The frontend reads that temporary context through:
 
 ```http
-GET /auth/google/request-result
+GET /auth/google/request-context
 ```
+
+The Google access-request form shows the verified email and name as prefilled read-only fields. The user can add an optional message and submit:
+
+```http
+POST /access-requests/google
+Content-Type: application/json
+```
+
+```json
+{
+  "message": "Optional note for the administrator."
+}
+```
+
+The backend reads the verified email and name from the session, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral access-request persistence rules as `POST /access-requests`.
 
 Local Google configuration requires these values in `apps/api/.env`:
 

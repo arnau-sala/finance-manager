@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
 import type { AccessRequestInput } from "../features/access-request/access-request-validation";
@@ -6,7 +6,7 @@ import { RequestAccessPage } from "../features/access-request/RequestAccessPage"
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import {
   getCurrentSession,
-  getGoogleAccessRequestResult,
+  getGoogleAccessRequestContext,
   logout
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
@@ -21,19 +21,50 @@ export function App() {
   const [loginEmail, setLoginEmail] = useState("");
   const [submittedAccessRequest, setSubmittedAccessRequest] =
     useState<AccessRequestInput | null>(null);
+  const [googleAccessRequest, setGoogleAccessRequest] =
+    useState<AccessRequestInput | null>(null);
   const [landingError, setLandingError] = useState<string | null>(null);
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
   const [accessRequestVersion, setAccessRequestVersion] = useState(0);
+  const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
+
+  if (initialGoogleAuthRef.current === undefined) {
+    initialGoogleAuthRef.current = new URL(window.location.href).searchParams.get(
+      "googleAuth"
+    );
+  }
 
   useEffect(() => {
     let isMounted = true;
     const url = new URL(window.location.href);
-    const googleAuth = url.searchParams.get("googleAuth");
+    const googleAuth = initialGoogleAuthRef.current;
 
-    if (googleAuth) {
+    if (url.searchParams.has("googleAuth")) {
       url.searchParams.delete("googleAuth");
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+
+    if (googleAuth === "request-access") {
+      setSessionStatus("anonymous");
+
+      getGoogleAccessRequestContext()
+        .then((request) => {
+          if (isMounted) {
+            setGoogleAccessRequest(request);
+            setAccessRequestVersion((version) => version + 1);
+            setActiveScreen("access-request");
+          }
+        })
+        .catch(() => {
+          if (isMounted) {
+            setLandingError("We couldn't continue with Google. Please try again.");
+          }
+        });
+
+      return () => {
+        isMounted = false;
+      };
     }
 
     getCurrentSession()
@@ -48,21 +79,6 @@ export function App() {
         }
 
         setSessionStatus("anonymous");
-
-        if (googleAuth === "request-received") {
-          try {
-            const request = await getGoogleAccessRequestResult();
-
-            if (isMounted) {
-              setSubmittedAccessRequest(request);
-              setActiveScreen("access-request-success");
-            }
-          } catch {
-            if (isMounted) {
-              setLandingError("Google sign-in was received. Please try again.");
-            }
-          }
-        }
 
         if (googleAuth === "failed") {
           setLandingError("We couldn't continue with Google. Please try again.");
@@ -96,12 +112,14 @@ export function App() {
 
   function openAccessRequest() {
     setLandingError(null);
+    setGoogleAccessRequest(null);
     setSubmittedAccessRequest(null);
     setAccessRequestVersion((version) => version + 1);
     setActiveScreen("access-request");
   }
 
   function showAccessRequestConfirmation(request: AccessRequestInput) {
+    setGoogleAccessRequest(null);
     setSubmittedAccessRequest(request);
     setActiveScreen("access-request-success");
   }
@@ -109,6 +127,7 @@ export function App() {
   function returnToLanding() {
     setLoginEmail("");
     setSubmittedAccessRequest(null);
+    setGoogleAccessRequest(null);
     setLandingError(null);
     setLandingVersion((version) => version + 1);
     setActiveScreen("landing");
@@ -122,6 +141,7 @@ export function App() {
   async function handleLogout() {
     await logout();
     setLoginEmail("");
+    setGoogleAccessRequest(null);
     setLandingError(null);
     setLoginVersion((version) => version + 1);
     setLandingVersion((version) => version + 1);
@@ -173,9 +193,11 @@ export function App() {
         inert={activeScreen !== "access-request"}
       >
         <RequestAccessPage
-          key={accessRequestVersion}
+          key={`${accessRequestVersion}:${googleAccessRequest?.email ?? "standard"}`}
           onBack={returnToLanding}
           onRequestSubmitted={showAccessRequestConfirmation}
+          initialRequest={googleAccessRequest ?? undefined}
+          mode={googleAccessRequest ? "google" : "standard"}
         />
       </div>
 

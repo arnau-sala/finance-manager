@@ -2,7 +2,11 @@ import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { useBackSwipe } from "../auth/use-back-swipe";
-import { submitAccessRequest } from "./access-request-api";
+import {
+  getGoogleAccessRequestMessage,
+  submitAccessRequest,
+  submitGoogleAccessRequest
+} from "./access-request-api";
 import {
   type AccessRequestField,
   type AccessRequestInput,
@@ -12,21 +16,26 @@ import {
 type RequestAccessPageProps = {
   onBack: () => void;
   onRequestSubmitted: (request: AccessRequestInput) => void;
+  initialRequest?: AccessRequestInput;
+  mode?: "standard" | "google";
 };
 
 type InvalidFields = Partial<Record<AccessRequestField, boolean>>;
 
 export function RequestAccessPage({
   onBack,
-  onRequestSubmitted
+  onRequestSubmitted,
+  initialRequest,
+  mode = "standard"
 }: RequestAccessPageProps) {
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState(initialRequest?.email ?? "");
+  const [name, setName] = useState(initialRequest?.name ?? "");
+  const [message, setMessage] = useState(initialRequest?.message ?? "");
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const backSwipeHandlers = useBackSwipe(onBack);
+  const isGoogleRequest = mode === "google";
 
   function clearFieldError(field: AccessRequestField) {
     if (invalidFields[field]) {
@@ -43,7 +52,14 @@ export function RequestAccessPage({
       return;
     }
 
-    const parsedRequest = validateAccessRequest({ email, name, message });
+    const requestMessage = isGoogleRequest
+      ? getGoogleAccessRequestMessage(message)
+      : message;
+    const parsedRequest = validateAccessRequest({
+      email,
+      name,
+      message: requestMessage
+    });
 
     if (!parsedRequest.success) {
       const nextInvalidFields: InvalidFields = {};
@@ -68,7 +84,15 @@ export function RequestAccessPage({
     setIsSubmitting(true);
 
     try {
-      await submitAccessRequest(parsedRequest.data);
+      if (isGoogleRequest) {
+        await submitGoogleAccessRequest({
+          name: parsedRequest.data.name,
+          message
+        });
+      } else {
+        await submitAccessRequest(parsedRequest.data);
+      }
+
       onRequestSubmitted(parsedRequest.data);
     } catch (error) {
       setFormError(
@@ -104,9 +128,13 @@ export function RequestAccessPage({
           </div>
 
           <div className="auth-message">
-            <h1 id="request-access-title">Request access</h1>
+            <h1 id="request-access-title">
+              {isGoogleRequest ? "Request access with Google" : "Request access"}
+            </h1>
             <p className="auth-subtitle auth-request-subtitle">
-              Send your details for review.
+              {isGoogleRequest
+                ? "Your Google account was verified."
+                : "Send your details for review."}
               <br />
               If eligible, we'll review your request.
               <br />
@@ -136,9 +164,14 @@ export function RequestAccessPage({
               placeholder="Enter your email address"
               value={email}
               maxLength={254}
+              readOnly={isGoogleRequest}
               aria-invalid={invalidFields.email === true}
               aria-describedby={formError ? "request-form-error" : undefined}
               onChange={(event) => {
+                if (isGoogleRequest) {
+                  return;
+                }
+
                 setEmail(event.target.value);
                 clearFieldError("email");
               }}

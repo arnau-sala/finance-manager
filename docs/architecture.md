@@ -87,7 +87,9 @@ Registration lives in `routes/auth.ts`, while password hashing is isolated in `a
 
 Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
 
-Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side OAuth 2.0 / OpenID Connect flow, validates the callback `state`, verifies the Google ID token, and then either starts a session for an existing Google user, creates a Google user from an unused approved email, or records a neutral access-request outcome.
+Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side OAuth 2.0 / OpenID Connect flow, validates the callback `state`, verifies the Google ID token, and then either starts a session for an existing Google user, creates a Google user from an unused approved email, or stores the verified email/name in the encrypted session so the frontend can open a prefilled Google access-request form.
+
+`POST /access-requests/google` lives beside the normal access-request endpoint. It accepts only the optional user message, reads the verified Google email/name from the session, appends the internal Google source marker to the stored message, and then reuses the same pending-request/event-log persistence path.
 
 `auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores only `userId`; logout requires that value and deletes the session cookie. Sessions last up to seven days.
 
