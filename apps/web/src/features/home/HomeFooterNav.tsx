@@ -1,6 +1,6 @@
 import type { ElementType } from "react";
 import { useState } from "react";
-import { Briefcase, Calendar, Home, Settings, Shield } from "lucide-react";
+import { CircleUserRound, House, ReceiptText, TrendingUp } from "lucide-react";
 
 type FooterNavItem = {
   label: string;
@@ -8,11 +8,10 @@ type FooterNavItem = {
 };
 
 const footerItems: FooterNavItem[] = [
-  { label: "home", icon: Home },
-  { label: "strategy", icon: Briefcase },
-  { label: "period", icon: Calendar },
-  { label: "security", icon: Shield },
-  { label: "settings", icon: Settings }
+  { label: "home", icon: House },
+  { label: "moves", icon: ReceiptText },
+  { label: "stats", icon: TrendingUp },
+  { label: "profile", icon: CircleUserRound }
 ];
 
 export function HomeFooterNav() {
