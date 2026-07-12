@@ -106,11 +106,11 @@ export function RequestAccessPage({
           <div className="auth-message">
             <h1 id="request-access-title">Request access</h1>
             <p className="auth-subtitle auth-request-subtitle">
-              Send your details for admin review.
+              Send your details for review.
               <br />
-              We'll email you once a decision is made.
+              If eligible, we'll review your request.
               <br />
-              If approved, you can finish creating your account.
+              We'll email you with the next steps.
             </p>
           </div>
         </header>
