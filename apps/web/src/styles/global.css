@@ -1089,6 +1089,10 @@ button {
   margin-top: 22px;
 }
 
+.confirm-dialog__actions--single {
+  grid-template-columns: 1fr;
+}
+
 .confirm-dialog__button {
   height: 44px;
   padding: 0 14px;

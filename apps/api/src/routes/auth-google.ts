@@ -245,7 +245,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
-  app.get(
+  app.post(
     "/account/google/delete/start",
     { config: { rateLimit: accountDeletionRateLimit } },
     async (request, reply) => {
@@ -258,12 +258,9 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const config = getGoogleOAuthConfig();
 
       if (!config) {
-        return reply.redirect(
-          getAccountDeletionRedirectUrl(
-            { webAppUrl: getConfiguredWebAppUrl() },
-            "failed",
-          ),
-        );
+        return reply.code(503).send({
+          error: "Google sign-in is not configured.",
+        });
       }
 
       const user = await db.user.findUnique({
@@ -287,13 +284,13 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("googleOAuthState", "");
       request.session.set("googleAccountDeletionState", state);
 
-      return reply.redirect(
-        client.generateAuthUrl({
+      return reply.send({
+        authorizationUrl: client.generateAuthUrl({
           scope: ["openid", "email", "profile"],
           state,
           prompt: "select_account",
         }),
-      );
+      });
     },
   );
 

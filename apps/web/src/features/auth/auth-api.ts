@@ -5,7 +5,24 @@ type LoginInput = {
 
 type ApiErrorResponse = {
   error?: string;
+  retryAfter?: string;
 };
+
+type GoogleAccountDeletionStartResponse = {
+  authorizationUrl: string;
+};
+
+export class ApiRequestError extends Error {
+  readonly status: number;
+  readonly retryAfter: string | null;
+
+  constructor(message: string, status: number, retryAfter: string | null = null) {
+    super(message);
+    this.name = "ApiRequestError";
+    this.status = status;
+    this.retryAfter = retryAfter;
+  }
+}
 
 type GoogleAccessRequestContext = {
   request: {
@@ -36,6 +53,19 @@ async function readErrorMessage(response: Response, fallback: string) {
     return body.error ?? fallback;
   } catch {
     return fallback;
+  }
+}
+
+async function createApiRequestError(response: Response, fallback: string) {
+  try {
+    const body = (await response.json()) as ApiErrorResponse;
+    return new ApiRequestError(
+      body.error ?? fallback,
+      response.status,
+      body.retryAfter ?? null
+    );
+  } catch {
+    return new ApiRequestError(fallback, response.status);
   }
 }
 
@@ -108,6 +138,28 @@ export async function deleteAccount(password: string) {
   });
 
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response, "Unable to delete account."));
+    throw await createApiRequestError(response, "Unable to delete account.");
   }
+}
+
+export async function startGoogleAccountDeletion() {
+  const response = await fetch("/api/account/google/delete/start", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to verify your Google account."
+    );
+  }
+
+  const body = (await response.json()) as GoogleAccountDeletionStartResponse;
+
+  if (!body.authorizationUrl) {
+    throw new ApiRequestError("Unable to verify your Google account.", 500);
+  }
+
+  return body.authorizationUrl;
 }

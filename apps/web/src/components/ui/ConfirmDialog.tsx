@@ -16,6 +16,7 @@ type ConfirmDialogProps = {
   confirmDisabled?: boolean;
   confirmingLabel?: string;
   initialFocus?: "cancel" | "dialog";
+  showCancel?: boolean;
   children?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
@@ -35,6 +36,7 @@ export function ConfirmDialog({
   confirmDisabled = false,
   confirmingLabel = "Please wait...",
   initialFocus = "cancel",
+  showCancel = true,
   children,
   onCancel,
   onConfirm
@@ -155,16 +157,22 @@ export function ConfirmDialog({
           </p>
         ) : null}
 
-        <div className="confirm-dialog__actions">
-          <button
-            ref={cancelButtonRef}
-            className="confirm-dialog__button confirm-dialog__button--cancel"
-            type="button"
-            onClick={onCancel}
-            disabled={isConfirming}
-          >
-            {cancelLabel}
-          </button>
+        <div
+          className={`confirm-dialog__actions${
+            showCancel ? "" : " confirm-dialog__actions--single"
+          }`}
+        >
+          {showCancel ? (
+            <button
+              ref={cancelButtonRef}
+              className="confirm-dialog__button confirm-dialog__button--cancel"
+              type="button"
+              onClick={onCancel}
+              disabled={isConfirming}
+            >
+              {cancelLabel}
+            </button>
+          ) : null}
           <button
             className="confirm-dialog__button confirm-dialog__button--confirm"
             type="button"

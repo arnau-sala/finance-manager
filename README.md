@@ -46,7 +46,7 @@ Authentication:
 - `POST /auth/logout`
 - `GET /auth/me`
 - `DELETE /account`
-- `GET /account/google/delete/start`
+- `POST /account/google/delete/start`
 
 Admin users:
 
@@ -450,7 +450,7 @@ Content-Type: application/json
 For `PASSWORD` accounts, an incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. Google accounts instead require fresh Google reauthentication, started from the browser with:
 
 ```http
-GET /account/google/delete/start
+POST /account/google/delete/start
 ```
 
 The backend preserves the active session while Google presents its account chooser. The shared Google callback deletes the account only when Google's verified email and stable `sub` identifier both match the currently authenticated user. Selecting another Google account returns to the profile without deleting data and allows the user to retry with the session email.

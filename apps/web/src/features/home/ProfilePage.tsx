@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import {
   CalendarDays,
   ChevronRight,
+  Clock3,
   KeyRound,
   LogOut,
   Mail,
@@ -13,7 +14,12 @@ import {
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { deleteAccount, type SessionUser } from "../auth/auth-api";
+import {
+  ApiRequestError,
+  deleteAccount,
+  startGoogleAccountDeletion,
+  type SessionUser
+} from "../auth/auth-api";
 import { validateAccountPassword } from "../auth/password-validation";
 
 type ProfilePageProps = {
@@ -24,7 +30,7 @@ type ProfilePageProps = {
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
 
-type DeleteDialogMode = "confirm" | "mismatch" | "failed";
+type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
 
 function formatCreationDate(value: string) {
   const date = new Date(value);
@@ -59,6 +65,7 @@ export function ProfilePage({
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteRetryAfter, setDeleteRetryAfter] = useState("15 minutes");
 
   function closeLogoutDialog() {
     if (isLoggingOut) {
@@ -97,9 +104,21 @@ export function ProfilePage({
     event?.preventDefault();
     if (isDeletingAccount) return;
 
+    if (deleteDialogMode === "rate-limited") {
+      closeDeleteDialog();
+      return;
+    }
+
     if (user.authProvider === "GOOGLE") {
       setIsDeletingAccount(true);
-      window.location.assign("/api/account/google/delete/start");
+
+      try {
+        const authorizationUrl = await startGoogleAccountDeletion();
+        window.location.assign(authorizationUrl);
+      } catch (error) {
+        handleAccountDeletionError(error);
+      }
+
       return;
     }
 
@@ -118,11 +137,22 @@ export function ProfilePage({
       await deleteAccount(parsedPassword.data);
       onAccountDeleted();
     } catch (error) {
+      handleAccountDeletionError(error);
+    }
+  }
+
+  function handleAccountDeletionError(error: unknown) {
+    if (error instanceof ApiRequestError && error.status === 429) {
+      setDeleteRetryAfter(error.retryAfter ?? "15 minutes");
+      setDeleteError(null);
+      setDeleteDialogMode("rate-limited");
+    } else {
       setDeleteError(
         error instanceof Error ? error.message : "Unable to delete account."
       );
-      setIsDeletingAccount(false);
     }
+
+    setIsDeletingAccount(false);
   }
 
   return (
@@ -230,6 +260,8 @@ export function ProfilePage({
         title={
           deleteDialogMode === "mismatch"
             ? "Incorrect Google account"
+            : deleteDialogMode === "rate-limited"
+              ? "Too many attempts"
             : deleteDialogMode === "failed"
               ? "Account not verified"
               : "Delete account?"
@@ -237,6 +269,8 @@ export function ProfilePage({
         description={
           deleteDialogMode === "mismatch"
             ? `No data was deleted. Try again with the Google account used to sign in: ${user.email}.`
+            : deleteDialogMode === "rate-limited"
+              ? `You've made too many deletion attempts. Try again in ${deleteRetryAfter}.`
             : deleteDialogMode === "failed"
               ? `No data was deleted because we couldn't verify the account. Try again with: ${user.email}.`
               : user.authProvider === "GOOGLE"
@@ -244,7 +278,9 @@ export function ProfilePage({
                 : "This permanently deletes your account and all its data. This cannot be undone."
         }
         confirmLabel={
-          user.authProvider === "GOOGLE"
+          deleteDialogMode === "rate-limited"
+            ? "Got it"
+            : user.authProvider === "GOOGLE"
             ? deleteDialogMode === "confirm"
               ? "Continue"
               : "Try again"
@@ -254,16 +290,30 @@ export function ProfilePage({
           user.authProvider === "GOOGLE" ? "Opening..." : "Deleting..."
         }
         initialFocus={deleteDialogMode === "confirm" ? "cancel" : "dialog"}
-        icon={deleteDialogMode === "confirm" ? <Trash2 /> : <TriangleAlert />}
+        icon={
+          deleteDialogMode === "confirm" ? (
+            <Trash2 />
+          ) : deleteDialogMode === "rate-limited" ? (
+            <Clock3 />
+          ) : (
+            <TriangleAlert />
+          )
+        }
         tone={deleteDialogMode === "confirm" ? "danger" : "warning"}
-        confirmTone="danger"
+        confirmTone={deleteDialogMode === "rate-limited" ? "default" : "danger"}
+        showCancel={deleteDialogMode !== "rate-limited"}
         isConfirming={isDeletingAccount}
-        confirmDisabled={user.authProvider === "PASSWORD" && !deletePassword}
+        confirmDisabled={
+          deleteDialogMode === "confirm" &&
+          user.authProvider === "PASSWORD" &&
+          !deletePassword
+        }
         error={deleteError}
         onCancel={closeDeleteDialog}
         onConfirm={confirmAccountDeletion}
       >
-        {user.authProvider === "PASSWORD" ? (
+        {user.authProvider === "PASSWORD" &&
+        deleteDialogMode !== "rate-limited" ? (
           <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
             <label htmlFor="delete-account-password">Confirm your password</label>
             <input
