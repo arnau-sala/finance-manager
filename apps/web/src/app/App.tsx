@@ -154,6 +154,10 @@ export function App() {
 
   async function handleLogout() {
     await logout();
+    returnToAnonymousLanding();
+  }
+
+  function returnToAnonymousLanding() {
     setSessionUser(null);
     setLoginEmail("");
     setSubmittedAccessRequest(null);
@@ -170,7 +174,13 @@ export function App() {
   }
 
   if (sessionStatus === "authenticated" && sessionUser) {
-    return <HomePage user={sessionUser} onLogout={handleLogout} />;
+    return (
+      <HomePage
+        user={sessionUser}
+        onLogout={handleLogout}
+        onAccountDeleted={returnToAnonymousLanding}
+      />
+    );
   }
 
   return (

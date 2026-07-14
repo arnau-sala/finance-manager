@@ -11,6 +11,10 @@ type ConfirmDialogProps = {
   icon: ReactNode;
   isConfirming?: boolean;
   error?: string | null;
+  tone?: "default" | "danger";
+  confirmDisabled?: boolean;
+  confirmingLabel?: string;
+  children?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
 };
@@ -24,6 +28,10 @@ export function ConfirmDialog({
   icon,
   isConfirming = false,
   error = null,
+  tone = "default",
+  confirmDisabled = false,
+  confirmingLabel = "Please wait...",
+  children,
   onCancel,
   onConfirm
 }: ConfirmDialogProps) {
@@ -45,7 +53,12 @@ export function ConfirmDialog({
     const previousActiveElement = document.activeElement as HTMLElement | null;
     const appRoot = document.getElementById("root");
     const rootWasInert = appRoot?.hasAttribute("inert") ?? false;
-    const focusFrame = requestAnimationFrame(() => cancelButtonRef.current?.focus());
+    const focusFrame = requestAnimationFrame(() => {
+      const initialControl = dialogRef.current?.querySelector<HTMLElement>(
+        "[data-dialog-autofocus]"
+      );
+      (initialControl ?? cancelButtonRef.current)?.focus();
+    });
 
     appRoot?.setAttribute("inert", "");
 
@@ -60,8 +73,8 @@ export function ConfirmDialog({
         return;
       }
 
-      const controls = dialogRef.current?.querySelectorAll<HTMLButtonElement>(
-        "button:not(:disabled)"
+      const controls = dialogRef.current?.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), input:not(:disabled)"
       );
 
       if (!controls?.length) {
@@ -113,7 +126,7 @@ export function ConfirmDialog({
     <div className="confirm-dialog-backdrop" onMouseDown={handleBackdropMouseDown}>
       <div
         ref={dialogRef}
-        className="confirm-dialog"
+        className={`confirm-dialog confirm-dialog--${tone}`}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -126,6 +139,8 @@ export function ConfirmDialog({
 
         <h2 id={titleId}>{title}</h2>
         <p id={descriptionId}>{description}</p>
+
+        {children}
 
         {error ? (
           <p className="confirm-dialog__error" role="alert">
@@ -147,9 +162,9 @@ export function ConfirmDialog({
             className="confirm-dialog__button confirm-dialog__button--confirm"
             type="button"
             onClick={() => void onConfirm()}
-            disabled={isConfirming}
+            disabled={isConfirming || confirmDisabled}
           >
-            {isConfirming ? "Logging out..." : confirmLabel}
+            {isConfirming ? confirmingLabel : confirmLabel}
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import {
   CalendarDays,
   ChevronRight,
@@ -12,11 +12,13 @@ import {
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import type { SessionUser } from "../auth/auth-api";
+import { deleteAccount, type SessionUser } from "../auth/auth-api";
+import { validateAccountPassword } from "../auth/password-validation";
 
 type ProfilePageProps = {
   user: SessionUser;
   onLogout: () => Promise<void>;
+  onAccountDeleted: () => void;
 };
 
 function formatCreationDate(value: string) {
@@ -33,10 +35,14 @@ function formatCreationDate(value: string) {
   }).format(date);
 }
 
-export function ProfilePage({ user, onLogout }: ProfilePageProps) {
+export function ProfilePage({ user, onLogout, onAccountDeleted }: ProfilePageProps) {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function closeLogoutDialog() {
     if (isLoggingOut) {
@@ -60,6 +66,37 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
     } catch {
       setLogoutError("We couldn't log you out. Please try again.");
       setIsLoggingOut(false);
+    }
+  }
+
+  function closeDeleteDialog() {
+    if (isDeletingAccount) return;
+    setIsDeleteDialogOpen(false);
+    setDeletePassword("");
+    setDeleteError(null);
+  }
+
+  async function confirmAccountDeletion(event?: FormEvent) {
+    event?.preventDefault();
+    if (isDeletingAccount || !deletePassword) return;
+
+    const parsedPassword = validateAccountPassword(deletePassword);
+    if (!parsedPassword.success) {
+      setDeleteError("Incorrect password.");
+      return;
+    }
+
+    setDeleteError(null);
+    setIsDeletingAccount(true);
+
+    try {
+      await deleteAccount(parsedPassword.data);
+      onAccountDeleted();
+    } catch (error) {
+      setDeleteError(
+        error instanceof Error ? error.message : "Unable to delete account."
+      );
+      setIsDeletingAccount(false);
     }
   }
 
@@ -141,6 +178,15 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
               icon={<Trash2 />}
               tone="danger"
               centered
+              onClick={
+                user.authProvider === "PASSWORD"
+                  ? () => {
+                      setDeleteError(null);
+                      setDeletePassword("");
+                      setIsDeleteDialogOpen(true);
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -157,6 +203,37 @@ export function ProfilePage({ user, onLogout }: ProfilePageProps) {
         onCancel={closeLogoutDialog}
         onConfirm={confirmLogout}
       />
+
+      <ConfirmDialog
+        open={isDeleteDialogOpen}
+        title="Delete account?"
+        description="This permanently deletes your account and all its data. This cannot be undone."
+        confirmLabel="Delete account"
+        confirmingLabel="Deleting..."
+        icon={<Trash2 />}
+        tone="danger"
+        isConfirming={isDeletingAccount}
+        confirmDisabled={!deletePassword}
+        error={deleteError}
+        onCancel={closeDeleteDialog}
+        onConfirm={confirmAccountDeletion}
+      >
+        <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
+          <label htmlFor="delete-account-password">Confirm your password</label>
+          <input
+            id="delete-account-password"
+            data-dialog-autofocus
+            type="password"
+            autoComplete="current-password"
+            value={deletePassword}
+            onChange={(event) => {
+              setDeletePassword(event.target.value);
+              setDeleteError(null);
+            }}
+            disabled={isDeletingAccount}
+          />
+        </form>
+      </ConfirmDialog>
     </>
   );
 }

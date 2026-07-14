@@ -96,3 +96,18 @@ export async function logout() {
     throw new Error(await readErrorMessage(response, "Unable to log out."));
   }
 }
+
+export async function deleteAccount(password: string) {
+  const response = await fetch("/api/account", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({ password })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response, "Unable to delete account."));
+  }
+}
