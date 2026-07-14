@@ -247,7 +247,7 @@ export function ProfilePage({
             : "Delete account"
         }
         confirmingLabel={
-          user.authProvider === "GOOGLE" ? "Opening Google..." : "Deleting..."
+          user.authProvider === "GOOGLE" ? "Opening..." : "Deleting..."
         }
         initialFocus={deleteDialogMode === "confirm" ? "cancel" : "dialog"}
         icon={deleteDialogMode === "confirm" ? <Trash2 /> : <TriangleAlert />}
