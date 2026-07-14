@@ -11,7 +11,10 @@ import {
   type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
-import { HomePage } from "../features/home/HomePage";
+import {
+  HomePage,
+  type GoogleAccountDeletionFeedback
+} from "../features/home/HomePage";
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
 type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
@@ -29,12 +32,21 @@ export function App() {
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
   const [accessRequestVersion, setAccessRequestVersion] = useState(0);
+  const [googleAccountDeletionFeedback, setGoogleAccountDeletionFeedback] =
+    useState<GoogleAccountDeletionFeedback | null>(null);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
+  const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
 
   if (initialGoogleAuthRef.current === undefined) {
     initialGoogleAuthRef.current = new URL(window.location.href).searchParams.get(
       "googleAuth"
     );
+  }
+
+  if (initialAccountDeletionRef.current === undefined) {
+    initialAccountDeletionRef.current = new URL(
+      window.location.href
+    ).searchParams.get("accountDeletion");
   }
 
   function returnToLanding() {
@@ -50,9 +62,14 @@ export function App() {
     let isMounted = true;
     const url = new URL(window.location.href);
     const googleAuth = initialGoogleAuthRef.current;
+    const accountDeletion = initialAccountDeletionRef.current;
 
-    if (url.searchParams.has("googleAuth")) {
+    if (
+      url.searchParams.has("googleAuth") ||
+      url.searchParams.has("accountDeletion")
+    ) {
       url.searchParams.delete("googleAuth");
+      url.searchParams.delete("accountDeletion");
       window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
     }
 
@@ -86,6 +103,9 @@ export function App() {
 
         if (user) {
           setSessionUser(user);
+          if (accountDeletion === "mismatch" || accountDeletion === "failed") {
+            setGoogleAccountDeletionFeedback(accountDeletion);
+          }
           setSessionStatus("authenticated");
           return;
         }
@@ -163,6 +183,7 @@ export function App() {
     setSubmittedAccessRequest(null);
     setGoogleAccessRequest(null);
     setLandingError(null);
+    setGoogleAccountDeletionFeedback(null);
     setLoginVersion((version) => version + 1);
     setLandingVersion((version) => version + 1);
     setActiveScreen("landing");
@@ -179,6 +200,10 @@ export function App() {
         user={sessionUser}
         onLogout={handleLogout}
         onAccountDeleted={returnToAnonymousLanding}
+        googleAccountDeletionFeedback={googleAccountDeletionFeedback}
+        onGoogleAccountDeletionFeedbackHandled={() =>
+          setGoogleAccountDeletionFeedback(null)
+        }
       />
     );
   }

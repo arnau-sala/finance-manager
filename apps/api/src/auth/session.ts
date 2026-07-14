@@ -7,6 +7,7 @@ declare module "@fastify/secure-session" {
   interface SessionData {
     userId: string;
     googleOAuthState: string;
+    googleAccountDeletionState: string;
     googleAccessRequestEmail: string;
     googleAccessRequestName: string;
   }

@@ -99,7 +99,7 @@ Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side 
 
 `routes/auth-me.ts` returns the public profile selected by the current secure session. It includes the required name, authentication provider, and `updatedAt` in addition to the fields shared with administrative user reads. The frontend uses the provider to offer Google linking only to password accounts.
 
-`routes/account.ts` owns self-service account deletion through `DELETE /account`. The route derives the target user only from the encrypted session, verifies the password, and performs all database cleanup atomically. It never accepts a client-provided user ID. Google account deletion remains deferred until the app can require fresh Google reauthentication.
+`routes/account.ts` owns password-confirmed self-service deletion through `DELETE /account`. Google accounts start a separate reauthentication flow through `GET /account/google/delete/start`; the existing Google callback validates a one-time deletion-specific OAuth `state` and requires the verified Google email and stable `sub` to match the active session user. Both paths call `account/delete-account.ts`, which performs the same database cleanup atomically and never accepts a client-provided user ID.
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views.
 

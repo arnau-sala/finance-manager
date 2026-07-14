@@ -60,6 +60,10 @@ Account deletion security decisions:
 - User deletion and all related database cleanup run in one transaction.
 - Owned transactions, pending requests, request events, and approval records are deleted. Administrative IDs on records belonging to other users are set to null instead of deleting those users' history.
 - The current session is deleted after success. Sessions on other devices can no longer resolve the deleted user and therefore lose access.
+- Google accounts require a fresh account selection through Google before deletion.
+- The Google deletion flow uses a random, one-use OAuth `state` separate from normal sign-in and preserves the active session until verification finishes.
+- Deletion requires both Google's verified email and stable `sub` identifier to match the active `GOOGLE` user. A different account produces a retryable mismatch and no database writes.
+- Password and Google deletion reuse one atomic cleanup service so both remove the same account-owned data.
 
 Google sign-in security decisions:
 

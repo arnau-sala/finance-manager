@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
+import { deleteUserAccount } from "../account/delete-account.js";
 import { verifyPassword } from "../auth/password.js";
 import { db } from "../db/client.js";
 import { accountDeletionRateLimit } from "../security/rate-limit.js";
@@ -58,37 +59,11 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Incorrect password." });
       }
 
-      const deletedUserCount = await db.$transaction(async (transaction) => {
-        await transaction.accessRequest.deleteMany({
-          where: { email: user.email },
-        });
+      const accountDeleted = await db.$transaction((transaction) =>
+        deleteUserAccount(transaction, user),
+      );
 
-        await transaction.accessRequestEvent.deleteMany({
-          where: { email: user.email },
-        });
-
-        await transaction.approvedEmail.deleteMany({
-          where: { email: user.email },
-        });
-
-        await transaction.accessRequestEvent.updateMany({
-          where: { adminId: user.id },
-          data: { adminId: null },
-        });
-
-        await transaction.approvedEmail.updateMany({
-          where: { approvedBy: user.id },
-          data: { approvedBy: null },
-        });
-
-        const deletion = await transaction.user.deleteMany({
-          where: { id: user.id },
-        });
-
-        return deletion.count;
-      });
-
-      if (deletedUserCount !== 1) {
+      if (!accountDeleted) {
         request.session.delete();
         return reply.code(401).send({ error: "Authentication required." });
       }

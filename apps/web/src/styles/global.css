@@ -1022,6 +1022,12 @@ button {
   border-color: color-mix(in srgb, var(--color-danger) 28%, transparent);
 }
 
+.confirm-dialog--warning .confirm-dialog__icon {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+  border-color: color-mix(in srgb, var(--color-warning) 30%, transparent);
+}
+
 .confirm-dialog h2 {
   margin: 0;
   font-size: 20px;
@@ -1116,13 +1122,28 @@ button {
   border-color: var(--color-danger);
 }
 
+.confirm-dialog--confirm-danger .confirm-dialog__button--confirm {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
 .confirm-dialog--danger .confirm-dialog__button--confirm:not(:disabled):active {
+  background: color-mix(in srgb, var(--color-danger) 84%, black);
+  border-color: color-mix(in srgb, var(--color-danger) 84%, black);
+}
+
+.confirm-dialog--confirm-danger
+  .confirm-dialog__button--confirm:not(:disabled):active {
   background: color-mix(in srgb, var(--color-danger) 84%, black);
   border-color: color-mix(in srgb, var(--color-danger) 84%, black);
 }
 
 .confirm-dialog--danger .confirm-dialog__button:focus-visible {
   outline-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
+}
+
+.confirm-dialog--warning .confirm-dialog__button:focus-visible {
+  outline-color: color-mix(in srgb, var(--color-warning) 28%, transparent);
 }
 
 .confirm-dialog__button:focus-visible {

@@ -4,8 +4,12 @@ import type { FastifyPluginAsync } from "fastify";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 
+import { deleteUserAccount } from "../account/delete-account.js";
 import { db } from "../db/client.js";
-import { authGoogleRateLimit } from "../security/rate-limit.js";
+import {
+  accountDeletionRateLimit,
+  authGoogleRateLimit,
+} from "../security/rate-limit.js";
 
 const googleCallbackQuerySchema = z
   .object({
@@ -67,12 +71,55 @@ function createGoogleClient(config: GoogleOAuthConfig) {
   );
 }
 
+async function getVerifiedGoogleIdentity(
+  client: OAuth2Client,
+  code: string,
+  clientId: string,
+): Promise<GoogleIdentity | null> {
+  const { tokens } = await client.getToken(code);
+
+  if (!tokens.id_token) {
+    return null;
+  }
+
+  const ticket = await client.verifyIdToken({
+    idToken: tokens.id_token,
+    audience: clientId,
+  });
+  const payload = ticket.getPayload();
+  const email = payload?.email?.trim().toLowerCase();
+  const name = (
+    payload?.name?.trim() ||
+    email?.split("@")[0] ||
+    "Google user"
+  ).slice(0, 100);
+
+  if (!payload?.sub || !email || payload.email_verified !== true) {
+    return null;
+  }
+
+  return {
+    email,
+    name,
+    googleSubject: payload.sub,
+  };
+}
+
 function getFrontendRedirectUrl(
   config: Pick<GoogleOAuthConfig, "webAppUrl">,
   googleAuth: string,
 ) {
   const url = new URL(config.webAppUrl);
   url.searchParams.set("googleAuth", googleAuth);
+  return url.toString();
+}
+
+function getAccountDeletionRedirectUrl(
+  config: Pick<GoogleOAuthConfig, "webAppUrl">,
+  result: string,
+) {
+  const url = new URL(config.webAppUrl);
+  url.searchParams.set("accountDeletion", result);
   return url.toString();
 }
 
@@ -185,7 +232,60 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("userId", "");
       request.session.set("googleAccessRequestEmail", "");
       request.session.set("googleAccessRequestName", "");
+      request.session.set("googleAccountDeletionState", "");
       request.session.set("googleOAuthState", state);
+
+      return reply.redirect(
+        client.generateAuthUrl({
+          scope: ["openid", "email", "profile"],
+          state,
+          prompt: "select_account",
+        }),
+      );
+    },
+  );
+
+  app.get(
+    "/account/google/delete/start",
+    { config: { rateLimit: accountDeletionRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const config = getGoogleOAuthConfig();
+
+      if (!config) {
+        return reply.redirect(
+          getAccountDeletionRedirectUrl(
+            { webAppUrl: getConfiguredWebAppUrl() },
+            "failed",
+          ),
+        );
+      }
+
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { authProvider: true, googleSubject: true },
+      });
+
+      if (
+        !user ||
+        user.authProvider !== "GOOGLE" ||
+        !user.googleSubject
+      ) {
+        return reply.code(400).send({
+          error: "Google reauthentication is unavailable for this account.",
+        });
+      }
+
+      const state = randomBytes(32).toString("hex");
+      const client = createGoogleClient(config);
+
+      request.session.set("googleOAuthState", "");
+      request.session.set("googleAccountDeletionState", state);
 
       return reply.redirect(
         client.generateAuthUrl({
@@ -214,17 +314,97 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       const parsedQuery = googleCallbackQuerySchema.safeParse(request.query);
       const failureRedirectUrl = getFrontendRedirectUrl(config, "failed");
+      const deletionFailureUrl = getAccountDeletionRedirectUrl(config, "failed");
+      const expectedDeletionState = request.session.get(
+        "googleAccountDeletionState",
+      );
 
       if (!parsedQuery.success) {
+        if (expectedDeletionState) {
+          request.session.set("googleAccountDeletionState", "");
+          return reply.redirect(deletionFailureUrl);
+        }
+
         return reply.redirect(failureRedirectUrl);
       }
 
       const expectedState = request.session.get("googleOAuthState");
-      request.session.set("googleOAuthState", "");
 
       if (parsedQuery.data.error) {
+        if (expectedDeletionState) {
+          request.session.set("googleAccountDeletionState", "");
+          return reply.redirect(
+            getAccountDeletionRedirectUrl(config, "cancelled"),
+          );
+        }
+
+        request.session.set("googleOAuthState", "");
         return reply.redirect(getFrontendRedirectUrl(config, "cancelled"));
       }
+
+      if (expectedDeletionState) {
+        request.session.set("googleAccountDeletionState", "");
+
+        if (
+          !parsedQuery.data.code ||
+          !parsedQuery.data.state ||
+          parsedQuery.data.state !== expectedDeletionState
+        ) {
+          return reply.redirect(deletionFailureUrl);
+        }
+
+        try {
+          const client = createGoogleClient(config);
+          const identity = await getVerifiedGoogleIdentity(
+            client,
+            parsedQuery.data.code,
+            config.clientId,
+          );
+          const activeUserId = request.session.get("userId");
+
+          if (!identity || !activeUserId) {
+            return reply.redirect(deletionFailureUrl);
+          }
+
+          const accountDeleted = await db.$transaction(async (transaction) => {
+            const user = await transaction.user.findUnique({
+              where: { id: activeUserId },
+              select: {
+                id: true,
+                email: true,
+                authProvider: true,
+                googleSubject: true,
+              },
+            });
+
+            if (
+              !user ||
+              user.authProvider !== "GOOGLE" ||
+              user.googleSubject !== identity.googleSubject ||
+              user.email !== identity.email
+            ) {
+              return false;
+            }
+
+            return deleteUserAccount(transaction, user);
+          });
+
+          if (!accountDeleted) {
+            return reply.redirect(
+              getAccountDeletionRedirectUrl(config, "mismatch"),
+            );
+          }
+
+          request.session.delete();
+          return reply.redirect(
+            getAccountDeletionRedirectUrl(config, "success"),
+          );
+        } catch {
+          return reply.redirect(deletionFailureUrl);
+        }
+      }
+
+      request.session.set("googleOAuthState", "");
 
       if (
         !parsedQuery.data.code ||
@@ -236,33 +416,17 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const client = createGoogleClient(config);
-      const { tokens } = await client.getToken(parsedQuery.data.code);
+      const identity = await getVerifiedGoogleIdentity(
+        client,
+        parsedQuery.data.code,
+        config.clientId,
+      );
 
-      if (!tokens.id_token) {
+      if (!identity) {
         return reply.redirect(failureRedirectUrl);
       }
 
-      const ticket = await client.verifyIdToken({
-        idToken: tokens.id_token,
-        audience: config.clientId,
-      });
-      const payload = ticket.getPayload();
-      const email = payload?.email?.trim().toLowerCase();
-      const name = (
-        payload?.name?.trim() ||
-        email?.split("@")[0] ||
-        "Google user"
-      ).slice(0, 100);
-
-      if (!payload?.sub || !email || payload.email_verified !== true) {
-        return reply.redirect(failureRedirectUrl);
-      }
-
-      const result = await handleGoogleIdentity({
-        email,
-        name,
-        googleSubject: payload.sub,
-      });
+      const result = await handleGoogleIdentity(identity);
 
       if (result.type === "login") {
         request.session.regenerate();

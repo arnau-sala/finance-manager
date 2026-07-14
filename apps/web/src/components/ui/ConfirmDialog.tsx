@@ -11,7 +11,8 @@ type ConfirmDialogProps = {
   icon: ReactNode;
   isConfirming?: boolean;
   error?: string | null;
-  tone?: "default" | "danger";
+  tone?: "default" | "danger" | "warning";
+  confirmTone?: "default" | "danger";
   confirmDisabled?: boolean;
   confirmingLabel?: string;
   children?: ReactNode;
@@ -29,6 +30,7 @@ export function ConfirmDialog({
   isConfirming = false,
   error = null,
   tone = "default",
+  confirmTone = "default",
   confirmDisabled = false,
   confirmingLabel = "Please wait...",
   children,
@@ -126,7 +128,7 @@ export function ConfirmDialog({
     <div className="confirm-dialog-backdrop" onMouseDown={handleBackdropMouseDown}>
       <div
         ref={dialogRef}
-        className={`confirm-dialog confirm-dialog--${tone}`}
+        className={`confirm-dialog confirm-dialog--${tone} confirm-dialog--confirm-${confirmTone}`}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}

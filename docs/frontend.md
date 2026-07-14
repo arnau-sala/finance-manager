@@ -414,9 +414,13 @@ Purpose: user profile and session controls.
 
 MVP content:
 
+- Name and account creation date.
 - Email.
-- Role/status if useful.
-- Logout.
+- Provider-specific account actions.
+- Confirmed logout.
+- Irreversible account deletion confirmed by password or fresh Google account selection.
+
+Google deletion returns to the profile with a warning dialog when the selected account does not match the active session. The dialog identifies the required session email without exposing it in the OAuth redirect URL.
 
 ### 11. Admin
 

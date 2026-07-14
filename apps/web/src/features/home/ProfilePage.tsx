@@ -6,6 +6,7 @@ import {
   LogOut,
   Mail,
   PencilLine,
+  TriangleAlert,
   Trash2,
   UserRound
 } from "lucide-react";
@@ -19,7 +20,11 @@ type ProfilePageProps = {
   user: SessionUser;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
+  googleAccountDeletionFeedback: "mismatch" | "failed" | null;
+  onGoogleAccountDeletionFeedbackHandled: () => void;
 };
+
+type DeleteDialogMode = "confirm" | "mismatch" | "failed";
 
 function formatCreationDate(value: string) {
   const date = new Date(value);
@@ -35,11 +40,18 @@ function formatCreationDate(value: string) {
   }).format(date);
 }
 
-export function ProfilePage({ user, onLogout, onAccountDeleted }: ProfilePageProps) {
+export function ProfilePage({
+  user,
+  onLogout,
+  onAccountDeleted,
+  googleAccountDeletionFeedback,
+  onGoogleAccountDeletionFeedbackHandled
+}: ProfilePageProps) {
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deleteDialogMode, setDeleteDialogMode] =
+    useState<DeleteDialogMode | null>(googleAccountDeletionFeedback);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -71,14 +83,23 @@ export function ProfilePage({ user, onLogout, onAccountDeleted }: ProfilePagePro
 
   function closeDeleteDialog() {
     if (isDeletingAccount) return;
-    setIsDeleteDialogOpen(false);
+    setDeleteDialogMode(null);
+    onGoogleAccountDeletionFeedbackHandled();
     setDeletePassword("");
     setDeleteError(null);
   }
 
   async function confirmAccountDeletion(event?: FormEvent) {
     event?.preventDefault();
-    if (isDeletingAccount || !deletePassword) return;
+    if (isDeletingAccount) return;
+
+    if (user.authProvider === "GOOGLE") {
+      setIsDeletingAccount(true);
+      window.location.assign("/api/account/google/delete/start");
+      return;
+    }
+
+    if (!deletePassword) return;
 
     const parsedPassword = validateAccountPassword(deletePassword);
     if (!parsedPassword.success) {
@@ -178,15 +199,11 @@ export function ProfilePage({ user, onLogout, onAccountDeleted }: ProfilePagePro
               icon={<Trash2 />}
               tone="danger"
               centered
-              onClick={
-                user.authProvider === "PASSWORD"
-                  ? () => {
-                      setDeleteError(null);
-                      setDeletePassword("");
-                      setIsDeleteDialogOpen(true);
-                    }
-                  : undefined
-              }
+              onClick={() => {
+                setDeleteError(null);
+                setDeletePassword("");
+                setDeleteDialogMode("confirm");
+              }}
             />
           </div>
         </div>
@@ -205,34 +222,59 @@ export function ProfilePage({ user, onLogout, onAccountDeleted }: ProfilePagePro
       />
 
       <ConfirmDialog
-        open={isDeleteDialogOpen}
-        title="Delete account?"
-        description="This permanently deletes your account and all its data. This cannot be undone."
-        confirmLabel="Delete account"
-        confirmingLabel="Deleting..."
-        icon={<Trash2 />}
-        tone="danger"
+        open={deleteDialogMode !== null}
+        title={
+          deleteDialogMode === "mismatch"
+            ? "Incorrect Google account"
+            : deleteDialogMode === "failed"
+              ? "Account not verified"
+              : "Delete account?"
+        }
+        description={
+          deleteDialogMode === "mismatch"
+            ? `No data was deleted. Try again with the Google account used to sign in: ${user.email}.`
+            : deleteDialogMode === "failed"
+              ? `No data was deleted because we couldn't verify the account. Try again with: ${user.email}.`
+              : user.authProvider === "GOOGLE"
+                ? "This permanently deletes your account and all its data. This cannot be undone. Continue to choose the Google account you use to sign in."
+                : "This permanently deletes your account and all its data. This cannot be undone."
+        }
+        confirmLabel={
+          user.authProvider === "GOOGLE"
+            ? deleteDialogMode === "confirm"
+              ? "Continue"
+              : "Try again"
+            : "Delete account"
+        }
+        confirmingLabel={
+          user.authProvider === "GOOGLE" ? "Opening Google..." : "Deleting..."
+        }
+        icon={deleteDialogMode === "confirm" ? <Trash2 /> : <TriangleAlert />}
+        tone={deleteDialogMode === "confirm" ? "danger" : "warning"}
+        confirmTone="danger"
         isConfirming={isDeletingAccount}
-        confirmDisabled={!deletePassword}
+        confirmDisabled={user.authProvider === "PASSWORD" && !deletePassword}
         error={deleteError}
         onCancel={closeDeleteDialog}
         onConfirm={confirmAccountDeletion}
       >
-        <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
-          <label htmlFor="delete-account-password">Confirm your password</label>
-          <input
-            id="delete-account-password"
-            data-dialog-autofocus
-            type="password"
-            autoComplete="current-password"
-            value={deletePassword}
-            onChange={(event) => {
-              setDeletePassword(event.target.value);
-              setDeleteError(null);
-            }}
-            disabled={isDeletingAccount}
-          />
-        </form>
+        {user.authProvider === "PASSWORD" ? (
+          <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
+            <label htmlFor="delete-account-password">Confirm your password</label>
+            <input
+              id="delete-account-password"
+              data-dialog-autofocus
+              type="password"
+              autoComplete="current-password"
+              value={deletePassword}
+              onChange={(event) => {
+                setDeletePassword(event.target.value);
+                setDeleteError(null);
+              }}
+              disabled={isDeletingAccount}
+            />
+          </form>
+        ) : null}
       </ConfirmDialog>
     </>
   );

@@ -53,7 +53,7 @@
 - Add authenticated `DELETE /account` without a client-provided user ID.
 - Require the current password for password accounts.
 - Delete all account-owned data atomically and invalidate the session.
-- Defer Google account deletion until fresh Google reauthentication is available.
+- Require fresh Google reauthentication and an exact email/Google-subject match for Google accounts.
 
 ## Phase 6A: Basic Transaction Creation
 
