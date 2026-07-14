@@ -15,6 +15,7 @@ type ConfirmDialogProps = {
   confirmTone?: "default" | "danger";
   confirmDisabled?: boolean;
   confirmingLabel?: string;
+  initialFocus?: "cancel" | "dialog";
   children?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
@@ -33,6 +34,7 @@ export function ConfirmDialog({
   confirmTone = "default",
   confirmDisabled = false,
   confirmingLabel = "Please wait...",
+  initialFocus = "cancel",
   children,
   onCancel,
   onConfirm
@@ -59,7 +61,9 @@ export function ConfirmDialog({
       const initialControl = dialogRef.current?.querySelector<HTMLElement>(
         "[data-dialog-autofocus]"
       );
-      (initialControl ?? cancelButtonRef.current)?.focus();
+      const fallbackControl =
+        initialFocus === "dialog" ? dialogRef.current : cancelButtonRef.current;
+      (initialControl ?? fallbackControl)?.focus();
     });
 
     appRoot?.setAttribute("inert", "");
@@ -108,7 +112,7 @@ export function ConfirmDialog({
 
       previousActiveElement?.focus({ preventScroll: true });
     };
-  }, [open]);
+  }, [initialFocus, open]);
 
   if (!open) {
     return null;
@@ -128,6 +132,7 @@ export function ConfirmDialog({
     <div className="confirm-dialog-backdrop" onMouseDown={handleBackdropMouseDown}>
       <div
         ref={dialogRef}
+        tabIndex={-1}
         className={`confirm-dialog confirm-dialog--${tone} confirm-dialog--confirm-${confirmTone}`}
         role="alertdialog"
         aria-modal="true"
