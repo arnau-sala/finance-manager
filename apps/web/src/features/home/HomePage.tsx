@@ -5,7 +5,7 @@ import { HomeFooterNav } from "./HomeFooterNav";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 
-export type GoogleAccountDeletionFeedback = "mismatch" | "failed";
+export type GoogleAccountDeletionFeedback = "mismatch" | "failed" | "cancelled";
 
 type HomePageProps = {
   user: SessionUser;

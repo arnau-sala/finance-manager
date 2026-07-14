@@ -103,7 +103,11 @@ export function App() {
 
         if (user) {
           setSessionUser(user);
-          if (accountDeletion === "mismatch" || accountDeletion === "failed") {
+          if (
+            accountDeletion === "mismatch" ||
+            accountDeletion === "failed" ||
+            accountDeletion === "cancelled"
+          ) {
             setGoogleAccountDeletionFeedback(accountDeletion);
           }
           setSessionStatus("authenticated");

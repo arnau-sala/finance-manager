@@ -20,7 +20,7 @@ type ProfilePageProps = {
   user: SessionUser;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
-  googleAccountDeletionFeedback: "mismatch" | "failed" | null;
+  googleAccountDeletionFeedback: "mismatch" | "failed" | "cancelled" | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
 
@@ -51,7 +51,11 @@ export function ProfilePage({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [deleteDialogMode, setDeleteDialogMode] =
-    useState<DeleteDialogMode | null>(googleAccountDeletionFeedback);
+    useState<DeleteDialogMode | null>(
+      googleAccountDeletionFeedback === "cancelled"
+        ? "confirm"
+        : googleAccountDeletionFeedback
+    );
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
