@@ -99,6 +99,8 @@ New password registrations require a name and explicitly receive role `USER`, st
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
+Deleting a user removes records containing that account's email from `AccessRequest`, `AccessRequestEvent`, and `ApprovedEmail`. Administrative references made by that user are anonymized by setting `AccessRequestEvent.adminId` and `ApprovedEmail.approvedBy` to null, preserving records that belong to other people without retaining the deleted user's ID.
+
 `AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. Approval and denial events populate it from the verified administrator session; visitor and system events leave it null.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
@@ -111,6 +113,6 @@ Category responses place expenses first. Within each type, names are alphabetica
 
 `Transaction` stores the first financial records. Each row contains an immutable owner `userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
 
-`Transaction.userId` references `User.id`, and `Transaction.categoryId` references `Category.id`. Both foreign keys use `ON DELETE RESTRICT` to prevent accidental removal of users or categories with existing financial records. The API still validates that the category exists and matches the transaction type before writes.
+`Transaction.userId` references `User.id` with `ON DELETE CASCADE`, ensuring account deletion removes every owned transaction. `Transaction.categoryId` references `Category.id` with `ON DELETE RESTRICT`, protecting the predefined catalog while transactions still use a category. The API validates that the category exists and matches the transaction type before writes.
 
 The `(userId, occurredAt)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.

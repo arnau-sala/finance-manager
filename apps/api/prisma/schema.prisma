@@ -110,7 +110,7 @@ model Transaction {
   description String          @db.VarChar(100)
   occurredAt  DateTime
   createdAt   DateTime        @default(now())
-  user        User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@index([userId, occurredAt])

@@ -48,6 +48,13 @@
 - Create a secure cookie session after login.
 - Add `POST /auth/logout` and require an active session.
 
+## Phase 5C: Account Deletion
+
+- Add authenticated `DELETE /account` without a client-provided user ID.
+- Require the current password for password accounts.
+- Delete all account-owned data atomically and invalidate the session.
+- Defer Google account deletion until fresh Google reauthentication is available.
+
 ## Phase 6A: Basic Transaction Creation
 
 - Add the `Transaction` model and `TransactionType` enum.

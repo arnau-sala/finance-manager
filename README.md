@@ -45,6 +45,7 @@ Authentication:
 - `GET /auth/google/request-context`
 - `POST /auth/logout`
 - `GET /auth/me`
+- `DELETE /account`
 
 Admin users:
 
@@ -429,6 +430,31 @@ The endpoint returns the public information for the user represented by the curr
 ```
 
 `updatedAt` is `null` until the user is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
+
+## Delete Account
+
+Only the currently authenticated owner can delete their account. The endpoint does not accept a user ID:
+
+```http
+DELETE /account
+Content-Type: application/json
+```
+
+```json
+{
+  "password": "SecurePass1!"
+}
+```
+
+The endpoint currently supports `PASSWORD` accounts. An incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. A successful deletion returns:
+
+```json
+{
+  "message": "Account deleted successfully."
+}
+```
+
+Deletion is atomic and permanent. It removes the user, all owned transactions, pending access requests, access-request events, and approved-email records associated with the account email. If the deleted user performed administrative reviews, their ID is removed from other users' historical records without deleting those records. The current session is deleted after the database transaction succeeds.
 
 ## List Categories
 

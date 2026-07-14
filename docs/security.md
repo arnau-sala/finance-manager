@@ -52,6 +52,15 @@ Login security decisions:
 - Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
 - Logout requires an active session and deletes its cookie.
 
+Account deletion security decisions:
+
+- `DELETE /account` derives the target account only from the encrypted session and never accepts a user ID.
+- Password accounts must provide their current password; an incorrect value returns the explicit `Incorrect password.` error because the caller is already authenticated as that account.
+- Google accounts cannot use password confirmation and remain unsupported until fresh Google reauthentication is implemented.
+- User deletion and all related database cleanup run in one transaction.
+- Owned transactions, pending requests, request events, and approval records are deleted. Administrative IDs on records belonging to other users are set to null instead of deleting those users' history.
+- The current session is deleted after success. Sessions on other devices can no longer resolve the deleted user and therefore lose access.
+
 Google sign-in security decisions:
 
 - Google sign-in uses a backend OAuth 2.0 / OpenID Connect redirect flow.
@@ -102,6 +111,7 @@ Current limits:
 | Register | 8/15min | IP + email |
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
+| Account deletion | 5/15min | session/IP |
 | Access requests | 10/hour | IP + email |
 | Financial reads | 180/min | session/IP |
 | Financial writes | 60/min | session/IP |
