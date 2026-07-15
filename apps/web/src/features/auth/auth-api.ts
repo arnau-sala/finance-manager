@@ -3,6 +3,12 @@ type LoginInput = {
   password: string;
 };
 
+type ChangePasswordInput = {
+  currentPassword: string;
+  newPassword: string;
+  newPasswordConfirmation: string;
+};
+
 type ApiErrorResponse = {
   error?: string;
   retryAfter?: string;
@@ -162,6 +168,21 @@ export async function updateProfile(name: string) {
 
   const body = (await response.json()) as UpdateProfileResponse;
   return body.user;
+}
+
+export async function changePassword(input: ChangePasswordInput) {
+  const response = await fetch("/api/account/password", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(response, "Unable to change password.");
+  }
 }
 
 export async function startGoogleAccountDeletion() {

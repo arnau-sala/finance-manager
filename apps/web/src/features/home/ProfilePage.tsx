@@ -2,6 +2,7 @@ import { type FormEvent, type ReactNode, useState } from "react";
 import {
   CalendarDays,
   ChevronRight,
+  CircleCheck,
   Clock3,
   KeyRound,
   LogOut,
@@ -16,6 +17,7 @@ import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import {
   ApiRequestError,
+  changePassword,
   deleteAccount,
   startGoogleAccountDeletion,
   updateProfile,
@@ -34,6 +36,7 @@ type ProfilePageProps = {
 };
 
 type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
+type PasswordDialogMode = "form" | "success";
 
 function formatCreationDate(value: string) {
   const date = new Date(value);
@@ -74,6 +77,15 @@ export function ProfilePage({
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileName, setProfileName] = useState("");
   const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
+  const [passwordDialogMode, setPasswordDialogMode] =
+    useState<PasswordDialogMode | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("");
+  const [passwordChangeError, setPasswordChangeError] = useState<string | null>(
+    null
+  );
   const parsedProfileName = validateUserName(profileName);
   const isProfileNameValid =
     parsedProfileName.success && parsedProfileName.data !== user.name;
@@ -81,6 +93,10 @@ export function ProfilePage({
     profileName.length > 0 && !parsedProfileName.success
       ? (parsedProfileName.error.issues[0]?.message ?? "Enter a valid name.")
       : null;
+  const arePasswordFieldsFilled =
+    currentPassword.length > 0 &&
+    newPassword.length > 0 &&
+    newPasswordConfirmation.length > 0;
 
   function closeLogoutDialog() {
     if (isLoggingOut) {
@@ -142,6 +158,80 @@ export function ProfilePage({
       }
 
       setIsUpdatingProfile(false);
+    }
+  }
+
+  function openPasswordDialog() {
+    setCurrentPassword("");
+    setNewPassword("");
+    setNewPasswordConfirmation("");
+    setPasswordChangeError(null);
+    setPasswordDialogMode("form");
+  }
+
+  function closePasswordDialog() {
+    if (isChangingPassword) return;
+    setPasswordDialogMode(null);
+    setCurrentPassword("");
+    setNewPassword("");
+    setNewPasswordConfirmation("");
+    setPasswordChangeError(null);
+  }
+
+  async function confirmPasswordChange(event?: FormEvent) {
+    event?.preventDefault();
+
+    if (passwordDialogMode === "success") {
+      closePasswordDialog();
+      return;
+    }
+
+    if (isChangingPassword || !arePasswordFieldsFilled) return;
+
+    if (currentPassword.length > 128) {
+      setPasswordChangeError("Incorrect current password.");
+      return;
+    }
+
+    const parsedNewPassword = validateAccountPassword(newPassword);
+    if (!parsedNewPassword.success) {
+      setPasswordChangeError(
+        parsedNewPassword.error.issues[0]?.message ?? "Enter a valid new password."
+      );
+      return;
+    }
+
+    if (parsedNewPassword.data !== newPasswordConfirmation) {
+      setPasswordChangeError("New passwords do not match.");
+      return;
+    }
+
+    setPasswordChangeError(null);
+    setIsChangingPassword(true);
+
+    try {
+      await changePassword({
+        currentPassword,
+        newPassword: parsedNewPassword.data,
+        newPasswordConfirmation
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirmation("");
+      setIsChangingPassword(false);
+      setPasswordDialogMode("success");
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 429) {
+        setPasswordChangeError(
+          `Too many password changes. Try again in ${error.retryAfter ?? "15 minutes"}.`
+        );
+      } else {
+        setPasswordChangeError(
+          error instanceof Error ? error.message : "Unable to change password."
+        );
+      }
+
+      setIsChangingPassword(false);
     }
   }
 
@@ -266,6 +356,7 @@ export function ProfilePage({
                   <ProfileActionButton
                     label="Change password"
                     icon={<KeyRound />}
+                    onClick={openPasswordDialog}
                   />
                   <ProfileActionButton
                     label="Link Google account"
@@ -331,6 +422,85 @@ export function ProfilePage({
             disabled={isUpdatingProfile}
           />
         </form>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        key={passwordDialogMode ?? "closed"}
+        open={passwordDialogMode !== null}
+        title={
+          passwordDialogMode === "success"
+            ? "Password changed"
+            : "Change password"
+        }
+        description={
+          passwordDialogMode === "success"
+            ? "Your password has been updated successfully."
+            : "Enter your current password and choose a new one."
+        }
+        confirmLabel={passwordDialogMode === "success" ? "Done" : "Continue"}
+        confirmingLabel="Saving..."
+        initialFocus="dialog"
+        icon={passwordDialogMode === "success" ? <CircleCheck /> : <KeyRound />}
+        isConfirming={isChangingPassword}
+        confirmDisabled={
+          passwordDialogMode === "form" && !arePasswordFieldsFilled
+        }
+        showCancel={passwordDialogMode === "form"}
+        error={passwordDialogMode === "form" ? passwordChangeError : null}
+        onCancel={closePasswordDialog}
+        onConfirm={confirmPasswordChange}
+      >
+        {passwordDialogMode === "form" ? (
+          <form
+            className="confirm-dialog__form confirm-dialog__form--password"
+            onSubmit={confirmPasswordChange}
+          >
+            <div className="confirm-dialog__field">
+              <label htmlFor="current-password">Current password</label>
+              <input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => {
+                  setCurrentPassword(event.target.value);
+                  setPasswordChangeError(null);
+                }}
+                disabled={isChangingPassword}
+              />
+            </div>
+
+            <div className="confirm-dialog__field">
+              <label htmlFor="new-password">New password</label>
+              <input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => {
+                  setNewPassword(event.target.value);
+                  setPasswordChangeError(null);
+                }}
+                disabled={isChangingPassword}
+              />
+            </div>
+
+            <div className="confirm-dialog__field">
+              <label htmlFor="new-password-confirmation">Repeat new password</label>
+              <input
+                id="new-password-confirmation"
+                type="password"
+                autoComplete="new-password"
+                value={newPasswordConfirmation}
+                onChange={(event) => {
+                  setNewPasswordConfirmation(event.target.value);
+                  setPasswordChangeError(null);
+                }}
+                disabled={isChangingPassword}
+              />
+            </div>
+          </form>
+        ) : null}
       </ConfirmDialog>
 
       <ConfirmDialog

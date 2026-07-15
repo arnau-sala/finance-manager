@@ -418,12 +418,15 @@ MVP content:
 - Email.
 - Provider-specific account actions.
 - Name editing through a focused modal; email remains read-only account data.
+- Password changes through a three-field modal for password accounts.
 - Confirmed logout.
 - Irreversible account deletion confirmed by password or fresh Google account selection.
 
 Google deletion returns to the profile with a warning dialog when the selected account does not match the active session. The dialog identifies the required session email without exposing it in the OAuth redirect URL.
 
 The edit-profile modal uses the current name as its placeholder, validates the shared 1-to-100-character name rule locally, and enables submission only for a valid changed value. The profile replaces its session user with the `PATCH /account` response so the new name appears without another API read.
+
+The change-password modal requires the current password and two copies of the new password. It enables submission once all three fields contain a value, then validates the registration password policy and matching new-password fields locally before calling `PATCH /account/password`. A successful request replaces the form with confirmation content in the same dialog; API and rate-limit errors remain visible alongside the form.
 
 ### 11. Admin
 
