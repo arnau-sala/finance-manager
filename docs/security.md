@@ -47,7 +47,7 @@ Login security decisions:
 - Unknown emails still run an Argon2id verification against a dummy hash to reduce timing differences.
 - Password login only accepts users whose `authProvider` is `PASSWORD`.
 - Password hashes and user details are never returned by login.
-- Successful login regenerates the session and stores only the user ID.
+- Successful login regenerates the session and stores the user ID and current session version in the encrypted cookie.
 - Session cookies are encrypted, `HttpOnly`, `SameSite=Lax`, and limited to seven days.
 - Cookie `Secure` is disabled for local HTTP development and enabled when `NODE_ENV=production`.
 - Logout requires an active session and deletes its cookie.
@@ -70,6 +70,14 @@ Profile editing security decisions:
 - The strict request body accepts only `name`; email, role, status, provider, and unknown fields are rejected.
 - Name validation is shared with registration: surrounding whitespace is removed and the result must contain 1 to 100 characters.
 - Only an existing `APPROVED` session user can be updated, and the response excludes password and Google subject data.
+
+Password change security decisions:
+
+- `PATCH /account/password` derives the account from the encrypted session and is unavailable to Google accounts.
+- The backend requires the current password, validates two matching new-password fields, and applies the same password policy as registration.
+- The new password must differ from the current password. Its Argon2id hash is calculated only after all validation and current-password verification succeeds.
+- A successful change increments `User.sessionVersion`, regenerates the current cookie with the new version, and invalidates every other session for that account.
+- Cookies created before session versioning are intentionally rejected and require one fresh login.
 
 Google sign-in security decisions:
 
@@ -122,6 +130,7 @@ Current limits:
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
 | Profile editing | 30/15min | session/IP |
+| Password changes | 5/15min | session/IP |
 | Account deletion | 5/15min | session/IP |
 | Access requests | 10/hour | IP + email |
 | Financial reads | 180/min | session/IP |

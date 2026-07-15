@@ -6,6 +6,7 @@ const SESSION_DURATION_SECONDS = 7 * 24 * 60 * 60;
 declare module "@fastify/secure-session" {
   interface SessionData {
     userId: string;
+    sessionVersion: number;
     googleOAuthState: string;
     googleAccountDeletionState: string;
     googleAccessRequestEmail: string;

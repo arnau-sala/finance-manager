@@ -91,7 +91,7 @@ Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side 
 
 `POST /access-requests/google` lives beside the normal access-request endpoint. It accepts only the optional user message, reads the verified Google email/name from the session, appends the internal Google source marker to the stored message, and then reuses the same pending-request/event-log persistence path.
 
-`auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores only `userId`; logout requires that value and deletes the session cookie. Sessions last up to seven days.
+`auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores `userId` and the current `sessionVersion`; authenticated user resolution requires both to match PostgreSQL. Sessions last up to seven days, and logout deletes the current cookie.
 
 `auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. Transaction routes use this server-derived ID; clients cannot select the owner of financial data.
 
@@ -99,7 +99,7 @@ Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side 
 
 `routes/auth-me.ts` returns the public profile selected by the current secure session. It includes the required name, authentication provider, and `updatedAt` in addition to the fields shared with administrative user reads. The frontend uses the provider to offer Google linking only to password accounts.
 
-`routes/account.ts` owns owner-only profile updates through `PATCH /account` and password-confirmed self-service deletion through `DELETE /account`. Profile updates derive the target from the encrypted session, accept only the shared validated `name` field, and return the updated public user. Google accounts start a separate reauthentication flow through `POST /account/google/delete/start`; the existing Google callback validates a one-time deletion-specific OAuth `state` and requires the verified Google email and stable `sub` to match the active session user. Both deletion paths call `account/delete-account.ts`, which performs the same database cleanup atomically and never accepts a client-provided user ID.
+`routes/account.ts` owns owner-only profile updates through `PATCH /account`, password changes through `PATCH /account/password`, and password-confirmed self-service deletion through `DELETE /account`. Password changes verify the current Argon2id hash before hashing the new value, increment `sessionVersion`, and regenerate the current cookie; other cookies then fail version validation. Google accounts start a separate deletion reauthentication flow through `POST /account/google/delete/start`; the existing Google callback validates a one-time deletion-specific OAuth `state` and requires the verified Google email and stable `sub` to match the active session user. Both deletion paths call `account/delete-account.ts`, which performs the same database cleanup atomically and never accepts a client-provided user ID.
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views.
 

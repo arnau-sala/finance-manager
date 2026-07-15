@@ -38,7 +38,7 @@ type GoogleAccessRequestContext = {
 };
 
 type GoogleAuthResult =
-  | { type: "login"; userId: string }
+  | { type: "login"; userId: string; sessionVersion: number }
   | { type: "request-access"; request: GoogleAccessRequestContext };
 
 function getGoogleOAuthConfig(): GoogleOAuthConfig | null {
@@ -144,6 +144,7 @@ async function handleGoogleIdentity(
           authProvider: true,
           googleSubject: true,
           status: true,
+          sessionVersion: true,
         },
       }),
       transaction.user.findUnique({
@@ -153,6 +154,7 @@ async function handleGoogleIdentity(
           authProvider: true,
           googleSubject: true,
           status: true,
+          sessionVersion: true,
         },
       }),
     ]);
@@ -165,7 +167,11 @@ async function handleGoogleIdentity(
         existingUser.googleSubject === identity.googleSubject &&
         existingUser.status === "APPROVED"
       ) {
-        return { type: "login", userId: existingUser.id };
+        return {
+          type: "login",
+          userId: existingUser.id,
+          sessionVersion: existingUser.sessionVersion,
+        };
       }
 
       return { type: "request-access", request: requestContext };
@@ -203,10 +209,14 @@ async function handleGoogleIdentity(
         status: "APPROVED",
         updatedAt: null,
       },
-      select: { id: true },
+      select: { id: true, sessionVersion: true },
     });
 
-    return { type: "login", userId: user.id };
+    return {
+      type: "login",
+      userId: user.id,
+      sessionVersion: user.sessionVersion,
+    };
   });
 }
 
@@ -230,6 +240,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const client = createGoogleClient(config);
 
       request.session.set("userId", "");
+      request.session.set("sessionVersion", 0);
       request.session.set("googleAccessRequestEmail", "");
       request.session.set("googleAccessRequestName", "");
       request.session.set("googleAccountDeletionState", "");
@@ -250,8 +261,10 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
     { config: { rateLimit: accountDeletionRateLimit } },
     async (request, reply) => {
       const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
 
-      if (!userId) {
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
         return reply.code(401).send({ error: "Authentication required." });
       }
 
@@ -264,15 +277,16 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const user = await db.user.findUnique({
-        where: { id: userId },
+        where: { id: userId, sessionVersion },
         select: { authProvider: true, googleSubject: true },
       });
 
-      if (
-        !user ||
-        user.authProvider !== "GOOGLE" ||
-        !user.googleSubject
-      ) {
+      if (!user) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (user.authProvider !== "GOOGLE" || !user.googleSubject) {
         return reply.code(400).send({
           error: "Google reauthentication is unavailable for this account.",
         });
@@ -358,14 +372,22 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
             config.clientId,
           );
           const activeUserId = request.session.get("userId");
+          const activeSessionVersion = request.session.get("sessionVersion");
 
-          if (!identity || !activeUserId) {
+          if (
+            !identity ||
+            !activeUserId ||
+            activeSessionVersion === undefined
+          ) {
             return reply.redirect(deletionFailureUrl);
           }
 
           const accountDeleted = await db.$transaction(async (transaction) => {
             const user = await transaction.user.findUnique({
-              where: { id: activeUserId },
+              where: {
+                id: activeUserId,
+                sessionVersion: activeSessionVersion,
+              },
               select: {
                 id: true,
                 email: true,
@@ -428,10 +450,12 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       if (result.type === "login") {
         request.session.regenerate();
         request.session.set("userId", result.userId);
+        request.session.set("sessionVersion", result.sessionVersion);
         return reply.redirect(getFrontendRedirectUrl(config, "login-success"));
       }
 
       request.session.set("userId", "");
+      request.session.set("sessionVersion", 0);
       request.session.set("googleAccessRequestEmail", result.request.email);
       request.session.set("googleAccessRequestName", result.request.name);
 

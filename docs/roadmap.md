@@ -55,6 +55,13 @@
 - Delete all account-owned data atomically and invalidate the session.
 - Require fresh Google reauthentication and an exact email/Google-subject match for Google accounts.
 
+## Phase 5D: Password Changes
+
+- Add authenticated `PATCH /account/password` for `PASSWORD` accounts.
+- Require the current password and two matching new-password values.
+- Reuse the registration password policy and Argon2id hashing.
+- Rotate the current cookie and invalidate other sessions through `sessionVersion`.
+
 ## Phase 6A: Basic Transaction Creation
 
 - Add the `Transaction` model and `TransactionType` enum.

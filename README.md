@@ -46,6 +46,7 @@ Authentication:
 - `POST /auth/logout`
 - `GET /auth/me`
 - `PATCH /account`
+- `PATCH /account/password`
 - `DELETE /account`
 - `POST /account/google/delete/start`
 
@@ -449,6 +450,35 @@ Content-Type: application/json
 ```
 
 The name is trimmed and must contain between 1 and 100 characters, using the same validation as registration. Empty names, missing names, unknown fields, and attempts to include `email` return `400 Bad Request`. A successful update returns `200 OK` with `Profile updated successfully.` and the updated public user object.
+
+## Change Password
+
+Only an authenticated `PASSWORD` account can change its password:
+
+```http
+PATCH /account/password
+Content-Type: application/json
+```
+
+```json
+{
+  "currentPassword": "Current-password1!",
+  "newPassword": "New-password2!",
+  "newPasswordConfirmation": "New-password2!"
+}
+```
+
+The new password must contain 9 to 128 characters, at least one uppercase letter, one digit, and one special character. Both new-password fields must match, and the new password must differ from the current password.
+
+An incorrect current password returns `401 Unauthorized` with `{"error":"Incorrect current password."}`. Google accounts receive `400 Bad Request` because their credentials are managed by Google. A successful change returns:
+
+```json
+{
+  "message": "Password changed successfully."
+}
+```
+
+Success rotates the current encrypted cookie and invalidates every other session for the account. The endpoint is limited to 5 attempts every 15 minutes per session or IP.
 
 ## Delete Account
 

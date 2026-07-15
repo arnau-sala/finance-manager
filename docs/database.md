@@ -93,6 +93,8 @@ Malformed submissions are rejected before database access and do not create even
 
 `User.passwordHash` stores an Argon2id hash, never the original password. It is required for `PASSWORD` users and null for `GOOGLE` users.
 
+`User.sessionVersion` starts at `1` and increments after a password change. Authenticated cookies carry the matching version, allowing the API to reject sessions created before a credentials change without storing individual sessions in PostgreSQL.
+
 `User.googleSubject` stores Google's stable account identifier for `GOOGLE` users. It is unique and is used together with the verified Google ID token so sign-in does not rely only on a changeable email address.
 
 New password registrations require a name and explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email store Google's verified profile name and receive provider `GOOGLE`, no password hash, and the verified Google subject.

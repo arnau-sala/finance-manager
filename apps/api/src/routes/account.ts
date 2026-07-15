@@ -4,12 +4,14 @@ import { z } from "zod";
 
 import { deleteUserAccount } from "../account/delete-account.js";
 import { authenticatedUserSelect } from "../auth/authenticated-user.js";
-import { verifyPassword } from "../auth/password.js";
+import { hashPassword, verifyPassword } from "../auth/password.js";
+import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
   accountWriteRateLimit,
+  passwordChangeRateLimit,
 } from "../security/rate-limit.js";
 
 const updateProfileBodySchema = z
@@ -24,14 +26,33 @@ const deleteAccountBodySchema = z
   })
   .strict();
 
+const changePasswordBodySchema = z
+  .object({
+    currentPassword: z.string().min(1).max(128),
+    newPassword: passwordSchema,
+    newPasswordConfirmation: z.string().max(128),
+  })
+  .strict()
+  .superRefine(({ newPassword, newPasswordConfirmation }, context) => {
+    if (newPassword !== newPasswordConfirmation) {
+      context.addIssue({
+        code: "custom",
+        path: ["newPasswordConfirmation"],
+        message: "Passwords do not match.",
+      });
+    }
+  });
+
 export const accountRoutes: FastifyPluginAsync = async (app) => {
   app.patch(
     "/account",
     { config: { rateLimit: accountWriteRateLimit } },
     async (request, reply) => {
       const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
 
-      if (!userId) {
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
         return reply.code(401).send({ error: "Authentication required." });
       }
 
@@ -52,6 +73,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
           where: {
             id: userId,
             status: "APPROVED",
+            sessionVersion,
           },
           data: {
             name: parsedBody.data.name,
@@ -77,13 +99,116 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
     },
   );
 
+  app.patch(
+    "/account/password",
+    { config: { rateLimit: passwordChangeRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = changePasswordBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid password data.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const user = await db.user.findUnique({
+        where: {
+          id: userId,
+          status: "APPROVED",
+          sessionVersion,
+        },
+        select: {
+          id: true,
+          passwordHash: true,
+          authProvider: true,
+          sessionVersion: true,
+        },
+      });
+
+      if (!user) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (user.authProvider !== "PASSWORD" || !user.passwordHash) {
+        return reply.code(400).send({
+          error: "Password changes are unavailable for Google accounts.",
+        });
+      }
+
+      const { currentPassword, newPassword } = parsedBody.data;
+      const currentPasswordMatches = await verifyPassword(
+        user.passwordHash,
+        currentPassword,
+      );
+
+      if (!currentPasswordMatches) {
+        return reply.code(401).send({ error: "Incorrect current password." });
+      }
+
+      if (newPassword === currentPassword) {
+        return reply.code(400).send({
+          error: "New password must be different from current password.",
+        });
+      }
+
+      const passwordHash = await hashPassword(newPassword);
+
+      try {
+        const updatedUser = await db.user.update({
+          where: {
+            id: user.id,
+            status: "APPROVED",
+            authProvider: "PASSWORD",
+            sessionVersion: user.sessionVersion,
+          },
+          data: {
+            passwordHash,
+            sessionVersion: { increment: 1 },
+          },
+          select: { sessionVersion: true },
+        });
+
+        request.session.regenerate();
+        request.session.set("userId", user.id);
+        request.session.set("sessionVersion", updatedUser.sessionVersion);
+
+        return reply.send({ message: "Password changed successfully." });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2025"
+        ) {
+          request.session.delete();
+          return reply.code(401).send({ error: "Authentication required." });
+        }
+
+        throw error;
+      }
+    },
+  );
+
   app.delete(
     "/account",
     { config: { rateLimit: accountDeletionRateLimit } },
     async (request, reply) => {
       const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
 
-      if (!userId) {
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
         return reply.code(401).send({ error: "Authentication required." });
       }
 
@@ -94,7 +219,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const user = await db.user.findUnique({
-        where: { id: userId },
+        where: { id: userId, sessionVersion },
         select: {
           id: true,
           email: true,

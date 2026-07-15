@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { publicUserSelect } from "../auth/authenticated-user.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
+import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
 import { db } from "../db/client.js";
 import {
@@ -11,17 +12,6 @@ import {
   authLogoutRateLimit,
   authRegisterRateLimit,
 } from "../security/rate-limit.js";
-
-const passwordSchema = z
-  .string()
-  .min(9, "Password must contain more than 8 characters.")
-  .max(128, "Password must contain at most 128 characters.")
-  .regex(/\p{Lu}/u, "Password must contain at least one uppercase letter.")
-  .regex(/\p{Nd}/u, "Password must contain at least one digit.")
-  .regex(
-    /(?:\p{P}|\p{S})/u,
-    "Password must contain at least one special character.",
-  );
 
 const registerBodySchema = z
   .object({
@@ -168,6 +158,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
           passwordHash: true,
           authProvider: true,
           status: true,
+          sessionVersion: true,
         },
       });
 
@@ -189,6 +180,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       request.session.regenerate();
       request.session.set("userId", user.id);
+      request.session.set("sessionVersion", user.sessionVersion);
 
       return reply.send({ message: "Login successful." });
     },
