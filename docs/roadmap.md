@@ -97,6 +97,7 @@
 ## Phase 7B: Current User Profile
 
 - Add authenticated `GET /auth/me`.
+- Add owner-only `PATCH /account` for name updates.
 - Resolve the user exclusively from the secure session.
 - Reuse the public fields exposed by administrative user reads and include `updatedAt`.
 

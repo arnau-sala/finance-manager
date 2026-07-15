@@ -11,7 +11,7 @@ export const publicUserSelect = {
   createdAt: true
 } as const;
 
-const authenticatedUserSelect = {
+export const authenticatedUserSelect = {
   ...publicUserSelect,
   authProvider: true,
   updatedAt: true

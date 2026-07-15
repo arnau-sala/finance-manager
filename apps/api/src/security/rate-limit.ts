@@ -68,6 +68,14 @@ export const accountDeletionRateLimit = {
     getSessionOrIpKey(request, "account-deletion"),
 };
 
+export const accountWriteRateLimit = {
+  hook: "preHandler" as const,
+  max: 30,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "account-write"),
+};
+
 export const authGoogleRateLimit = {
   hook: "preHandler" as const,
   max: 30,

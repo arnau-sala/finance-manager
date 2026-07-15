@@ -45,6 +45,7 @@ Authentication:
 - `GET /auth/google/request-context`
 - `POST /auth/logout`
 - `GET /auth/me`
+- `PATCH /account`
 - `DELETE /account`
 - `POST /account/google/delete/start`
 
@@ -431,6 +432,23 @@ The endpoint returns the public information for the user represented by the curr
 ```
 
 `updatedAt` is `null` until the user is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
+
+## Update Current User
+
+Only the user represented by the active session can update their profile. The endpoint does not accept a user ID or email:
+
+```http
+PATCH /account
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Alex Morgan"
+}
+```
+
+The name is trimmed and must contain between 1 and 100 characters, using the same validation as registration. Empty names, missing names, unknown fields, and attempts to include `email` return `400 Bad Request`. A successful update returns `200 OK` with `Profile updated successfully.` and the updated public user object.
 
 ## Delete Account
 

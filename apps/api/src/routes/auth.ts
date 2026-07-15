@@ -4,6 +4,7 @@ import { z } from "zod";
 
 import { publicUserSelect } from "../auth/authenticated-user.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
+import { userNameSchema } from "../auth/user-validation.js";
 import { db } from "../db/client.js";
 import {
   authLoginRateLimit,
@@ -30,7 +31,7 @@ const registerBodySchema = z
       .email()
       .max(254)
       .transform((email) => email.toLowerCase()),
-    name: z.string().trim().min(1).max(100),
+    name: userNameSchema,
     password: passwordSchema,
     passwordConfirmation: z.string(),
   })

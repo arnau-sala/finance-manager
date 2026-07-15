@@ -56,7 +56,6 @@ Account deletion security decisions:
 
 - `DELETE /account` derives the target account only from the encrypted session and never accepts a user ID.
 - Password accounts must provide their current password; an incorrect value returns the explicit `Incorrect password.` error because the caller is already authenticated as that account.
-- Google accounts cannot use password confirmation and remain unsupported until fresh Google reauthentication is implemented.
 - User deletion and all related database cleanup run in one transaction.
 - Owned transactions, pending requests, request events, and approval records are deleted. Administrative IDs on records belonging to other users are set to null instead of deleting those users' history.
 - The current session is deleted after success. Sessions on other devices can no longer resolve the deleted user and therefore lose access.
@@ -64,6 +63,13 @@ Account deletion security decisions:
 - The Google deletion flow uses a random, one-use OAuth `state` separate from normal sign-in and preserves the active session until verification finishes.
 - Deletion requires both Google's verified email and stable `sub` identifier to match the active `GOOGLE` user. A different account produces a retryable mismatch and no database writes.
 - Password and Google deletion reuse one atomic cleanup service so both remove the same account-owned data.
+
+Profile editing security decisions:
+
+- `PATCH /account` derives the target user only from the encrypted session and accepts no user ID.
+- The strict request body accepts only `name`; email, role, status, provider, and unknown fields are rejected.
+- Name validation is shared with registration: surrounding whitespace is removed and the result must contain 1 to 100 characters.
+- Only an existing `APPROVED` session user can be updated, and the response excludes password and Google subject data.
 
 Google sign-in security decisions:
 
@@ -115,6 +121,7 @@ Current limits:
 | Register | 8/15min | IP + email |
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
+| Profile editing | 30/15min | session/IP |
 | Account deletion | 5/15min | session/IP |
 | Access requests | 10/hour | IP + email |
 | Financial reads | 180/min | session/IP |
