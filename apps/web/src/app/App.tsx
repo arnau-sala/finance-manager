@@ -202,6 +202,7 @@ export function App() {
     return (
       <HomePage
         user={sessionUser}
+        onProfileUpdated={setSessionUser}
         onLogout={handleLogout}
         onAccountDeleted={returnToAnonymousLanding}
         googleAccountDeletionFeedback={googleAccountDeletionFeedback}

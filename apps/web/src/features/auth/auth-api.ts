@@ -12,6 +12,10 @@ type GoogleAccountDeletionStartResponse = {
   authorizationUrl: string;
 };
 
+type UpdateProfileResponse = {
+  user: SessionUser;
+};
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly retryAfter: string | null;
@@ -140,6 +144,24 @@ export async function deleteAccount(password: string) {
   if (!response.ok) {
     throw await createApiRequestError(response, "Unable to delete account.");
   }
+}
+
+export async function updateProfile(name: string) {
+  const response = await fetch("/api/account", {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({ name })
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(response, "Unable to update profile.");
+  }
+
+  const body = (await response.json()) as UpdateProfileResponse;
+  return body.user;
 }
 
 export async function startGoogleAccountDeletion() {

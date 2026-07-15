@@ -1,15 +1,12 @@
 import { z } from "zod";
 
 import { emailSchema } from "../auth/email-validation";
+import { userNameSchema } from "../auth/user-name-validation";
 
 export const accessRequestSchema = z
   .object({
     email: emailSchema,
-    name: z
-      .string()
-      .trim()
-      .min(1, "Enter your name.")
-      .max(100, "Name must be 100 characters or fewer."),
+    name: userNameSchema,
     message: z
       .string()
       .trim()

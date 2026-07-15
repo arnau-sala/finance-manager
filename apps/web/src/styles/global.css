@@ -1076,10 +1076,25 @@ button {
   font: inherit;
 }
 
+.confirm-dialog__form input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
 .confirm-dialog__form input:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.confirm-dialog--danger .confirm-dialog__form input:focus {
   border-color: var(--color-danger);
   outline: 3px solid color-mix(in srgb, var(--color-danger) 18%, transparent);
   outline-offset: 1px;
+}
+
+.confirm-dialog__form input[aria-invalid="true"] {
+  border-color: var(--color-danger);
 }
 
 .confirm-dialog__actions {

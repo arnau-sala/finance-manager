@@ -18,12 +18,15 @@ import {
   ApiRequestError,
   deleteAccount,
   startGoogleAccountDeletion,
+  updateProfile,
   type SessionUser
 } from "../auth/auth-api";
 import { validateAccountPassword } from "../auth/password-validation";
+import { validateUserName } from "../auth/user-name-validation";
 
 type ProfilePageProps = {
   user: SessionUser;
+  onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   googleAccountDeletionFeedback: "mismatch" | "failed" | "cancelled" | null;
@@ -48,6 +51,7 @@ function formatCreationDate(value: string) {
 
 export function ProfilePage({
   user,
+  onProfileUpdated,
   onLogout,
   onAccountDeleted,
   googleAccountDeletionFeedback,
@@ -66,6 +70,17 @@ export function ProfilePage({
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteRetryAfter, setDeleteRetryAfter] = useState("15 minutes");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
+  const parsedProfileName = validateUserName(profileName);
+  const isProfileNameValid =
+    parsedProfileName.success && parsedProfileName.data !== user.name;
+  const profileNameValidationError =
+    profileName.length > 0 && !parsedProfileName.success
+      ? (parsedProfileName.error.issues[0]?.message ?? "Enter a valid name.")
+      : null;
 
   function closeLogoutDialog() {
     if (isLoggingOut) {
@@ -89,6 +104,44 @@ export function ProfilePage({
     } catch {
       setLogoutError("We couldn't log you out. Please try again.");
       setIsLoggingOut(false);
+    }
+  }
+
+  function closeEditDialog() {
+    if (isUpdatingProfile) return;
+    setIsEditDialogOpen(false);
+    setProfileName("");
+    setProfileUpdateError(null);
+  }
+
+  async function confirmProfileUpdate(event?: FormEvent) {
+    event?.preventDefault();
+    if (isUpdatingProfile) return;
+
+    const parsedName = validateUserName(profileName);
+    if (!parsedName.success || parsedName.data === user.name) return;
+
+    setProfileUpdateError(null);
+    setIsUpdatingProfile(true);
+
+    try {
+      const updatedUser = await updateProfile(parsedName.data);
+      onProfileUpdated(updatedUser);
+      setIsUpdatingProfile(false);
+      setIsEditDialogOpen(false);
+      setProfileName("");
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 429) {
+        setProfileUpdateError(
+          `Too many profile updates. Try again in ${error.retryAfter ?? "15 minutes"}.`
+        );
+      } else {
+        setProfileUpdateError(
+          error instanceof Error ? error.message : "Unable to update profile."
+        );
+      }
+
+      setIsUpdatingProfile(false);
     }
   }
 
@@ -202,6 +255,11 @@ export function ProfilePage({
               <ProfileActionButton
                 label="Edit profile"
                 icon={<PencilLine />}
+                onClick={() => {
+                  setProfileName("");
+                  setProfileUpdateError(null);
+                  setIsEditDialogOpen(true);
+                }}
               />
               {user.authProvider === "PASSWORD" ? (
                 <>
@@ -242,6 +300,38 @@ export function ProfilePage({
           </div>
         </div>
       </section>
+
+      <ConfirmDialog
+        open={isEditDialogOpen}
+        title="Edit profile"
+        description="Only your profile name can be changed."
+        confirmLabel="Continue"
+        confirmingLabel="Saving..."
+        icon={<PencilLine />}
+        isConfirming={isUpdatingProfile}
+        confirmDisabled={!isProfileNameValid}
+        error={profileUpdateError ?? profileNameValidationError}
+        onCancel={closeEditDialog}
+        onConfirm={confirmProfileUpdate}
+      >
+        <form className="confirm-dialog__form" onSubmit={confirmProfileUpdate}>
+          <label htmlFor="profile-name">Name</label>
+          <input
+            id="profile-name"
+            data-dialog-autofocus
+            type="text"
+            autoComplete="name"
+            placeholder={user.name}
+            value={profileName}
+            aria-invalid={Boolean(profileNameValidationError)}
+            onChange={(event) => {
+              setProfileName(event.target.value);
+              setProfileUpdateError(null);
+            }}
+            disabled={isUpdatingProfile}
+          />
+        </form>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={isLogoutDialogOpen}

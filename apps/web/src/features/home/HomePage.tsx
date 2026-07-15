@@ -9,6 +9,7 @@ export type GoogleAccountDeletionFeedback = "mismatch" | "failed" | "cancelled";
 
 type HomePageProps = {
   user: SessionUser;
+  onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
@@ -17,6 +18,7 @@ type HomePageProps = {
 
 type HomeSectionProps = {
   user: SessionUser;
+  onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
@@ -29,6 +31,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   stats: () => <HomeSection title="Stats" />,
   profile: ({
     user,
+    onProfileUpdated,
     onLogout,
     onAccountDeleted,
     googleAccountDeletionFeedback,
@@ -36,6 +39,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   }) => (
     <ProfilePage
       user={user}
+      onProfileUpdated={onProfileUpdated}
       onLogout={onLogout}
       onAccountDeleted={onAccountDeleted}
       googleAccountDeletionFeedback={googleAccountDeletionFeedback}
@@ -48,6 +52,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
 
 export function HomePage({
   user,
+  onProfileUpdated,
   onLogout,
   onAccountDeleted,
   googleAccountDeletionFeedback,
@@ -62,6 +67,7 @@ export function HomePage({
     <main className="home-screen">
       {ActiveSection({
         user,
+        onProfileUpdated,
         onLogout,
         onAccountDeleted,
         googleAccountDeletionFeedback,

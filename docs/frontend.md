@@ -417,10 +417,13 @@ MVP content:
 - Name and account creation date.
 - Email.
 - Provider-specific account actions.
+- Name editing through a focused modal; email remains read-only account data.
 - Confirmed logout.
 - Irreversible account deletion confirmed by password or fresh Google account selection.
 
 Google deletion returns to the profile with a warning dialog when the selected account does not match the active session. The dialog identifies the required session email without exposing it in the OAuth redirect URL.
+
+The edit-profile modal uses the current name as its placeholder, validates the shared 1-to-100-character name rule locally, and enables submission only for a valid changed value. The profile replaces its session user with the `PATCH /account` response so the new name appears without another API read.
 
 ### 11. Admin
 
