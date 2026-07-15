@@ -307,6 +307,7 @@ export function ProfilePage({
         description="Only your profile name can be changed."
         confirmLabel="Continue"
         confirmingLabel="Saving..."
+        initialFocus="dialog"
         icon={<PencilLine />}
         isConfirming={isUpdatingProfile}
         confirmDisabled={!isProfileNameValid}
@@ -318,7 +319,6 @@ export function ProfilePage({
           <label htmlFor="profile-name">Name</label>
           <input
             id="profile-name"
-            data-dialog-autofocus
             type="text"
             autoComplete="name"
             placeholder={user.name}
@@ -379,7 +379,7 @@ export function ProfilePage({
         confirmingLabel={
           user.authProvider === "GOOGLE" ? "Opening..." : "Deleting..."
         }
-        initialFocus={deleteDialogMode === "confirm" ? "cancel" : "dialog"}
+        initialFocus="dialog"
         icon={
           deleteDialogMode === "confirm" ? (
             <Trash2 />
@@ -408,7 +408,6 @@ export function ProfilePage({
             <label htmlFor="delete-account-password">Confirm your password</label>
             <input
               id="delete-account-password"
-              data-dialog-autofocus
               type="password"
               autoComplete="current-password"
               value={deletePassword}
