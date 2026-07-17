@@ -56,6 +56,38 @@ button {
   border: 0;
 }
 
+.session-flow,
+.session-flow__destination,
+.session-flow__source {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.session-flow {
+  background: var(--color-surface);
+}
+
+.session-flow__destination {
+  z-index: 0;
+}
+
+.session-flow__source {
+  z-index: 1;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+
+.session-flow--logging-out .session-flow__source,
+body.app-logout-transition .confirm-dialog-backdrop {
+  pointer-events: none;
+  animation: session-logout-slide-right 460ms
+    cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  will-change: transform;
+}
+
 .auth-flow,
 .auth-flow-page {
   position: fixed;
@@ -1205,6 +1237,12 @@ button {
   }
 }
 
+@keyframes session-logout-slide-right {
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
 .home-footer-nav {
   --footer-active-color: var(--color-primary);
   position: absolute;
@@ -1520,6 +1558,11 @@ button {
 
   .confirm-dialog-backdrop,
   .confirm-dialog {
+    animation-duration: 1ms;
+  }
+
+  .session-flow--logging-out .session-flow__source,
+  body.app-logout-transition .confirm-dialog-backdrop {
     animation-duration: 1ms;
   }
 }

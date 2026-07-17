@@ -34,8 +34,12 @@ export function App() {
   const [accessRequestVersion, setAccessRequestVersion] = useState(0);
   const [googleAccountDeletionFeedback, setGoogleAccountDeletionFeedback] =
     useState<GoogleAccountDeletionFeedback | null>(null);
+  const [isLogoutTransitionActive, setIsLogoutTransitionActive] =
+    useState(false);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
+  const logoutTransitionActiveRef = useRef(false);
+  const logoutTransitionTimerRef = useRef<number | null>(null);
 
   if (initialGoogleAuthRef.current === undefined) {
     initialGoogleAuthRef.current = new URL(window.location.href).searchParams.get(
@@ -139,6 +143,17 @@ export function App() {
     };
   }, []);
 
+  useEffect(
+    () => () => {
+      if (logoutTransitionTimerRef.current !== null) {
+        window.clearTimeout(logoutTransitionTimerRef.current);
+      }
+
+      document.body.classList.remove("app-logout-transition");
+    },
+    []
+  );
+
   function openLogin(email: string) {
     setLandingError(null);
     setLoginEmail(email);
@@ -178,7 +193,30 @@ export function App() {
 
   async function handleLogout() {
     await logout();
+    logoutTransitionActiveRef.current = true;
+    document.body.classList.add("app-logout-transition");
+    setIsLogoutTransitionActive(true);
+    logoutTransitionTimerRef.current = window.setTimeout(
+      completeLogoutTransition,
+      650
+    );
+  }
+
+  function completeLogoutTransition() {
+    if (!logoutTransitionActiveRef.current) {
+      return;
+    }
+
+    logoutTransitionActiveRef.current = false;
+
+    if (logoutTransitionTimerRef.current !== null) {
+      window.clearTimeout(logoutTransitionTimerRef.current);
+      logoutTransitionTimerRef.current = null;
+    }
+
+    setIsLogoutTransitionActive(false);
     returnToAnonymousLanding();
+    document.body.classList.remove("app-logout-transition");
   }
 
   function returnToAnonymousLanding() {
@@ -200,16 +238,48 @@ export function App() {
 
   if (sessionStatus === "authenticated" && sessionUser) {
     return (
-      <HomePage
-        user={sessionUser}
-        onProfileUpdated={setSessionUser}
-        onLogout={handleLogout}
-        onAccountDeleted={returnToAnonymousLanding}
-        googleAccountDeletionFeedback={googleAccountDeletionFeedback}
-        onGoogleAccountDeletionFeedbackHandled={() =>
-          setGoogleAccountDeletionFeedback(null)
-        }
-      />
+      <div
+        className={`session-flow${
+          isLogoutTransitionActive ? " session-flow--logging-out" : ""
+        }`}
+      >
+        {isLogoutTransitionActive ? (
+          <div
+            className="session-flow__destination"
+            aria-hidden="true"
+            inert
+          >
+            <AuthLandingPage
+              onEmailContinue={openLogin}
+              onRequestAccess={openAccessRequest}
+              onGoogleContinue={continueWithGoogle}
+            />
+          </div>
+        ) : null}
+
+        <div
+          className="session-flow__source"
+          onAnimationEnd={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              event.animationName === "session-logout-slide-right"
+            ) {
+              completeLogoutTransition();
+            }
+          }}
+        >
+          <HomePage
+            user={sessionUser}
+            onProfileUpdated={setSessionUser}
+            onLogout={handleLogout}
+            onAccountDeleted={returnToAnonymousLanding}
+            googleAccountDeletionFeedback={googleAccountDeletionFeedback}
+            onGoogleAccountDeletionFeedbackHandled={() =>
+              setGoogleAccountDeletionFeedback(null)
+            }
+          />
+        </div>
+      </div>
     );
   }
 

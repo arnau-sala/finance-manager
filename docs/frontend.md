@@ -428,6 +428,8 @@ The edit-profile modal uses the current name as its placeholder, validates the s
 
 The change-password modal requires the current password and two copies of the new password. It enables submission once all three fields contain a value, then validates the registration password policy and matching new-password fields locally before calling `PATCH /account/password`. A successful request replaces the form with confirmation content in the same dialog; API and rate-limit errors remain visible alongside the form.
 
+Logout keeps the confirmation dialog visible while the request is pending. Only after the API confirms that the session has ended does the private screen slide to the right, revealing the public access screen underneath. Failed and cancelled attempts do not trigger the transition.
+
 ### 11. Admin
 
 Purpose: operational review tools.
