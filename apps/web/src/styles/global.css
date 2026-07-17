@@ -1054,6 +1054,7 @@ button {
   font-size: 14px;
   line-height: 1.5;
   font-weight: 400;
+  white-space: pre-line;
 }
 
 .confirm-dialog > p.confirm-dialog__error {

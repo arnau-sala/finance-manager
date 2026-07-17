@@ -528,14 +528,14 @@ export function ProfilePage({
         }
         description={
           deleteDialogMode === "mismatch"
-            ? `No data was deleted. Try again with the Google account used to sign in: ${user.email}.`
+            ? `Nothing was deleted. Choose the Google account linked to ${user.email}.`
             : deleteDialogMode === "rate-limited"
-              ? `You've made too many deletion attempts. Try again in ${deleteRetryAfter}.`
+              ? `Too many deletion attempts. Try again in ${deleteRetryAfter}.`
             : deleteDialogMode === "failed"
-              ? `No data was deleted because we couldn't verify the account. Try again with: ${user.email}.`
+              ? `Nothing was deleted. We couldn't verify ${user.email}. Try again.`
               : user.authProvider === "GOOGLE"
-                ? "This permanently deletes your account and all its data. This cannot be undone. Continue to choose the Google account you use to sign in."
-                : "This permanently deletes your account and all its data. This cannot be undone."
+                ? "Permanently delete your account and all its data. Continue to verify with Google.\nThis cannot be undone."
+                : "Permanently delete your account and all its data.\nThis cannot be undone."
         }
         confirmLabel={
           deleteDialogMode === "rate-limited"
