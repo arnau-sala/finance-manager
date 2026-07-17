@@ -831,6 +831,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .home-content--profile {
+  bottom: 0;
   display: block;
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -843,6 +844,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .home-content--overview {
+  bottom: 0;
   display: block;
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -862,7 +864,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   align-content: space-between;
   row-gap: 18px;
   margin: 0 auto;
-  padding: 2px 0 24px;
+  padding: 2px 0 calc(80px + env(safe-area-inset-bottom));
 }
 
 .home-overview__header > p {
@@ -1188,7 +1190,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   width: min(100%, 440px);
   min-height: 100%;
   margin: 0 auto;
-  padding: 4px 0 24px;
+  padding: 4px 0 calc(80px + env(safe-area-inset-bottom));
 }
 
 .profile-section + .profile-section {
@@ -1591,6 +1593,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .home-footer-nav {
   --footer-active-color: var(--color-primary);
   position: absolute;
+  z-index: 20;
   right: max(30px, env(safe-area-inset-right));
   bottom: max(8px, calc(env(safe-area-inset-bottom) - 4px));
   left: max(30px, env(safe-area-inset-left));
@@ -1599,10 +1602,20 @@ body.app-logout-transition .confirm-dialog-backdrop {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding: 0;
+  padding: 0 10px;
   color: var(--color-text-muted);
-  background: transparent;
-  border: 0;
+  background: var(--color-surface);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 94%,
+    transparent
+  );
+  border: 1px solid var(--color-border);
+  border-color: color-mix(in srgb, var(--color-border) 82%, transparent);
+  border-radius: 16px;
+  box-shadow: var(--shadow-navigation);
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
 }
 
 .home-footer-nav__item {

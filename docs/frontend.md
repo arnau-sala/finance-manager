@@ -281,6 +281,8 @@ MVP content:
 - Page container.
 - Loading and error patterns.
 
+The bottom navigation is a floating translucent surface with a subtle border, blur, and shadow. It remains above page content while preserving visible margins around it; scrollable Home and Profile content can pass behind the bar and includes enough bottom padding to remain fully reachable.
+
 ### 2. Login
 
 Purpose: authenticate an approved user.
