@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { lockAppHorizontalNavigation } from "./app-navigation-guard";
 import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
 import type { AccessRequestInput } from "../features/access-request/access-request-validation";
 import { RequestAccessPage } from "../features/access-request/RequestAccessPage";
@@ -74,7 +75,11 @@ export function App() {
     ) {
       url.searchParams.delete("googleAuth");
       url.searchParams.delete("accountDeletion");
-      window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`
+      );
     }
 
     if (googleAuth === "request-access") {
@@ -142,6 +147,8 @@ export function App() {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => lockAppHorizontalNavigation(), []);
 
   useEffect(
     () => () => {

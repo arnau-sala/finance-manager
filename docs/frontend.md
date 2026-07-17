@@ -101,6 +101,8 @@ Viewport and safe-area rules:
 - The mobile app is portrait-first. The web manifest declares `orientation: portrait`, and touch devices in landscape show `Landscape mode coming soon`.
 - Static screens, such as login and register, should fill exactly one viewport and avoid accidental body scroll.
 - Screens with real lists or long forms can scroll, but the scroll should belong to the screen content intentionally.
+- Horizontal panning and browser edge navigation are blocked throughout the app. A non-passive `touchstart` guard cancels touches originating in either screen edge before WebKit starts native history navigation; vertical scrolling remains available elsewhere. Google's external OAuth pages keep their native gestures.
+- The gesture lock is isolated in `app/app-navigation-guard.ts` and installed once by `App`. Removing that single initializer restores native browser navigation when the product is ready to support it.
 - Layout padding on mobile should account for `env(safe-area-inset-*)` so content does not collide with notches, home indicators, or browser UI.
 
 ## Visual Style
@@ -339,7 +341,7 @@ Security UX:
 - Google access requests show a slightly different form: email and name come from the verified Google identity and are prefilled. The email remains read-only, while the user can edit the display name and add an optional administrator message before submitting.
 - Google access requests also use neutral copy and do not reveal whether the email is registered, pending, approved, or newly requested.
 - After a successful response, show a simple confirmation screen with the normalized email, name, and submitted message, or `No message added` when it was left empty.
-- Support both the back button and an edge swipe to return from the form to the unauthenticated entry screen.
+- Use the visible back button to return to the unauthenticated entry screen. Horizontal edge swipes are intentionally disabled.
 
 ### 5. Dashboard
 
