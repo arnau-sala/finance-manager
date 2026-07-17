@@ -1,8 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   Briefcase,
+  CalendarDays,
   ChevronRight,
-  Lightbulb,
   Plus,
   ShoppingBasket,
   Utensils,
@@ -143,13 +145,33 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
           </ul>
         </section>
 
-        <section className="home-insight" aria-labelledby="home-insight-title">
-          <span className="home-insight__icon" aria-hidden="true">
-            <Lightbulb />
-          </span>
-          <div>
-            <h2 id="home-insight-title">Quick insight</h2>
-            <p>Dining out appears most often in your expenses this month.</p>
+        <section className="home-activity" aria-labelledby="home-activity-title">
+          <div className="home-activity__heading">
+            <h2 id="home-activity-title">Activity</h2>
+            <span>This month</span>
+          </div>
+          <div className="home-activity__items">
+            <div className="home-activity__item">
+              <CalendarDays aria-hidden="true" />
+              <span>
+                <small>Transactions</small>
+                <strong>12 moves</strong>
+              </span>
+            </div>
+            <div className="home-activity__item home-activity__item--expense">
+              <ArrowDownRight aria-hidden="true" />
+              <span>
+                <small>Top expense</small>
+                <strong>Groceries</strong>
+              </span>
+            </div>
+            <div className="home-activity__item home-activity__item--income">
+              <ArrowUpRight aria-hidden="true" />
+              <span>
+                <small>Top income</small>
+                <strong>Salary</strong>
+              </span>
+            </div>
           </div>
         </section>
       </div>

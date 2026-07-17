@@ -353,9 +353,11 @@ MVP content:
 - Current balance as the single headline figure.
 - Primary action for recording a transaction.
 - Three latest transactions with a route toward the complete list.
-- One concise, data-derived insight without reproducing the charts or detailed totals from Statistics.
+- A three-column monthly activity summary for transaction count, highest expense category, and highest income category.
 
 The first visual iteration uses isolated preview data. Its layout is intentionally separate from API access so real balance, transaction, and category-statistic responses can replace the preview values without restructuring the screen.
+
+The Home layout uses five intrinsic grid rows with a minimum gap. Available vertical space is distributed between those rows on tall screens; when their content exceeds the viewport, the Home content region becomes vertically scrollable while the footer remains fixed.
 - Recent transactions.
 - Link to statistics.
 
