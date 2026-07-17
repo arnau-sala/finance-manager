@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 
 import type { SessionUser } from "../auth/auth-api";
 import { HomeFooterNav } from "./HomeFooterNav";
+import { HomeOverviewPage } from "./HomeOverviewPage";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 
@@ -26,7 +27,7 @@ type HomeSectionProps = {
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
-  home: () => <HomeSection title="Home" />,
+  home: ({ user }) => <HomeOverviewPage user={user} />,
   moves: () => <HomeSection title="Moves" />,
   stats: () => <HomeSection title="Stats" />,
   profile: ({

@@ -349,9 +349,13 @@ Purpose: first authenticated screen.
 
 MVP content:
 
-- Current balance.
-- Income and spent summary.
-- Quick actions for income and expense.
+- Personal greeting and current date.
+- Current balance as the single headline figure.
+- Primary action for recording a transaction.
+- Three latest transactions with a route toward the complete list.
+- One concise, data-derived insight without reproducing the charts or detailed totals from Statistics.
+
+The first visual iteration uses isolated preview data. Its layout is intentionally separate from API access so real balance, transaction, and category-statistic responses can replace the preview values without restructuring the screen.
 - Recent transactions.
 - Link to statistics.
 
