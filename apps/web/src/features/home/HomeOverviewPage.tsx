@@ -3,11 +3,24 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  BadgeEuro,
+  BanknoteArrowUp,
+  Bitcoin,
   Briefcase,
   CalendarDays,
+  Car,
   ChevronRight,
+  Dumbbell,
+  Gift,
+  Globe,
+  GraduationCap,
+  HandCoins,
+  Map,
+  PartyPopper,
   Plus,
   ShoppingBasket,
+  ShoppingCart,
+  Stethoscope,
   Utensils,
   WalletCards
 } from "lucide-react";
@@ -27,9 +40,26 @@ type HomeOverviewPageProps = {
 type LoadingState = "loading" | "ready" | "error";
 
 const categoryIcons: Record<string, LucideIcon> = {
-  "Bars & Restaurants": Utensils,
-  Groceries: ShoppingBasket,
-  Salary: Briefcase
+  "expense-bars-restaurants": Utensils,
+  "expense-education": GraduationCap,
+  "expense-gifts": Gift,
+  "expense-groceries": ShoppingBasket,
+  "expense-health": Stethoscope,
+  "expense-housing": Stethoscope,
+  "expense-other": ArrowDownRight,
+  "expense-parties": PartyPopper,
+  "expense-shopping": ShoppingCart,
+  "expense-sports": Dumbbell,
+  "expense-subscriptions": Globe,
+  "expense-transportation": Car,
+  "expense-travel": Map,
+  "income-allowance": HandCoins,
+  "income-freelance": BanknoteArrowUp,
+  "income-gifts": Gift,
+  "income-investments": Bitcoin,
+  "income-other": ArrowUpRight,
+  "income-salary": Briefcase,
+  "income-sales": BadgeEuro
 };
 
 function getGreeting() {
@@ -96,7 +126,7 @@ function formatMoveDate(value: string) {
 
 function getMoveIcon(move: HomeMove) {
   return (
-    categoryIcons[move.category.name] ??
+    categoryIcons[move.category.id] ??
     (move.type === "INCOME" ? ArrowUpRight : ArrowDownRight)
   );
 }
