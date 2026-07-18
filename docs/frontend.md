@@ -357,7 +357,9 @@ MVP content:
 - Three latest transactions with a route toward the complete list.
 - A three-column monthly activity summary for transaction count, highest expense category, and highest income category.
 
-The first visual iteration uses isolated preview data. Its layout is intentionally separate from API access so real balance, transaction, and category-statistic responses can replace the preview values without restructuring the screen.
+The Dashboard loads its real values through one authenticated `GET /api/home` request. The response contains the all-time balance, at most three latest transactions, and current-month activity, keeping the initial mobile view to one network round trip. Loading, empty, and error states preserve the same layout. The latest-moves region always reserves the height of three rows, so profiles with fewer transactions do not pull the content below it upward.
+
+Euro amounts use one shared frontend formatter. They use a decimal comma, omit digit grouping and place the currency symbol directly after the number, for example `1234,56€`, `+100,00€`, and `-42,80€`.
 
 The Home layout uses five intrinsic grid rows with a minimum gap. Available vertical space is distributed between those rows on tall screens; when their content exceeds the viewport, the Home content region becomes vertically scrollable while the footer remains fixed.
 - Recent transactions.

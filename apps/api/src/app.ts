@@ -9,6 +9,7 @@ import { authGoogleRoutes } from "./routes/auth-google.js";
 import { authMeRoutes } from "./routes/auth-me.js";
 import { authRoutes } from "./routes/auth.js";
 import { categoryRoutes } from "./routes/categories.js";
+import { homeRoutes } from "./routes/home.js";
 import { statisticsRoutes } from "./routes/statistics.js";
 import { transactionRoutes } from "./routes/transactions.js";
 import { registerOriginCheck } from "./security/origin-check.js";
@@ -37,6 +38,7 @@ export function buildApp() {
   app.register(authRoutes);
   app.register(authMeRoutes);
   app.register(categoryRoutes);
+  app.register(homeRoutes);
   app.register(statisticsRoutes);
   app.register(transactionRoutes);
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowDownRight,
@@ -11,51 +12,25 @@ import {
   WalletCards
 } from "lucide-react";
 
+import { formatEuroAmount } from "../../money/format-euro";
 import type { SessionUser } from "../auth/auth-api";
+import {
+  getHomeOverview,
+  type HomeMove,
+  type HomeOverview
+} from "./home-api";
 
 type HomeOverviewPageProps = {
   user: SessionUser;
 };
 
-type PreviewMove = {
-  id: string;
-  description: string;
-  category: string;
-  date: string;
-  amount: string;
-  type: "income" | "expense";
-  icon: LucideIcon;
-};
+type LoadingState = "loading" | "ready" | "error";
 
-const previewMoves: PreviewMove[] = [
-  {
-    id: "groceries",
-    description: "Weekly groceries",
-    category: "Groceries",
-    date: "Today, 18:42",
-    amount: "-€42.80",
-    type: "expense",
-    icon: ShoppingBasket
-  },
-  {
-    id: "salary",
-    description: "Monthly salary",
-    category: "Salary",
-    date: "Jul 15",
-    amount: "+€2,350.00",
-    type: "income",
-    icon: Briefcase
-  },
-  {
-    id: "restaurant",
-    description: "Dinner with friends",
-    category: "Bars & Restaurants",
-    date: "Jul 14",
-    amount: "-€28.50",
-    type: "expense",
-    icon: Utensils
-  }
-];
+const categoryIcons: Record<string, LucideIcon> = {
+  "Bars & Restaurants": Utensils,
+  Groceries: ShoppingBasket,
+  Salary: Briefcase
+};
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -77,7 +52,86 @@ function formatCurrentDate() {
   }).format(new Date());
 }
 
+function formatMoveAmount(move: HomeMove) {
+  const amount = Number(move.amount);
+
+  if (!Number.isFinite(amount)) {
+    return "--";
+  }
+
+  const signedAmount =
+    move.type === "INCOME" ? Math.abs(amount) : -Math.abs(amount);
+
+  return formatEuroAmount(signedAmount, { showSign: true });
+}
+
+function formatMoveDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Date unavailable";
+  }
+
+  const today = new Date();
+  const isToday =
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate();
+
+  if (isToday) {
+    const time = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
+
+    return `Today, ${time}`;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric"
+  }).format(date);
+}
+
+function getMoveIcon(move: HomeMove) {
+  return (
+    categoryIcons[move.category.name] ??
+    (move.type === "INCOME" ? ArrowUpRight : ArrowDownRight)
+  );
+}
+
+function formatMoveCount(count: number) {
+  return `${count} ${count === 1 ? "move" : "moves"}`;
+}
+
 export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
+  const [overview, setOverview] = useState<HomeOverview | null>(null);
+  const [loadingState, setLoadingState] =
+    useState<LoadingState>("loading");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getHomeOverview(controller.signal)
+      .then((homeOverview) => {
+        setOverview(homeOverview);
+        setLoadingState("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setLoadingState("error");
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  const isReady = loadingState === "ready" && overview !== null;
+  const latestMoves = isReady ? overview.latestMoves : [];
+
   return (
     <section
       className="home-content home-content--overview"
@@ -96,7 +150,11 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
             <WalletCards aria-hidden="true" />
             <h2 id="home-balance-title">Current balance</h2>
           </div>
-          <p className="home-balance__amount">€2,486.40</p>
+          <p className="home-balance__amount">
+            {isReady
+              ? formatEuroAmount(overview.balance.totalBalance)
+              : "--"}
+          </p>
         </section>
 
         <button className="home-new-transaction" type="button">
@@ -119,9 +177,10 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
             </button>
           </div>
 
-          <ul className="home-move-list">
-            {previewMoves.map((move) => {
-              const Icon = move.icon;
+          <ul className="home-move-list" aria-busy={loadingState === "loading"}>
+            {latestMoves.map((move) => {
+              const Icon = getMoveIcon(move);
+              const moveType = move.type.toLowerCase();
 
               return (
                 <li key={move.id} className="home-move">
@@ -131,17 +190,30 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
                   <span className="home-move__details">
                     <strong>{move.description}</strong>
                     <span>
-                      {move.category} · {move.date}
+                      {move.category.name} &middot; {formatMoveDate(move.date)}
                     </span>
                   </span>
                   <span
-                    className={`home-move__amount home-move__amount--${move.type}`}
+                    className={`home-move__amount home-move__amount--${moveType}`}
                   >
-                    {move.amount}
+                    {formatMoveAmount(move)}
                   </span>
                 </li>
               );
             })}
+            {loadingState === "loading" ? (
+              <li className="home-move-list__status" role="status">
+                Loading movements...
+              </li>
+            ) : null}
+            {loadingState === "error" ? (
+              <li className="home-move-list__status" role="status">
+                Unable to load movements.
+              </li>
+            ) : null}
+            {isReady && latestMoves.length === 0 ? (
+              <li className="home-move-list__status">No movements yet.</li>
+            ) : null}
           </ul>
         </section>
 
@@ -155,21 +227,34 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
               <CalendarDays aria-hidden="true" />
               <span>
                 <small>Transactions</small>
-                <strong>12 moves</strong>
+                <strong>
+                  {isReady
+                    ? formatMoveCount(overview.activity.transactionCount)
+                    : "--"}
+                </strong>
               </span>
             </div>
             <div className="home-activity__item home-activity__item--expense">
               <ArrowDownRight aria-hidden="true" />
               <span>
                 <small>Top expense</small>
-                <strong>Groceries</strong>
+                <strong>
+                  {isReady
+                    ? (overview.activity.topExpenseCategory?.name ??
+                      "No expenses")
+                    : "--"}
+                </strong>
               </span>
             </div>
             <div className="home-activity__item home-activity__item--income">
               <ArrowUpRight aria-hidden="true" />
               <span>
                 <small>Top income</small>
-                <strong>Salary</strong>
+                <strong>
+                  {isReady
+                    ? (overview.activity.topIncomeCategory?.name ?? "No income")
+                    : "--"}
+                </strong>
               </span>
             </div>
           </div>

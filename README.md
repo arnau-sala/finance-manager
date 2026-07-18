@@ -59,6 +59,10 @@ Categories:
 
 - `GET /categories`
 
+Home:
+
+- `GET /home`
+
 Transactions:
 
 - `GET /transactions`
@@ -709,6 +713,52 @@ Send only the fields that must change. All fields are optional, and an empty obj
 ```
 
 The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
+
+## Get Home Overview
+
+An active login session is required:
+
+```http
+GET /home
+```
+
+The endpoint provides the authenticated user's Home data in one response: the all-time balance, up to three newest transactions, and activity for the server's current calendar month. It never accepts a user ID from the client.
+
+```json
+{
+  "balance": {
+    "totalIncome": "1500.00",
+    "totalSpent": "420.50",
+    "totalBalance": "1079.50"
+  },
+  "latestMoves": [
+    {
+      "id": "transaction-id",
+      "type": "EXPENSE",
+      "category": {
+        "id": "expense-groceries",
+        "name": "Groceries",
+        "type": "EXPENSE"
+      },
+      "amount": "42.80",
+      "description": "Weekly groceries",
+      "date": "2026-07-17T16:42:00.000Z"
+    }
+  ],
+  "activity": {
+    "month": 7,
+    "year": 2026,
+    "transactionCount": 4,
+    "topExpenseCategory": {
+      "id": "expense-groceries",
+      "name": "Groceries"
+    },
+    "topIncomeCategory": null
+  }
+}
+```
+
+Users without transactions receive zero balance values, an empty `latestMoves` array, a transaction count of `0`, and null top categories.
 
 ## Get My Balance
 

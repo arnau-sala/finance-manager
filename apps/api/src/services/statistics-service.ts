@@ -9,6 +9,7 @@ type BalanceDateRange = {
 };
 
 type CategoryTotal = {
+  categoryId: string;
   category: string;
   type: TransactionType;
   amountCents: number;
@@ -16,11 +17,52 @@ type CategoryTotal = {
 };
 
 type CategoryTotalRow = {
+  categoryId: string;
   category: string;
   type: TransactionType;
   amountCents: bigint | number;
   transactionCount: bigint | number;
 };
+
+async function getUserCategoryTotals(
+  userId: string,
+  type?: TransactionType,
+  dateRange?: BalanceDateRange
+) {
+  const categoryTotals = await db.$queryRaw<CategoryTotalRow[]>(
+    Prisma.sql`
+      SELECT
+        c."id" AS "categoryId",
+        c."name" AS "category",
+        t."type" AS "type",
+        SUM(t."amountCents") AS "amountCents",
+        COUNT(*) AS "transactionCount"
+      FROM "Transaction" t
+      INNER JOIN "Category" c ON c."id" = t."categoryId"
+      WHERE t."userId" = ${userId}
+      ${type ? Prisma.sql`AND t."type" = ${type}::"TransactionType"` : Prisma.empty}
+      ${
+        dateRange
+          ? Prisma.sql`
+              AND t."occurredAt" >= ${dateRange.from}
+              AND t."occurredAt" < ${dateRange.to}
+            `
+          : Prisma.empty
+      }
+      GROUP BY c."id", c."name", t."type"
+    `
+  );
+
+  return categoryTotals
+    .map((categoryTotal) => ({
+      categoryId: categoryTotal.categoryId,
+      category: categoryTotal.category,
+      type: categoryTotal.type,
+      amountCents: Number(categoryTotal.amountCents),
+      transactionCount: Number(categoryTotal.transactionCount)
+    }))
+    .filter((categoryTotal) => categoryTotal.amountCents > 0);
+}
 
 export async function getUserBalance(
   userId: string,
@@ -126,41 +168,7 @@ export async function getUserCategoryStatistics(
   type?: TransactionType,
   dateRange?: BalanceDateRange
 ) {
-  const categoryTotals = await db.$queryRaw<CategoryTotalRow[]>(
-    Prisma.sql`
-      SELECT
-        c."name" AS "category",
-        t."type" AS "type",
-        SUM(t."amountCents") AS "amountCents",
-        COUNT(*) AS "transactionCount"
-      FROM "Transaction" t
-      INNER JOIN "Category" c ON c."id" = t."categoryId"
-      WHERE t."userId" = ${userId}
-      ${type ? Prisma.sql`AND t."type" = ${type}::"TransactionType"` : Prisma.empty}
-      ${
-        dateRange
-          ? Prisma.sql`
-              AND t."occurredAt" >= ${dateRange.from}
-              AND t."occurredAt" < ${dateRange.to}
-            `
-          : Prisma.empty
-      }
-      GROUP BY c."name", t."type"
-    `
-  );
-
-  const totals = categoryTotals
-    .map((categoryTotal) => {
-      return {
-        category: categoryTotal.category,
-        type: categoryTotal.type,
-        amountCents: Number(categoryTotal.amountCents),
-        transactionCount: Number(categoryTotal.transactionCount)
-      };
-    })
-    .filter((categoryTotal) => {
-      return categoryTotal.amountCents > 0;
-    });
+  const totals = await getUserCategoryTotals(userId, type, dateRange);
 
   const categoryStatistics = ["EXPENSE", "INCOME"].flatMap(
     (transactionType) => {
@@ -185,4 +193,40 @@ export async function getUserCategoryStatistics(
 
     return first.category.localeCompare(second.category);
   });
+}
+
+export async function getUserTransactionActivity(
+  userId: string,
+  dateRange: BalanceDateRange
+) {
+  const totals = await getUserCategoryTotals(userId, undefined, dateRange);
+
+  function getTopCategory(type: TransactionType) {
+    const topCategory = totals
+      .filter((categoryTotal) => categoryTotal.type === type)
+      .sort((first, second) => {
+        if (second.amountCents !== first.amountCents) {
+          return second.amountCents - first.amountCents;
+        }
+
+        if (second.transactionCount !== first.transactionCount) {
+          return second.transactionCount - first.transactionCount;
+        }
+
+        return first.category.localeCompare(second.category);
+      })[0];
+
+    return topCategory
+      ? { id: topCategory.categoryId, name: topCategory.category }
+      : null;
+  }
+
+  return {
+    transactionCount: totals.reduce(
+      (count, categoryTotal) => count + categoryTotal.transactionCount,
+      0
+    ),
+    topExpenseCategory: getTopCategory("EXPENSE"),
+    topIncomeCategory: getTopCategory("INCOME")
+  };
 }

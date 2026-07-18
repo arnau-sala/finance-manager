@@ -40,6 +40,7 @@ apps/api
       auth.ts
       categories.ts
       auth-me.ts
+      home.ts
       statistics.ts
       transactions.ts
     money
@@ -110,5 +111,7 @@ Transaction reads and mutations derive `userId` exclusively from the secure sess
 `GET /statistics/categories` and `GET /statistics/categories/type/:type` aggregate the caller's transactions by category with a single database join between `Transaction` and `Category`. Monthly and yearly category-statistics endpoints reuse the same query with an occurrence-date range. Typed period routes such as `GET /statistics/categories/type/expense/6/2026`, `GET /statistics/categories/type/expense/6`, `GET /statistics/categories/type/income/year/2026`, and `GET /statistics/categories/type/income/year` combine the transaction-type and period filters. Routes without an explicit year default to the server's current year. Percentages are calculated separately for `EXPENSE` and `INCOME`, categories without transactions are omitted, and integer percentages are adjusted to total exactly 100 within each returned type.
 
 `services/statistics-service.ts` contains reusable statistics queries so route modules can expose different statistics views without duplicating database aggregation logic.
+
+`routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time balance, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
 
 `money/cents.ts` centralizes integer-cent formatting for API responses that expose money as decimal strings.

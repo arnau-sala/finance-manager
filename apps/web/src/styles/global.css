@@ -1017,6 +1017,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .home-move-list {
+  height: 197px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1025,12 +1026,23 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .home-move {
-  min-height: 65px;
+  height: 65px;
   display: grid;
   grid-template-columns: 38px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   padding: 9px 1px;
+}
+
+.home-move-list__status {
+  min-height: 195px;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .home-move + .home-move {
