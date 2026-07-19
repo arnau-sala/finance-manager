@@ -1412,6 +1412,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .transaction-type-toggle {
+  --transaction-type-drag-offset: 0px;
   position: relative;
   width: 100%;
   height: 48px;
@@ -1434,7 +1435,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--transaction-type-soft);
   border: 1px solid var(--transaction-type-color);
   border-radius: 999px;
-  transform: translateX(0);
+  transform: translateX(var(--transaction-type-drag-offset));
   transition:
     transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
     background-color 180ms ease,
@@ -1442,7 +1443,13 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .transaction-type-toggle--income .transaction-type-toggle__indicator {
-  transform: translateX(100%);
+  transform: translateX(
+    calc(100% + var(--transaction-type-drag-offset))
+  );
+}
+
+.transaction-type-toggle.is-dragging .transaction-type-toggle__indicator {
+  transition: none;
 }
 
 .transaction-type-toggle button {
@@ -1461,12 +1468,19 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-size: 14px;
   font-weight: 400;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: pan-y;
   -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .transaction-type-toggle button[aria-checked="true"] {
   color: var(--transaction-type-color);
+  cursor: grab;
+}
+
+.transaction-type-toggle.is-dragging button[aria-checked="true"] {
+  cursor: grabbing;
 }
 
 .transaction-type-toggle button svg {

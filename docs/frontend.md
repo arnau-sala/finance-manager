@@ -390,7 +390,9 @@ Fields:
 UX notes:
 
 - Expense is selected by default and type changes use a visible two-option
-  segmented control. Horizontal navigation gestures remain disabled.
+  segmented control. Its selected segment can be dragged a short distance
+  toward the other option, while taps on either option remain available.
+  Horizontal navigation gestures outside this control remain disabled.
 - Income and expense use restrained semantic green and red treatments while the
   save action continues to use the petroleum brand color.
 - The amount input uses the mobile decimal keyboard and the fields retain their

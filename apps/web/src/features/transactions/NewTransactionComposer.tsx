@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -16,6 +23,16 @@ type NewTransactionComposerProps = {
   open: boolean;
   onClose: () => void;
 };
+
+type TypeDrag = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startType: TransactionType;
+  maxDistance: number;
+};
+
+const TYPE_DRAG_THRESHOLD = 14;
 
 function padDatePart(value: number) {
   return value.toString().padStart(2, "0");
@@ -48,7 +65,12 @@ export function NewTransactionComposer({
   const [name, setName] = useState("");
   const [date, setDate] = useState(() => getCurrentDateAndTime().date);
   const [time, setTime] = useState(() => getCurrentDateAndTime().time);
+  const [typeDragOffset, setTypeDragOffset] = useState(0);
+  const [isTypeDragging, setIsTypeDragging] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
+  const typeToggle = useRef<HTMLDivElement>(null);
+  const typeDrag = useRef<TypeDrag | null>(null);
+  const suppressTypeClick = useRef(false);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
@@ -104,6 +126,96 @@ export function NewTransactionComposer({
 
     setType(nextType);
     setSelectedCategoryId(null);
+  }
+
+  function handleTypeClick(nextType: TransactionType) {
+    if (suppressTypeClick.current) {
+      suppressTypeClick.current = false;
+      return;
+    }
+
+    selectType(nextType);
+  }
+
+  function startTypeDrag(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    startType: TransactionType
+  ) {
+    if (startType !== type || (event.pointerType === "mouse" && event.button !== 0)) {
+      return;
+    }
+
+    const toggleWidth = typeToggle.current?.clientWidth ?? 0;
+
+    typeDrag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startType,
+      maxDistance: Math.max(0, toggleWidth / 2 - 4)
+    };
+    setIsTypeDragging(true);
+    setTypeDragOffset(0);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveTypeDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = typeDrag.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const distance = event.clientX - drag.startX;
+    const offset =
+      drag.startType === "EXPENSE"
+        ? Math.min(Math.max(distance, 0), drag.maxDistance)
+        : Math.max(Math.min(distance, 0), -drag.maxDistance);
+
+    setTypeDragOffset(offset);
+  }
+
+  function finishTypeDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    const drag = typeDrag.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const horizontalDistance = event.clientX - drag.startX;
+    const verticalDistance = event.clientY - drag.startY;
+    const movedTowardOther =
+      drag.startType === "EXPENSE"
+        ? horizontalDistance >= TYPE_DRAG_THRESHOLD
+        : horizontalDistance <= -TYPE_DRAG_THRESHOLD;
+    const hasHorizontalIntent =
+      Math.abs(horizontalDistance) > Math.abs(verticalDistance);
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    typeDrag.current = null;
+    setIsTypeDragging(false);
+    setTypeDragOffset(0);
+
+    if (movedTowardOther && hasHorizontalIntent) {
+      suppressTypeClick.current = true;
+      selectType(drag.startType === "EXPENSE" ? "INCOME" : "EXPENSE");
+      window.setTimeout(() => {
+        suppressTypeClick.current = false;
+      }, 0);
+    }
+  }
+
+  function cancelTypeDrag(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (typeDrag.current?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    typeDrag.current = null;
+    setIsTypeDragging(false);
+    setTypeDragOffset(0);
   }
 
   function updateAmount(value: string) {
@@ -191,7 +303,15 @@ export function NewTransactionComposer({
             </div>
 
             <div
-              className={`transaction-type-toggle transaction-type-toggle--${type.toLowerCase()}`}
+              ref={typeToggle}
+              className={`transaction-type-toggle transaction-type-toggle--${type.toLowerCase()}${
+                isTypeDragging ? " is-dragging" : ""
+              }`}
+              style={
+                {
+                  "--transaction-type-drag-offset": `${typeDragOffset}px`
+                } as CSSProperties
+              }
               role="radiogroup"
               aria-label="Transaction type"
             >
@@ -200,7 +320,11 @@ export function NewTransactionComposer({
                 type="button"
                 role="radio"
                 aria-checked={type === "EXPENSE"}
-                onClick={() => selectType("EXPENSE")}
+                onClick={() => handleTypeClick("EXPENSE")}
+                onPointerDown={(event) => startTypeDrag(event, "EXPENSE")}
+                onPointerMove={moveTypeDrag}
+                onPointerUp={finishTypeDrag}
+                onPointerCancel={cancelTypeDrag}
               >
                 <ArrowDownRight aria-hidden="true" />
                 Expense
@@ -209,7 +333,11 @@ export function NewTransactionComposer({
                 type="button"
                 role="radio"
                 aria-checked={type === "INCOME"}
-                onClick={() => selectType("INCOME")}
+                onClick={() => handleTypeClick("INCOME")}
+                onPointerDown={(event) => startTypeDrag(event, "INCOME")}
+                onPointerMove={moveTypeDrag}
+                onPointerUp={finishTypeDrag}
+                onPointerCancel={cancelTypeDrag}
               >
                 <ArrowUpRight aria-hidden="true" />
                 Income
