@@ -26,16 +26,18 @@ type HomeSectionProps = {
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
   onNewTransaction: () => void;
+  homeRefreshKey: number;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
-  home: ({ user, onSessionExpired, onNewTransaction }) => (
+  home: ({ user, onSessionExpired, onNewTransaction, homeRefreshKey }) => (
     <HomeOverviewPage
       user={user}
       onSessionExpired={onSessionExpired}
       onNewTransaction={onNewTransaction}
+      refreshKey={homeRefreshKey}
     />
   ),
   moves: () => <HomeSection title="Moves" />,
@@ -75,6 +77,7 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
   const ActiveSection = homeSections[activeSection];
 
   return (
@@ -91,6 +94,7 @@ export function HomePage({
           onAccountDeleted,
           onSessionExpired,
           onNewTransaction: () => setIsTransactionComposerOpen(true),
+          homeRefreshKey,
           googleAccountDeletionFeedback,
           onGoogleAccountDeletionFeedbackHandled
         })}
@@ -104,6 +108,11 @@ export function HomePage({
       <NewTransactionComposer
         open={isTransactionComposerOpen}
         onClose={() => setIsTransactionComposerOpen(false)}
+        onCreated={() => {
+          setIsTransactionComposerOpen(false);
+          setHomeRefreshKey((current) => current + 1);
+        }}
+        onSessionExpired={onSessionExpired}
       />
     </main>
   );

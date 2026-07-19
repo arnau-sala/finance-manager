@@ -381,10 +381,10 @@ action that opened it.
 
 Fields:
 
-- Type: income or expense.
-- Category.
 - Amount.
+- Type: income or expense.
 - Name, stored through the API's `description` field.
+- Category.
 - Date.
 
 UX notes:
@@ -402,8 +402,15 @@ UX notes:
 - Date defaults to the phone's current calendar day. The native HTML date input
   allows Safari on iOS to provide Apple's system picker; transaction time is not
   part of the financial record.
-- The composer currently keeps editable state in the client but intentionally
-  does not submit a transaction. API integration is the next implementation step.
+- Before submitting, the client validates the positive amount and its two-decimal
+  limit, the required name, the category/type pairing, and the calendar date.
+  The API repeats all validation and remains authoritative.
+- Submission uses the authenticated `POST /transactions` endpoint. Controls are
+  temporarily disabled to prevent duplicate writes, and connection, validation,
+  rate-limit, and server errors remain visible without clearing the form.
+- A successful creation closes the composer and refreshes the aggregated Home
+  response so its balance, latest moves, and monthly activity update together.
+  A `401` response opens the existing non-dismissible session-expired dialog.
 
 ### 7. Transactions
 

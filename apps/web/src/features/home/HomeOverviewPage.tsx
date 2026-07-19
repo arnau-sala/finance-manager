@@ -21,6 +21,7 @@ type HomeOverviewPageProps = {
   user: SessionUser;
   onSessionExpired: () => void;
   onNewTransaction: () => void;
+  refreshKey: number;
 };
 
 type LoadingState = "loading" | "ready" | "error";
@@ -93,7 +94,8 @@ function formatMoveCount(count: number) {
 export function HomeOverviewPage({
   user,
   onSessionExpired,
-  onNewTransaction
+  onNewTransaction,
+  refreshKey
 }: HomeOverviewPageProps) {
   const [overview, setOverview] = useState<HomeOverview | null>(null);
   const [loadingState, setLoadingState] =
@@ -120,7 +122,7 @@ export function HomeOverviewPage({
       });
 
     return () => controller.abort();
-  }, [onSessionExpired]);
+  }, [onSessionExpired, refreshKey]);
 
   const isReady = loadingState === "ready" && overview !== null;
   const latestMoves = isReady ? overview.latestMoves : [];

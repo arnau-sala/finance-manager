@@ -1,5 +1,6 @@
 import {
   type CSSProperties,
+  type FormEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useMemo,
@@ -17,11 +18,23 @@ import {
   transactionCategories,
   type TransactionType
 } from "./category-catalog";
+import {
+  createTransaction,
+  TransactionApiError
+} from "./transaction-api";
+import {
+  type CreateTransactionField,
+  validateCreateTransaction
+} from "./transaction-validation";
 
 type NewTransactionComposerProps = {
   open: boolean;
   onClose: () => void;
+  onCreated: () => void;
+  onSessionExpired: () => void;
 };
+
+type InvalidFields = Partial<Record<CreateTransactionField, boolean>>;
 
 type TypeDrag = {
   pointerId: number;
@@ -32,6 +45,22 @@ type TypeDrag = {
 };
 
 const TYPE_DRAG_THRESHOLD = 14;
+const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
+  "amount",
+  "type",
+  "description",
+  "categoryId",
+  "date"
+];
+
+function isCreateTransactionField(
+  field: unknown
+): field is CreateTransactionField {
+  return (
+    typeof field === "string" &&
+    CREATE_TRANSACTION_FIELDS.includes(field as CreateTransactionField)
+  );
+}
 
 function normalizeAmountInput(value: string) {
   return value.replace(/\./g, ",").replace(/\s/g, "");
@@ -39,7 +68,9 @@ function normalizeAmountInput(value: string) {
 
 export function NewTransactionComposer({
   open,
-  onClose
+  onClose,
+  onCreated,
+  onSessionExpired
 }: NewTransactionComposerProps) {
   const [type, setType] = useState<TransactionType>("EXPENSE");
   const [amount, setAmount] = useState("");
@@ -49,6 +80,9 @@ export function NewTransactionComposer({
   const [name, setName] = useState("");
   const [date, setDate] = useState(getTodayDateOnly);
   const [hasSelectedDate, setHasSelectedDate] = useState(false);
+  const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [typeDragOffset, setTypeDragOffset] = useState(0);
   const [isTypeDragging, setIsTypeDragging] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
@@ -63,7 +97,11 @@ export function NewTransactionComposer({
     [type]
   );
   const canAdd =
-    amount.length > 0 && name.trim().length > 0 && selectedCategoryId !== null;
+    !isSubmitting &&
+    amount.length > 0 &&
+    name.trim().length > 0 &&
+    selectedCategoryId !== null &&
+    date.length > 0;
 
   useEffect(() => {
     if (open && !wasOpen.current) {
@@ -78,6 +116,9 @@ export function NewTransactionComposer({
       setName("");
       setDate(getTodayDateOnly());
       setHasSelectedDate(false);
+      setInvalidFields({});
+      setFormError(null);
+      setIsSubmitting(false);
     }
 
     if (!open && wasOpen.current) {
@@ -93,14 +134,25 @@ export function NewTransactionComposer({
     }
 
     function closeWithEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !isSubmitting) {
         onClose();
       }
     }
 
     window.addEventListener("keydown", closeWithEscape);
     return () => window.removeEventListener("keydown", closeWithEscape);
-  }, [onClose, open]);
+  }, [isSubmitting, onClose, open]);
+
+  function clearFieldError(field: CreateTransactionField) {
+    setInvalidFields((current) => {
+      if (!current[field]) {
+        return current;
+      }
+
+      return { ...current, [field]: false };
+    });
+    setFormError(null);
+  }
 
   function selectType(nextType: TransactionType) {
     if (nextType === type) {
@@ -109,6 +161,8 @@ export function NewTransactionComposer({
 
     setType(nextType);
     setSelectedCategoryId(null);
+    clearFieldError("type");
+    clearFieldError("categoryId");
   }
 
   function handleTypeClick(nextType: TransactionType) {
@@ -206,6 +260,7 @@ export function NewTransactionComposer({
 
     if (/^\d{0,8}(?:,\d{0,2})?$/.test(normalizedValue)) {
       setAmount(normalizedValue);
+      clearFieldError("amount");
     }
   }
 
@@ -220,6 +275,77 @@ export function NewTransactionComposer({
       const end = input.value.length;
       input.setSelectionRange(end, end);
     });
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (isSubmitting) {
+      return;
+    }
+
+    const parsedTransaction = validateCreateTransaction({
+      amount,
+      type,
+      description: name,
+      categoryId: selectedCategoryId ?? "",
+      date
+    });
+
+    if (!parsedTransaction.success) {
+      const nextInvalidFields: InvalidFields = {};
+
+      for (const issue of parsedTransaction.error.issues) {
+        const field = issue.path[0];
+
+        if (isCreateTransactionField(field)) {
+          nextInvalidFields[field] = true;
+        }
+      }
+
+      setInvalidFields(nextInvalidFields);
+      setFormError(
+        parsedTransaction.error.issues[0]?.message ??
+          "Check the transaction details."
+      );
+      return;
+    }
+
+    setInvalidFields({});
+    setFormError(null);
+    setIsSubmitting(true);
+
+    try {
+      await createTransaction(parsedTransaction.data);
+      onCreated();
+    } catch (error) {
+      if (error instanceof TransactionApiError && error.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
+      if (error instanceof TransactionApiError) {
+        const nextInvalidFields: InvalidFields = {};
+
+        for (const issue of error.issues) {
+          const field = issue.field;
+
+          if (isCreateTransactionField(field)) {
+            nextInvalidFields[field] = true;
+          }
+        }
+
+        setInvalidFields(nextInvalidFields);
+      }
+
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to add the transaction. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -238,6 +364,7 @@ export function NewTransactionComposer({
           <button
             className="transaction-composer__close"
             type="button"
+            disabled={isSubmitting}
             aria-label="Close new transaction"
             title="Close"
             onClick={onClose}
@@ -251,11 +378,17 @@ export function NewTransactionComposer({
 
       <form
         className="transaction-composer__form"
-        onSubmit={(event) => event.preventDefault()}
+        noValidate
+        aria-busy={isSubmitting}
+        onSubmit={handleSubmit}
       >
         <div className="transaction-composer__scroll-area">
           <div className="transaction-composer__content">
-            <div className="transaction-composer__amount-section">
+            <div
+              className={`transaction-composer__amount-section${
+                invalidFields.amount ? " has-error" : ""
+              }`}
+            >
               <label className="sr-only" htmlFor="transaction-amount">
                 Amount
               </label>
@@ -273,6 +406,9 @@ export function NewTransactionComposer({
                     placeholder="0,00"
                     value={amount}
                     maxLength={11}
+                    disabled={isSubmitting}
+                    aria-invalid={invalidFields.amount === true}
+                    aria-describedby={formError ? "transaction-form-error" : undefined}
                     onClick={moveAmountCaretToEnd}
                     onFocus={moveAmountCaretToEnd}
                     onChange={(event) => updateAmount(event.target.value)}
@@ -301,6 +437,7 @@ export function NewTransactionComposer({
               <span className="transaction-type-toggle__indicator" aria-hidden="true" />
               <button
                 type="button"
+                disabled={isSubmitting}
                 role="radio"
                 aria-checked={type === "EXPENSE"}
                 onClick={() => handleTypeClick("EXPENSE")}
@@ -314,6 +451,7 @@ export function NewTransactionComposer({
               </button>
               <button
                 type="button"
+                disabled={isSubmitting}
                 role="radio"
                 aria-checked={type === "INCOME"}
                 onClick={() => handleTypeClick("INCOME")}
@@ -338,12 +476,23 @@ export function NewTransactionComposer({
                 placeholder="What was it?"
                 value={name}
                 maxLength={100}
+                disabled={isSubmitting}
                 aria-labelledby="transaction-name-label"
-                onChange={(event) => setName(event.target.value)}
+                aria-invalid={invalidFields.description === true}
+                aria-describedby={formError ? "transaction-form-error" : undefined}
+                onChange={(event) => {
+                  setName(event.target.value);
+                  clearFieldError("description");
+                }}
               />
             </div>
 
-            <fieldset className="transaction-category-picker">
+            <fieldset
+              className="transaction-category-picker"
+              disabled={isSubmitting}
+              aria-invalid={invalidFields.categoryId === true}
+              aria-describedby={formError ? "transaction-form-error" : undefined}
+            >
               <legend>Category</legend>
               <div className="transaction-category-grid">
                 {visibleCategories.map((category) => {
@@ -358,7 +507,10 @@ export function NewTransactionComposer({
                       }`}
                       type="button"
                       aria-pressed={isSelected}
-                      onClick={() => setSelectedCategoryId(category.id)}
+                      onClick={() => {
+                        setSelectedCategoryId(category.id);
+                        clearFieldError("categoryId");
+                      }}
                     >
                       <span className="transaction-category-option__icon" aria-hidden="true">
                         <Icon />
@@ -375,17 +527,21 @@ export function NewTransactionComposer({
               <div
                 className={`transaction-composer__date-control${
                   hasSelectedDate ? " is-selected" : ""
-                }`}
+                }${invalidFields.date ? " is-invalid" : ""}`}
               >
                 <input
                   id="transaction-date"
                   name="date"
                   type="date"
                   value={date}
+                  disabled={isSubmitting}
                   aria-labelledby="transaction-date-label"
+                  aria-invalid={invalidFields.date === true}
+                  aria-describedby={formError ? "transaction-form-error" : undefined}
                   onChange={(event) => {
                     setDate(event.target.value);
                     setHasSelectedDate(true);
+                    clearFieldError("date");
                   }}
                 />
               </div>
@@ -395,8 +551,16 @@ export function NewTransactionComposer({
 
         <footer className="transaction-composer__footer">
           <div>
+            <p
+              id="transaction-form-error"
+              className="transaction-composer__message"
+              role="alert"
+              aria-live="polite"
+            >
+              {formError ?? ""}
+            </p>
             <button type="submit" disabled={!canAdd}>
-              Add transaction
+              {isSubmitting ? "Adding..." : "Add transaction"}
             </button>
           </div>
         </footer>

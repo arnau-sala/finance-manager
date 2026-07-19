@@ -1416,6 +1416,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
 }
 
+.transaction-composer__amount-section.has-error
+  .transaction-composer__amount-caption {
+  color: var(--color-danger);
+}
+
 .transaction-type-toggle {
   --transaction-type-drag-offset: 0px;
   position: relative;
@@ -1509,6 +1514,10 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-size: 13px;
   line-height: 1.3;
   font-weight: 400;
+}
+
+.transaction-category-picker[aria-invalid="true"] legend {
+  color: var(--color-danger);
 }
 
 .transaction-category-grid {
@@ -1645,6 +1654,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-text);
 }
 
+.transaction-composer__date-control.is-invalid {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
+}
+
 .transaction-composer__date-control input[type="date"]::-webkit-date-and-time-value {
   height: 100%;
   display: flex;
@@ -1675,6 +1689,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
   opacity: 1;
 }
 
+.transaction-composer__field input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
+}
+
 .transaction-composer__footer {
   position: relative;
   z-index: 2;
@@ -1689,7 +1708,21 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .transaction-composer__footer > div {
   width: min(100%, 440px);
+  display: grid;
+  gap: 6px;
   margin: 0 auto;
+}
+
+.transaction-composer__message {
+  min-height: 17px;
+  margin: 0;
+  padding: 0 8px;
+  color: var(--color-danger);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 
 .transaction-composer__footer button {
@@ -1716,6 +1749,16 @@ body.app-logout-transition .confirm-dialog-backdrop {
   opacity: 0.42;
 }
 
+.transaction-composer__close:disabled,
+.transaction-type-toggle button:disabled,
+.transaction-category-option:disabled {
+  cursor: default;
+}
+
+.transaction-composer__close:disabled {
+  opacity: 0.45;
+}
+
 .transaction-composer__close:focus-visible,
 .transaction-type-toggle button:focus-visible,
 .transaction-category-option:focus-visible,
@@ -1728,6 +1771,12 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-focus-ring);
+}
+
+.transaction-composer__field input[aria-invalid="true"]:focus,
+.transaction-composer__date-control.is-invalid:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 4px var(--color-danger-soft);
 }
 
 .profile-page {
