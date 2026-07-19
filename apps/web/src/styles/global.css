@@ -1496,8 +1496,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .transaction-category-option.is-selected {
   color: var(--transaction-type-color);
-  background: var(--transaction-type-soft);
-  border-color: var(--transaction-type-color);
 }
 
 .transaction-category-option__icon {
@@ -1514,7 +1512,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .transaction-category-option.is-selected .transaction-category-option__icon {
   color: var(--transaction-type-color);
-  background: var(--color-surface);
+  background: var(--transaction-type-soft);
   border-color: var(--transaction-type-color);
 }
 
@@ -1522,26 +1520,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   width: 20px;
   height: 20px;
   stroke-width: 1.7;
-}
-
-.transaction-category-option__check {
-  position: absolute;
-  top: -4px;
-  right: -5px;
-  width: 16px;
-  height: 16px;
-  display: grid;
-  place-items: center;
-  color: var(--color-surface);
-  background: var(--transaction-type-color);
-  border: 2px solid var(--color-surface);
-  border-radius: 50%;
-}
-
-.transaction-category-option__check > svg {
-  width: 9px;
-  height: 9px;
-  stroke-width: 2.5;
 }
 
 .transaction-category-option > span:last-child {

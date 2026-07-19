@@ -3,7 +3,6 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
-  Check,
   Clock3,
   X
 } from "lucide-react";
@@ -219,11 +218,6 @@ export function NewTransactionComposer({
                     >
                       <span className="transaction-category-option__icon" aria-hidden="true">
                         <Icon />
-                        {isSelected ? (
-                          <span className="transaction-category-option__check">
-                            <Check />
-                          </span>
-                        ) : null}
                       </span>
                       <span>{category.name}</span>
                     </button>
