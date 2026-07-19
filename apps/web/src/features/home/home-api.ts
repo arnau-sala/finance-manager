@@ -27,6 +27,16 @@ export type HomeOverview = {
   };
 };
 
+export class HomeApiError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "HomeApiError";
+    this.status = status;
+  }
+}
+
 export async function getHomeOverview(signal?: AbortSignal) {
   const response = await fetch("/api/home", {
     method: "GET",
@@ -35,7 +45,7 @@ export async function getHomeOverview(signal?: AbortSignal) {
   });
 
   if (!response.ok) {
-    throw new Error("Unable to load your overview.");
+    throw new HomeApiError("Unable to load your overview.", response.status);
   }
 
   return (await response.json()) as HomeOverview;

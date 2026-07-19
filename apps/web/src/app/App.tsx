@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { TimerOff } from "lucide-react";
 
 import { lockAppHorizontalNavigation } from "./app-navigation-guard";
+import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
 import type { AccessRequestInput } from "../features/access-request/access-request-validation";
 import { RequestAccessPage } from "../features/access-request/RequestAccessPage";
@@ -37,10 +39,14 @@ export function App() {
     useState<GoogleAccountDeletionFeedback | null>(null);
   const [isLogoutTransitionActive, setIsLogoutTransitionActive] =
     useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
   const logoutTransitionActiveRef = useRef(false);
   const logoutTransitionTimerRef = useRef<number | null>(null);
+  const openSessionExpiredDialog = useCallback(() => {
+    setIsSessionExpired(true);
+  }, []);
 
   if (initialGoogleAuthRef.current === undefined) {
     initialGoogleAuthRef.current = new URL(window.location.href).searchParams.get(
@@ -227,6 +233,7 @@ export function App() {
   }
 
   function returnToAnonymousLanding() {
+    setIsSessionExpired(false);
     setSessionUser(null);
     setLoginEmail("");
     setSubmittedAccessRequest(null);
@@ -280,12 +287,26 @@ export function App() {
             onProfileUpdated={setSessionUser}
             onLogout={handleLogout}
             onAccountDeleted={returnToAnonymousLanding}
+            onSessionExpired={openSessionExpiredDialog}
             googleAccountDeletionFeedback={googleAccountDeletionFeedback}
             onGoogleAccountDeletionFeedbackHandled={() =>
               setGoogleAccountDeletionFeedback(null)
             }
           />
         </div>
+
+        <ConfirmDialog
+          open={isSessionExpired}
+          title="Session expired"
+          description="Your session has ended. Return to the main page to sign in again."
+          confirmLabel="Return to main"
+          icon={<TimerOff />}
+          initialFocus="confirm"
+          showCancel={false}
+          dismissible={false}
+          onCancel={() => undefined}
+          onConfirm={returnToAnonymousLanding}
+        />
       </div>
     );
   }

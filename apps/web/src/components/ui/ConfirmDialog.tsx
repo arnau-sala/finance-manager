@@ -15,8 +15,9 @@ type ConfirmDialogProps = {
   confirmTone?: "default" | "danger";
   confirmDisabled?: boolean;
   confirmingLabel?: string;
-  initialFocus?: "cancel" | "dialog";
+  initialFocus?: "cancel" | "confirm" | "dialog";
   showCancel?: boolean;
+  dismissible?: boolean;
   children?: ReactNode;
   onCancel: () => void;
   onConfirm: () => void | Promise<void>;
@@ -37,6 +38,7 @@ export function ConfirmDialog({
   confirmingLabel = "Please wait...",
   initialFocus = "cancel",
   showCancel = true,
+  dismissible = true,
   children,
   onCancel,
   onConfirm
@@ -45,11 +47,14 @@ export function ConfirmDialog({
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const onCancelRef = useRef(onCancel);
   const isConfirmingRef = useRef(isConfirming);
+  const dismissibleRef = useRef(dismissible);
 
   onCancelRef.current = onCancel;
   isConfirmingRef.current = isConfirming;
+  dismissibleRef.current = dismissible;
 
   useEffect(() => {
     if (!open) {
@@ -64,16 +69,24 @@ export function ConfirmDialog({
         "[data-dialog-autofocus]"
       );
       const fallbackControl =
-        initialFocus === "dialog" ? dialogRef.current : cancelButtonRef.current;
+        initialFocus === "dialog"
+          ? dialogRef.current
+          : initialFocus === "confirm"
+            ? confirmButtonRef.current
+            : cancelButtonRef.current;
       (initialControl ?? fallbackControl)?.focus();
     });
 
     appRoot?.setAttribute("inert", "");
 
     function handleKeyDown(event: globalThis.KeyboardEvent) {
-      if (event.key === "Escape" && !isConfirmingRef.current) {
+      if (event.key === "Escape") {
         event.preventDefault();
-        onCancelRef.current();
+
+        if (dismissibleRef.current && !isConfirmingRef.current) {
+          onCancelRef.current();
+        }
+
         return;
       }
 
@@ -121,7 +134,11 @@ export function ConfirmDialog({
   }
 
   function handleBackdropMouseDown(event: MouseEvent<HTMLDivElement>) {
-    if (event.target === event.currentTarget && !isConfirming) {
+    if (
+      dismissible &&
+      event.target === event.currentTarget &&
+      !isConfirming
+    ) {
       onCancel();
     }
   }
@@ -174,6 +191,7 @@ export function ConfirmDialog({
             </button>
           ) : null}
           <button
+            ref={confirmButtonRef}
             className="confirm-dialog__button confirm-dialog__button--confirm"
             type="button"
             onClick={() => void onConfirm()}

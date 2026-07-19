@@ -13,6 +13,7 @@ type HomePageProps = {
   onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
+  onSessionExpired: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
@@ -22,12 +23,15 @@ type HomeSectionProps = {
   onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
+  onSessionExpired: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
-  home: ({ user }) => <HomeOverviewPage user={user} />,
+  home: ({ user, onSessionExpired }) => (
+    <HomeOverviewPage user={user} onSessionExpired={onSessionExpired} />
+  ),
   moves: () => <HomeSection title="Moves" />,
   stats: () => <HomeSection title="Stats" />,
   profile: ({
@@ -56,6 +60,7 @@ export function HomePage({
   onProfileUpdated,
   onLogout,
   onAccountDeleted,
+  onSessionExpired,
   googleAccountDeletionFeedback,
   onGoogleAccountDeletionFeedbackHandled
 }: HomePageProps) {
@@ -71,6 +76,7 @@ export function HomePage({
         onProfileUpdated,
         onLogout,
         onAccountDeleted,
+        onSessionExpired,
         googleAccountDeletionFeedback,
         onGoogleAccountDeletionFeedbackHandled
       })}

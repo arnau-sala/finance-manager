@@ -30,12 +30,14 @@ import { formatEuroAmount } from "../../money/format-euro";
 import type { SessionUser } from "../auth/auth-api";
 import {
   getHomeOverview,
+  HomeApiError,
   type HomeMove,
   type HomeOverview
 } from "./home-api";
 
 type HomeOverviewPageProps = {
   user: SessionUser;
+  onSessionExpired: () => void;
 };
 
 type LoadingState = "loading" | "ready" | "error";
@@ -143,7 +145,10 @@ function formatMoveCount(count: number) {
   return `${count} ${count === 1 ? "move" : "moves"}`;
 }
 
-export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
+export function HomeOverviewPage({
+  user,
+  onSessionExpired
+}: HomeOverviewPageProps) {
   const [overview, setOverview] = useState<HomeOverview | null>(null);
   const [loadingState, setLoadingState] =
     useState<LoadingState>("loading");
@@ -162,10 +167,14 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
         }
 
         setLoadingState("error");
+
+        if (error instanceof HomeApiError && error.status === 401) {
+          onSessionExpired();
+        }
       });
 
     return () => controller.abort();
-  }, []);
+  }, [onSessionExpired]);
 
   const isReady = loadingState === "ready" && overview !== null;
   const latestMoves = isReady ? overview.latestMoves : [];
