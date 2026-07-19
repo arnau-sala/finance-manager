@@ -373,19 +373,34 @@ The Home layout uses five intrinsic grid rows with a minimum gap. Available vert
 
 Purpose: fast mobile-first transaction entry.
 
+The initial interface is a full-screen composer presented as a temporary layer
+above Home. It keeps the task focused, hides the bottom navigation while open,
+and gives the mobile keyboard and category picker the full viewport instead of
+placing a long form inside a small dialog. Closing it returns focus to the Home
+action that opened it.
+
 Fields:
 
 - Type: income or expense.
 - Category.
 - Amount.
-- Description.
-- Date.
+- Name, stored through the API's `description` field.
+- Date and time.
 
 UX notes:
 
-- Expense should be quick to enter.
-- Amount input should be optimized for mobile numeric keyboards.
-- Category selection should be easy with one hand.
+- Expense is selected by default and type changes use a visible two-option
+  segmented control. Horizontal navigation gestures remain disabled.
+- Income and expense use restrained semantic green and red treatments while the
+  save action continues to use the petroleum brand color.
+- The amount input uses the mobile decimal keyboard and the fields retain their
+  natural form order for previous/next keyboard navigation.
+- Categories are selected from a four-column icon grid backed by the same
+  category catalog used on Home; no dropdown is used.
+- Date and time default to the moment the composer opens. Native HTML date and
+  time inputs allow Safari on iOS to provide Apple's system pickers.
+- The composer currently keeps editable state in the client but intentionally
+  does not submit a transaction. API integration is the next implementation step.
 
 ### 7. Transactions
 

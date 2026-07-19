@@ -808,6 +808,12 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-surface);
 }
 
+.home-main-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
 .home-content {
   position: absolute;
   inset:
@@ -1196,6 +1202,464 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.transaction-composer {
+  --transaction-type-color: var(--color-danger);
+  --transaction-type-soft: var(--color-danger-soft);
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  width: 100%;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  color: var(--color-text);
+  background: var(--color-surface);
+  visibility: hidden;
+  pointer-events: none;
+  transform: translate3d(0, 100%, 0);
+  transition:
+    transform 420ms cubic-bezier(0.32, 0.72, 0, 1),
+    visibility 0s linear 420ms;
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.transaction-composer--income {
+  --transaction-type-color: var(--color-success);
+  --transaction-type-soft: var(--color-success-soft);
+}
+
+.transaction-composer.is-open {
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 0);
+  transition-delay: 0s;
+}
+
+.transaction-composer__header {
+  position: relative;
+  z-index: 2;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    10px
+    max(16px, env(safe-area-inset-left));
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.transaction-composer__header-inner {
+  width: min(100%, 440px);
+  height: 44px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  margin: 0 auto;
+}
+
+.transaction-composer__header h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-composer__close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-composer__close svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.8;
+}
+
+.transaction-composer__close:active {
+  color: var(--color-primary-pressed);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.transaction-composer__form {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.transaction-composer__scroll-area {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.transaction-composer__scroll-area::-webkit-scrollbar {
+  display: none;
+}
+
+.transaction-composer__content {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 24px;
+  margin: 0 auto;
+  padding:
+    24px
+    max(20px, env(safe-area-inset-right))
+    28px
+    max(20px, env(safe-area-inset-left));
+}
+
+.transaction-composer__amount-section {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 8px 0 1px;
+}
+
+.transaction-composer__amount-entry {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 5px;
+  color: var(--transaction-type-color);
+}
+
+.transaction-composer__amount-entry input {
+  min-width: 4ch;
+  max-width: calc(100% - 34px);
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.transaction-composer__amount-entry input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.48;
+}
+
+.transaction-composer__amount-entry > span {
+  font-size: 27px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.transaction-composer__amount-caption {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-type-toggle {
+  position: relative;
+  width: 100%;
+  height: 48px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  isolation: isolate;
+}
+
+.transaction-type-toggle__indicator {
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  background: var(--transaction-type-soft);
+  border: 1px solid var(--transaction-type-color);
+  border-radius: 999px;
+  transform: translateX(0);
+  transition:
+    transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.transaction-type-toggle--income .transaction-type-toggle__indicator {
+  transform: translateX(100%);
+}
+
+.transaction-type-toggle button {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-type-toggle button[aria-checked="true"] {
+  color: var(--transaction-type-color);
+}
+
+.transaction-type-toggle button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+}
+
+.transaction-category-picker {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.transaction-category-picker legend,
+.transaction-composer__field > span {
+  margin: 0 0 10px;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.transaction-category-option {
+  position: relative;
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-rows: 40px minmax(24px, auto);
+  justify-items: center;
+  align-content: center;
+  gap: 5px;
+  padding: 6px 3px;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-category-option.is-selected {
+  color: var(--transaction-type-color);
+  background: var(--transaction-type-soft);
+  border-color: var(--transaction-type-color);
+}
+
+.transaction-category-option__icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+}
+
+.transaction-category-option.is-selected .transaction-category-option__icon {
+  color: var(--transaction-type-color);
+  background: var(--color-surface);
+  border-color: var(--transaction-type-color);
+}
+
+.transaction-category-option__icon > svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.7;
+}
+
+.transaction-category-option__check {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--color-surface);
+  background: var(--transaction-type-color);
+  border: 2px solid var(--color-surface);
+  border-radius: 50%;
+}
+
+.transaction-category-option__check > svg {
+  width: 9px;
+  height: 9px;
+  stroke-width: 2.5;
+}
+
+.transaction-category-option > span:last-child {
+  min-width: 0;
+  max-width: 100%;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.15;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.transaction-composer__field {
+  min-width: 0;
+  display: grid;
+}
+
+.transaction-composer__field > span {
+  min-height: 17px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.transaction-composer__field > span svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.8;
+}
+
+.transaction-composer__field input {
+  width: 100%;
+  min-width: 0;
+  height: 54px;
+  padding: 0 16px;
+  color: var(--color-text);
+  color-scheme: light;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: none;
+  font-size: 16px;
+  font-weight: 400;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.transaction-composer__field input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.transaction-composer__date-time {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.transaction-composer__date-time input {
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.transaction-composer__footer {
+  position: relative;
+  z-index: 2;
+  padding:
+    10px
+    max(20px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom))
+    max(20px, env(safe-area-inset-left));
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.transaction-composer__footer > div {
+  width: min(100%, 440px);
+  margin: 0 auto;
+}
+
+.transaction-composer__footer button {
+  width: 100%;
+  height: 54px;
+  padding: 0 20px;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-composer__footer button:active:not(:disabled) {
+  background: var(--color-primary-pressed);
+}
+
+.transaction-composer__footer button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.transaction-composer__close:focus-visible,
+.transaction-type-toggle button:focus-visible,
+.transaction-category-option:focus-visible,
+.transaction-composer__footer button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.transaction-composer__field input:focus {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-focus-ring);
 }
 
 .profile-page {
@@ -1934,6 +2398,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
   .session-flow--logging-out .session-flow__source,
   body.app-logout-transition .confirm-dialog-backdrop {
     animation-duration: 1ms;
+  }
+
+  .transaction-composer,
+  .transaction-type-toggle__indicator {
+    transition-duration: 1ms;
   }
 }
 

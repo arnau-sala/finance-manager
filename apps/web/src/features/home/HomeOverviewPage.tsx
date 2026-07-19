@@ -1,28 +1,8 @@
 import { useEffect, useState } from "react";
-import type { LucideIcon } from "lucide-react";
 import {
-  ArrowDownRight,
-  ArrowUpRight,
-  BadgeEuro,
-  BanknoteArrowUp,
-  Bitcoin,
-  Briefcase,
   CalendarDays,
-  Car,
   ChevronRight,
-  Dumbbell,
-  Gift,
-  Globe,
-  GraduationCap,
-  House,
-  HandCoins,
-  Map,
-  PartyPopper,
   Plus,
-  ShoppingBasket,
-  ShoppingCart,
-  Stethoscope,
-  Utensils,
   WalletCards
 } from "lucide-react";
 
@@ -34,36 +14,15 @@ import {
   type HomeMove,
   type HomeOverview
 } from "./home-api";
+import { getCategoryIcon } from "../transactions/category-catalog";
 
 type HomeOverviewPageProps = {
   user: SessionUser;
   onSessionExpired: () => void;
+  onNewTransaction: () => void;
 };
 
 type LoadingState = "loading" | "ready" | "error";
-
-const categoryIcons: Record<string, LucideIcon> = {
-  "expense-bars-restaurants": Utensils,
-  "expense-education": GraduationCap,
-  "expense-gifts": Gift,
-  "expense-groceries": ShoppingBasket,
-  "expense-health": Stethoscope,
-  "expense-housing": House,
-  "expense-other": ArrowDownRight,
-  "expense-parties": PartyPopper,
-  "expense-shopping": ShoppingCart,
-  "expense-sports": Dumbbell,
-  "expense-subscriptions": Globe,
-  "expense-transportation": Car,
-  "expense-travel": Map,
-  "income-allowance": HandCoins,
-  "income-freelance": BanknoteArrowUp,
-  "income-gifts": Gift,
-  "income-investments": Bitcoin,
-  "income-other": ArrowUpRight,
-  "income-salary": Briefcase,
-  "income-sales": BadgeEuro
-};
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -127,16 +86,6 @@ function formatMoveDate(value: string) {
   }).format(date);
 }
 
-function getCategoryIcon(
-  categoryId: string | undefined,
-  type: HomeMove["type"]
-) {
-  return (
-    (categoryId ? categoryIcons[categoryId] : undefined) ??
-    (type === "INCOME" ? ArrowUpRight : ArrowDownRight)
-  );
-}
-
 function getMoveIcon(move: HomeMove) {
   return getCategoryIcon(move.category.id, move.type);
 }
@@ -147,7 +96,8 @@ function formatMoveCount(count: number) {
 
 export function HomeOverviewPage({
   user,
-  onSessionExpired
+  onSessionExpired,
+  onNewTransaction
 }: HomeOverviewPageProps) {
   const [overview, setOverview] = useState<HomeOverview | null>(null);
   const [loadingState, setLoadingState] =
@@ -212,7 +162,11 @@ export function HomeOverviewPage({
           </p>
         </section>
 
-        <button className="home-new-transaction" type="button">
+        <button
+          className="home-new-transaction"
+          type="button"
+          onClick={onNewTransaction}
+        >
           <span className="home-new-transaction__icon" aria-hidden="true">
             <Plus />
           </span>

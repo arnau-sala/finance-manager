@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 
 import type { SessionUser } from "../auth/auth-api";
+import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import type { HomeSectionId } from "./home-sections";
@@ -24,13 +25,18 @@ type HomeSectionProps = {
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
+  onNewTransaction: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
-  home: ({ user, onSessionExpired }) => (
-    <HomeOverviewPage user={user} onSessionExpired={onSessionExpired} />
+  home: ({ user, onSessionExpired, onNewTransaction }) => (
+    <HomeOverviewPage
+      user={user}
+      onSessionExpired={onSessionExpired}
+      onNewTransaction={onNewTransaction}
+    />
   ),
   moves: () => <HomeSection title="Moves" />,
   stats: () => <HomeSection title="Stats" />,
@@ -67,23 +73,37 @@ export function HomePage({
   const [activeSection, setActiveSection] = useState<HomeSectionId>(
     googleAccountDeletionFeedback ? "profile" : "home"
   );
+  const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
+    useState(false);
   const ActiveSection = homeSections[activeSection];
 
   return (
     <main className="home-screen">
-      {ActiveSection({
-        user,
-        onProfileUpdated,
-        onLogout,
-        onAccountDeleted,
-        onSessionExpired,
-        googleAccountDeletionFeedback,
-        onGoogleAccountDeletionFeedbackHandled
-      })}
+      <div
+        className="home-main-layer"
+        aria-hidden={isTransactionComposerOpen}
+        inert={isTransactionComposerOpen}
+      >
+        {ActiveSection({
+          user,
+          onProfileUpdated,
+          onLogout,
+          onAccountDeleted,
+          onSessionExpired,
+          onNewTransaction: () => setIsTransactionComposerOpen(true),
+          googleAccountDeletionFeedback,
+          onGoogleAccountDeletionFeedbackHandled
+        })}
 
-      <HomeFooterNav
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
+        <HomeFooterNav
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+        />
+      </div>
+
+      <NewTransactionComposer
+        open={isTransactionComposerOpen}
+        onClose={() => setIsTransactionComposerOpen(false)}
       />
     </main>
   );
