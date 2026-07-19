@@ -913,7 +913,7 @@ The endpoint returns only categories that have at least one transaction for the 
       "percentage": 33
     },
     {
-      "category": "Travel",
+      "category": "Housing",
       "type": "EXPENSE",
       "percentage": 33
     }

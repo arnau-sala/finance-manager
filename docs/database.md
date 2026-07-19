@@ -107,9 +107,9 @@ Deleting a user removes records containing that account's email from `AccessRequ
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 
-Expense categories: Bars & Restaurants, Education, Gifts, Groceries, Health, Housing, Parties, Shopping, Sports, Subscriptions, Transportation, Travel, and Other.
+Expense categories: Dining, Education, Gifts, Groceries, Health, Housing, Parties, Shopping, Sports, Subscriptions, Transportation, and Other.
 
-Income categories: Allowance, Freelance, Gifts, Investments, Salary, Sales, and Other.
+Income categories: Allowance, Benefits, Freelance, Gifts, Investments, Salary, Sales, and Other.
 
 Category responses place expenses first. Within each type, names are alphabetical with `Other` always last.
 

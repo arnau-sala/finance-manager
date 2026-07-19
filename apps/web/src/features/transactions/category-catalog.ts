@@ -13,7 +13,7 @@ import {
   GraduationCap,
   HandCoins,
   House,
-  Map,
+  Landmark,
   PartyPopper,
   ShoppingBasket,
   ShoppingCart,
@@ -32,8 +32,8 @@ export type TransactionCategoryDefinition = {
 
 export const transactionCategories: readonly TransactionCategoryDefinition[] = [
   {
-    id: "expense-bars-restaurants",
-    name: "Bars & Restaurants",
+    id: "expense-dining",
+    name: "Dining",
     type: "EXPENSE",
     icon: Utensils
   },
@@ -72,7 +72,6 @@ export const transactionCategories: readonly TransactionCategoryDefinition[] = [
     type: "EXPENSE",
     icon: Car
   },
-  { id: "expense-travel", name: "Travel", type: "EXPENSE", icon: Map },
   {
     id: "expense-other",
     name: "Other",
@@ -84,6 +83,12 @@ export const transactionCategories: readonly TransactionCategoryDefinition[] = [
     name: "Allowance",
     type: "INCOME",
     icon: HandCoins
+  },
+  {
+    id: "income-benefits",
+    name: "Benefits",
+    type: "INCOME",
+    icon: Landmark
   },
   {
     id: "income-freelance",
