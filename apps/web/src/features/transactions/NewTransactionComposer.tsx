@@ -48,6 +48,7 @@ export function NewTransactionComposer({
   const [name, setName] = useState("");
   const [date, setDate] = useState(() => getCurrentDateAndTime().date);
   const [time, setTime] = useState(() => getCurrentDateAndTime().time);
+  const amountInput = useRef<HTMLInputElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
@@ -113,6 +114,19 @@ export function NewTransactionComposer({
     }
   }
 
+  function moveAmountCaretToEnd() {
+    requestAnimationFrame(() => {
+      const input = amountInput.current;
+
+      if (!input) {
+        return;
+      }
+
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    });
+  }
+
   return (
     <section
       className={`transaction-composer transaction-composer--${type.toLowerCase()}${
@@ -151,21 +165,24 @@ export function NewTransactionComposer({
                 Amount
               </label>
               <div className="transaction-composer__amount-entry">
-                <input
-                  id="transaction-amount"
-                  name="amount"
-                  type="text"
-                  inputMode="decimal"
-                  enterKeyHint="next"
-                  autoComplete="off"
-                  placeholder="0,00"
-                  value={amount}
-                  maxLength={11}
-                  style={{
-                    width: `${Math.min(Math.max(amount.length || 4, 4), 11)}ch`
-                  }}
-                  onChange={(event) => updateAmount(event.target.value)}
-                />
+                <span className="transaction-composer__amount-value">
+                  <span aria-hidden="true">{amount || "0,00"}</span>
+                  <input
+                    ref={amountInput}
+                    id="transaction-amount"
+                    name="amount"
+                    type="text"
+                    inputMode="decimal"
+                    enterKeyHint="next"
+                    autoComplete="off"
+                    placeholder="0,00"
+                    value={amount}
+                    maxLength={11}
+                    onClick={moveAmountCaretToEnd}
+                    onFocus={moveAmountCaretToEnd}
+                    onChange={(event) => updateAmount(event.target.value)}
+                  />
+                </span>
                 <span aria-hidden="true">€</span>
               </div>
               <span className="transaction-composer__amount-caption">
