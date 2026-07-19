@@ -1301,12 +1301,16 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .transaction-composer__form {
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
 }
 
 .transaction-composer__scroll-area {
+  width: 100%;
+  min-width: 0;
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
@@ -1322,6 +1326,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .transaction-composer__content {
   width: min(100%, 440px);
+  min-width: 0;
   display: grid;
   gap: 24px;
   margin: 0 auto;
@@ -1590,6 +1595,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .transaction-composer__field input {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   height: 54px;
   padding: 0 16px;
@@ -1604,6 +1610,64 @@ body.app-logout-transition .confirm-dialog-backdrop {
   user-select: text;
   -webkit-user-select: text;
   touch-action: manipulation;
+}
+
+.transaction-composer__date-control {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 54px;
+  box-sizing: border-box;
+  padding: 0 16px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.transaction-composer__date-control input[type="date"] {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  text-align: center;
+}
+
+.transaction-composer__date-control.is-selected input[type="date"] {
+  color: var(--color-text);
+}
+
+.transaction-composer__date-control input[type="date"]::-webkit-date-and-time-value {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  margin: 0;
+  color: inherit;
+  -webkit-text-fill-color: currentColor;
+  opacity: 1;
+  text-align: center;
+}
+
+.transaction-composer__date-control:focus-within {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-focus-ring);
+}
+
+.transaction-composer__date-control input[type="date"]:focus {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .transaction-composer__field input::placeholder {

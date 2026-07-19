@@ -9,7 +9,6 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
-  CalendarDays,
   X
 } from "lucide-react";
 
@@ -49,6 +48,7 @@ export function NewTransactionComposer({
   );
   const [name, setName] = useState("");
   const [date, setDate] = useState(getTodayDateOnly);
+  const [hasSelectedDate, setHasSelectedDate] = useState(false);
   const [typeDragOffset, setTypeDragOffset] = useState(0);
   const [isTypeDragging, setIsTypeDragging] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
@@ -77,6 +77,7 @@ export function NewTransactionComposer({
       setSelectedCategoryId(null);
       setName("");
       setDate(getTodayDateOnly());
+      setHasSelectedDate(false);
     }
 
     if (!open && wasOpen.current) {
@@ -370,18 +371,24 @@ export function NewTransactionComposer({
             </div>
 
             <div className="transaction-composer__field">
-              <span id="transaction-date-label">
-                <CalendarDays aria-hidden="true" />
-                Date
-              </span>
-              <input
-                id="transaction-date"
-                name="date"
-                type="date"
-                value={date}
-                aria-labelledby="transaction-date-label"
-                onChange={(event) => setDate(event.target.value)}
-              />
+              <span id="transaction-date-label">Date</span>
+              <div
+                className={`transaction-composer__date-control${
+                  hasSelectedDate ? " is-selected" : ""
+                }`}
+              >
+                <input
+                  id="transaction-date"
+                  name="date"
+                  type="date"
+                  value={date}
+                  aria-labelledby="transaction-date-label"
+                  onChange={(event) => {
+                    setDate(event.target.value);
+                    setHasSelectedDate(true);
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
