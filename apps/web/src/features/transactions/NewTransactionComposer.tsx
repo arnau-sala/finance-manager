@@ -327,6 +327,22 @@ export function NewTransactionComposer({
               </button>
             </div>
 
+            <div className="transaction-composer__field">
+              <span id="transaction-name-label">Name</span>
+              <input
+                id="transaction-name"
+                name="description"
+                type="text"
+                enterKeyHint="next"
+                autoComplete="off"
+                placeholder="What was it?"
+                value={name}
+                maxLength={100}
+                aria-labelledby="transaction-name-label"
+                onChange={(event) => setName(event.target.value)}
+              />
+            </div>
+
             <fieldset className="transaction-category-picker">
               <legend>Category</legend>
               <div className="transaction-category-grid">
@@ -353,22 +369,6 @@ export function NewTransactionComposer({
                 })}
               </div>
             </fieldset>
-
-            <div className="transaction-composer__field">
-              <span id="transaction-name-label">Name</span>
-              <input
-                id="transaction-name"
-                name="description"
-                type="text"
-                enterKeyHint="next"
-                autoComplete="off"
-                placeholder="What was it?"
-                value={name}
-                maxLength={100}
-                aria-labelledby="transaction-name-label"
-                onChange={(event) => setName(event.target.value)}
-              />
-            </div>
 
             <div className="transaction-composer__field">
               <span id="transaction-date-label">Date</span>
