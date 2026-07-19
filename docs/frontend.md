@@ -359,7 +359,7 @@ MVP content:
 
 The Dashboard loads its real values through one authenticated `GET /api/home` request. The response contains the all-time balance, at most three latest transactions, and current-month activity, keeping the initial mobile view to one network round trip. Loading, empty, and error states preserve the same layout. The latest-moves region always reserves the height of three rows, so profiles with fewer transactions do not pull the content below it upward.
 
-Latest-move icons come from `lucide-react` and are mapped by stable category ID rather than display name. Every predefined category has a specific icon; unknown future categories fall back to an upward income arrow or downward expense arrow.
+Transaction category icons come from `lucide-react` and are mapped by stable category ID rather than display name. The same map is used by latest moves and the top expense/income activity metrics. Every predefined category has a specific icon; missing or unknown categories fall back to an upward income arrow or downward expense arrow.
 
 Euro amounts use one shared frontend formatter. They use a decimal comma, omit digit grouping and place the currency symbol directly after the number, for example `1234,56€`, `+100,00€`, and `-42,80€`.
 

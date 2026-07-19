@@ -124,11 +124,18 @@ function formatMoveDate(value: string) {
   }).format(date);
 }
 
-function getMoveIcon(move: HomeMove) {
+function getCategoryIcon(
+  categoryId: string | undefined,
+  type: HomeMove["type"]
+) {
   return (
-    categoryIcons[move.category.id] ??
-    (move.type === "INCOME" ? ArrowUpRight : ArrowDownRight)
+    (categoryId ? categoryIcons[categoryId] : undefined) ??
+    (type === "INCOME" ? ArrowUpRight : ArrowDownRight)
   );
+}
+
+function getMoveIcon(move: HomeMove) {
+  return getCategoryIcon(move.category.id, move.type);
 }
 
 function formatMoveCount(count: number) {
@@ -161,6 +168,14 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
 
   const isReady = loadingState === "ready" && overview !== null;
   const latestMoves = isReady ? overview.latestMoves : [];
+  const TopExpenseIcon = getCategoryIcon(
+    isReady ? overview.activity.topExpenseCategory?.id : undefined,
+    "EXPENSE"
+  );
+  const TopIncomeIcon = getCategoryIcon(
+    isReady ? overview.activity.topIncomeCategory?.id : undefined,
+    "INCOME"
+  );
 
   return (
     <section
@@ -265,7 +280,7 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
               </span>
             </div>
             <div className="home-activity__item home-activity__item--expense">
-              <ArrowDownRight aria-hidden="true" />
+              <TopExpenseIcon aria-hidden="true" />
               <span>
                 <small>Top expense</small>
                 <strong>
@@ -277,7 +292,7 @@ export function HomeOverviewPage({ user }: HomeOverviewPageProps) {
               </span>
             </div>
             <div className="home-activity__item home-activity__item--income">
-              <ArrowUpRight aria-hidden="true" />
+              <TopIncomeIcon aria-hidden="true" />
               <span>
                 <small>Top income</small>
                 <strong>
