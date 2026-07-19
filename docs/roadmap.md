@@ -67,7 +67,7 @@
 - Add the `Transaction` model and `TransactionType` enum.
 - Store monetary values as integer cents.
 - Add authenticated `POST /transactions`.
-- Validate type, amount, description, and optional occurrence date.
+- Validate type, amount, description, and optional date-only occurrence day.
 - Assign ownership from the secure session.
 
 ## Phase 6B: Transaction Deletion

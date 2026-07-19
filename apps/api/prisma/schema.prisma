@@ -109,11 +109,11 @@ model Transaction {
   categoryId  String
   amountCents Int
   description String          @db.VarChar(100)
-  occurredAt  DateTime
+  occurredOn  DateTime        @db.Date
   createdAt   DateTime        @default(now())
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category    Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
-  @@index([userId, occurredAt])
+  @@index([userId, occurredOn])
   @@index([categoryId])
 }

@@ -385,7 +385,7 @@ Fields:
 - Category.
 - Amount.
 - Name, stored through the API's `description` field.
-- Date and time.
+- Date.
 
 UX notes:
 
@@ -399,8 +399,9 @@ UX notes:
   natural form order for previous/next keyboard navigation.
 - Categories are selected from a four-column icon grid backed by the same
   category catalog used on Home; no dropdown is used.
-- Date and time default to the moment the composer opens. Native HTML date and
-  time inputs allow Safari on iOS to provide Apple's system pickers.
+- Date defaults to the phone's current calendar day. The native HTML date input
+  allows Safari on iOS to provide Apple's system picker; transaction time is not
+  part of the financial record.
 - The composer currently keeps editable state in the client but intentionally
   does not submit a transaction. API integration is the next implementation step.
 

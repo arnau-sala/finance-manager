@@ -113,8 +113,10 @@ Income categories: Allowance, Benefits, Freelance, Gifts, Investments, Salary, S
 
 Category responses place expenses first. Within each type, names are alphabetical with `Other` always last.
 
-`Transaction` stores the first financial records. Each row contains an immutable owner `userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description, occurrence timestamp, creation timestamp, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
+`Transaction` stores the first financial records. Each row contains an immutable owner `userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description, occurrence date `occurredOn`, creation timestamp `createdAt`, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
+
+`occurredOn` uses PostgreSQL `DATE` and represents only the financial calendar day. It has no time or timezone. `createdAt` remains a full timestamp recording when the row was created and provides deterministic ordering for transactions sharing the same occurrence date.
 
 `Transaction.userId` references `User.id` with `ON DELETE CASCADE`, ensuring account deletion removes every owned transaction. `Transaction.categoryId` references `Category.id` with `ON DELETE RESTRICT`, protecting the predefined catalog while transactions still use a category. The API validates that the category exists and matches the transaction type before writes.
 
-The `(userId, occurredAt)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
+The `(userId, occurredOn)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing orders equal dates by `createdAt` and filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.

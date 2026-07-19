@@ -1,6 +1,10 @@
 import type { FastifyPluginAsync } from "fastify";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
+import {
+  formatDateOnly,
+  getMonthDateOnlyRange,
+} from "../dates/date-only.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
 import { financialReadRateLimit } from "../security/rate-limit.js";
@@ -13,12 +17,13 @@ const latestMoveLimit = 3;
 
 function getCurrentMonthRange() {
   const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
 
   return {
-    month: now.getMonth() + 1,
-    year: now.getFullYear(),
-    from: new Date(now.getFullYear(), now.getMonth(), 1),
-    to: new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    month,
+    year,
+    ...getMonthDateOnlyRange(month, year)
   };
 }
 
@@ -39,7 +44,7 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
         db.transaction.findMany({
           where: { userId },
           orderBy: [
-            { occurredAt: "desc" },
+            { occurredOn: "desc" },
             { createdAt: "desc" },
             { id: "desc" }
           ],
@@ -49,7 +54,7 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
             type: true,
             amountCents: true,
             description: true,
-            occurredAt: true,
+            occurredOn: true,
             category: {
               select: {
                 id: true,
@@ -73,7 +78,7 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
           category: move.category,
           amount: centsToDecimal(move.amountCents),
           description: move.description,
-          date: move.occurredAt.toISOString()
+          date: formatDateOnly(move.occurredOn)
         })),
         activity: {
           month: period.month,

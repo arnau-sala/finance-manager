@@ -6,6 +6,7 @@ import {
   WalletCards
 } from "lucide-react";
 
+import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import type { SessionUser } from "../auth/auth-api";
 import {
@@ -58,9 +59,9 @@ function formatMoveAmount(move: HomeMove) {
 }
 
 function formatMoveDate(value: string) {
-  const date = new Date(value);
+  const date = parseLocalDateOnly(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (!date) {
     return "Date unavailable";
   }
 
@@ -71,12 +72,7 @@ function formatMoveDate(value: string) {
     date.getDate() === today.getDate();
 
   if (isToday) {
-    const time = new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(date);
-
-    return `Today, ${time}`;
+    return "Today";
   }
 
   return new Intl.DateTimeFormat("en-US", {

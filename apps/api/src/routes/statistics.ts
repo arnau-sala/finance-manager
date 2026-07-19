@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import {
+  getMonthDateOnlyRange,
+  getYearDateOnlyRange,
+} from "../dates/date-only.js";
+import {
   getUserBalance,
   getUserCategoryStatistics,
 } from "../services/statistics-service.js";
@@ -60,20 +64,6 @@ function getYearlyBalanceParamsSchema(currentYear: number) {
     .strict();
 }
 
-function getMonthDateRange(month: number, year: number) {
-  return {
-    from: new Date(year, month - 1, 1),
-    to: new Date(year, month, 1),
-  };
-}
-
-function getYearDateRange(year: number) {
-  return {
-    from: new Date(year, 0, 1),
-    to: new Date(year + 1, 0, 1),
-  };
-}
-
 export const statisticsRoutes: FastifyPluginAsync = async (app) => {
   async function getMonthlyBalance(
     request: FastifyRequest,
@@ -97,7 +87,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const { month, year = currentYear } = parsedParams.data;
     const balance = await getUserBalance(
       userId,
-      getMonthDateRange(month, year),
+      getMonthDateOnlyRange(month, year),
     );
 
     return reply.send({
@@ -125,7 +115,10 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const { year = currentYear } = parsedParams.data;
-    const balance = await getUserBalance(userId, getYearDateRange(year));
+    const balance = await getUserBalance(
+      userId,
+      getYearDateOnlyRange(year),
+    );
 
     return reply.send({
       balance,
@@ -157,7 +150,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const categories = await getUserCategoryStatistics(
       userId,
       undefined,
-      getMonthDateRange(month, year),
+      getMonthDateOnlyRange(month, year),
     );
 
     return reply.send({
@@ -190,7 +183,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const categories = await getUserCategoryStatistics(
       userId,
       type,
-      getMonthDateRange(month, year),
+      getMonthDateOnlyRange(month, year),
     );
 
     return reply.send({
@@ -221,7 +214,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const categories = await getUserCategoryStatistics(
       userId,
       undefined,
-      getYearDateRange(year),
+      getYearDateOnlyRange(year),
     );
 
     return reply.send({
@@ -254,7 +247,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const categories = await getUserCategoryStatistics(
       userId,
       type,
-      getYearDateRange(year),
+      getYearDateOnlyRange(year),
     );
 
     return reply.send({

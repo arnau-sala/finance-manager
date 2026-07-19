@@ -563,7 +563,7 @@ The endpoint returns only transactions owned by the current session user, includ
       },
       "amount": "42.50",
       "description": "Weekly groceries",
-      "date": "2026-07-05T16:30:00.000Z",
+      "date": "2026-07-05",
       "createdAt": "2026-07-05T16:31:00.000Z"
     }
   ],
@@ -601,7 +601,7 @@ GET /transactions/categories/:category
       },
       "amount": "850.00",
       "description": "Rent",
-      "date": "2026-07-01T08:00:00.000Z",
+      "date": "2026-07-01",
       "createdAt": "2026-07-01T08:01:00.000Z"
     }
   ],
@@ -638,7 +638,7 @@ The endpoint returns the requested transaction only when it belongs to the curre
     },
     "amount": "42.50",
     "description": "Weekly groceries",
-    "date": "2026-07-05T16:30:00.000Z",
+    "date": "2026-07-05",
     "createdAt": "2026-07-05T16:31:00.000Z"
   }
 }
@@ -661,13 +661,13 @@ Content-Type: application/json
   "categoryId": "expense-groceries",
   "description": "Weekly groceries",
   "amount": "42.50",
-  "date": "2026-07-05T18:30:00+02:00"
+  "date": "2026-07-05"
 }
 ```
 
-`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is optional and defaults to the request time. When provided, it must be an ISO 8601 timestamp with a timezone.
+`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is an optional calendar date in `YYYY-MM-DD` format and defaults to the server's current calendar date. Times and timezone offsets are rejected.
 
-The backend obtains `userId` exclusively from the session and stores the amount as integer cents. Transaction responses include the selected category's ID, name, and type.
+The backend obtains `userId` exclusively from the session and stores the amount as integer cents. The transaction day is stored as PostgreSQL `DATE`, while `createdAt` independently records the exact creation timestamp. Transaction responses include the selected category's ID, name, and type.
 
 ## Delete Transaction
 
@@ -706,7 +706,7 @@ Send only the fields that must change. All fields are optional, and an empty obj
 
 ```json
 {
-  "categoryId": "expense-dining-out",
+  "categoryId": "expense-dining",
   "description": "Updated description",
   "amount": "35.20"
 }
@@ -742,7 +742,7 @@ The endpoint provides the authenticated user's Home data in one response: the al
       },
       "amount": "42.80",
       "description": "Weekly groceries",
-      "date": "2026-07-17T16:42:00.000Z"
+      "date": "2026-07-17"
     }
   ],
   "activity": {

@@ -1,12 +1,11 @@
 import { Prisma, type TransactionType } from "@prisma/client";
 
+import {
+  parseDateOnly,
+  type DateOnlyRange,
+} from "../dates/date-only.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
-
-type BalanceDateRange = {
-  from: Date;
-  to: Date;
-};
 
 type CategoryTotal = {
   categoryId: string;
@@ -27,7 +26,7 @@ type CategoryTotalRow = {
 async function getUserCategoryTotals(
   userId: string,
   type?: TransactionType,
-  dateRange?: BalanceDateRange
+  dateRange?: DateOnlyRange
 ) {
   const categoryTotals = await db.$queryRaw<CategoryTotalRow[]>(
     Prisma.sql`
@@ -44,8 +43,8 @@ async function getUserCategoryTotals(
       ${
         dateRange
           ? Prisma.sql`
-              AND t."occurredAt" >= ${dateRange.from}
-              AND t."occurredAt" < ${dateRange.to}
+              AND t."occurredOn" >= ${dateRange.from}::date
+              AND t."occurredOn" < ${dateRange.to}::date
             `
           : Prisma.empty
       }
@@ -66,16 +65,16 @@ async function getUserCategoryTotals(
 
 export async function getUserBalance(
   userId: string,
-  dateRange?: BalanceDateRange
+  dateRange?: DateOnlyRange
 ) {
   const where: Prisma.TransactionWhereInput = {
     userId
   };
 
   if (dateRange) {
-    where.occurredAt = {
-      gte: dateRange.from,
-      lt: dateRange.to
+    where.occurredOn = {
+      gte: parseDateOnly(dateRange.from),
+      lt: parseDateOnly(dateRange.to)
     };
   }
 
@@ -166,7 +165,7 @@ function getExactIntegerPercentages(categoryTotals: CategoryTotal[]) {
 export async function getUserCategoryStatistics(
   userId: string,
   type?: TransactionType,
-  dateRange?: BalanceDateRange
+  dateRange?: DateOnlyRange
 ) {
   const totals = await getUserCategoryTotals(userId, type, dateRange);
 
@@ -197,7 +196,7 @@ export async function getUserCategoryStatistics(
 
 export async function getUserTransactionActivity(
   userId: string,
-  dateRange: BalanceDateRange
+  dateRange: DateOnlyRange
 ) {
   const totals = await getUserCategoryTotals(userId, undefined, dateRange);
 

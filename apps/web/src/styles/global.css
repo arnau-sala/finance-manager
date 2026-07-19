@@ -1611,17 +1611,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   opacity: 1;
 }
 
-.transaction-composer__date-time {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.transaction-composer__date-time input {
-  padding: 0 10px;
-  font-size: 14px;
-}
-
 .transaction-composer__footer {
   position: relative;
   z-index: 2;

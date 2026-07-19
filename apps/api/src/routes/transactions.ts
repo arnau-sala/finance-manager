@@ -8,6 +8,11 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
+import {
+  formatDateOnly,
+  getTodayDateOnly,
+  parseDateOnly,
+} from "../dates/date-only.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
 import {
@@ -31,7 +36,7 @@ type TransactionWithCategoryRow = {
   categoryId: string;
   amountCents: number;
   description: string;
-  occurredAt: Date;
+  occurredOn: Date;
   createdAt: Date;
   categoryName: string;
   categoryType: TransactionType;
@@ -84,9 +89,7 @@ const amountSchema = z
 
 const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 const transactionDescriptionSchema = z.string().trim().min(1).max(100);
-const transactionDateSchema = z.iso
-  .datetime({ offset: true })
-  .transform((date) => new Date(date));
+const transactionDateSchema = z.iso.date().transform(parseDateOnly);
 
 const createTransactionBodySchema = z
   .object({
@@ -128,7 +131,7 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
     categoryId: row.categoryId,
     amountCents: row.amountCents,
     description: row.description,
-    occurredAt: row.occurredAt,
+    occurredOn: row.occurredOn,
     createdAt: row.createdAt,
     category: {
       id: row.categoryId,
@@ -146,7 +149,7 @@ function toTransactionResponse(transaction: TransactionWithCategory) {
     category: transaction.category,
     amount: centsToDecimal(transaction.amountCents),
     description: transaction.description,
-    date: transaction.occurredAt.toISOString(),
+    date: formatDateOnly(transaction.occurredOn),
     createdAt: transaction.createdAt.toISOString(),
   };
 }
@@ -180,14 +183,14 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           t."categoryId" AS "categoryId",
           t."amountCents" AS "amountCents",
           t."description" AS "description",
-          t."occurredAt" AS "occurredAt",
+          t."occurredOn" AS "occurredOn",
           t."createdAt" AS "createdAt",
           c."name" AS "categoryName",
           c."type" AS "categoryType"
         FROM "Transaction" t
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
-        ORDER BY t."occurredAt" DESC, t."createdAt" DESC, t."id" DESC
+        ORDER BY t."occurredOn" DESC, t."createdAt" DESC, t."id" DESC
         LIMIT ${limit + 1}
         OFFSET ${offset}
       `,
@@ -243,7 +246,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           t."categoryId" AS "categoryId",
           t."amountCents" AS "amountCents",
           t."description" AS "description",
-          t."occurredAt" AS "occurredAt",
+          t."occurredOn" AS "occurredOn",
           t."createdAt" AS "createdAt",
           c."name" AS "categoryName",
           c."type" AS "categoryType"
@@ -251,7 +254,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
           AND t."categoryId" = ${parsedParams.data.category}
-        ORDER BY t."occurredAt" DESC, t."createdAt" DESC, t."id" DESC
+        ORDER BY t."occurredOn" DESC, t."createdAt" DESC, t."id" DESC
         LIMIT ${limit + 1}
         OFFSET ${offset}
       `,
@@ -296,7 +299,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           t."categoryId" AS "categoryId",
           t."amountCents" AS "amountCents",
           t."description" AS "description",
-          t."occurredAt" AS "occurredAt",
+          t."occurredOn" AS "occurredOn",
           t."createdAt" AS "createdAt",
           c."name" AS "categoryName",
           c."type" AS "categoryType"
@@ -368,7 +371,8 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           categoryId: category.id,
           amountCents: parsedBody.data.amount,
           description: parsedBody.data.description,
-          occurredAt: parsedBody.data.date ?? new Date(),
+          occurredOn:
+            parsedBody.data.date ?? parseDateOnly(getTodayDateOnly()),
         },
       });
 
@@ -488,7 +492,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           type,
           categoryId,
           description,
-          occurredAt: date,
+          occurredOn: date,
           amountCents: amount,
         },
       });

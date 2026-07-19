@@ -10,10 +10,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
-  Clock3,
   X
 } from "lucide-react";
 
+import { getTodayDateOnly } from "../../dates/date-only";
 import {
   transactionCategories,
   type TransactionType
@@ -34,21 +34,6 @@ type TypeDrag = {
 
 const TYPE_DRAG_THRESHOLD = 14;
 
-function padDatePart(value: number) {
-  return value.toString().padStart(2, "0");
-}
-
-function getCurrentDateAndTime() {
-  const now = new Date();
-
-  return {
-    date: `${now.getFullYear()}-${padDatePart(now.getMonth() + 1)}-${padDatePart(
-      now.getDate()
-    )}`,
-    time: `${padDatePart(now.getHours())}:${padDatePart(now.getMinutes())}`
-  };
-}
-
 function normalizeAmountInput(value: string) {
   return value.replace(/\./g, ",").replace(/\s/g, "");
 }
@@ -63,8 +48,7 @@ export function NewTransactionComposer({
     null
   );
   const [name, setName] = useState("");
-  const [date, setDate] = useState(() => getCurrentDateAndTime().date);
-  const [time, setTime] = useState(() => getCurrentDateAndTime().time);
+  const [date, setDate] = useState(getTodayDateOnly);
   const [typeDragOffset, setTypeDragOffset] = useState(0);
   const [isTypeDragging, setIsTypeDragging] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
@@ -88,13 +72,11 @@ export function NewTransactionComposer({
           ? document.activeElement
           : null;
 
-      const current = getCurrentDateAndTime();
       setType("EXPENSE");
       setAmount("");
       setSelectedCategoryId(null);
       setName("");
-      setDate(current.date);
-      setTime(current.time);
+      setDate(getTodayDateOnly());
     }
 
     if (!open && wasOpen.current) {
@@ -387,37 +369,19 @@ export function NewTransactionComposer({
               />
             </div>
 
-            <div className="transaction-composer__date-time">
-              <div className="transaction-composer__field">
-                <span id="transaction-date-label">
-                  <CalendarDays aria-hidden="true" />
-                  Date
-                </span>
-                <input
-                  id="transaction-date"
-                  name="date"
-                  type="date"
-                  value={date}
-                  aria-labelledby="transaction-date-label"
-                  onChange={(event) => setDate(event.target.value)}
-                />
-              </div>
-
-              <div className="transaction-composer__field">
-                <span id="transaction-time-label">
-                  <Clock3 aria-hidden="true" />
-                  Time
-                </span>
-                <input
-                  id="transaction-time"
-                  name="time"
-                  type="time"
-                  step="60"
-                  value={time}
-                  aria-labelledby="transaction-time-label"
-                  onChange={(event) => setTime(event.target.value)}
-                />
-              </div>
+            <div className="transaction-composer__field">
+              <span id="transaction-date-label">
+                <CalendarDays aria-hidden="true" />
+                Date
+              </span>
+              <input
+                id="transaction-date"
+                name="date"
+                type="date"
+                value={date}
+                aria-labelledby="transaction-date-label"
+                onChange={(event) => setDate(event.target.value)}
+              />
             </div>
           </div>
         </div>

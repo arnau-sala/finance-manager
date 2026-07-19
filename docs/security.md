@@ -156,7 +156,7 @@ Transaction security decisions:
 - Transaction lists are paginated with a default limit of 100 and maximum limit of 200.
 - Transaction detail retrieval filters by both ID and session `userId`.
 - Missing and foreign-owned transaction details return the same `404` response.
-- Description, amount, type, category, and date are validated before persistence.
+- Description, amount, type, category, and the `YYYY-MM-DD` calendar date are validated before persistence; transaction timestamps and timezone offsets are rejected.
 - Categories must exist and match the transaction type on creation and editing.
 - Category references are validated by the API before transaction writes.
 - PostgreSQL foreign keys reject transactions that reference missing users or categories.
