@@ -64,6 +64,16 @@ function formatDateValue(value: string) {
   }).format(date);
 }
 
+function formatCompactDayMonth(value: string) {
+  const date = parseLocalDateOnly(value);
+
+  if (!date) {
+    return value;
+  }
+
+  return `${date.getDate()}/${date.getMonth() + 1}`;
+}
+
 function formatCompactMonthYear(value: string) {
   const date = parseLocalDateOnly(value);
 
@@ -71,10 +81,7 @@ function formatCompactMonthYear(value: string) {
     return value;
   }
 
-  return `${new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    year: "2-digit"
-  }).format(date)}'`;
+  return `${date.getMonth() + 1}/${String(date.getFullYear()).slice(-2)}'`;
 }
 
 export function MovesFiltersPanel({
@@ -119,15 +126,15 @@ export function MovesFiltersPanel({
   };
   const today = getTodayDateOnly();
   const currentYear = Number(today.slice(0, 4));
-  const useFullYearRangeFormat =
+  const useMonthYearRangeFormat =
     dateMode === "RANGE" &&
     [startDate, endDate].some((value) => {
       const date = parseLocalDateOnly(value);
       return date !== null && date.getFullYear() !== currentYear;
     });
-  const formatRangeDate = useFullYearRangeFormat
+  const formatRangeDate = useMonthYearRangeFormat
     ? formatCompactMonthYear
-    : formatDateValue;
+    : formatCompactDayMonth;
   const hasAmountFilter =
     amountMode === "EXACT"
       ? exactAmount.length > 0
