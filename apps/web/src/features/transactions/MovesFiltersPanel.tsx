@@ -36,8 +36,8 @@ type MovesFiltersPanelProps = {
 
 const amountPattern = /^\d*(?:[.,]\d{0,2})?$/;
 const FILTER_MODE_OPTIONS: readonly SlidingSegmentOption<ValueMode>[] = [
-  { value: "EXACT", label: "Exact", icon: Equal },
-  { value: "RANGE", label: "Range", icon: ArrowLeftRight }
+  { value: "RANGE", label: "Range", icon: ArrowLeftRight },
+  { value: "EXACT", label: "Exact", icon: Equal }
 ];
 
 function formatAmountValue(value: string) {
@@ -105,7 +105,15 @@ export function MovesFiltersPanel({
     dateMode === "EXACT"
       ? exactDate.length > 0
       : startDate.length > 0 || endDate.length > 0;
-  const hasCategoryFilter = selectedCategoryIds.length > 0;
+  const activeSelectedCategoryIds =
+    typeFilter === "ALL"
+      ? selectedCategoryIds
+      : selectedCategoryIds.filter(
+          (categoryId) =>
+            transactionCategories.find((category) => category.id === categoryId)
+              ?.type === typeFilter
+        );
+  const hasCategoryFilter = activeSelectedCategoryIds.length > 0;
   const activeFilterCount = [
     typeFilter !== "ALL",
     hasAmountFilter,
@@ -118,20 +126,6 @@ export function MovesFiltersPanel({
   useEffect(() => {
     onActiveFilterCountChange(activeFilterCount);
   }, [activeFilterCount, onActiveFilterCountChange]);
-
-  function changeTypeFilter(nextType: TypeFilter) {
-    setTypeFilter(nextType);
-
-    if (nextType !== "ALL") {
-      setSelectedCategoryIds((current) =>
-        current.filter(
-          (categoryId) =>
-            transactionCategories.find((category) => category.id === categoryId)
-              ?.type === nextType
-        )
-      );
-    }
-  }
 
   function updateAmount(value: string, update: (nextValue: string) => void) {
     if (amountPattern.test(value)) {
@@ -197,11 +191,11 @@ export function MovesFiltersPanel({
           : `Until ${formatRangeDate(endDate)}`
     : "Any";
   const categorySummary = hasCategoryFilter
-    ? selectedCategoryIds.length === 1
+    ? activeSelectedCategoryIds.length === 1
       ? transactionCategories.find(
-          (category) => category.id === selectedCategoryIds[0]
+          (category) => category.id === activeSelectedCategoryIds[0]
         )?.name ?? "1 selected"
-      : `${selectedCategoryIds.length} selected`
+      : `${activeSelectedCategoryIds.length} selected`
     : "All";
 
   return (
@@ -226,7 +220,7 @@ export function MovesFiltersPanel({
         includeAll
         compact
         label="Filter by transaction type"
-        onChange={changeTypeFilter}
+        onChange={setTypeFilter}
       />
 
       <div className="moves-filter-shortcuts">
