@@ -206,13 +206,23 @@ export function MovesFiltersPanel({
     >
       <div className="moves-filter-panel__heading">
         <span>Filters</span>
-        <button
-          type="button"
-          disabled={activeFilterCount === 0}
-          onClick={clearFilters}
-        >
-          Clear all
-        </button>
+        <div className="moves-filter-panel__actions">
+          <button
+            className="moves-filter-panel__clear"
+            type="button"
+            disabled={activeFilterCount === 0}
+            onClick={clearFilters}
+          >
+            Clear all
+          </button>
+          <button
+            className="moves-filter-panel__apply"
+            type="button"
+            disabled={activeFilterCount === 0}
+          >
+            Apply filters
+          </button>
+        </div>
       </div>
 
       <TransactionTypeSwitch
@@ -374,6 +384,7 @@ export function MovesFiltersPanel({
           ))}
         </div>
       ) : null}
+
     </section>
   );
 }

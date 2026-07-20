@@ -1317,7 +1317,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .moves-filter-panel {
   --moves-filter-control-height: 46px;
   --moves-filter-heading-font-size: 14px;
-  --moves-filter-shortcut-title-font-size: 12px;
+  --moves-filter-shortcut-title-font-size: 10px;
   --moves-filter-field-title-font-size: 11px;
   --moves-filter-title-line-height: 1.3;
   --moves-filter-title-font-weight: 400;
@@ -1346,25 +1346,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-size: var(--moves-filter-heading-font-size);
   line-height: var(--moves-filter-title-line-height);
   font-weight: var(--moves-filter-title-font-weight);
-}
-
-.moves-filter-panel__heading button {
-  padding: 4px 0 4px 8px;
-  color: var(--color-primary);
-  background: transparent;
-  border: 0;
-  font-size: 11px;
-  line-height: 1.3;
-  font-weight: 400;
-  cursor: pointer;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.moves-filter-panel__heading button:disabled {
-  color: var(--color-text-muted);
-  cursor: default;
-  opacity: 0.55;
 }
 
 .moves-filter-shortcuts {
@@ -1434,7 +1415,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .moves-filter-shortcut__copy small {
   color: inherit;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .moves-filter-shortcut__chevron {
@@ -1584,6 +1565,51 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .moves-filter-field input:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
+}
+
+.moves-filter-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.moves-filter-panel__actions button {
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-filter-panel__clear {
+  padding: 4px 0 4px 8px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+}
+
+.moves-filter-panel__apply {
+  min-height: 28px;
+  padding: 0 9px;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 7px;
+}
+
+.moves-filter-panel__clear:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+  opacity: 0.55;
+}
+
+.moves-filter-panel__apply:disabled {
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+  cursor: default;
+  opacity: 0.72;
 }
 
 .moves-transaction-list {
