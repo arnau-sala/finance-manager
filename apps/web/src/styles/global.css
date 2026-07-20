@@ -1493,6 +1493,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .moves-filter-editor .moves-filter-field > span,
 .moves-filter-editor .transaction-composer__field > span,
+.moves-filter-editor .moves-filter-field__heading > label,
+.moves-filter-editor .moves-filter-field__heading > span,
 .moves-filter-editor .transaction-category-picker legend {
   min-height: 14px;
   margin: 0 0 6px;
@@ -1507,6 +1509,38 @@ body.app-logout-transition .confirm-dialog-backdrop {
   display: flex;
   align-items: center;
   pointer-events: none;
+}
+
+.moves-filter-field__heading {
+  min-width: 0;
+  min-height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.moves-filter-editor .moves-filter-field__heading > label,
+.moves-filter-editor .moves-filter-field__heading > span {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.moves-filter-field__clear {
+  flex: 0 0 auto;
+  min-height: 14px;
+  padding: 0 0 0 6px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .moves-filter-field input {

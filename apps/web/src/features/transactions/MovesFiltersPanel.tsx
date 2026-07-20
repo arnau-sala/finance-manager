@@ -319,44 +319,29 @@ export function MovesFiltersPanel({
             onChange={setAmountMode}
           />
           {amountMode === "EXACT" ? (
-            <label className="moves-filter-field">
-              <span>Exact amount</span>
-              <input
-                type="text"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={exactAmount}
-                onChange={(event) =>
-                  updateAmount(event.target.value, setExactAmount)
-                }
-              />
-            </label>
+            <FilterAmountField
+              id="moves-filter-exact-amount"
+              label="Exact amount"
+              placeholder="0,00"
+              value={exactAmount}
+              onChange={(value) => updateAmount(value, setExactAmount)}
+            />
           ) : (
             <div className="moves-filter-field-row">
-              <label className="moves-filter-field">
-                <span>Minimum</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={minimumAmount}
-                  onChange={(event) =>
-                    updateAmount(event.target.value, setMinimumAmount)
-                  }
-                />
-              </label>
-              <label className="moves-filter-field">
-                <span>Maximum</span>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="No limit"
-                  value={maximumAmount}
-                  onChange={(event) =>
-                    updateAmount(event.target.value, setMaximumAmount)
-                  }
-                />
-              </label>
+              <FilterAmountField
+                id="moves-filter-minimum-amount"
+                label="Minimum"
+                placeholder="0,00"
+                value={minimumAmount}
+                onChange={(value) => updateAmount(value, setMinimumAmount)}
+              />
+              <FilterAmountField
+                id="moves-filter-maximum-amount"
+                label="Maximum"
+                placeholder="No limit"
+                value={maximumAmount}
+                onChange={(value) => updateAmount(value, setMaximumAmount)}
+              />
             </div>
           )}
         </div>
@@ -376,6 +361,7 @@ export function MovesFiltersPanel({
               value={exactDate}
               max={today}
               onChange={setExactDate}
+              onClear={() => setExactDate("")}
             />
           ) : (
             <div className="moves-filter-field-row">
@@ -385,6 +371,7 @@ export function MovesFiltersPanel({
                 value={startDate}
                 max={today}
                 onChange={updateStartDate}
+                onClear={() => setStartDate("")}
               />
               <TransactionDateField
                 id="moves-filter-end-date"
@@ -393,6 +380,7 @@ export function MovesFiltersPanel({
                 min={startDate || undefined}
                 max={today}
                 onChange={updateEndDate}
+                onClear={() => setEndDate("")}
               />
             </div>
           )}
@@ -463,6 +451,48 @@ function FilterShortcut({
       </span>
       <ExpandIcon className="moves-filter-shortcut__chevron" aria-hidden="true" />
     </button>
+  );
+}
+
+type FilterAmountFieldProps = {
+  id: string;
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function FilterAmountField({
+  id,
+  label,
+  placeholder,
+  value,
+  onChange
+}: FilterAmountFieldProps) {
+  return (
+    <div className="moves-filter-field">
+      <div className="moves-filter-field__heading">
+        <label htmlFor={id}>{label}</label>
+        {value ? (
+          <button
+            className="moves-filter-field__clear"
+            type="button"
+            aria-label={`Clear ${label.toLowerCase()}`}
+            onClick={() => onChange("")}
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <input
+        id={id}
+        type="text"
+        inputMode="decimal"
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
   );
 }
 

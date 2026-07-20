@@ -3,6 +3,7 @@ type TransactionDateFieldProps = {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onClear?: () => void;
   name?: string;
   min?: string;
   max?: string;
@@ -17,6 +18,7 @@ export function TransactionDateField({
   label,
   value,
   onChange,
+  onClear,
   name,
   min,
   max,
@@ -29,7 +31,24 @@ export function TransactionDateField({
 
   return (
     <div className="transaction-composer__field">
-      <span id={labelId}>{label}</span>
+      {onClear ? (
+        <div className="moves-filter-field__heading">
+          <span id={labelId}>{label}</span>
+          {value ? (
+            <button
+              className="moves-filter-field__clear"
+              type="button"
+              disabled={disabled}
+              aria-label={`Clear ${label.toLowerCase()}`}
+              onClick={onClear}
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+      ) : (
+        <span id={labelId}>{label}</span>
+      )}
       <div
         className={`transaction-composer__date-control${
           selected ? " is-selected" : ""

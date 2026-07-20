@@ -354,10 +354,6 @@ export function MovesPage() {
   }
 
   function toggleFilterPanel() {
-    if (isFilterPanelOpen && activeFilterCount > 0) {
-      return;
-    }
-
     setIsFilterPanelOpen((current) => !current);
   }
 
