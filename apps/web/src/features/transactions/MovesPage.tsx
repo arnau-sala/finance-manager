@@ -10,145 +10,184 @@ type MockTransaction = TransactionRowData & {
   id: string;
 };
 
-const PAGE_SIZE = 12;
+type MockTransactionTemplate = Omit<MockTransaction, "id" | "date">;
 
-const MOCK_TRANSACTIONS: readonly MockTransaction[] = [
+const PAGE_SIZE = 12;
+const MOCK_TRANSACTION_COUNT = 200;
+const MOCK_TRANSACTIONS_PER_DAY = 3;
+
+const MOCK_TRANSACTION_TEMPLATES: readonly MockTransactionTemplate[] = [
   {
-    id: "mock-01",
     type: "EXPENSE",
     categoryId: "expense-dining",
     categoryName: "Dining",
     amount: "8.60",
-    description: "Coffee and breakfast",
-    date: "2026-07-20"
+    description: "Coffee and breakfast"
   },
   {
-    id: "mock-02",
     type: "INCOME",
     categoryId: "income-salary",
     categoryName: "Salary",
     amount: "2600.00",
-    description: "July salary",
-    date: "2026-07-20"
+    description: "Monthly salary"
   },
   {
-    id: "mock-03",
     type: "EXPENSE",
     categoryId: "expense-groceries",
     categoryName: "Groceries",
     amount: "74.35",
-    description: "Weekly groceries",
-    date: "2026-07-19"
+    description: "Weekly groceries"
   },
   {
-    id: "mock-04",
     type: "EXPENSE",
     categoryId: "expense-housing",
     categoryName: "Housing",
     amount: "920.00",
-    description: "Apartment rent",
-    date: "2026-07-15"
+    description: "Apartment rent"
   },
   {
-    id: "mock-05",
     type: "INCOME",
     categoryId: "income-freelance",
     categoryName: "Freelance",
     amount: "480.00",
-    description: "Freelance landing page",
-    date: "2026-07-12"
+    description: "Freelance design project"
   },
   {
-    id: "mock-06",
     type: "EXPENSE",
     categoryId: "expense-transportation",
     categoryName: "Transportation",
     amount: "25.00",
-    description: "Metro card",
-    date: "2026-07-10"
+    description: "Metro card"
   },
   {
-    id: "mock-07",
     type: "EXPENSE",
     categoryId: "expense-sports",
     categoryName: "Sports",
     amount: "34.99",
-    description: "Gym membership",
-    date: "2026-07-08"
+    description: "Gym membership"
   },
   {
-    id: "mock-08",
-    type: "EXPENSE",
-    categoryId: "expense-dining",
-    categoryName: "Dining",
-    amount: "62.40",
-    description: "Dinner with friends",
-    date: "2026-07-05"
-  },
-  {
-    id: "mock-09",
     type: "EXPENSE",
     categoryId: "expense-subscriptions",
     categoryName: "Subscriptions",
     amount: "18.98",
-    description: "Streaming services",
-    date: "2026-07-03"
+    description: "Streaming services"
   },
   {
-    id: "mock-10",
     type: "EXPENSE",
     categoryId: "expense-health",
     categoryName: "Health",
     amount: "13.25",
-    description: "Pharmacy",
-    date: "2026-06-28"
+    description: "Pharmacy"
   },
   {
-    id: "mock-11",
     type: "EXPENSE",
     categoryId: "expense-education",
     categoryName: "Education",
     amount: "89.00",
-    description: "Online course",
-    date: "2026-06-23"
+    description: "Online course"
   },
   {
-    id: "mock-12",
     type: "INCOME",
     categoryId: "income-sales",
     categoryName: "Sales",
     amount: "145.00",
-    description: "Sold old monitor",
-    date: "2026-06-18"
+    description: "Sold old monitor"
   },
   {
-    id: "mock-13",
     type: "EXPENSE",
     categoryId: "expense-gifts",
     categoryName: "Gifts",
     amount: "40.00",
-    description: "Birthday present",
-    date: "2026-06-14"
+    description: "Birthday present"
   },
   {
-    id: "mock-14",
     type: "INCOME",
     categoryId: "income-benefits",
     categoryName: "Benefits",
     amount: "75.00",
-    description: "Employee benefits",
-    date: "2026-06-08"
+    description: "Employee benefit"
   },
   {
-    id: "mock-15",
     type: "EXPENSE",
     categoryId: "expense-shopping",
     categoryName: "Shopping",
     amount: "96.50",
-    description: "Summer shoes",
-    date: "2026-06-02"
+    description: "Running shoes"
+  },
+  {
+    type: "EXPENSE",
+    categoryId: "expense-parties",
+    categoryName: "Parties",
+    amount: "32.00",
+    description: "Concert tickets"
+  },
+  {
+    type: "EXPENSE",
+    categoryId: "expense-other",
+    categoryName: "Other",
+    amount: "21.40",
+    description: "Household supplies"
+  },
+  {
+    type: "INCOME",
+    categoryId: "income-allowance",
+    categoryName: "Allowance",
+    amount: "50.00",
+    description: "Family allowance"
+  },
+  {
+    type: "INCOME",
+    categoryId: "income-gifts",
+    categoryName: "Gifts",
+    amount: "80.00",
+    description: "Birthday gift"
+  },
+  {
+    type: "INCOME",
+    categoryId: "income-investments",
+    categoryName: "Investments",
+    amount: "36.75",
+    description: "Dividend payment"
+  },
+  {
+    type: "INCOME",
+    categoryId: "income-other",
+    categoryName: "Other",
+    amount: "12.30",
+    description: "Cashback reward"
   }
 ];
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function createMockTransactions(): MockTransaction[] {
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+
+  return Array.from({ length: MOCK_TRANSACTION_COUNT }, (_, index) => {
+    const template =
+      MOCK_TRANSACTION_TEMPLATES[index % MOCK_TRANSACTION_TEMPLATES.length];
+    const date = new Date(today);
+    date.setDate(
+      today.getDate() - Math.floor(index / MOCK_TRANSACTIONS_PER_DAY)
+    );
+
+    return {
+      ...template,
+      id: `mock-${String(index + 1).padStart(3, "0")}`,
+      date: formatLocalDate(date)
+    };
+  });
+}
+
+const MOCK_TRANSACTIONS: readonly MockTransaction[] = createMockTransactions();
 
 function getResultLabel(count: number, isSearching: boolean) {
   if (isSearching) {
