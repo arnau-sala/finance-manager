@@ -13,6 +13,7 @@ import {
   TransactionRow,
   type TransactionRowData
 } from "./TransactionRow";
+import { MovesFiltersPanel } from "./MovesFiltersPanel";
 
 type MockTransaction = TransactionRowData & {
   id: string;
@@ -21,6 +22,7 @@ type MockTransaction = TransactionRowData & {
 type MockTransactionTemplate = Omit<MockTransaction, "id" | "date">;
 
 const PAGE_SIZE = 12;
+const FILTER_PANEL_ID = "moves-filter-panel";
 const MOCK_TRANSACTION_COUNT = 200;
 const MOCK_TRANSACTION_DAY_INTERVAL = 2;
 
@@ -223,6 +225,8 @@ function getResultLabel(count: number, isSearching: boolean) {
 export function MovesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [activeFilterCount, setActiveFilterCount] = useState(0);
   const scrollContainer = useRef<HTMLElement>(null);
   const loadMoreSentinel = useRef<HTMLDivElement>(null);
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
@@ -250,6 +254,14 @@ export function MovesPage() {
     setSearchQuery(value);
     setVisibleCount(PAGE_SIZE);
     scrollContainer.current?.scrollTo({ top: 0 });
+  }
+
+  function toggleFilterPanel() {
+    if (isFilterPanelOpen && activeFilterCount > 0) {
+      return;
+    }
+
+    setIsFilterPanelOpen((current) => !current);
   }
 
   useEffect(() => {
@@ -322,15 +334,31 @@ export function MovesPage() {
           </div>
 
           <button
-            className="moves-filter-button"
+            className={`moves-filter-button${
+              isFilterPanelOpen ? " is-active" : ""
+            }`}
             type="button"
-            disabled
-            aria-label="Open transaction filters"
+            aria-label="Transaction filters"
+            aria-controls={FILTER_PANEL_ID}
+            aria-expanded={isFilterPanelOpen}
             title="Filters"
+            onClick={toggleFilterPanel}
           >
             <SlidersHorizontal aria-hidden="true" />
+            {activeFilterCount > 0 ? (
+              <span className="moves-filter-button__count" aria-hidden="true">
+                {activeFilterCount}
+              </span>
+            ) : null}
           </button>
         </div>
+
+        {isFilterPanelOpen ? (
+          <MovesFiltersPanel
+            id={FILTER_PANEL_ID}
+            onActiveFilterCountChange={setActiveFilterCount}
+          />
+        ) : null}
 
         {visibleTransactions.length > 0 ? (
           <ul className="moves-transaction-list" aria-label="Transaction history">

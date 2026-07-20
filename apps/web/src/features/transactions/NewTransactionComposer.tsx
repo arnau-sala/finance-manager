@@ -1,27 +1,23 @@
 import {
-  type CSSProperties,
   type FormEvent,
-  type PointerEvent as ReactPointerEvent,
   useEffect,
-  useMemo,
   useRef,
   useState
 } from "react";
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  X
-} from "lucide-react";
+import { X } from "lucide-react";
 
 import { getTodayDateOnly } from "../../dates/date-only";
-import {
-  transactionCategories,
-  type TransactionType
-} from "./category-catalog";
+import { type TransactionType } from "./category-catalog";
 import {
   createTransaction,
   TransactionApiError
 } from "./transaction-api";
+import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
+import { TransactionDateField } from "./TransactionDateField";
+import {
+  TransactionTypeSwitch,
+  type TransactionTypeSelection
+} from "./TransactionTypeSwitch";
 import {
   type CreateTransactionField,
   validateCreateTransaction
@@ -36,15 +32,6 @@ type NewTransactionComposerProps = {
 
 type InvalidFields = Partial<Record<CreateTransactionField, boolean>>;
 
-type TypeDrag = {
-  pointerId: number;
-  startX: number;
-  startY: number;
-  startType: TransactionType;
-  maxDistance: number;
-};
-
-const TYPE_DRAG_THRESHOLD = 14;
 const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
   "amount",
   "type",
@@ -83,19 +70,10 @@ export function NewTransactionComposer({
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [typeDragOffset, setTypeDragOffset] = useState(0);
-  const [isTypeDragging, setIsTypeDragging] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
-  const typeToggle = useRef<HTMLDivElement>(null);
-  const typeDrag = useRef<TypeDrag | null>(null);
-  const suppressTypeClick = useRef(false);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
-  const visibleCategories = useMemo(
-    () => transactionCategories.filter((category) => category.type === type),
-    [type]
-  );
   const canAdd =
     !isSubmitting &&
     amount.length > 0 &&
@@ -154,7 +132,11 @@ export function NewTransactionComposer({
     setFormError(null);
   }
 
-  function selectType(nextType: TransactionType) {
+  function selectType(nextType: TransactionTypeSelection) {
+    if (nextType === "ALL") {
+      return;
+    }
+
     if (nextType === type) {
       return;
     }
@@ -163,96 +145,6 @@ export function NewTransactionComposer({
     setSelectedCategoryId(null);
     clearFieldError("type");
     clearFieldError("categoryId");
-  }
-
-  function handleTypeClick(nextType: TransactionType) {
-    if (suppressTypeClick.current) {
-      suppressTypeClick.current = false;
-      return;
-    }
-
-    selectType(nextType);
-  }
-
-  function startTypeDrag(
-    event: ReactPointerEvent<HTMLButtonElement>,
-    startType: TransactionType
-  ) {
-    if (startType !== type || (event.pointerType === "mouse" && event.button !== 0)) {
-      return;
-    }
-
-    const toggleWidth = typeToggle.current?.clientWidth ?? 0;
-
-    typeDrag.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startType,
-      maxDistance: Math.max(0, toggleWidth / 2 - 4)
-    };
-    setIsTypeDragging(true);
-    setTypeDragOffset(0);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function moveTypeDrag(event: ReactPointerEvent<HTMLButtonElement>) {
-    const drag = typeDrag.current;
-
-    if (!drag || drag.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const distance = event.clientX - drag.startX;
-    const offset =
-      drag.startType === "EXPENSE"
-        ? Math.min(Math.max(distance, 0), drag.maxDistance)
-        : Math.max(Math.min(distance, 0), -drag.maxDistance);
-
-    setTypeDragOffset(offset);
-  }
-
-  function finishTypeDrag(event: ReactPointerEvent<HTMLButtonElement>) {
-    const drag = typeDrag.current;
-
-    if (!drag || drag.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const horizontalDistance = event.clientX - drag.startX;
-    const verticalDistance = event.clientY - drag.startY;
-    const movedTowardOther =
-      drag.startType === "EXPENSE"
-        ? horizontalDistance >= TYPE_DRAG_THRESHOLD
-        : horizontalDistance <= -TYPE_DRAG_THRESHOLD;
-    const hasHorizontalIntent =
-      Math.abs(horizontalDistance) > Math.abs(verticalDistance);
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-
-    typeDrag.current = null;
-    setIsTypeDragging(false);
-    setTypeDragOffset(0);
-
-    if (movedTowardOther && hasHorizontalIntent) {
-      suppressTypeClick.current = true;
-      selectType(drag.startType === "EXPENSE" ? "INCOME" : "EXPENSE");
-      window.setTimeout(() => {
-        suppressTypeClick.current = false;
-      }, 0);
-    }
-  }
-
-  function cancelTypeDrag(event: ReactPointerEvent<HTMLButtonElement>) {
-    if (typeDrag.current?.pointerId !== event.pointerId) {
-      return;
-    }
-
-    typeDrag.current = null;
-    setIsTypeDragging(false);
-    setTypeDragOffset(0);
   }
 
   function updateAmount(value: string) {
@@ -414,49 +306,11 @@ export function NewTransactionComposer({
               </div>
             </div>
 
-            <div
-              ref={typeToggle}
-              className={`transaction-type-toggle transaction-type-toggle--${type.toLowerCase()}${
-                isTypeDragging ? " is-dragging" : ""
-              }`}
-              style={
-                {
-                  "--transaction-type-drag-offset": `${typeDragOffset}px`
-                } as CSSProperties
-              }
-              role="radiogroup"
-              aria-label="Transaction type"
-            >
-              <span className="transaction-type-toggle__indicator" aria-hidden="true" />
-              <button
-                type="button"
-                disabled={isSubmitting}
-                role="radio"
-                aria-checked={type === "EXPENSE"}
-                onClick={() => handleTypeClick("EXPENSE")}
-                onPointerDown={(event) => startTypeDrag(event, "EXPENSE")}
-                onPointerMove={moveTypeDrag}
-                onPointerUp={finishTypeDrag}
-                onPointerCancel={cancelTypeDrag}
-              >
-                <ArrowDownRight aria-hidden="true" />
-                Expense
-              </button>
-              <button
-                type="button"
-                disabled={isSubmitting}
-                role="radio"
-                aria-checked={type === "INCOME"}
-                onClick={() => handleTypeClick("INCOME")}
-                onPointerDown={(event) => startTypeDrag(event, "INCOME")}
-                onPointerMove={moveTypeDrag}
-                onPointerUp={finishTypeDrag}
-                onPointerCancel={cancelTypeDrag}
-              >
-                <ArrowUpRight aria-hidden="true" />
-                Income
-              </button>
-            </div>
+            <TransactionTypeSwitch
+              value={type}
+              disabled={isSubmitting}
+              onChange={selectType}
+            />
 
             <div className="transaction-composer__field">
               <span id="transaction-name-label">Name</span>
@@ -480,65 +334,35 @@ export function NewTransactionComposer({
               />
             </div>
 
-            <fieldset
-              className="transaction-category-picker"
+            <TransactionCategoryPicker
+              type={type}
+              selectedCategoryIds={
+                selectedCategoryId ? [selectedCategoryId] : []
+              }
+              onCategorySelect={(categoryId) => {
+                setSelectedCategoryId(categoryId);
+                clearFieldError("categoryId");
+              }}
               disabled={isSubmitting}
-              aria-invalid={invalidFields.categoryId === true}
-              aria-describedby={formError ? "transaction-form-error" : undefined}
-            >
-              <legend>Category</legend>
-              <div className="transaction-category-grid">
-                {visibleCategories.map((category) => {
-                  const Icon = category.icon;
-                  const isSelected = selectedCategoryId === category.id;
+              invalid={invalidFields.categoryId === true}
+              describedBy={formError ? "transaction-form-error" : undefined}
+            />
 
-                  return (
-                    <button
-                      key={category.id}
-                      className={`transaction-category-option${
-                        isSelected ? " is-selected" : ""
-                      }`}
-                      type="button"
-                      aria-pressed={isSelected}
-                      onClick={() => {
-                        setSelectedCategoryId(category.id);
-                        clearFieldError("categoryId");
-                      }}
-                    >
-                      <span className="transaction-category-option__icon" aria-hidden="true">
-                        <Icon />
-                      </span>
-                      <span>{category.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-
-            <div className="transaction-composer__field">
-              <span id="transaction-date-label">Date</span>
-              <div
-                className={`transaction-composer__date-control${
-                  hasSelectedDate ? " is-selected" : ""
-                }${invalidFields.date ? " is-invalid" : ""}`}
-              >
-                <input
-                  id="transaction-date"
-                  name="date"
-                  type="date"
-                  value={date}
-                  disabled={isSubmitting}
-                  aria-labelledby="transaction-date-label"
-                  aria-invalid={invalidFields.date === true}
-                  aria-describedby={formError ? "transaction-form-error" : undefined}
-                  onChange={(event) => {
-                    setDate(event.target.value);
-                    setHasSelectedDate(true);
-                    clearFieldError("date");
-                  }}
-                />
-              </div>
-            </div>
+            <TransactionDateField
+              id="transaction-date"
+              name="date"
+              label="Date"
+              value={date}
+              selected={hasSelectedDate}
+              disabled={isSubmitting}
+              invalid={invalidFields.date === true}
+              describedBy={formError ? "transaction-form-error" : undefined}
+              onChange={(nextDate) => {
+                setDate(nextDate);
+                setHasSelectedDate(true);
+                clearFieldError("date");
+              }}
+            />
           </div>
         </div>
 

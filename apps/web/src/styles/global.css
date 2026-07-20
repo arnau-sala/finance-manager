@@ -865,8 +865,10 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .home-content--moves {
   bottom: 0;
   display: block;
+  overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  touch-action: pan-y;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -1172,7 +1174,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   grid-template-columns: minmax(0, 1fr) 48px;
   gap: 10px;
   margin-top: 14px;
-  padding: 10px 0 12px;
+  padding: 11px 7px 11px 0;
   background: var(--color-surface);
 }
 
@@ -1252,6 +1254,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .moves-filter-button {
+  position: relative;
   width: 48px;
   height: 48px;
   display: grid;
@@ -1261,6 +1264,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 16px;
+  overflow: visible;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -1272,9 +1276,10 @@ body.app-logout-transition .confirm-dialog-backdrop {
   border-color: var(--color-primary-border);
 }
 
-.moves-filter-button:disabled {
-  cursor: default;
-  opacity: 1;
+.moves-filter-button.is-active {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
 }
 
 .moves-filter-button svg {
@@ -1283,10 +1288,299 @@ body.app-logout-transition .confirm-dialog-backdrop {
   stroke-width: 1.8;
 }
 
+.moves-filter-button__count {
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0 4px;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
 .moves-search button:focus-visible,
 .moves-filter-button:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
+}
+
+.moves-filter-panel {
+  --moves-filter-control-height: 46px;
+  --moves-filter-heading-font-size: 14px;
+  --moves-filter-shortcut-title-font-size: 12px;
+  --moves-filter-field-title-font-size: 11px;
+  --moves-filter-title-line-height: 1.3;
+  --moves-filter-title-font-weight: 400;
+  position: sticky;
+  z-index: 2;
+  top: 70px;
+  display: grid;
+  gap: 9px;
+  padding: 8px 0 12px;
+  background: var(--color-surface);
+}
+
+.moves-filter-panel__heading {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.moves-filter-panel__heading > span {
+  color: var(--color-text);
+  font-size: var(--moves-filter-heading-font-size);
+  line-height: var(--moves-filter-title-line-height);
+  font-weight: var(--moves-filter-title-font-weight);
+}
+
+.moves-filter-panel__heading button {
+  padding: 4px 0 4px 8px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-filter-panel__heading button:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+  opacity: 0.55;
+}
+
+.moves-filter-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.moves-filter-shortcuts > button {
+  min-width: 0;
+  height: var(--moves-filter-control-height);
+  display: grid;
+  grid-template-columns: 15px minmax(0, 1fr) 9px;
+  align-items: center;
+  gap: 5px;
+  padding: 0 6px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-filter-shortcuts > button.is-active {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.moves-filter-shortcut__icon,
+.moves-filter-shortcut__icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.moves-filter-shortcut__icon svg {
+  stroke-width: 1.8;
+}
+
+.moves-filter-shortcut__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.moves-filter-shortcut__copy strong,
+.moves-filter-shortcut__copy small {
+  overflow: hidden;
+  font-weight: var(--moves-filter-title-font-weight);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moves-filter-shortcut__copy strong {
+  color: var(--color-text);
+  font-size: var(--moves-filter-shortcut-title-font-size);
+}
+
+.moves-filter-panel .transaction-type-switch button {
+  font-size: var(--moves-filter-shortcut-title-font-size);
+  line-height: 1.2;
+}
+
+.moves-filter-shortcut__copy small {
+  color: inherit;
+  font-size: 8px;
+}
+
+.moves-filter-shortcut__chevron {
+  width: 9px;
+  height: 9px;
+  stroke-width: 1.8;
+}
+
+@media (max-width: 380px) {
+  .moves-filter-shortcuts > button {
+    grid-template-columns: 14px minmax(0, 1fr) 8px;
+    gap: 4px;
+    padding: 0 5px;
+  }
+
+  .moves-filter-shortcut__icon,
+  .moves-filter-shortcut__icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .moves-filter-shortcut__chevron {
+    width: 8px;
+    height: 8px;
+  }
+}
+
+@media (max-width: 340px) {
+  .moves-filter-shortcuts > button {
+    grid-template-columns: 9px minmax(0, 1fr) 6px;
+    gap: 2.5px;
+    padding: 0 3px;
+  }
+
+  .moves-filter-shortcut__icon,
+  .moves-filter-shortcut__icon svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  .moves-filter-shortcut__chevron {
+    width: 6px;
+    height: 6px;
+  }
+}
+
+.moves-filter-editor {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.moves-filter-mode-switch {
+  width: 100%;
+}
+
+.moves-filter-editor .transaction-composer__date-control {
+  height: var(--moves-filter-control-height);
+}
+
+.moves-filter-field-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.moves-filter-field {
+  min-width: 0;
+  display: grid;
+  gap: 0;
+}
+
+.moves-filter-editor .moves-filter-field > span,
+.moves-filter-editor .transaction-composer__field > span,
+.moves-filter-editor .transaction-category-picker legend {
+  min-height: 14px;
+  margin: 0 0 6px;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: var(--moves-filter-field-title-font-size);
+  line-height: var(--moves-filter-title-line-height);
+  font-weight: var(--moves-filter-title-font-weight);
+}
+
+.moves-filter-editor .moves-filter-field > span {
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.moves-filter-field input {
+  width: 100%;
+  min-width: 0;
+  height: var(--moves-filter-control-height);
+  padding: 0 10px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: 0;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.moves-filter-field input:focus {
+  border-color: var(--color-primary);
+}
+
+.moves-filter-field input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.72;
+}
+
+.moves-filter-editor--categories {
+  max-height: 246px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.moves-filter-editor--categories::-webkit-scrollbar {
+  display: none;
+}
+
+.moves-filter-category-section {
+  --transaction-type-color: var(--color-danger);
+  --transaction-type-soft: var(--color-danger-soft);
+}
+
+.moves-filter-category-section--income {
+  --transaction-type-color: var(--color-success);
+  --transaction-type-soft: var(--color-success-soft);
+}
+
+.moves-filter-category-section + .moves-filter-category-section {
+  padding-top: 12px;
+}
+
+.moves-filter-panel button:focus-visible,
+.moves-filter-field input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .moves-transaction-list {
@@ -1647,13 +1941,21 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 300;
 }
 
-.transaction-type-toggle {
-  --transaction-type-drag-offset: 0px;
+.sliding-segmented-control {
+  --segmented-option-count: 2;
+  --segmented-option-width: calc(50% - 3px);
+  --segmented-position: 0%;
+  --segmented-drag-offset: 0px;
+  --segmented-color: var(--color-primary);
+  --segmented-soft: var(--color-primary-soft);
   position: relative;
   width: 100%;
   height: 48px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(
+    var(--segmented-option-count),
+    minmax(0, 1fr)
+  );
   padding: 4px;
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
@@ -1661,34 +1963,45 @@ body.app-logout-transition .confirm-dialog-backdrop {
   isolation: isolate;
 }
 
-.transaction-type-toggle__indicator {
+.sliding-segmented-control__indicator {
   position: absolute;
   z-index: 0;
   top: 3px;
   bottom: 3px;
   left: 3px;
-  width: calc(50% - 3px);
-  background: var(--transaction-type-soft);
-  border: 1px solid var(--transaction-type-color);
+  width: var(--segmented-option-width);
+  background: var(--segmented-soft);
+  border: 1px solid var(--segmented-color);
   border-radius: 999px;
-  transform: translateX(var(--transaction-type-drag-offset));
+  transform: translateX(
+    calc(var(--segmented-position) + var(--segmented-drag-offset))
+  );
   transition:
     transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
     background-color 180ms ease,
     border-color 180ms ease;
 }
 
-.transaction-type-toggle--income .transaction-type-toggle__indicator {
-  transform: translateX(
-    calc(100% + var(--transaction-type-drag-offset))
-  );
+.sliding-segmented-control--primary {
+  --segmented-color: var(--color-primary);
+  --segmented-soft: var(--color-primary-soft);
 }
 
-.transaction-type-toggle.is-dragging .transaction-type-toggle__indicator {
+.sliding-segmented-control--expense {
+  --segmented-color: var(--color-danger);
+  --segmented-soft: var(--color-danger-soft);
+}
+
+.sliding-segmented-control--income {
+  --segmented-color: var(--color-success);
+  --segmented-soft: var(--color-success-soft);
+}
+
+.sliding-segmented-control.is-dragging .sliding-segmented-control__indicator {
   transition: none;
 }
 
-.transaction-type-toggle button {
+.sliding-segmented-control button {
   position: relative;
   z-index: 1;
   min-width: 0;
@@ -1710,19 +2023,34 @@ body.app-logout-transition .confirm-dialog-backdrop {
   -webkit-user-select: none;
 }
 
-.transaction-type-toggle button[aria-checked="true"] {
-  color: var(--transaction-type-color);
+.sliding-segmented-control button[aria-checked="true"] {
+  color: var(--segmented-color);
   cursor: grab;
 }
 
-.transaction-type-toggle.is-dragging button[aria-checked="true"] {
+.sliding-segmented-control.is-dragging button[aria-checked="true"] {
   cursor: grabbing;
 }
 
-.transaction-type-toggle button svg {
+.sliding-segmented-control button svg {
   width: 18px;
   height: 18px;
   stroke-width: 1.8;
+}
+
+.sliding-segmented-control--compact {
+  height: 42px;
+}
+
+.sliding-segmented-control--compact button {
+  gap: 5px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.sliding-segmented-control--compact button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .transaction-category-picker {
@@ -1976,7 +2304,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .transaction-composer__close:disabled,
-.transaction-type-toggle button:disabled,
+.sliding-segmented-control button:disabled,
 .transaction-category-option:disabled {
   cursor: default;
 }
@@ -1986,7 +2314,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .transaction-composer__close:focus-visible,
-.transaction-type-toggle button:focus-visible,
+.sliding-segmented-control button:focus-visible,
 .transaction-category-option:focus-visible,
 .transaction-composer__footer button:focus-visible {
   outline: 3px solid var(--color-focus-ring);
@@ -2744,7 +3072,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   }
 
   .transaction-composer,
-  .transaction-type-toggle__indicator {
+  .sliding-segmented-control__indicator {
     transition-duration: 1ms;
   }
 }
