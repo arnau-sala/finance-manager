@@ -1,6 +1,14 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+import { parseLocalDateOnly } from "../../dates/date-only";
 import {
   TransactionRow,
   type TransactionRowData
@@ -14,7 +22,7 @@ type MockTransactionTemplate = Omit<MockTransaction, "id" | "date">;
 
 const PAGE_SIZE = 12;
 const MOCK_TRANSACTION_COUNT = 200;
-const MOCK_TRANSACTIONS_PER_DAY = 3;
+const MOCK_TRANSACTION_DAY_INTERVAL = 2;
 
 const MOCK_TRANSACTION_TEMPLATES: readonly MockTransactionTemplate[] = [
   {
@@ -167,6 +175,23 @@ function formatLocalDate(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
+function getMonthKey(value: string) {
+  return value.slice(0, 7);
+}
+
+function formatMonthLabel(value: string) {
+  const date = parseLocalDateOnly(value);
+
+  if (!date) {
+    return "Unknown date";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric"
+  }).format(date);
+}
+
 function createMockTransactions(): MockTransaction[] {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
@@ -175,9 +200,7 @@ function createMockTransactions(): MockTransaction[] {
     const template =
       MOCK_TRANSACTION_TEMPLATES[index % MOCK_TRANSACTION_TEMPLATES.length];
     const date = new Date(today);
-    date.setDate(
-      today.getDate() - Math.floor(index / MOCK_TRANSACTIONS_PER_DAY)
-    );
+    date.setDate(today.getDate() - index * MOCK_TRANSACTION_DAY_INTERVAL);
 
     return {
       ...template,
@@ -311,17 +334,33 @@ export function MovesPage() {
 
         {visibleTransactions.length > 0 ? (
           <ul className="moves-transaction-list" aria-label="Transaction history">
-            {visibleTransactions.map((transaction) => (
-              <TransactionRow
-                key={transaction.id}
-                type={transaction.type}
-                categoryId={transaction.categoryId}
-                categoryName={transaction.categoryName}
-                amount={transaction.amount}
-                description={transaction.description}
-                date={transaction.date}
-              />
-            ))}
+            {visibleTransactions.map((transaction, index) => {
+              const previousTransaction = visibleTransactions[index - 1];
+              const startsNewMonth =
+                !previousTransaction ||
+                getMonthKey(previousTransaction.date) !==
+                  getMonthKey(transaction.date);
+
+              return (
+                <Fragment key={transaction.id}>
+                  {startsNewMonth ? (
+                    <li className="moves-month-divider">
+                      <time dateTime={getMonthKey(transaction.date)}>
+                        {formatMonthLabel(transaction.date)}
+                      </time>
+                    </li>
+                  ) : null}
+                  <TransactionRow
+                    type={transaction.type}
+                    categoryId={transaction.categoryId}
+                    categoryName={transaction.categoryName}
+                    amount={transaction.amount}
+                    description={transaction.description}
+                    date={transaction.date}
+                  />
+                </Fragment>
+              );
+            })}
           </ul>
         ) : (
           <div className="moves-empty-state" role="status">
