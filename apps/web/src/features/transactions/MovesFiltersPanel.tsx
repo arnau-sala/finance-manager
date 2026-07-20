@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   ArrowLeftRight,
   CalendarDays,
@@ -18,27 +18,33 @@ import {
   transactionCategories,
   type TransactionType
 } from "./category-catalog";
+import {
+  countActiveMovesFilters,
+  createEmptyMovesFilters,
+  getActiveCategoryIds,
+  haveEqualMovesFilters,
+  type MovesFilters,
+  type MovesFilterValueMode,
+  type MovesTypeFilter
+} from "./moves-filters";
 import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
 import { TransactionDateField } from "./TransactionDateField";
-import {
-  TransactionTypeSwitch,
-  type TransactionTypeSelection
-} from "./TransactionTypeSwitch";
+import { TransactionTypeSwitch } from "./TransactionTypeSwitch";
 
-type TypeFilter = TransactionTypeSelection;
 type FilterEditor = "amount" | "date" | "categories";
-type ValueMode = "EXACT" | "RANGE";
 
 type MovesFiltersPanelProps = {
   id: string;
-  onActiveFilterCountChange: (count: number) => void;
+  appliedFilters: MovesFilters;
+  onApply: (filters: MovesFilters) => void;
 };
 
-const amountPattern = /^\d*(?:[.,]\d{0,2})?$/;
-const FILTER_MODE_OPTIONS: readonly SlidingSegmentOption<ValueMode>[] = [
+const amountPattern = /^(?:\d+(?:[.,]\d{0,2})?)?$/;
+const FILTER_MODE_OPTIONS: readonly SlidingSegmentOption<MovesFilterValueMode>[] = [
   { value: "RANGE", label: "Range", icon: ArrowLeftRight },
   { value: "EXACT", label: "Exact", icon: Equal }
 ];
+const EMPTY_MOVES_FILTERS = createEmptyMovesFilters();
 
 function formatAmountValue(value: string) {
   return `${value.replace(".", ",")}\u20ac`;
@@ -73,19 +79,44 @@ function formatCompactMonthYear(value: string) {
 
 export function MovesFiltersPanel({
   id,
-  onActiveFilterCountChange
+  appliedFilters,
+  onApply
 }: MovesFiltersPanelProps) {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
+  const [typeFilter, setTypeFilter] = useState<MovesTypeFilter>(
+    appliedFilters.type
+  );
   const [activeEditor, setActiveEditor] = useState<FilterEditor | null>(null);
-  const [amountMode, setAmountMode] = useState<ValueMode>("RANGE");
-  const [exactAmount, setExactAmount] = useState("");
-  const [minimumAmount, setMinimumAmount] = useState("");
-  const [maximumAmount, setMaximumAmount] = useState("");
-  const [dateMode, setDateMode] = useState<ValueMode>("RANGE");
-  const [exactDate, setExactDate] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [amountMode, setAmountMode] = useState<MovesFilterValueMode>(
+    appliedFilters.amountMode
+  );
+  const [exactAmount, setExactAmount] = useState(appliedFilters.exactAmount);
+  const [minimumAmount, setMinimumAmount] = useState(
+    appliedFilters.minimumAmount
+  );
+  const [maximumAmount, setMaximumAmount] = useState(
+    appliedFilters.maximumAmount
+  );
+  const [dateMode, setDateMode] = useState<MovesFilterValueMode>(
+    appliedFilters.dateMode
+  );
+  const [exactDate, setExactDate] = useState(appliedFilters.exactDate);
+  const [startDate, setStartDate] = useState(appliedFilters.startDate);
+  const [endDate, setEndDate] = useState(appliedFilters.endDate);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>(
+    () => [...appliedFilters.selectedCategoryIds]
+  );
+  const draftFilters: MovesFilters = {
+    type: typeFilter,
+    amountMode,
+    exactAmount,
+    minimumAmount,
+    maximumAmount,
+    dateMode,
+    exactDate,
+    startDate,
+    endDate,
+    selectedCategoryIds
+  };
   const today = getTodayDateOnly();
   const currentYear = Number(today.slice(0, 4));
   const useFullYearRangeFormat =
@@ -105,27 +136,19 @@ export function MovesFiltersPanel({
     dateMode === "EXACT"
       ? exactDate.length > 0
       : startDate.length > 0 || endDate.length > 0;
-  const activeSelectedCategoryIds =
-    typeFilter === "ALL"
-      ? selectedCategoryIds
-      : selectedCategoryIds.filter(
-          (categoryId) =>
-            transactionCategories.find((category) => category.id === categoryId)
-              ?.type === typeFilter
-        );
+  const activeSelectedCategoryIds = getActiveCategoryIds(draftFilters);
   const hasCategoryFilter = activeSelectedCategoryIds.length > 0;
-  const activeFilterCount = [
-    typeFilter !== "ALL",
-    hasAmountFilter,
-    hasDateFilter,
-    hasCategoryFilter
-  ].filter(Boolean).length;
+  const activeFilterCount = countActiveMovesFilters(draftFilters);
+  const hasPendingChanges = !haveEqualMovesFilters(
+    draftFilters,
+    appliedFilters
+  );
+  const canClearFilters = !haveEqualMovesFilters(
+    draftFilters,
+    EMPTY_MOVES_FILTERS
+  );
   const visibleCategoryTypes: readonly TransactionType[] =
     typeFilter === "ALL" ? ["EXPENSE", "INCOME"] : [typeFilter];
-
-  useEffect(() => {
-    onActiveFilterCountChange(activeFilterCount);
-  }, [activeFilterCount, onActiveFilterCountChange]);
 
   function updateAmount(value: string, update: (nextValue: string) => void) {
     if (amountPattern.test(value)) {
@@ -158,7 +181,8 @@ export function MovesFiltersPanel({
   }
 
   function clearFilters() {
-    onActiveFilterCountChange(0);
+    const emptyFilters = createEmptyMovesFilters();
+
     setTypeFilter("ALL");
     setActiveEditor(null);
     setAmountMode("RANGE");
@@ -170,6 +194,15 @@ export function MovesFiltersPanel({
     setStartDate("");
     setEndDate("");
     setSelectedCategoryIds([]);
+    onApply(emptyFilters);
+  }
+
+  function applyFilters() {
+    onApply({
+      ...draftFilters,
+      selectedCategoryIds: [...selectedCategoryIds]
+    });
+    setActiveEditor(null);
   }
 
   const amountSummary = hasAmountFilter
@@ -210,7 +243,7 @@ export function MovesFiltersPanel({
           <button
             className="moves-filter-panel__clear"
             type="button"
-            disabled={activeFilterCount === 0}
+            disabled={!canClearFilters}
             onClick={clearFilters}
           >
             Clear all
@@ -218,7 +251,8 @@ export function MovesFiltersPanel({
           <button
             className="moves-filter-panel__apply"
             type="button"
-            disabled={activeFilterCount === 0}
+            disabled={!hasPendingChanges}
+            onClick={applyFilters}
           >
             Apply filters
           </button>
@@ -426,9 +460,9 @@ function FilterShortcut({
 }
 
 type FilterModeToggleProps = {
-  value: ValueMode;
+  value: MovesFilterValueMode;
   label: string;
-  onChange: (mode: ValueMode) => void;
+  onChange: (mode: MovesFilterValueMode) => void;
 };
 
 function FilterModeToggle({ value, label, onChange }: FilterModeToggleProps) {

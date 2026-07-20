@@ -14,6 +14,12 @@ import {
   type TransactionRowData
 } from "./TransactionRow";
 import { MovesFiltersPanel } from "./MovesFiltersPanel";
+import {
+  countActiveMovesFilters,
+  createEmptyMovesFilters,
+  getActiveCategoryIds,
+  type MovesFilters
+} from "./moves-filters";
 
 type MockTransaction = TransactionRowData & {
   id: string;
@@ -181,6 +187,13 @@ function getMonthKey(value: string) {
   return value.slice(0, 7);
 }
 
+function parseAmountCents(value: string | number) {
+  const amount =
+    typeof value === "number" ? value : Number(value.replace(",", "."));
+
+  return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+}
+
 function formatMonthLabel(value: string) {
   const date = parseLocalDateOnly(value);
 
@@ -226,19 +239,97 @@ export function MovesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [activeFilterCount, setActiveFilterCount] = useState(0);
+  const [appliedFilters, setAppliedFilters] = useState<MovesFilters>(
+    createEmptyMovesFilters
+  );
   const scrollContainer = useRef<HTMLElement>(null);
   const loadMoreSentinel = useRef<HTMLDivElement>(null);
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
-  const filteredTransactions = useMemo(
-    () =>
-      normalizedQuery
-        ? MOCK_TRANSACTIONS.filter((transaction) =>
-            transaction.description.toLocaleLowerCase().includes(normalizedQuery)
-          )
-        : MOCK_TRANSACTIONS,
-    [normalizedQuery]
-  );
+  const activeFilterCount = countActiveMovesFilters(appliedFilters);
+  const filteredTransactions = useMemo(() => {
+    const categoryIds = new Set(getActiveCategoryIds(appliedFilters));
+    const exactAmountCents = parseAmountCents(appliedFilters.exactAmount);
+    const minimumAmountCents = parseAmountCents(appliedFilters.minimumAmount);
+    const maximumAmountCents = parseAmountCents(appliedFilters.maximumAmount);
+
+    return MOCK_TRANSACTIONS.filter((transaction) => {
+      if (
+        normalizedQuery &&
+        !transaction.description.toLocaleLowerCase().includes(normalizedQuery)
+      ) {
+        return false;
+      }
+
+      if (
+        appliedFilters.type !== "ALL" &&
+        transaction.type !== appliedFilters.type
+      ) {
+        return false;
+      }
+
+      if (categoryIds.size > 0 && !categoryIds.has(transaction.categoryId)) {
+        return false;
+      }
+
+      const transactionAmountCents = parseAmountCents(transaction.amount);
+
+      if (transactionAmountCents === null) {
+        return false;
+      }
+
+      if (
+        appliedFilters.amountMode === "EXACT" &&
+        appliedFilters.exactAmount.length > 0 &&
+        transactionAmountCents !== exactAmountCents
+      ) {
+        return false;
+      }
+
+      if (appliedFilters.amountMode === "RANGE") {
+        if (
+          appliedFilters.minimumAmount.length > 0 &&
+          minimumAmountCents !== null &&
+          transactionAmountCents < minimumAmountCents
+        ) {
+          return false;
+        }
+
+        if (
+          appliedFilters.maximumAmount.length > 0 &&
+          maximumAmountCents !== null &&
+          transactionAmountCents > maximumAmountCents
+        ) {
+          return false;
+        }
+      }
+
+      if (
+        appliedFilters.dateMode === "EXACT" &&
+        appliedFilters.exactDate &&
+        transaction.date !== appliedFilters.exactDate
+      ) {
+        return false;
+      }
+
+      if (appliedFilters.dateMode === "RANGE") {
+        if (
+          appliedFilters.startDate &&
+          transaction.date < appliedFilters.startDate
+        ) {
+          return false;
+        }
+
+        if (
+          appliedFilters.endDate &&
+          transaction.date > appliedFilters.endDate
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [appliedFilters, normalizedQuery]);
   const visibleTransactions = filteredTransactions.slice(0, visibleCount);
   const hasMore = visibleTransactions.length < filteredTransactions.length;
 
@@ -252,6 +343,12 @@ export function MovesPage() {
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
+    setVisibleCount(PAGE_SIZE);
+    scrollContainer.current?.scrollTo({ top: 0 });
+  }
+
+  function applyFilters(filters: MovesFilters) {
+    setAppliedFilters(filters);
     setVisibleCount(PAGE_SIZE);
     scrollContainer.current?.scrollTo({ top: 0 });
   }
@@ -300,7 +397,10 @@ export function MovesPage() {
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
           <p aria-live="polite">
-            {getResultLabel(filteredTransactions.length, normalizedQuery.length > 0)}
+            {getResultLabel(
+              filteredTransactions.length,
+              normalizedQuery.length > 0 || activeFilterCount > 0
+            )}
           </p>
         </header>
 
@@ -356,7 +456,8 @@ export function MovesPage() {
         {isFilterPanelOpen ? (
           <MovesFiltersPanel
             id={FILTER_PANEL_ID}
-            onActiveFilterCountChange={setActiveFilterCount}
+            appliedFilters={appliedFilters}
+            onApply={applyFilters}
           />
         ) : null}
 
@@ -394,7 +495,7 @@ export function MovesPage() {
           <div className="moves-empty-state" role="status">
             <Search aria-hidden="true" />
             <h2>No transactions found</h2>
-            <p>No descriptions match your search.</p>
+            <p>Try adjusting your search or filters.</p>
           </div>
         )}
 
