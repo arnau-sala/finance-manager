@@ -384,11 +384,7 @@ export function NewTransactionComposer({
       >
         <div className="transaction-composer__scroll-area">
           <div className="transaction-composer__content">
-            <div
-              className={`transaction-composer__amount-section${
-                invalidFields.amount ? " has-error" : ""
-              }`}
-            >
+            <div className="transaction-composer__amount-section">
               <label className="sr-only" htmlFor="transaction-amount">
                 Amount
               </label>
@@ -416,9 +412,6 @@ export function NewTransactionComposer({
                 </span>
                 <span aria-hidden="true">€</span>
               </div>
-              <span className="transaction-composer__amount-caption">
-                {type === "EXPENSE" ? "Expense amount" : "Income amount"}
-              </span>
             </div>
 
             <div

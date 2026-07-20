@@ -1409,18 +1409,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 300;
 }
 
-.transaction-composer__amount-caption {
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.3;
-  font-weight: 400;
-}
-
-.transaction-composer__amount-section.has-error
-  .transaction-composer__amount-caption {
-  color: var(--color-danger);
-}
-
 .transaction-type-toggle {
   --transaction-type-drag-offset: 0px;
   position: relative;
