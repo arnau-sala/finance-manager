@@ -1188,13 +1188,13 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
   border-radius: 16px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .moves-search:focus-within {
   color: var(--color-primary);
   background: var(--color-surface);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
 }
 
 .moves-search > svg {
@@ -1216,6 +1216,9 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
   user-select: text;
   -webkit-user-select: text;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .moves-search input::placeholder {
