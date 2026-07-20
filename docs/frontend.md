@@ -416,7 +416,30 @@ UX notes:
 
 Purpose: browse historical records.
 
-MVP content:
+The current visual prototype is available from the `Moves` footer item. It uses
+15 local mock transactions and the shared transaction-row component also used
+by Home, so icon, category, date, amount formatting, and income/expense colors
+remain consistent.
+
+Currently functional:
+
+- Case-insensitive search against the transaction description only.
+- Local automatic pagination in batches of seven. An `IntersectionObserver`
+  rooted in the Moves scroll area reveals the next batch near the list end.
+- Dynamic result count, clear-search action, and an empty search state.
+
+Planned filters:
+
+- Exact amount or amount range.
+- Exact date or date range.
+- One or more categories.
+- Income, expense, or both; both is the default.
+
+The filters remain hidden initially and will open from the filter icon. That
+button is intentionally visual-only in this prototype. Real API data and
+server-backed pagination will replace the mock array after the layout is agreed.
+
+Final MVP content:
 
 - Paginated transaction list.
 - Category filter.

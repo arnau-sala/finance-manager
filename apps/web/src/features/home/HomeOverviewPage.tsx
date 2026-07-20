@@ -6,13 +6,12 @@ import {
   WalletCards
 } from "lucide-react";
 
-import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import type { SessionUser } from "../auth/auth-api";
+import { TransactionRow } from "../transactions/TransactionRow";
 import {
   getHomeOverview,
   HomeApiError,
-  type HomeMove,
   type HomeOverview
 } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
@@ -44,47 +43,6 @@ function formatCurrentDate() {
     month: "long",
     day: "numeric"
   }).format(new Date());
-}
-
-function formatMoveAmount(move: HomeMove) {
-  const amount = Number(move.amount);
-
-  if (!Number.isFinite(amount)) {
-    return "--";
-  }
-
-  const signedAmount =
-    move.type === "INCOME" ? Math.abs(amount) : -Math.abs(amount);
-
-  return formatEuroAmount(signedAmount, { showSign: true });
-}
-
-function formatMoveDate(value: string) {
-  const date = parseLocalDateOnly(value);
-
-  if (!date) {
-    return "Date unavailable";
-  }
-
-  const today = new Date();
-  const isToday =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-
-  if (isToday) {
-    return "Today";
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric"
-  }).format(date);
-}
-
-function getMoveIcon(move: HomeMove) {
-  return getCategoryIcon(move.category.id, move.type);
 }
 
 function formatMoveCount(count: number) {
@@ -186,26 +144,16 @@ export function HomeOverviewPage({
 
           <ul className="home-move-list" aria-busy={loadingState === "loading"}>
             {latestMoves.map((move) => {
-              const Icon = getMoveIcon(move);
-              const moveType = move.type.toLowerCase();
-
               return (
-                <li key={move.id} className="home-move">
-                  <span className="home-move__icon" aria-hidden="true">
-                    <Icon />
-                  </span>
-                  <span className="home-move__details">
-                    <strong>{move.description}</strong>
-                    <span>
-                      {move.category.name} &middot; {formatMoveDate(move.date)}
-                    </span>
-                  </span>
-                  <span
-                    className={`home-move__amount home-move__amount--${moveType}`}
-                  >
-                    {formatMoveAmount(move)}
-                  </span>
-                </li>
+                <TransactionRow
+                  key={move.id}
+                  type={move.type}
+                  categoryId={move.category.id}
+                  categoryName={move.category.name}
+                  amount={move.amount}
+                  description={move.description}
+                  date={move.date}
+                />
               );
             })}
             {loadingState === "loading" ? (

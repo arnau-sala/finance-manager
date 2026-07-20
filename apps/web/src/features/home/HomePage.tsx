@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 
 import type { SessionUser } from "../auth/auth-api";
+import { MovesPage } from "../transactions/MovesPage";
 import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
@@ -40,7 +41,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       refreshKey={homeRefreshKey}
     />
   ),
-  moves: () => <HomeSection title="Moves" />,
+  moves: () => <MovesPage />,
   stats: () => <HomeSection title="Stats" />,
   profile: ({
     user,
