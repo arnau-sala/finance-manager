@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 
 import type { SessionUser } from "../auth/auth-api";
+import { StatsPage } from "../statistics/StatsPage";
 import { MovesPage } from "../transactions/MovesPage";
 import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
 import { HomeFooterNav } from "./HomeFooterNav";
@@ -52,7 +53,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   moves: ({ onSessionExpired }) => (
     <MovesPage onSessionExpired={onSessionExpired} />
   ),
-  stats: () => <HomeSection title="Stats" />,
+  stats: () => <StatsPage />,
   profile: ({
     user,
     onProfileUpdated,
@@ -127,21 +128,5 @@ export function HomePage({
         onSessionExpired={onSessionExpired}
       />
     </main>
-  );
-}
-
-type HomeSectionComponentProps = {
-  title: string;
-  children?: ReactNode;
-};
-
-function HomeSection({ title, children }: HomeSectionComponentProps) {
-  const titleId = `home-section-${title.toLowerCase()}`;
-
-  return (
-    <section className="home-content" aria-labelledby={titleId}>
-      <h1 id={titleId}>{title}</h1>
-      {children}
-    </section>
   );
 }

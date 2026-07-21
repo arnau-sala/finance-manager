@@ -465,6 +465,13 @@ MVP content:
 - Yearly balance.
 - Category percentages.
 
+The first visual iteration focuses on numeric information before charts are
+introduced. It uses varied mock monthly and yearly periods to validate the
+mobile layout, period navigation, positive and negative balances, transaction
+counts, averages, savings rate, and spending comparison. This temporary data
+source will be replaced by an authenticated aggregate endpoint without changing
+the presentation component's financial calculations or hierarchy.
+
 Chart direction:
 
 - Start with simple bars/lists.
