@@ -3,7 +3,7 @@ import {
   CalendarDays,
   ChevronRight,
   Plus,
-  WalletCards
+  Scale
 } from "lucide-react";
 
 import { formatEuroAmount } from "../../money/format-euro";
@@ -110,7 +110,7 @@ export function HomeOverviewPage({
 
         <section className="home-balance" aria-labelledby="home-balance-title">
           <div className="home-balance__label">
-            <WalletCards aria-hidden="true" />
+            <Scale aria-hidden="true" />
             <h2 id="home-balance-title">Current balance</h2>
           </div>
           <p className="home-balance__amount">
