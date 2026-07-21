@@ -22,6 +22,7 @@ import {
 } from "../transactions/category-catalog";
 
 type StatsPeriodMode = "MONTH" | "YEAR";
+type CategoryValueMode = "AMOUNT" | "PERCENTAGE";
 
 type StatsPeriod = {
   label: string;
@@ -44,11 +45,6 @@ type CategoryBreakdownItem = {
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
   { value: "YEAR", label: "Year", icon: CalendarRange }
-];
-
-const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
-  { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight },
-  { value: "INCOME", label: "Income", icon: ArrowUpRight }
 ];
 
 const monthlyStats: readonly StatsPeriod[] = [
@@ -96,24 +92,27 @@ const expenseCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
 
 const incomeCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
   [
-    { id: "income-salary", share: 0.78 },
+    { id: "income-salary", share: 0.72 },
     { id: "income-freelance", share: 0.1 },
-    { id: "income-benefits", share: 0.05 },
-    { id: "income-investments", share: 0.04 },
-    { id: "income-gifts", share: 0.03 }
+    { id: "income-benefits", share: 0.06 },
+    { id: "income-investments", share: 0.05 },
+    { id: "income-gifts", share: 0.04 },
+    { id: "income-sales", share: 0.03 }
   ],
   [
-    { id: "income-salary", share: 0.64 },
+    { id: "income-salary", share: 0.6 },
     { id: "income-freelance", share: 0.18 },
     { id: "income-investments", share: 0.09 },
     { id: "income-sales", share: 0.06 },
-    { id: "income-gifts", share: 0.03 }
+    { id: "income-gifts", share: 0.04 },
+    { id: "income-other", share: 0.03 }
   ],
   [
-    { id: "income-salary", share: 0.72 },
+    { id: "income-salary", share: 0.68 },
     { id: "income-benefits", share: 0.12 },
     { id: "income-sales", share: 0.08 },
     { id: "income-allowance", share: 0.05 },
+    { id: "income-investments", share: 0.04 },
     { id: "income-other", share: 0.03 }
   ]
 ];
@@ -164,13 +163,76 @@ function getCategoryBreakdown(
     .sort((first, second) => second.amount - first.amount);
 }
 
+type StatsCategoryColumnProps = {
+  title: string;
+  type: TransactionType;
+  categories: readonly CategoryBreakdownItem[];
+  valueMode: CategoryValueMode;
+  onToggleValueMode: () => void;
+};
+
+function StatsCategoryColumn({
+  title,
+  type,
+  categories,
+  valueMode,
+  onToggleValueMode
+}: StatsCategoryColumnProps) {
+  const titleId = `stats-category-${type.toLowerCase()}-title`;
+
+  return (
+    <section
+      className={`stats-category-column stats-category-column--${type.toLowerCase()}`}
+      aria-labelledby={titleId}
+    >
+      <h3 id={titleId}>{title}</h3>
+
+      {categories.length > 0 ? (
+        <ul className="stats-category-list">
+          {categories.map((category) => {
+            const Icon = getCategoryIcon(category.id, type);
+
+            return (
+              <li key={category.id} className="stats-category-row">
+                <span className="stats-category-row__icon" aria-hidden="true">
+                  <Icon />
+                </span>
+                <span className="stats-category-row__details">
+                  <strong>{category.name}</strong>
+                </span>
+                <button
+                  className="stats-category-row__values"
+                  type="button"
+                  onClick={onToggleValueMode}
+                  aria-label={`Show all category values as ${
+                    valueMode === "AMOUNT" ? "percentages" : "amounts"
+                  }`}
+                >
+                  <strong>
+                    {valueMode === "AMOUNT"
+                      ? formatEuroAmount(category.amount, { fractionDigits: 0 })
+                      : `${category.percentage}%`}
+                  </strong>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="stats-category-empty">
+          No {type === "EXPENSE" ? "expenses" : "income"} in this period.
+        </p>
+      )}
+    </section>
+  );
+}
+
 export function StatsPage() {
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
   const [monthIndex, setMonthIndex] = useState(monthlyStats.length - 1);
   const [yearIndex, setYearIndex] = useState(yearlyStats.length - 1);
-  const [categoryType, setCategoryType] =
-    useState<TransactionType>("EXPENSE");
-
+  const [categoryValueMode, setCategoryValueMode] =
+    useState<CategoryValueMode>("AMOUNT");
   const periods = mode === "MONTH" ? monthlyStats : yearlyStats;
   const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
   const period = periods[periodIndex];
@@ -179,16 +241,15 @@ export function StatsPage() {
   const balance = roundedIncome - roundedExpenses;
   const savingsPercentage =
     roundedIncome > 0 ? Math.round((balance / roundedIncome) * 100) : null;
-  const categoryProfiles =
-    categoryType === "EXPENSE"
-      ? expenseCategoryProfiles
-      : incomeCategoryProfiles;
-  const categoryTotal =
-    categoryType === "EXPENSE" ? roundedExpenses : roundedIncome;
-  const categoryBreakdown = getCategoryBreakdown(
-    categoryTotal,
-    categoryType,
-    categoryProfiles[periodIndex % categoryProfiles.length]
+  const expenseCategoryBreakdown = getCategoryBreakdown(
+    roundedExpenses,
+    "EXPENSE",
+    expenseCategoryProfiles[periodIndex % expenseCategoryProfiles.length]
+  );
+  const incomeCategoryBreakdown = getCategoryBreakdown(
+    roundedIncome,
+    "INCOME",
+    incomeCategoryProfiles[periodIndex % incomeCategoryProfiles.length]
   );
 
   function changePeriod(nextIndex: number) {
@@ -201,6 +262,12 @@ export function StatsPage() {
     } else {
       setYearIndex(nextIndex);
     }
+  }
+
+  function toggleCategoryValueMode() {
+    setCategoryValueMode((currentMode) =>
+      currentMode === "AMOUNT" ? "PERCENTAGE" : "AMOUNT"
+    );
   }
 
   return (
@@ -307,45 +374,22 @@ export function StatsPage() {
         >
           <h2 id="stats-categories-title">Categories</h2>
 
-          <SlidingSegmentedControl
-            className="stats-category-type"
-            value={categoryType}
-            options={categoryTypeOptions}
-            onChange={setCategoryType}
-            label="Category type"
-            tone={categoryType === "EXPENSE" ? "expense" : "income"}
-            compact
-          />
-
-          {categoryBreakdown.length > 0 ? (
-            <ul
-              className={`stats-category-list stats-category-list--${categoryType.toLowerCase()}`}
-            >
-              {categoryBreakdown.map((category) => {
-                const Icon = getCategoryIcon(category.id, categoryType);
-
-                return (
-                  <li key={category.id} className="stats-category-row">
-                    <span className="stats-category-row__icon" aria-hidden="true">
-                      <Icon />
-                    </span>
-                    <span className="stats-category-row__details">
-                      <strong>{category.name}</strong>
-                      <small>{category.percentage}%</small>
-                    </span>
-                    <strong className="stats-category-row__amount">
-                      {formatEuroAmount(category.amount, { fractionDigits: 0 })}
-                    </strong>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="stats-category-empty">
-              No {categoryType === "EXPENSE" ? "expenses" : "income"} in this
-              period.
-            </p>
-          )}
+          <div className="stats-category-columns">
+            <StatsCategoryColumn
+              title="Expenses"
+              type="EXPENSE"
+              categories={expenseCategoryBreakdown}
+              valueMode={categoryValueMode}
+              onToggleValueMode={toggleCategoryValueMode}
+            />
+            <StatsCategoryColumn
+              title="Income"
+              type="INCOME"
+              categories={incomeCategoryBreakdown}
+              valueMode={categoryValueMode}
+              onToggleValueMode={toggleCategoryValueMode}
+            />
+          </div>
         </section>
       </div>
     </section>
