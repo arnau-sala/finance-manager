@@ -20,6 +20,7 @@ type HomeOverviewPageProps = {
   user: SessionUser;
   onSessionExpired: () => void;
   onNewTransaction: () => void;
+  onSeeAllMoves: () => void;
   refreshKey: number;
 };
 
@@ -53,6 +54,7 @@ export function HomeOverviewPage({
   user,
   onSessionExpired,
   onNewTransaction,
+  onSeeAllMoves,
   refreshKey
 }: HomeOverviewPageProps) {
   const [overview, setOverview] = useState<HomeOverview | null>(null);
@@ -136,7 +138,7 @@ export function HomeOverviewPage({
         >
           <div className="home-section-heading">
             <h2 id="home-recent-moves-title">Latest moves</h2>
-            <button type="button">
+            <button type="button" onClick={onSeeAllMoves}>
               See all
               <ChevronRight aria-hidden="true" />
             </button>
