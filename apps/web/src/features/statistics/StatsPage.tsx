@@ -6,7 +6,7 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
-  ReceiptText,
+  PiggyBank,
   Scale
 } from "lucide-react";
 
@@ -15,6 +15,11 @@ import {
   type SlidingSegmentOption
 } from "../../components/ui/SlidingSegmentedControl";
 import { formatEuroAmount } from "../../money/format-euro";
+import {
+  getCategoryIcon,
+  transactionCategories,
+  type TransactionType
+} from "../transactions/category-catalog";
 
 type StatsPeriodMode = "MONTH" | "YEAR";
 
@@ -22,8 +27,18 @@ type StatsPeriod = {
   label: string;
   income: number;
   expenses: number;
-  incomeTransactions: number;
-  expenseTransactions: number;
+};
+
+type CategoryWeight = {
+  id: string;
+  share: number;
+};
+
+type CategoryBreakdownItem = {
+  id: string;
+  name: string;
+  amount: number;
+  percentage: number;
 };
 
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
@@ -31,92 +46,130 @@ const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "YEAR", label: "Year", icon: CalendarRange }
 ];
 
+const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
+  { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight },
+  { value: "INCOME", label: "Income", icon: ArrowUpRight }
+];
+
 const monthlyStats: readonly StatsPeriod[] = [
-  {
-    label: "January 2026",
-    income: 3250,
-    expenses: 2450.8,
-    incomeTransactions: 3,
-    expenseTransactions: 34
-  },
-  {
-    label: "February 2026",
-    income: 0,
-    expenses: 482.65,
-    incomeTransactions: 0,
-    expenseTransactions: 8
-  },
-  {
-    label: "March 2026",
-    income: 4250,
-    expenses: 1987.45,
-    incomeTransactions: 5,
-    expenseTransactions: 26
-  },
-  {
-    label: "April 2026",
-    income: 2350,
-    expenses: 2784.2,
-    incomeTransactions: 3,
-    expenseTransactions: 31
-  },
-  {
-    label: "May 2026",
-    income: 5175.4,
-    expenses: 2240.75,
-    incomeTransactions: 7,
-    expenseTransactions: 29
-  },
-  {
-    label: "June 2026",
-    income: 2890,
-    expenses: 2455.85,
-    incomeTransactions: 4,
-    expenseTransactions: 35
-  },
-  {
-    label: "July 2026",
-    income: 3325.75,
-    expenses: 1918.3,
-    incomeTransactions: 5,
-    expenseTransactions: 27
-  }
+  { label: "January 2026", income: 3250, expenses: 2450.8 },
+  { label: "February 2026", income: 0, expenses: 482.65 },
+  { label: "March 2026", income: 4250, expenses: 1987.45 },
+  { label: "April 2026", income: 2350, expenses: 2784.2 },
+  { label: "May 2026", income: 5175.4, expenses: 2240.75 },
+  { label: "June 2026", income: 2890, expenses: 2455.85 },
+  { label: "July 2026", income: 3325.75, expenses: 1918.3 }
 ];
 
 const yearlyStats: readonly StatsPeriod[] = [
-  {
-    label: "2024",
-    income: 28450.5,
-    expenses: 21680.25,
-    incomeTransactions: 45,
-    expenseTransactions: 267
-  },
-  {
-    label: "2025",
-    income: 36780.2,
-    expenses: 29125.85,
-    incomeTransactions: 63,
-    expenseTransactions: 346
-  },
-  {
-    label: "2026",
-    income: 21241.15,
-    expenses: 14320,
-    incomeTransactions: 27,
-    expenseTransactions: 190
-  }
+  { label: "2024", income: 28450.5, expenses: 21680.25 },
+  { label: "2025", income: 36780.2, expenses: 29125.85 },
+  { label: "2026", income: 21241.15, expenses: 14320 }
 ];
 
-function getBalanceTone(balance: number) {
-  if (balance > 0) return "stats-value--positive";
-  if (balance < 0) return "stats-value--negative";
+const expenseCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
+  [
+    { id: "expense-housing", share: 0.38 },
+    { id: "expense-groceries", share: 0.23 },
+    { id: "expense-dining", share: 0.14 },
+    { id: "expense-transportation", share: 0.1 },
+    { id: "expense-subscriptions", share: 0.08 },
+    { id: "expense-shopping", share: 0.07 }
+  ],
+  [
+    { id: "expense-groceries", share: 0.27 },
+    { id: "expense-housing", share: 0.24 },
+    { id: "expense-shopping", share: 0.18 },
+    { id: "expense-health", share: 0.12 },
+    { id: "expense-dining", share: 0.1 },
+    { id: "expense-other", share: 0.09 }
+  ],
+  [
+    { id: "expense-housing", share: 0.34 },
+    { id: "expense-education", share: 0.2 },
+    { id: "expense-groceries", share: 0.17 },
+    { id: "expense-sports", share: 0.11 },
+    { id: "expense-parties", share: 0.1 },
+    { id: "expense-transportation", share: 0.08 }
+  ]
+];
+
+const incomeCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
+  [
+    { id: "income-salary", share: 0.78 },
+    { id: "income-freelance", share: 0.1 },
+    { id: "income-benefits", share: 0.05 },
+    { id: "income-investments", share: 0.04 },
+    { id: "income-gifts", share: 0.03 }
+  ],
+  [
+    { id: "income-salary", share: 0.64 },
+    { id: "income-freelance", share: 0.18 },
+    { id: "income-investments", share: 0.09 },
+    { id: "income-sales", share: 0.06 },
+    { id: "income-gifts", share: 0.03 }
+  ],
+  [
+    { id: "income-salary", share: 0.72 },
+    { id: "income-benefits", share: 0.12 },
+    { id: "income-sales", share: 0.08 },
+    { id: "income-allowance", share: 0.05 },
+    { id: "income-other", share: 0.03 }
+  ]
+];
+
+function getValueTone(value: number) {
+  if (value > 0) return "stats-value--positive";
+  if (value < 0) return "stats-value--negative";
   return undefined;
+}
+
+function getCategoryBreakdown(
+  total: number,
+  type: TransactionType,
+  profile: readonly CategoryWeight[]
+) {
+  if (total <= 0) {
+    return [];
+  }
+
+  let allocatedAmount = 0;
+
+  return profile
+    .map<CategoryBreakdownItem | null>((entry, index) => {
+      const category = transactionCategories.find(
+        (candidate) => candidate.id === entry.id && candidate.type === type
+      );
+
+      if (!category) {
+        return null;
+      }
+
+      const amount =
+        index === profile.length - 1
+          ? total - allocatedAmount
+          : Math.round(total * entry.share);
+      allocatedAmount += amount;
+
+      return {
+        id: category.id,
+        name: category.name,
+        amount,
+        percentage: Math.round(entry.share * 100)
+      };
+    })
+    .filter((entry): entry is CategoryBreakdownItem =>
+      Boolean(entry && entry.amount > 0)
+    )
+    .sort((first, second) => second.amount - first.amount);
 }
 
 export function StatsPage() {
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
   const [monthIndex, setMonthIndex] = useState(monthlyStats.length - 1);
   const [yearIndex, setYearIndex] = useState(yearlyStats.length - 1);
+  const [categoryType, setCategoryType] =
+    useState<TransactionType>("EXPENSE");
 
   const periods = mode === "MONTH" ? monthlyStats : yearlyStats;
   const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
@@ -124,8 +177,19 @@ export function StatsPage() {
   const roundedIncome = Math.round(period.income);
   const roundedExpenses = Math.round(period.expenses);
   const balance = roundedIncome - roundedExpenses;
-  const transactionCount =
-    period.incomeTransactions + period.expenseTransactions;
+  const savingsPercentage =
+    roundedIncome > 0 ? Math.round((balance / roundedIncome) * 100) : null;
+  const categoryProfiles =
+    categoryType === "EXPENSE"
+      ? expenseCategoryProfiles
+      : incomeCategoryProfiles;
+  const categoryTotal =
+    categoryType === "EXPENSE" ? roundedExpenses : roundedIncome;
+  const categoryBreakdown = getCategoryBreakdown(
+    categoryTotal,
+    categoryType,
+    categoryProfiles[periodIndex % categoryProfiles.length]
+  );
 
   function changePeriod(nextIndex: number) {
     if (nextIndex < 0 || nextIndex >= periods.length) {
@@ -187,7 +251,7 @@ export function StatsPage() {
                 <Scale aria-hidden="true" />
                 Net balance
               </span>
-              <strong className={getBalanceTone(balance)}>
+              <strong className={getValueTone(balance)}>
                 {formatEuroAmount(balance, {
                   showSign: true,
                   fractionDigits: 0
@@ -215,38 +279,73 @@ export function StatsPage() {
                 </strong>
               </div>
             </div>
+
+            <div
+              className="stats-money__savings"
+              aria-label="Percentage of income saved"
+            >
+              <span>
+                <PiggyBank aria-hidden="true" />
+                Saved
+              </span>
+              <strong
+                className={
+                  savingsPercentage === null
+                    ? undefined
+                    : getValueTone(savingsPercentage)
+                }
+              >
+                {savingsPercentage === null ? "--" : `${savingsPercentage}%`}
+              </strong>
+            </div>
           </div>
         </section>
 
         <section
-          className="stats-transactions"
-          aria-labelledby="stats-transactions-title"
+          className="stats-categories"
+          aria-labelledby="stats-categories-title"
         >
-          <h2 id="stats-transactions-title">Transactions</h2>
+          <h2 id="stats-categories-title">Categories</h2>
 
-          <div className="stats-transaction-counts">
-            <div>
-              <ReceiptText aria-hidden="true" />
-              <span>
-                <small>Total</small>
-                <strong>{transactionCount}</strong>
-              </span>
-            </div>
-            <div className="stats-transaction-counts__expense">
-              <ArrowDownRight aria-hidden="true" />
-              <span>
-                <small>Expenses</small>
-                <strong>{period.expenseTransactions}</strong>
-              </span>
-            </div>
-            <div className="stats-transaction-counts__income">
-              <ArrowUpRight aria-hidden="true" />
-              <span>
-                <small>Income</small>
-                <strong>{period.incomeTransactions}</strong>
-              </span>
-            </div>
-          </div>
+          <SlidingSegmentedControl
+            className="stats-category-type"
+            value={categoryType}
+            options={categoryTypeOptions}
+            onChange={setCategoryType}
+            label="Category type"
+            tone={categoryType === "EXPENSE" ? "expense" : "income"}
+            compact
+          />
+
+          {categoryBreakdown.length > 0 ? (
+            <ul
+              className={`stats-category-list stats-category-list--${categoryType.toLowerCase()}`}
+            >
+              {categoryBreakdown.map((category) => {
+                const Icon = getCategoryIcon(category.id, categoryType);
+
+                return (
+                  <li key={category.id} className="stats-category-row">
+                    <span className="stats-category-row__icon" aria-hidden="true">
+                      <Icon />
+                    </span>
+                    <span className="stats-category-row__details">
+                      <strong>{category.name}</strong>
+                      <small>{category.percentage}%</small>
+                    </span>
+                    <strong className="stats-category-row__amount">
+                      {formatEuroAmount(category.amount, { fractionDigits: 0 })}
+                    </strong>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="stats-category-empty">
+              No {categoryType === "EXPENSE" ? "expenses" : "income"} in this
+              period.
+            </p>
+          )}
         </section>
       </div>
     </section>

@@ -468,9 +468,10 @@ MVP content:
 The first visual iteration focuses on numeric information before charts are
 introduced. It uses varied mock monthly and yearly periods to validate the
 mobile layout, period navigation, and positive and negative balances. Money is
-kept in one group containing net balance, income, and expenses; transaction
-counts are shown separately as total, expense, and income movements. This
-temporary data source will be replaced by an authenticated aggregate endpoint.
+kept in one group containing net balance, income, expenses, and the percentage
+of income saved. A separate category breakdown switches between expenses and
+income, showing only active categories in descending amount order. This
+temporary data source will be replaced by authenticated aggregate endpoints.
 Stats displays these summary amounts as whole euros while preserving cents in
 the underlying values and elsewhere in the app.
 
