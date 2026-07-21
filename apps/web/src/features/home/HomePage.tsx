@@ -41,7 +41,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       refreshKey={homeRefreshKey}
     />
   ),
-  moves: () => <MovesPage />,
+  moves: ({ onSessionExpired }) => (
+    <MovesPage onSessionExpired={onSessionExpired} />
+  ),
   stats: () => <HomeSection title="Stats" />,
   profile: ({
     user,

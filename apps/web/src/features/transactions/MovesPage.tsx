@@ -9,10 +9,7 @@ import {
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { parseLocalDateOnly } from "../../dates/date-only";
-import {
-  TransactionRow,
-  type TransactionRowData
-} from "./TransactionRow";
+import { TransactionRow } from "./TransactionRow";
 import { MovesFiltersPanel } from "./MovesFiltersPanel";
 import {
   countActiveMovesFilters,
@@ -20,168 +17,20 @@ import {
   getActiveCategoryIds,
   type MovesFilters
 } from "./moves-filters";
-
-type MockTransaction = TransactionRowData & {
-  id: string;
-};
-
-type MockTransactionTemplate = Omit<MockTransaction, "id" | "date">;
+import {
+  getTransactions,
+  TransactionApiError,
+  type TransactionListItem
+} from "./transaction-api";
 
 const PAGE_SIZE = 12;
 const FILTER_PANEL_ID = "moves-filter-panel";
-const MOCK_TRANSACTION_COUNT = 200;
-const MOCK_TRANSACTION_DAY_INTERVAL = 2;
 
-const MOCK_TRANSACTION_TEMPLATES: readonly MockTransactionTemplate[] = [
-  {
-    type: "EXPENSE",
-    categoryId: "expense-dining",
-    categoryName: "Dining",
-    amount: "8.60",
-    description: "Coffee and breakfast"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-salary",
-    categoryName: "Salary",
-    amount: "2600.00",
-    description: "Monthly salary"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-groceries",
-    categoryName: "Groceries",
-    amount: "74.35",
-    description: "Weekly groceries"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-housing",
-    categoryName: "Housing",
-    amount: "920.00",
-    description: "Apartment rent"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-freelance",
-    categoryName: "Freelance",
-    amount: "480.00",
-    description: "Freelance design project"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-transportation",
-    categoryName: "Transportation",
-    amount: "25.00",
-    description: "Metro card"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-sports",
-    categoryName: "Sports",
-    amount: "34.99",
-    description: "Gym membership"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-subscriptions",
-    categoryName: "Subscriptions",
-    amount: "18.98",
-    description: "Streaming services"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-health",
-    categoryName: "Health",
-    amount: "13.25",
-    description: "Pharmacy"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-education",
-    categoryName: "Education",
-    amount: "89.00",
-    description: "Online course"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-sales",
-    categoryName: "Sales",
-    amount: "145.00",
-    description: "Sold old monitor"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-gifts",
-    categoryName: "Gifts",
-    amount: "40.00",
-    description: "Birthday present"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-benefits",
-    categoryName: "Benefits",
-    amount: "75.00",
-    description: "Employee benefit"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-shopping",
-    categoryName: "Shopping",
-    amount: "96.50",
-    description: "Running shoes"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-parties",
-    categoryName: "Parties",
-    amount: "32.00",
-    description: "Concert tickets"
-  },
-  {
-    type: "EXPENSE",
-    categoryId: "expense-other",
-    categoryName: "Other",
-    amount: "21.40",
-    description: "Household supplies"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-allowance",
-    categoryName: "Allowance",
-    amount: "50.00",
-    description: "Family allowance"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-gifts",
-    categoryName: "Gifts",
-    amount: "80.00",
-    description: "Birthday gift"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-investments",
-    categoryName: "Investments",
-    amount: "36.75",
-    description: "Dividend payment"
-  },
-  {
-    type: "INCOME",
-    categoryId: "income-other",
-    categoryName: "Other",
-    amount: "12.30",
-    description: "Cashback reward"
-  }
-];
+type MovesLoadingState = "loading" | "ready" | "error";
 
-function formatLocalDate(date: Date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
+type MovesPageProps = {
+  onSessionExpired: () => void;
+};
 
 function getMonthKey(value: string) {
   return value.slice(0, 7);
@@ -207,26 +56,6 @@ function formatMonthLabel(value: string) {
   }).format(date);
 }
 
-function createMockTransactions(): MockTransaction[] {
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
-
-  return Array.from({ length: MOCK_TRANSACTION_COUNT }, (_, index) => {
-    const template =
-      MOCK_TRANSACTION_TEMPLATES[index % MOCK_TRANSACTION_TEMPLATES.length];
-    const date = new Date(today);
-    date.setDate(today.getDate() - index * MOCK_TRANSACTION_DAY_INTERVAL);
-
-    return {
-      ...template,
-      id: `mock-${String(index + 1).padStart(3, "0")}`,
-      date: formatLocalDate(date)
-    };
-  });
-}
-
-const MOCK_TRANSACTIONS: readonly MockTransaction[] = createMockTransactions();
-
 function getResultLabel(count: number, isSearching: boolean) {
   if (isSearching) {
     return `${count} ${count === 1 ? "result" : "results"}`;
@@ -235,7 +64,10 @@ function getResultLabel(count: number, isSearching: boolean) {
   return `${count} ${count === 1 ? "transaction" : "transactions"}`;
 }
 
-export function MovesPage() {
+export function MovesPage({ onSessionExpired }: MovesPageProps) {
+  const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
+  const [loadingState, setLoadingState] =
+    useState<MovesLoadingState>("loading");
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -252,7 +84,7 @@ export function MovesPage() {
     const minimumAmountCents = parseAmountCents(appliedFilters.minimumAmount);
     const maximumAmountCents = parseAmountCents(appliedFilters.maximumAmount);
 
-    return MOCK_TRANSACTIONS.filter((transaction) => {
+    return transactions.filter((transaction) => {
       if (
         normalizedQuery &&
         !transaction.description.toLocaleLowerCase().includes(normalizedQuery)
@@ -329,7 +161,7 @@ export function MovesPage() {
 
       return true;
     });
-  }, [appliedFilters, normalizedQuery]);
+  }, [appliedFilters, normalizedQuery, transactions]);
   const visibleTransactions = filteredTransactions.slice(0, visibleCount);
   const hasMore = visibleTransactions.length < filteredTransactions.length;
 
@@ -340,6 +172,29 @@ export function MovesPage() {
       root.scrollTop = 0;
     }
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getTransactions(controller.signal)
+      .then((loadedTransactions) => {
+        setTransactions(loadedTransactions);
+        setLoadingState("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setLoadingState("error");
+
+        if (error instanceof TransactionApiError && error.status === 401) {
+          onSessionExpired();
+        }
+      });
+
+    return () => controller.abort();
+  }, [onSessionExpired]);
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
@@ -393,10 +248,12 @@ export function MovesPage() {
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
           <p aria-live="polite">
-            {getResultLabel(
-              filteredTransactions.length,
-              normalizedQuery.length > 0 || activeFilterCount > 0
-            )}
+            {loadingState === "loading"
+              ? "Loading..."
+              : getResultLabel(
+                  filteredTransactions.length,
+                  normalizedQuery.length > 0 || activeFilterCount > 0
+                )}
           </p>
         </header>
 
@@ -457,7 +314,7 @@ export function MovesPage() {
           />
         ) : null}
 
-        {visibleTransactions.length > 0 ? (
+        {loadingState === "ready" && visibleTransactions.length > 0 ? (
           <ul className="moves-transaction-list" aria-label="Transaction history">
             {visibleTransactions.map((transaction, index) => {
               const previousTransaction = visibleTransactions[index - 1];
@@ -478,7 +335,7 @@ export function MovesPage() {
                   <TransactionRow
                     type={transaction.type}
                     categoryId={transaction.categoryId}
-                    categoryName={transaction.categoryName}
+                    categoryName={transaction.category.name}
                     amount={transaction.amount}
                     description={transaction.description}
                     date={transaction.date}
@@ -487,15 +344,35 @@ export function MovesPage() {
               );
             })}
           </ul>
+        ) : loadingState === "loading" ? (
+          <div className="moves-empty-state" role="status">
+            <Search aria-hidden="true" />
+            <h2>Loading transactions</h2>
+            <p>Your movements will appear here shortly.</p>
+          </div>
+        ) : loadingState === "error" ? (
+          <div className="moves-empty-state" role="alert">
+            <Search aria-hidden="true" />
+            <h2>Unable to load transactions</h2>
+            <p>Please try again later.</p>
+          </div>
         ) : (
           <div className="moves-empty-state" role="status">
             <Search aria-hidden="true" />
-            <h2>No transactions found</h2>
-            <p>Try adjusting your search or filters.</p>
+            <h2>
+              {normalizedQuery || activeFilterCount > 0
+                ? "No transactions found"
+                : "No transactions yet"}
+            </h2>
+            <p>
+              {normalizedQuery || activeFilterCount > 0
+                ? "Try adjusting your search or filters."
+                : "Your movements will appear here once you add one."}
+            </p>
           </div>
         )}
 
-        {hasMore ? (
+        {loadingState === "ready" && hasMore ? (
           <div
             ref={loadMoreSentinel}
             className="moves-load-sentinel"

@@ -416,28 +416,26 @@ UX notes:
 
 Purpose: browse historical records.
 
-The current visual prototype is available from the `Moves` footer item. It uses
-15 local mock transactions and the shared transaction-row component also used
-by Home, so icon, category, date, amount formatting, and income/expense colors
-remain consistent.
+The `Moves` footer item loads the current user's records from
+`GET /transactions`. API pages are requested in batches of 200 until
+`nextOffset` is `null`, ensuring that search and filters operate over the full
+history. It uses the shared transaction-row component also used by Home, so
+icon, category, date, amount formatting, and income/expense colors remain
+consistent.
 
-Currently functional:
+Current behavior:
 
 - Case-insensitive search against the transaction description only.
-- Local automatic pagination in batches of seven. An `IntersectionObserver`
+- Local automatic presentation in batches of 12. An `IntersectionObserver`
   rooted in the Moves scroll area reveals the next batch near the list end.
 - Dynamic result count, clear-search action, and an empty search state.
-
-Planned filters:
-
-- Exact amount or amount range.
-- Exact date or date range.
-- One or more categories.
-- Income, expense, or both; both is the default.
-
-The filters remain hidden initially and will open from the filter icon. That
-button is intentionally visual-only in this prototype. Real API data and
-server-backed pagination will replace the mock array after the layout is agreed.
+- Combined filtering by exact amount or amount range, exact date or date range,
+  one or more categories, and transaction type.
+- Filters use a draft state and update results only through `Apply filters`;
+  `Clear all` resets the results immediately.
+- The filter panel can be hidden without clearing applied filters and restores
+  those values when reopened.
+- A `401 Unauthorized` response opens the shared expired-session dialog.
 
 Final MVP content:
 

@@ -11,6 +11,30 @@ type TransactionApiErrorBody = {
   issues?: TransactionApiIssue[];
 };
 
+export type TransactionListItem = {
+  id: string;
+  type: "INCOME" | "EXPENSE";
+  categoryId: string;
+  category: {
+    id: string;
+    name: string;
+    type: "INCOME" | "EXPENSE";
+  };
+  amount: string;
+  description: string;
+  date: string;
+  createdAt: string;
+};
+
+type TransactionsPage = {
+  transactions: TransactionListItem[];
+  pagination: {
+    limit: number;
+    offset: number;
+    nextOffset: number | null;
+  };
+};
+
 export class TransactionApiError extends Error {
   readonly status: number;
   readonly issues: readonly TransactionApiIssue[];
@@ -27,7 +51,10 @@ export class TransactionApiError extends Error {
   }
 }
 
-async function createTransactionApiError(response: Response) {
+async function createTransactionApiError(
+  response: Response,
+  fallback = "Unable to add the transaction. Please try again."
+) {
   let body: TransactionApiErrorBody = {};
 
   try {
@@ -47,9 +74,64 @@ async function createTransactionApiError(response: Response) {
     body.issues?.find((issue) => issue.message)?.message ??
     body.error ??
     body.message ??
-    "Unable to add the transaction. Please try again.";
+    fallback;
 
   return new TransactionApiError(message, response.status, body.issues);
+}
+
+export async function getTransactions(signal?: AbortSignal) {
+  const transactions: TransactionListItem[] = [];
+  let offset = 0;
+
+  while (true) {
+    let response: Response;
+
+    try {
+      response = await fetch(`/api/transactions?limit=200&offset=${offset}`, {
+        method: "GET",
+        credentials: "include",
+        signal
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw error;
+      }
+
+      throw new TransactionApiError(
+        "Unable to connect. Check your connection and try again.",
+        0
+      );
+    }
+
+    if (!response.ok) {
+      throw await createTransactionApiError(
+        response,
+        "Unable to load transactions. Please try again."
+      );
+    }
+
+    const page = (await response.json()) as TransactionsPage;
+
+    if (
+      !Array.isArray(page.transactions) ||
+      !page.pagination ||
+      page.pagination.offset !== offset
+    ) {
+      throw new TransactionApiError("Invalid transactions response.", 500);
+    }
+
+    transactions.push(...page.transactions);
+
+    if (page.pagination.nextOffset === null) {
+      return transactions;
+    }
+
+    if (page.pagination.nextOffset <= offset) {
+      throw new TransactionApiError("Invalid transactions pagination.", 500);
+    }
+
+    offset = page.pagination.nextOffset;
+  }
 }
 
 export async function createTransaction(input: CreateTransactionInput) {
