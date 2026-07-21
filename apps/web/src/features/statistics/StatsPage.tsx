@@ -313,17 +313,38 @@ export function StatsPage() {
           <h2 id="stats-money-title">Money</h2>
 
           <div className="stats-money__content">
-            <div className="stats-money__balance">
-              <span>
-                <Scale aria-hidden="true" />
-                Net balance
-              </span>
-              <strong className={getValueTone(balance)}>
-                {formatEuroAmount(balance, {
-                  showSign: true,
-                  fractionDigits: 0
-                })}
-              </strong>
+            <div className="stats-money__summary">
+              <div className="stats-money__balance">
+                <span>
+                  <Scale aria-hidden="true" />
+                  Net balance
+                </span>
+                <strong className={getValueTone(balance)}>
+                  {formatEuroAmount(balance, {
+                    showSign: true,
+                    fractionDigits: 0
+                  })}
+                </strong>
+              </div>
+
+              <div
+                className="stats-money__savings"
+                aria-label="Percentage of income saved"
+              >
+                <span>
+                  <PiggyBank aria-hidden="true" />
+                  Saved
+                </span>
+                <strong
+                  className={
+                    savingsPercentage === null
+                      ? undefined
+                      : getValueTone(savingsPercentage)
+                  }
+                >
+                  {savingsPercentage === null ? "--" : `${savingsPercentage}%`}
+                </strong>
+              </div>
             </div>
 
             <div className="stats-money__breakdown">
@@ -345,25 +366,6 @@ export function StatsPage() {
                   {formatEuroAmount(roundedExpenses, { fractionDigits: 0 })}
                 </strong>
               </div>
-            </div>
-
-            <div
-              className="stats-money__savings"
-              aria-label="Percentage of income saved"
-            >
-              <span>
-                <PiggyBank aria-hidden="true" />
-                Saved
-              </span>
-              <strong
-                className={
-                  savingsPercentage === null
-                    ? undefined
-                    : getValueTone(savingsPercentage)
-                }
-              >
-                {savingsPercentage === null ? "--" : `${savingsPercentage}%`}
-              </strong>
             </div>
           </div>
         </section>

@@ -1272,23 +1272,27 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .stats-money__content {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
 }
 
-.stats-money__balance,
-.stats-money__savings {
+.stats-money__summary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(56px, 18vw, 64px);
+}
+
+.stats-money__balance {
   min-width: 0;
   min-height: 104px;
   display: grid;
   align-content: center;
-  gap: 7px;
-  padding: 8px 6px;
+  gap: 6px;
+  padding: 8px;
 }
 
-.stats-money__balance > span,
-.stats-money__savings > span {
+.stats-money__balance > span {
   min-width: 0;
   display: flex;
   align-items: center;
@@ -1300,8 +1304,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   white-space: nowrap;
 }
 
-.stats-money__balance > span svg,
-.stats-money__savings > span svg {
+.stats-money__balance > span svg {
   width: 14px;
   height: 14px;
   flex: 0 0 auto;
@@ -1309,8 +1312,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   stroke-width: 1.8;
 }
 
-.stats-money__balance > strong,
-.stats-money__savings > strong {
+.stats-money__balance > strong {
   min-width: 0;
   overflow: hidden;
   color: var(--color-text);
@@ -1332,10 +1334,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .stats-money__breakdown > div {
   min-width: 0;
   min-height: 52px;
-  display: grid;
-  align-content: center;
-  gap: 3px;
-  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  padding: 6px 8px;
 }
 
 .stats-money__breakdown > div + div {
@@ -1346,17 +1349,17 @@ body.app-logout-transition .confirm-dialog-backdrop {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   color: var(--color-text-muted);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.3;
   font-weight: 400;
   white-space: nowrap;
 }
 
 .stats-money__breakdown span svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   flex: 0 0 auto;
   color: currentColor;
   stroke-width: 1.8;
@@ -1365,16 +1368,56 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .stats-money__breakdown strong {
   overflow: hidden;
   color: var(--color-text);
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.3;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+  text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .stats-money__savings {
+  min-width: 0;
+  min-height: 104px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  padding: 8px 5px;
   border-left: 1px solid var(--color-border);
+}
+
+.stats-money__savings > span {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.stats-money__savings > span svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: currentColor;
+  stroke-width: 1.8;
+}
+
+.stats-money__savings > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .stats-money .stats-value--positive {
@@ -1520,18 +1563,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
     gap: 12px;
   }
 
-  .stats-money__balance > span,
-  .stats-money__savings > span {
-    font-size: 9px;
-  }
-
-  .stats-money__balance > strong,
-  .stats-money__savings > strong {
+  .stats-money__balance > strong {
     font-size: 19px;
-  }
-
-  .stats-money__breakdown strong {
-    font-size: 12px;
   }
 }
 .moves-toolbar {
