@@ -6,7 +6,6 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
-  PiggyBank,
   Scale
 } from "lucide-react";
 
@@ -59,7 +58,7 @@ const monthlyStats: readonly StatsPeriod[] = [
 
 const yearlyStats: readonly StatsPeriod[] = [
   { label: "2024", income: 28450.5, expenses: 21680.25 },
-  { label: "2025", income: 36780.2, expenses: 29125.85 },
+  { label: "2025", income: 44500.2, expenses: 29125.85 },
   { label: "2026", income: 21241.15, expenses: 14320 }
 ];
 
@@ -313,28 +312,22 @@ export function StatsPage() {
           <h2 id="stats-money-title">Money</h2>
 
           <div className="stats-money__content">
-            <div className="stats-money__summary">
-              <div className="stats-money__balance">
-                <span>
-                  <Scale aria-hidden="true" />
-                  Net balance
-                </span>
-                <strong className={getValueTone(balance)}>
-                  {formatEuroAmount(balance, {
-                    showSign: true,
-                    fractionDigits: 0
-                  })}
-                </strong>
-              </div>
-
-              <div
-                className="stats-money__savings"
+            <div className="stats-money__balance">
+              <span>
+                <Scale aria-hidden="true" />
+                Net balance
+              </span>
+              <strong className={getValueTone(balance)}>
+                {formatEuroAmount(balance, {
+                  showSign: true,
+                  fractionDigits: 0
+                })}
+              </strong>
+              <p
+                className="stats-money__saved-rate"
                 aria-label="Percentage of income saved"
               >
-                <span>
-                  <PiggyBank aria-hidden="true" />
-                  Saved
-                </span>
+                Saved:{" "}
                 <strong
                   className={
                     savingsPercentage === null
@@ -344,7 +337,7 @@ export function StatsPage() {
                 >
                   {savingsPercentage === null ? "--" : `${savingsPercentage}%`}
                 </strong>
-              </div>
+              </p>
             </div>
 
             <div className="stats-money__breakdown">
