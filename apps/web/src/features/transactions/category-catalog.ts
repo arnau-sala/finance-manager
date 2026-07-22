@@ -67,8 +67,8 @@ export const transactionCategories: readonly TransactionCategoryDefinition[] = [
     icon: Globe
   },
   {
-    id: "expense-transportation",
-    name: "Transportation",
+    id: "expense-transport",
+    name: "Transport",
     type: "EXPENSE",
     icon: Car
   },

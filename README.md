@@ -908,7 +908,7 @@ The endpoint returns only categories that have at least one transaction for the 
       "percentage": 34
     },
     {
-      "category": "Transportation",
+      "category": "Transport",
       "type": "EXPENSE",
       "percentage": 33
     },

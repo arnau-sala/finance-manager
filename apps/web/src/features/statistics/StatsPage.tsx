@@ -78,7 +78,7 @@ const expenseCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
     { id: "expense-housing", share: 0.38 },
     { id: "expense-groceries", share: 0.23 },
     { id: "expense-dining", share: 0.14 },
-    { id: "expense-transportation", share: 0.1 },
+    { id: "expense-transport", share: 0.1 },
     { id: "expense-subscriptions", share: 0.08 },
     { id: "expense-shopping", share: 0.07 }
   ],
@@ -96,7 +96,7 @@ const expenseCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
     { id: "expense-groceries", share: 0.17 },
     { id: "expense-sports", share: 0.11 },
     { id: "expense-parties", share: 0.1 },
-    { id: "expense-transportation", share: 0.08 }
+    { id: "expense-transport", share: 0.08 }
   ]
 ];
 
