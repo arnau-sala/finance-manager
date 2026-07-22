@@ -1436,7 +1436,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: center;
   gap: 6px;
-  padding: 7px 6px;
+  padding: 7px 8px 7px 6px;
 }
 
 .stats-category-row + .stats-category-row {
