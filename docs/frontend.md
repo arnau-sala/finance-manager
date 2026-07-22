@@ -463,15 +463,18 @@ MVP content:
 - Balance overview.
 - Monthly balance.
 - Yearly balance.
+- All-time balance.
 - Category percentages.
 
 The first visual iteration focuses on numeric information before charts are
-introduced. It uses varied mock monthly and yearly periods to validate the
-mobile layout, period navigation, and positive and negative balances. Money is
-kept in one group containing net balance, income, expenses, and the percentage
-of income saved. A separate category breakdown keeps expenses and income in two
-side-by-side columns, showing only active categories in descending amount order. This
-temporary data source will be replaced by authenticated aggregate endpoints.
+introduced. It uses varied mock monthly, yearly, and all-time periods to validate
+the mobile layout, period navigation, and positive and negative balances. The
+all-time view aggregates yearly totals so that no month is counted twice. Money
+is kept in one group containing net balance, income, expenses, and the
+percentage of income saved. A separate category breakdown keeps expenses and
+income in two side-by-side columns, showing only active categories in descending
+amount order. This temporary data source will be replaced by authenticated
+aggregate endpoints.
 Category values show amounts by default. Selecting any value switches both
 columns to percentages; selecting one again restores the amount view.
 Stats displays these summary amounts as whole euros while preserving cents in

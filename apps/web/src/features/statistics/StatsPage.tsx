@@ -6,6 +6,7 @@ import {
   CalendarRange,
   ChevronLeft,
   ChevronRight,
+  Infinity as InfinityIcon,
   Scale
 } from "lucide-react";
 
@@ -20,7 +21,7 @@ import {
   type TransactionType
 } from "../transactions/category-catalog";
 
-type StatsPeriodMode = "MONTH" | "YEAR";
+type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
 type CategoryValueMode = "AMOUNT" | "PERCENTAGE";
 
 type StatsPeriod = {
@@ -43,7 +44,8 @@ type CategoryBreakdownItem = {
 
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
-  { value: "YEAR", label: "Year", icon: CalendarRange }
+  { value: "YEAR", label: "Year", icon: CalendarRange },
+  { value: "ALL", label: "All", icon: InfinityIcon }
 ];
 
 const monthlyStats: readonly StatsPeriod[] = [
@@ -61,6 +63,15 @@ const yearlyStats: readonly StatsPeriod[] = [
   { label: "2025", income: 44500.2, expenses: 29125.85 },
   { label: "2026", income: 21241.15, expenses: 14320 }
 ];
+
+const allTimeStats = yearlyStats.reduce<StatsPeriod>(
+  (total, period) => ({
+    label: "All time",
+    income: total.income + period.income,
+    expenses: total.expenses + period.expenses
+  }),
+  { label: "All time", income: 0, expenses: 0 }
+);
 
 const expenseCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
   [
@@ -162,6 +173,70 @@ function getCategoryBreakdown(
     .sort((first, second) => second.amount - first.amount);
 }
 
+function getAllTimeCategoryBreakdown(
+  type: TransactionType,
+  profiles: readonly (readonly CategoryWeight[])[]
+) {
+  const amountsByCategory = new Map<string, number>();
+
+  yearlyStats.forEach((period, index) => {
+    const total = Math.round(
+      type === "EXPENSE" ? period.expenses : period.income
+    );
+    const breakdown = getCategoryBreakdown(
+      total,
+      type,
+      profiles[index % profiles.length]
+    );
+
+    breakdown.forEach((category) => {
+      amountsByCategory.set(
+        category.id,
+        (amountsByCategory.get(category.id) ?? 0) + category.amount
+      );
+    });
+  });
+
+  const totalAmount = [...amountsByCategory.values()].reduce(
+    (total, amount) => total + amount,
+    0
+  );
+  const categories = [...amountsByCategory.entries()].map(([id, amount]) => {
+    const category = transactionCategories.find(
+      (candidate) => candidate.id === id && candidate.type === type
+    );
+    const exactPercentage = (amount * 100) / totalAmount;
+
+    return {
+      id,
+      name: category?.name ?? id,
+      amount,
+      percentage: Math.floor(exactPercentage),
+      remainder: exactPercentage % 1
+    };
+  });
+  const percentagePointsToAssign =
+    100 - categories.reduce((total, category) => total + category.percentage, 0);
+  const roundedUpIds = new Set(
+    [...categories]
+      .sort(
+        (first, second) =>
+          second.remainder - first.remainder || second.amount - first.amount
+      )
+      .slice(0, percentagePointsToAssign)
+      .map((category) => category.id)
+  );
+
+  return categories
+    .map<CategoryBreakdownItem>((category) => ({
+      id: category.id,
+      name: category.name,
+      amount: category.amount,
+      percentage: category.percentage + (roundedUpIds.has(category.id) ? 1 : 0)
+    }))
+    .sort((first, second) => second.amount - first.amount);
+}
+
 type StatsCategoryColumnProps = {
   title: string;
   type: TransactionType;
@@ -234,24 +309,34 @@ export function StatsPage() {
     useState<CategoryValueMode>("AMOUNT");
   const periods = mode === "MONTH" ? monthlyStats : yearlyStats;
   const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
-  const period = periods[periodIndex];
+  const period = mode === "ALL" ? allTimeStats : periods[periodIndex];
   const roundedIncome = Math.round(period.income);
   const roundedExpenses = Math.round(period.expenses);
   const balance = roundedIncome - roundedExpenses;
   const savingsPercentage =
     roundedIncome > 0 ? Math.round((balance / roundedIncome) * 100) : null;
-  const expenseCategoryBreakdown = getCategoryBreakdown(
-    roundedExpenses,
-    "EXPENSE",
-    expenseCategoryProfiles[periodIndex % expenseCategoryProfiles.length]
-  );
-  const incomeCategoryBreakdown = getCategoryBreakdown(
-    roundedIncome,
-    "INCOME",
-    incomeCategoryProfiles[periodIndex % incomeCategoryProfiles.length]
-  );
+  const expenseCategoryBreakdown =
+    mode === "ALL"
+      ? getAllTimeCategoryBreakdown("EXPENSE", expenseCategoryProfiles)
+      : getCategoryBreakdown(
+          roundedExpenses,
+          "EXPENSE",
+          expenseCategoryProfiles[periodIndex % expenseCategoryProfiles.length]
+        );
+  const incomeCategoryBreakdown =
+    mode === "ALL"
+      ? getAllTimeCategoryBreakdown("INCOME", incomeCategoryProfiles)
+      : getCategoryBreakdown(
+          roundedIncome,
+          "INCOME",
+          incomeCategoryProfiles[periodIndex % incomeCategoryProfiles.length]
+        );
 
   function changePeriod(nextIndex: number) {
+    if (mode === "ALL") {
+      return;
+    }
+
     if (nextIndex < 0 || nextIndex >= periods.length) {
       return;
     }
@@ -288,24 +373,35 @@ export function StatsPage() {
           compact
         />
 
-        <nav className="stats-period-navigation" aria-label="Select period">
-          <button
-            type="button"
-            onClick={() => changePeriod(periodIndex - 1)}
-            disabled={periodIndex === 0}
-            aria-label="Previous period"
-          >
-            <ChevronLeft aria-hidden="true" />
-          </button>
-          <strong aria-live="polite">{period.label}</strong>
-          <button
-            type="button"
-            onClick={() => changePeriod(periodIndex + 1)}
-            disabled={periodIndex === periods.length - 1}
-            aria-label="Next period"
-          >
-            <ChevronRight aria-hidden="true" />
-          </button>
+        <nav
+          className={`stats-period-navigation${
+            mode === "ALL" ? " stats-period-navigation--all" : ""
+          }`}
+          aria-label="Select period"
+        >
+          {mode === "ALL" ? (
+            <strong aria-live="polite">{period.label}</strong>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => changePeriod(periodIndex - 1)}
+                disabled={periodIndex === 0}
+                aria-label="Previous period"
+              >
+                <ChevronLeft aria-hidden="true" />
+              </button>
+              <strong aria-live="polite">{period.label}</strong>
+              <button
+                type="button"
+                onClick={() => changePeriod(periodIndex + 1)}
+                disabled={periodIndex === periods.length - 1}
+                aria-label="Next period"
+              >
+                <ChevronRight aria-hidden="true" />
+              </button>
+            </>
+          )}
         </nav>
 
         <section className="stats-money" aria-labelledby="stats-money-title">

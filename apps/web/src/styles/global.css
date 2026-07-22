@@ -1215,6 +1215,10 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 8px;
 }
 
+.stats-period-navigation--all {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .stats-period-navigation button {
   width: 42px;
   height: 42px;
