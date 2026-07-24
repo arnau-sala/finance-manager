@@ -479,6 +479,16 @@ Category values show amounts by default. Selecting any value switches both
 columns to percentages; selecting one again restores the amount view.
 Stats displays these summary amounts as whole euros while preserving cents in
 the underlying values and elsewhere in the app.
+In Month mode, only the visible month name opens the custom month picker; the
+adjacent year remains non-interactive. During the current visual iteration, the
+picker derives its availability from deterministic mock transaction records,
+with between 5 and 30 records per month from March 2024 through July 2027.
+These bounds disable January and February 2024 plus every month after July
+2027. The picker can later consume the existing authenticated
+`GET /statistics/months` response without changing its UI contract. Its year
+can be changed with bounded arrow controls, a horizontal swipe, or a
+mouse/trackpad wheel. Selecting an enabled month closes the picker and updates
+the Stats period.
 
 The numeric Insights section adapts to the selected period. Every mode shows
 the top expense and income with their exact mock dates. Year adds the best and

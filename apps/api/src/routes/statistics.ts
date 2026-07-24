@@ -3,12 +3,14 @@ import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import {
+  getTodayDateOnly,
   getMonthDateOnlyRange,
   getYearDateOnlyRange,
 } from "../dates/date-only.js";
 import {
   getUserBalance,
   getUserCategoryStatistics,
+  getUserTransactionMonths,
 } from "../services/statistics-service.js";
 import { financialReadRateLimit } from "../security/rate-limit.js";
 
@@ -297,6 +299,27 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       categories,
     });
   }
+
+  app.get(
+    "/statistics/months",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const today = getTodayDateOnly();
+      const availableMonths = await getUserTransactionMonths(userId, today);
+
+      return reply.send({
+        availableMonths,
+        minimumMonth: availableMonths[0] ?? null,
+        maximumMonth: today.slice(0, 7),
+      });
+    },
+  );
 
   app.get(
     "/statistics/balance",

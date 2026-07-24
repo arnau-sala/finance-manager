@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -15,12 +15,16 @@ import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
 } from "../../components/ui/SlidingSegmentedControl";
+import { MonthPicker } from "../../components/ui/MonthPicker";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
   getCategoryIcon,
   transactionCategories,
   type TransactionType
 } from "../transactions/category-catalog";
+import {
+  mockStatisticsMonthAvailability
+} from "./statistics-mock";
 
 type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
 type CategoryValueMode = "AMOUNT" | "PERCENTAGE";
@@ -32,7 +36,7 @@ type StatsPeriod = {
 };
 
 type MonthlyStatsPeriod = StatsPeriod & {
-  month: string;
+  month: MonthName;
   year: number;
 };
 
@@ -41,7 +45,7 @@ type YearlyStatsPeriod = StatsPeriod & {
 };
 
 type MonthlyStatsSeed = readonly [
-  month: string,
+  month: MonthName,
   income: number,
   expenses: number
 ];
@@ -70,6 +74,23 @@ type StatsInsight = {
   sideValue?: string;
 };
 
+const monthNames = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+] as const;
+
+type MonthName = (typeof monthNames)[number];
+
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
   { value: "YEAR", label: "Year", icon: Calendar },
@@ -90,15 +111,13 @@ function createMonthlyStats(
 }
 
 const monthlyStats2024 = createMonthlyStats(2024, [
-  ["January", 2200, 2380],
-  ["February", 2200, 2290],
   ["March", 2450, 2610],
   ["April", 2250, 2425],
   ["May", 2600, 1850],
   ["June", 2300, 2500],
   ["July", 2800, 2000],
   ["August", 2100, 2240],
-  ["September", 2400, 1750],
+  ["September", 2400, 2550],
   ["October", 2500, 2675],
   ["November", 2250, 1500],
   ["December", 2400.5, 1480.25]
@@ -119,21 +138,64 @@ const monthlyStats2025 = createMonthlyStats(2025, [
   ["December", 4100.2, 2425.85]
 ]);
 
-const monthlyStats = createMonthlyStats(2026, [
+const monthlyStats2026 = createMonthlyStats(2026, [
   ["January", 3250, 2450.8],
   ["February", 0, 482.65],
   ["March", 4250, 1987.45],
   ["April", 2350, 2784.2],
   ["May", 5175.4, 2240.75],
   ["June", 2890, 2455.85],
-  ["July", 3325.75, 1918.3]
+  ["July", 3325.75, 1918.3],
+  ["August", 3100, 2120],
+  ["September", 3890, 2650],
+  ["October", 3450, 3010],
+  ["November", 4200, 2300],
+  ["December", 4550, 3400]
+]);
+
+const monthlyStats2027 = createMonthlyStats(2027, [
+  ["January", 3800, 2700],
+  ["February", 3900, 2950],
+  ["March", 4400, 2800],
+  ["April", 4050, 3300],
+  ["May", 4750, 3100],
+  ["June", 4300, 3600],
+  ["July", 5100, 3350]
 ]);
 
 const allMonthlyStats: readonly MonthlyStatsPeriod[] = [
   ...monthlyStats2024,
   ...monthlyStats2025,
-  ...monthlyStats
+  ...monthlyStats2026,
+  ...monthlyStats2027
 ];
+
+function toMonthKey(period: MonthlyStatsPeriod) {
+  const monthNumber = monthNames.indexOf(period.month) + 1;
+  return `${period.year}-${String(monthNumber).padStart(2, "0")}`;
+}
+
+function createEmptyMonthlyPeriod(month: string): MonthlyStatsPeriod {
+  const [yearPart, monthPart] = month.split("-");
+  const year = Number(yearPart);
+  const monthIndex = Number(monthPart) - 1;
+  const monthName = monthNames[monthIndex] ?? monthNames[0];
+
+  return {
+    label: `${monthName} ${year}`,
+    month: monthName,
+    year,
+    income: 0,
+    expenses: 0
+  };
+}
+
+function getMonthlyPeriod(month: string) {
+  return (
+    allMonthlyStats.find((period) => toMonthKey(period) === month) ??
+    createEmptyMonthlyPeriod(month)
+  );
+}
 
 function summarizeYear(year: number): YearlyStatsPeriod {
   return allMonthlyStats
@@ -148,7 +210,7 @@ function summarizeYear(year: number): YearlyStatsPeriod {
     );
 }
 
-const yearlyStats: readonly YearlyStatsPeriod[] = [2024, 2025, 2026].map(
+const yearlyStats: readonly YearlyStatsPeriod[] = [2024, 2025, 2026, 2027].map(
   summarizeYear
 );
 
@@ -611,14 +673,35 @@ function StatsInsightItem({ insight }: { insight: StatsInsight }) {
 }
 
 export function StatsPage() {
+  const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
-  const [monthIndex, setMonthIndex] = useState(monthlyStats.length - 1);
+  const [selectedMonthKey, setSelectedMonthKey] = useState(
+    toMonthKey(allMonthlyStats[allMonthlyStats.length - 1])
+  );
   const [yearIndex, setYearIndex] = useState(yearlyStats.length - 1);
   const [categoryValueMode, setCategoryValueMode] =
     useState<CategoryValueMode>("AMOUNT");
-  const periods = mode === "MONTH" ? monthlyStats : yearlyStats;
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const selectableMonthKeys =
+    mockStatisticsMonthAvailability.availableMonths;
+  const monthIndex = Math.max(
+    selectableMonthKeys.indexOf(selectedMonthKey),
+    0
+  );
+  const selectedMonth = getMonthlyPeriod(selectedMonthKey);
   const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
-  const period = mode === "ALL" ? allTimeStats : periods[periodIndex];
+  const periodCount =
+    mode === "MONTH" ? selectableMonthKeys.length : yearlyStats.length;
+  const period =
+    mode === "ALL"
+      ? allTimeStats
+      : mode === "MONTH"
+        ? selectedMonth
+        : yearlyStats[yearIndex];
+  const categoryProfileIndex =
+    mode === "MONTH"
+      ? selectedMonth.year * 12 + monthNames.indexOf(selectedMonth.month)
+      : periodIndex;
   const roundedIncome = Math.round(period.income);
   const roundedExpenses = Math.round(period.expenses);
   const balance = roundedIncome - roundedExpenses;
@@ -630,7 +713,9 @@ export function StatsPage() {
       : getCategoryBreakdown(
           roundedExpenses,
           "EXPENSE",
-          expenseCategoryProfiles[periodIndex % expenseCategoryProfiles.length]
+          expenseCategoryProfiles[
+            categoryProfileIndex % expenseCategoryProfiles.length
+          ]
         );
   const incomeCategoryBreakdown =
     mode === "ALL"
@@ -638,11 +723,13 @@ export function StatsPage() {
       : getCategoryBreakdown(
           roundedIncome,
           "INCOME",
-          incomeCategoryProfiles[periodIndex % incomeCategoryProfiles.length]
+          incomeCategoryProfiles[
+            categoryProfileIndex % incomeCategoryProfiles.length
+          ]
         );
   const selectedMonths =
     mode === "MONTH"
-      ? [monthlyStats[monthIndex]]
+      ? [selectedMonth]
       : mode === "YEAR"
         ? allMonthlyStats.filter(
             (monthlyPeriod) =>
@@ -737,13 +824,16 @@ export function StatsPage() {
       return;
     }
 
-    if (nextIndex < 0 || nextIndex >= periods.length) {
+    if (mode === "MONTH") {
+      const nextMonth = selectableMonthKeys[nextIndex];
+
+      if (nextMonth) {
+        setSelectedMonthKey(nextMonth);
+      }
       return;
     }
 
-    if (mode === "MONTH") {
-      setMonthIndex(nextIndex);
-    } else {
+    if (nextIndex >= 0 && nextIndex < yearlyStats.length) {
       setYearIndex(nextIndex);
     }
   }
@@ -791,11 +881,30 @@ export function StatsPage() {
               >
                 <ChevronLeft aria-hidden="true" />
               </button>
-              <strong aria-live="polite">{period.label}</strong>
+              {mode === "MONTH" ? (
+                <span
+                  className="stats-period-navigation__label"
+                  aria-live="polite"
+                >
+                  <button
+                    ref={monthPickerAnchorRef}
+                    className="stats-period-navigation__month-picker"
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={isMonthPickerOpen}
+                    onClick={() => setIsMonthPickerOpen(true)}
+                  >
+                    <span>{selectedMonth.month}</span>
+                    <span>{selectedMonth.year}</span>
+                  </button>
+                </span>
+              ) : (
+                <strong aria-live="polite">{period.label}</strong>
+              )}
               <button
                 type="button"
                 onClick={() => changePeriod(periodIndex + 1)}
-                disabled={periodIndex === periods.length - 1}
+                disabled={periodIndex === periodCount - 1}
                 aria-label="Next period"
               >
                 <ChevronRight aria-hidden="true" />
@@ -803,6 +912,17 @@ export function StatsPage() {
             </>
           )}
         </nav>
+
+        <MonthPicker
+          open={isMonthPickerOpen}
+          anchorRef={monthPickerAnchorRef}
+          value={selectedMonthKey}
+          availableMonths={mockStatisticsMonthAvailability.availableMonths}
+          minimumMonth={mockStatisticsMonthAvailability.minimumMonth}
+          maximumMonth={mockStatisticsMonthAvailability.maximumMonth}
+          onSelect={setSelectedMonthKey}
+          onClose={() => setIsMonthPickerOpen(false)}
+        />
 
         <section className="stats-money" aria-labelledby="stats-money-title">
           <h2 id="stats-money-title">Money</h2>

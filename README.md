@@ -74,6 +74,7 @@ Transactions:
 
 Statistics:
 
+- `GET /statistics/months`
 - `GET /statistics/balance`
 - `GET /statistics/balance/:month/:year`
 - `GET /statistics/balance/:month`
@@ -759,6 +760,29 @@ The endpoint provides the authenticated user's Home data in one response: the al
 ```
 
 Users without transactions receive zero balance values, an empty `latestMoves` array, a transaction count of `0`, and null top categories.
+
+## Get My Available Statistics Months
+
+An active login session is required:
+
+```http
+GET /statistics/months
+```
+
+The endpoint returns the distinct months that contain at least one transaction
+owned by the current user. Future transactions are excluded, and neither
+transactions nor `userId` values are exposed:
+
+```json
+{
+  "availableMonths": ["2026-04", "2026-06", "2026-07"],
+  "minimumMonth": "2026-04",
+  "maximumMonth": "2026-07"
+}
+```
+
+`minimumMonth` is `null` when the account has no transactions.
+`maximumMonth` is always the current calendar month.
 
 ## Get My Balance
 

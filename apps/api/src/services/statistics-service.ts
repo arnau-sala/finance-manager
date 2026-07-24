@@ -23,6 +23,29 @@ type CategoryTotalRow = {
   transactionCount: bigint | number;
 };
 
+type TransactionMonthRow = {
+  month: string;
+};
+
+export async function getUserTransactionMonths(
+  userId: string,
+  maximumDate: string
+) {
+  const months = await db.$queryRaw<TransactionMonthRow[]>(
+    Prisma.sql`
+      SELECT
+        TO_CHAR(DATE_TRUNC('month', t."occurredOn"), 'YYYY-MM') AS "month"
+      FROM "Transaction" t
+      WHERE t."userId" = ${userId}
+        AND t."occurredOn" <= ${maximumDate}::date
+      GROUP BY DATE_TRUNC('month', t."occurredOn")
+      ORDER BY DATE_TRUNC('month', t."occurredOn") ASC
+    `
+  );
+
+  return months.map(({ month }) => month);
+}
+
 async function getUserCategoryTotals(
   userId: string,
   type?: TransactionType,
