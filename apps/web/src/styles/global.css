@@ -1202,11 +1202,39 @@ body.stats-picker-open .home-content--stats {
   min-height: 33px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .stats-page__header h1 {
   font-size: 27px;
   line-height: 1.2;
+}
+
+.stats-view-toggle.sliding-segmented-control {
+  flex: 0 0 auto;
+  width: 82px;
+  height: 40px;
+  padding: 3px;
+  background: var(--color-surface);
+  border-radius: 11px;
+}
+
+.stats-view-toggle .sliding-segmented-control__indicator {
+  background: var(--color-primary-soft-strong);
+  border-color: var(--color-primary-border);
+  border-radius: 8px;
+}
+
+.stats-view-toggle.sliding-segmented-control button {
+  padding: 0;
+  border-radius: 8px;
+}
+
+.stats-view-toggle.sliding-segmented-control button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
 }
 
 .stats-period-mode {
@@ -2944,6 +2972,10 @@ body.stats-picker-open .home-content--stats {
 .sliding-segmented-control button[aria-checked="true"] {
   color: var(--segmented-color);
   cursor: grab;
+}
+
+.sliding-segmented-control--click-only button[aria-checked="true"] {
+  cursor: pointer;
 }
 
 .sliding-segmented-control.is-dragging button[aria-checked="true"] {

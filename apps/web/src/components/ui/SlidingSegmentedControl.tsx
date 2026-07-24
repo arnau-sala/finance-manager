@@ -20,6 +20,8 @@ type SlidingSegmentedControlProps<Value extends string> = {
   className?: string;
   tone?: "primary" | "expense" | "income";
   compact?: boolean;
+  iconOnly?: boolean;
+  allowDrag?: boolean;
   disabled?: boolean;
 };
 
@@ -41,6 +43,8 @@ export function SlidingSegmentedControl<Value extends string>({
   className,
   tone = "primary",
   compact = false,
+  iconOnly = false,
+  allowDrag = true,
   disabled = false
 }: SlidingSegmentedControlProps<Value>) {
   const selectedIndex = Math.max(
@@ -75,6 +79,7 @@ export function SlidingSegmentedControl<Value extends string>({
   ) {
     if (
       disabled ||
+      !allowDrag ||
       optionIndex !== selectedIndex ||
       (event.pointerType === "mouse" && event.button !== 0)
     ) {
@@ -164,9 +169,11 @@ export function SlidingSegmentedControl<Value extends string>({
       ref={container}
       className={`sliding-segmented-control sliding-segmented-control--${tone}${
         compact ? " sliding-segmented-control--compact" : ""
-      }${isDragging ? " is-dragging" : ""}${
-        className ? ` ${className}` : ""
-      }`}
+      }${iconOnly ? " sliding-segmented-control--icon-only" : ""}${
+        allowDrag ? "" : " sliding-segmented-control--click-only"
+      }${
+        isDragging ? " is-dragging" : ""
+      }${className ? ` ${className}` : ""}`}
       style={
         {
           "--segmented-option-count": optionCount,
@@ -191,6 +198,7 @@ export function SlidingSegmentedControl<Value extends string>({
             disabled={disabled}
             role="radio"
             aria-checked={value === option.value}
+            aria-label={iconOnly ? option.label : undefined}
             onClick={() => handleClick(option.value)}
             onPointerDown={(event) => startDrag(event, index)}
             onPointerMove={moveDrag}
@@ -198,7 +206,7 @@ export function SlidingSegmentedControl<Value extends string>({
             onPointerCancel={cancelDrag}
           >
             {Icon ? <Icon aria-hidden="true" /> : null}
-            {option.label}
+            {iconOnly ? null : option.label}
           </button>
         );
       })}

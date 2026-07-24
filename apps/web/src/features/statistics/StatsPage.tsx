@@ -6,9 +6,11 @@ import {
   Calendar,
   CalendarDays,
   Calendars,
+  ChartPie,
   ChartColumn,
   ChevronLeft,
   ChevronRight,
+  List,
   PiggyBank,
   Scale,
   Trophy,
@@ -34,6 +36,7 @@ import {
 } from "./statistics-mock";
 
 type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
+type StatsViewMode = "OVERVIEW" | "CHARTS";
 type CategoryValueMode = "AMOUNT" | "PERCENTAGE";
 
 type StatsPeriod = {
@@ -124,6 +127,11 @@ const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
   { value: "YEAR", label: "Year", icon: Calendar },
   { value: "ALL", label: "All", icon: Calendars }
+];
+
+const statsViewOptions: readonly SlidingSegmentOption<StatsViewMode>[] = [
+  { value: "OVERVIEW", label: "Show overview", icon: List },
+  { value: "CHARTS", label: "Show charts", icon: ChartPie }
 ];
 
 const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
@@ -1144,6 +1152,7 @@ function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
 export function StatsPage() {
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const yearPickerAnchorRef = useRef<HTMLButtonElement>(null);
+  const [viewMode, setViewMode] = useState<StatsViewMode>("OVERVIEW");
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
   const [selectedMonthKey, setSelectedMonthKey] = useState(() =>
     getInitialMonthKey(mockStatisticsMonthAvailability.availableMonths)
@@ -1439,6 +1448,17 @@ export function StatsPage() {
       <div className="stats-page">
         <header className="stats-page__header">
           <h1 id="stats-page-title">Stats</h1>
+
+          <SlidingSegmentedControl
+            className="stats-view-toggle"
+            value={viewMode}
+            options={statsViewOptions}
+            onChange={setViewMode}
+            label="Statistics view"
+            compact
+            iconOnly
+            allowDrag={false}
+          />
         </header>
 
         <SlidingSegmentedControl
