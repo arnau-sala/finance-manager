@@ -878,11 +878,17 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .home-content--stats {
+  --stats-gutter-left: max(24px, env(safe-area-inset-left));
+  --stats-gutter-right: max(24px, env(safe-area-inset-right));
+  right: 0;
   bottom: 0;
+  left: 0;
   display: block;
   overflow-x: clip;
   overflow-y: auto;
   overscroll-behavior-y: contain;
+  padding-right: var(--stats-gutter-right);
+  padding-left: var(--stats-gutter-left);
   touch-action: pan-y;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
@@ -1627,7 +1633,67 @@ body.stats-picker-open .home-content--stats {
 .stats-sections {
   display: grid;
   gap: var(--stats-section-gap);
+}
+
+.stats-view-stage {
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  min-width: 0;
+  display: grid;
+  margin-left: -50vw;
   margin-top: calc(var(--stats-section-gap) - var(--stats-page-gap));
+  overflow: hidden;
+}
+
+.stats-view-panel {
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding-right: var(--stats-gutter-right);
+  padding-left: var(--stats-gutter-left);
+  transition: transform 360ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.stats-view-panel .stats-sections {
+  width: min(100%, 440px);
+  margin: 0 auto;
+}
+
+.stats-view-panel--overview {
+  transform: translateX(0);
+}
+
+.stats-view-panel--charts {
+  min-height: max(280px, calc(100dvh - 290px));
+  display: grid;
+  place-items: center;
+  transform: translateX(100%);
+}
+
+.stats-view-panel--charts p {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.stats-view-stage--overview .stats-view-panel--charts,
+.stats-view-stage--charts .stats-view-panel--overview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+.stats-view-stage--charts .stats-view-panel--overview {
+  transform: translateX(-100%);
+}
+
+.stats-view-stage--charts .stats-view-panel--charts {
+  position: relative;
+  transform: translateX(0);
 }
 
 .stats-money > h2,
@@ -4026,7 +4092,8 @@ body.stats-picker-open .home-content--stats {
   }
 
   .transaction-composer,
-  .sliding-segmented-control__indicator {
+  .sliding-segmented-control__indicator,
+  .stats-view-panel {
     transition-duration: 1ms;
   }
 }
