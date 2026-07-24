@@ -61,6 +61,8 @@ type CategoryBreakdownItem = {
   name: string;
   amount: number;
   percentage: number;
+  transactionCount: number;
+  averageAmount: number;
 };
 
 type InsightTone = "positive" | "negative" | "neutral";
@@ -299,6 +301,29 @@ const incomeCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
     { id: "income-other", share: 0.03 }
   ]
 ];
+
+const mockTypicalTransactionAmounts: Readonly<Record<string, number>> = {
+  "expense-dining": 35,
+  "expense-education": 180,
+  "expense-gifts": 100,
+  "expense-groceries": 60,
+  "expense-health": 100,
+  "expense-housing": 900,
+  "expense-parties": 80,
+  "expense-shopping": 90,
+  "expense-sports": 45,
+  "expense-subscriptions": 15,
+  "expense-transport": 30,
+  "expense-other": 50,
+  "income-allowance": 100,
+  "income-benefits": 500,
+  "income-freelance": 600,
+  "income-gifts": 100,
+  "income-investments": 250,
+  "income-salary": 2500,
+  "income-sales": 180,
+  "income-other": 200
+};
 
 function getValueTone(value: number) {
   if (value > 0) return "stats-value--positive";
@@ -574,12 +599,25 @@ function createCategoryBreakdownItems(
   );
 
   return categories
-    .map<CategoryBreakdownItem>((category) => ({
-      id: category.id,
-      name: category.name,
-      amount: category.amount,
-      percentage: category.percentage + (roundedUpIds.has(category.id) ? 1 : 0)
-    }))
+    .map<CategoryBreakdownItem>((category) => {
+      const typicalAmount =
+        mockTypicalTransactionAmounts[category.id] ??
+        (type === "INCOME" ? 250 : 50);
+      const transactionCount = Math.max(
+        1,
+        Math.round(category.amount / typicalAmount)
+      );
+
+      return {
+        id: category.id,
+        name: category.name,
+        amount: category.amount,
+        percentage:
+          category.percentage + (roundedUpIds.has(category.id) ? 1 : 0),
+        transactionCount,
+        averageAmount: category.amount / transactionCount
+      };
+    })
     .sort((first, second) => second.amount - first.amount);
 }
 
@@ -652,13 +690,21 @@ function StatsCategoryList({
   valueMode,
   onToggleValueMode
 }: StatsCategoryListProps) {
+  const showAverageColumn = categories.some(
+    (category) => category.transactionCount > 1
+  );
+
   return (
     <section
       className={`stats-category-panel stats-category-panel--${type.toLowerCase()}`}
       aria-label={`${type === "INCOME" ? "Income" : "Expense"} categories`}
     >
       {categories.length > 0 ? (
-        <ul className="stats-category-list">
+        <ul
+          className={`stats-category-list${
+            showAverageColumn ? " stats-category-list--with-average" : ""
+          }`}
+        >
           {categories.map((category) => {
             const Icon = getCategoryIcon(category.id, type);
 
@@ -670,6 +716,29 @@ function StatsCategoryList({
                 <span className="stats-category-row__details">
                   <strong>{category.name}</strong>
                 </span>
+                <span
+                  className="stats-category-row__metric"
+                  aria-label={`${category.transactionCount} ${
+                    category.transactionCount === 1
+                      ? "transaction"
+                      : "transactions"
+                  }`}
+                >
+                  <span>{category.transactionCount} tx</span>
+                </span>
+                {showAverageColumn ? (
+                  <span
+                    className="stats-category-row__metric"
+                    aria-label={`Average transaction ${formatEuroAmount(
+                      category.averageAmount,
+                      { fractionDigits: 0 }
+                    )}`}
+                  >
+                    {`Avg. ${formatEuroAmount(category.averageAmount, {
+                      fractionDigits: 0
+                    })}`}
+                  </span>
+                ) : null}
                 <button
                   className="stats-category-row__values"
                   type="button"
