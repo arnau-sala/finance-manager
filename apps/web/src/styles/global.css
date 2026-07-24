@@ -1187,11 +1187,13 @@ body.stats-picker-open .home-content--stats {
 }
 
 .stats-page {
+  --stats-page-gap: 13px;
+  --stats-section-gap: 30px;
   width: min(100%, 440px);
   min-height: 100%;
   display: grid;
   align-content: start;
-  gap: 13px;
+  gap: var(--stats-page-gap);
   margin: 0 auto;
   padding: 2px 0 calc(82px + env(safe-area-inset-bottom));
 }
@@ -1594,11 +1596,10 @@ body.stats-picker-open .home-content--stats {
   }
 }
 
-.stats-money,
-.stats-categories,
-.stats-insights,
-.stats-expenses {
-  margin-top: 2px;
+.stats-sections {
+  display: grid;
+  gap: var(--stats-section-gap);
+  margin-top: calc(var(--stats-section-gap) - var(--stats-page-gap));
 }
 
 .stats-money > h2,

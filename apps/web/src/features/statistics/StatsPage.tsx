@@ -1540,108 +1540,120 @@ export function StatsPage() {
           onClose={() => setIsYearPickerOpen(false)}
         />
 
-        <section className="stats-money" aria-labelledby="stats-money-title">
-          <h2 id="stats-money-title">Money</h2>
+        <div className="stats-sections">
+          <section className="stats-money" aria-labelledby="stats-money-title">
+            <h2 id="stats-money-title">Money</h2>
 
-          <div className="stats-money__content">
-            <div className="stats-money__balance">
-              <span>
-                <Scale aria-hidden="true" />
-                Net balance
-              </span>
-              <strong className={getValueTone(balance)}>
-                {formatEuroAmount(balance, {
-                  showSign: true,
-                  fractionDigits: 0
-                })}
-              </strong>
-              <p
-                className="stats-money__saved-rate"
-                aria-label="Percentage of income saved"
-              >
-                Saved:{" "}
+            <div className="stats-money__content">
+              <div className="stats-money__balance">
+                <span>
+                  <Scale aria-hidden="true" />
+                  Net balance
+                </span>
                 <strong
-                  className={
-                    savingsPercentage === null
-                      ? undefined
-                      : getValueTone(savingsPercentage)
-                  }
+                  className={getValueTone(balance)}
                 >
-                  {savingsPercentage === null ? "--" : `${savingsPercentage}%`}
+                  {formatEuroAmount(balance, {
+                    showSign: true,
+                    fractionDigits: 0
+                  })}
                 </strong>
-              </p>
-            </div>
-
-            <div className="stats-money__breakdown">
-              <div>
-                <span>
-                  <ArrowUpRight aria-hidden="true" />
-                  Income
-                </span>
-                <strong className="stats-value--positive">
-                  {formatEuroAmount(roundedIncome, { fractionDigits: 0 })}
-                </strong>
+                <p
+                  className="stats-money__saved-rate"
+                  aria-label="Percentage of income saved"
+                >
+                  Saved:{" "}
+                  <strong
+                    className={
+                      savingsPercentage === null
+                        ? undefined
+                        : getValueTone(savingsPercentage)
+                    }
+                  >
+                    {savingsPercentage === null
+                      ? "--"
+                      : `${savingsPercentage}%`}
+                  </strong>
+                </p>
               </div>
-              <div>
-                <span>
-                  <ArrowDownRight aria-hidden="true" />
-                  Expenses
-                </span>
-                <strong className="stats-value--negative">
-                  {formatEuroAmount(roundedExpenses, { fractionDigits: 0 })}
-                </strong>
+
+              <div className="stats-money__breakdown">
+                <div>
+                  <span>
+                    <ArrowUpRight aria-hidden="true" />
+                    Income
+                  </span>
+                  <strong className="stats-value--positive">
+                    {formatEuroAmount(roundedIncome, { fractionDigits: 0 })}
+                  </strong>
+                </div>
+                <div>
+                  <span>
+                    <ArrowDownRight aria-hidden="true" />
+                    Expenses
+                  </span>
+                  <strong className="stats-value--negative">
+                    {formatEuroAmount(roundedExpenses, { fractionDigits: 0 })}
+                  </strong>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <section
-          className="stats-categories"
-          aria-labelledby="stats-categories-title"
-        >
-          <h2 id="stats-categories-title">Categories</h2>
+          <section
+            className="stats-categories"
+            aria-labelledby="stats-categories-title"
+          >
+            <h2 id="stats-categories-title">Categories</h2>
 
-          <SlidingSegmentedControl
-            className="stats-category-type"
-            value={categoryType}
-            options={categoryTypeOptions}
-            onChange={setCategoryType}
-            label="Category type"
-            tone={categoryType === "INCOME" ? "income" : "expense"}
-            compact
-          />
+            <SlidingSegmentedControl
+              className="stats-category-type"
+              value={categoryType}
+              options={categoryTypeOptions}
+              onChange={setCategoryType}
+              label="Category type"
+              tone={categoryType === "INCOME" ? "income" : "expense"}
+              compact
+            />
 
-          <StatsCategoryList
-            type={categoryType}
-            categories={
-              categoryType === "INCOME"
-                ? incomeCategoryBreakdown
-                : expenseCategoryBreakdown
-            }
-            valueMode={categoryValueMode}
-            onToggleValueMode={toggleCategoryValueMode}
-          />
-        </section>
+            <StatsCategoryList
+              type={categoryType}
+              categories={
+                categoryType === "INCOME"
+                  ? incomeCategoryBreakdown
+                  : expenseCategoryBreakdown
+              }
+              valueMode={categoryValueMode}
+              onToggleValueMode={toggleCategoryValueMode}
+            />
+          </section>
 
-        <section className="stats-insights" aria-labelledby="stats-insights-title">
-          <h2 id="stats-insights-title">Insights</h2>
+          <section
+            className="stats-insights"
+            aria-labelledby="stats-insights-title"
+          >
+            <h2 id="stats-insights-title">Insights</h2>
 
-          <ul className="stats-insights__list">
-            {insightRows.flat().map((insight) => (
-              <StatsInsightItem insight={insight} key={insight.id} />
-            ))}
-          </ul>
-        </section>
+            <ul className="stats-insights__list">
+              {insightRows.flat().map((insight) => (
+                <StatsInsightItem insight={insight} key={insight.id} />
+              ))}
+            </ul>
+          </section>
 
-        <section className="stats-expenses" aria-labelledby="stats-expenses-title">
-          <h2 id="stats-expenses-title">Expenses</h2>
+          <section
+            className="stats-expenses"
+            aria-labelledby="stats-expenses-title"
+          >
+            <h2 id="stats-expenses-title">Expenses</h2>
 
-          <ul className="stats-expenses__list">
-            {expenseItems.map((item) => (
-              <StatsExpenseItem item={item} key={item.id} />
-            ))}
-          </ul>
-        </section>
+            <ul className="stats-expenses__list">
+              {expenseItems.map((item) => (
+                <StatsExpenseItem item={item} key={item.id} />
+              ))}
+            </ul>
+          </section>
+        </div>
       </div>
     </section>
   );
