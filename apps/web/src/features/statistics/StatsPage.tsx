@@ -816,7 +816,7 @@ function createCollectionInsights(
   return [
     {
       id: `${idPrefix}-positive`,
-      label: `Up ${periodLabel}`,
+      label: `Positive ${periodLabel}`,
       value: `${summary.positivePercentage}% positive`,
       sideValue: `${summary.positivePeriods}/${summary.totalPeriods}`,
       icon,
@@ -1319,7 +1319,7 @@ export function StatsPage() {
     [
       {
         id: "top-income",
-        label: "Top income",
+        label: "Largest income",
         value: topIncome?.date ?? "No data",
         sideValue: topIncome ? formatInsightAmount(topIncome.amount) : "--",
         icon: ArrowUpRight,
@@ -1327,7 +1327,7 @@ export function StatsPage() {
       },
       {
         id: "top-expense",
-        label: "Top expense",
+        label: "Largest expense",
         value: topExpense?.date ?? "No data",
         sideValue: topExpense ? formatInsightAmount(topExpense.amount) : "--",
         icon: ArrowDownRight,
@@ -1377,7 +1377,7 @@ export function StatsPage() {
       ...createCollectionInsights(
         "monthly",
         "months",
-        "Month avg.",
+        "Avg. month balance",
         getPeriodCollectionSummary(selectedMonths),
         CalendarDays
       )
@@ -1388,7 +1388,7 @@ export function StatsPage() {
         ...createCollectionInsights(
           "yearly",
           "years",
-          "Year avg.",
+          "Avg. year balance",
           getPeriodCollectionSummary(yearlyStats),
           Calendars
         )
