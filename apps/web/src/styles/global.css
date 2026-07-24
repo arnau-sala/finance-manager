@@ -1828,6 +1828,11 @@ body.stats-picker-open .home-content--stats {
   white-space: nowrap;
 }
 
+.stats-insight-row__detail {
+  justify-content: center;
+  text-align: center;
+}
+
 .stats-category-row__values {
   min-width: 0;
   height: 20px;
@@ -1961,6 +1966,7 @@ body.stats-picker-open .home-content--stats {
   line-height: 20px;
   font-weight: 400;
   font-variant-numeric: tabular-nums;
+  text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
