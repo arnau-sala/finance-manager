@@ -218,6 +218,13 @@ function getInitialMonthKey(availableMonths: readonly string[]) {
   return currentMonth;
 }
 
+function formatMonthKey(month: string) {
+  const [year, monthNumber] = month.split("-");
+  const monthName = monthNames[Number(monthNumber) - 1];
+
+  return `${monthName?.slice(0, 3) ?? month} ${year}`;
+}
+
 function createEmptyMonthlyPeriod(month: string): MonthlyStatsPeriod {
   const [yearPart, monthPart] = month.split("-");
   const year = Number(yearPart);
@@ -1165,6 +1172,11 @@ export function StatsPage() {
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
   const selectableMonthKeys =
     mockStatisticsMonthAvailability.availableMonths;
+  const firstAvailableMonth =
+    mockStatisticsMonthAvailability.minimumMonth ?? currentMonthKey;
+  const allPeriodLabel = `${formatMonthKey(
+    firstAvailableMonth
+  )} - ${formatMonthKey(currentMonthKey)}`;
   const monthIndex = Math.max(
     selectableMonthKeys.indexOf(selectedMonthKey),
     0
@@ -1460,7 +1472,7 @@ export function StatsPage() {
           aria-label="Select period"
         >
           {mode === "ALL" ? (
-            <strong aria-live="polite">{period.label}</strong>
+            <strong aria-live="polite">{allPeriodLabel}</strong>
           ) : (
             <>
               <button
