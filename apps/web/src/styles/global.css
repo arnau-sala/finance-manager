@@ -1805,11 +1805,11 @@ body.month-picker-open .home-content--stats {
 
 .stats-insight {
   min-width: 0;
-  min-height: 78px;
+  min-height: 70px;
   display: grid;
   align-content: center;
   gap: 4px;
-  padding: 9px 10px;
+  padding: 7px 8px 7px 6px;
 }
 
 .stats-insight + .stats-insight {
