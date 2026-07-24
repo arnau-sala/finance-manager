@@ -175,6 +175,23 @@ function toMonthKey(period: MonthlyStatsPeriod) {
   return `${period.year}-${String(monthNumber).padStart(2, "0")}`;
 }
 
+function getInitialMonthKey(availableMonths: readonly string[]) {
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(
+    today.getMonth() + 1
+  ).padStart(2, "0")}`;
+
+  for (let index = availableMonths.length - 1; index >= 0; index -= 1) {
+    const month = availableMonths[index];
+
+    if (month && month <= currentMonth) {
+      return month;
+    }
+  }
+
+  return currentMonth;
+}
+
 function createEmptyMonthlyPeriod(month: string): MonthlyStatsPeriod {
   const [yearPart, monthPart] = month.split("-");
   const year = Number(yearPart);
@@ -675,8 +692,8 @@ function StatsInsightItem({ insight }: { insight: StatsInsight }) {
 export function StatsPage() {
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
-  const [selectedMonthKey, setSelectedMonthKey] = useState(
-    toMonthKey(allMonthlyStats[allMonthlyStats.length - 1])
+  const [selectedMonthKey, setSelectedMonthKey] = useState(() =>
+    getInitialMonthKey(mockStatisticsMonthAvailability.availableMonths)
   );
   const [yearIndex, setYearIndex] = useState(yearlyStats.length - 1);
   const [categoryValueMode, setCategoryValueMode] =
