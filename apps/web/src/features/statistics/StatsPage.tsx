@@ -23,7 +23,8 @@ import {
   type TransactionType
 } from "../transactions/category-catalog";
 import {
-  mockStatisticsMonthAvailability
+  mockStatisticsMonthAvailability,
+  mockStatisticsTransactions
 } from "./statistics-mock";
 
 type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
@@ -486,85 +487,75 @@ function createCollectionInsights(
 function getCategoryBreakdown(
   total: number,
   type: TransactionType,
-  profile: readonly CategoryWeight[]
+  profile: readonly CategoryWeight[],
+  fixedAmounts = new Map<string, number>()
 ) {
   if (total <= 0) {
     return [];
   }
 
+  const amountsByCategory = new Map(
+    [...fixedAmounts].filter(([, amount]) => amount > 0)
+  );
+  const fixedTotal = [...amountsByCategory.values()].reduce(
+    (sum, amount) => sum + amount,
+    0
+  );
+  const amountToDistribute = Math.max(0, total - fixedTotal);
   let allocatedAmount = 0;
 
-  return profile
-    .map<CategoryBreakdownItem | null>((entry, index) => {
-      const category = transactionCategories.find(
-        (candidate) => candidate.id === entry.id && candidate.type === type
-      );
-
-      if (!category) {
-        return null;
-      }
-
-      const amount =
-        index === profile.length - 1
-          ? total - allocatedAmount
-          : Math.round(total * entry.share);
-      allocatedAmount += amount;
-
-      return {
-        id: category.id,
-        name: category.name,
-        amount,
-        percentage: Math.round(entry.share * 100)
-      };
-    })
-    .filter((entry): entry is CategoryBreakdownItem =>
-      Boolean(entry && entry.amount > 0)
-    )
-    .sort((first, second) => second.amount - first.amount);
-}
-
-function getAllTimeCategoryBreakdown(
-  type: TransactionType,
-  profiles: readonly (readonly CategoryWeight[])[]
-) {
-  const amountsByCategory = new Map<string, number>();
-
-  yearlyStats.forEach((period, index) => {
-    const total = Math.round(
-      type === "EXPENSE" ? period.expenses : period.income
-    );
-    const breakdown = getCategoryBreakdown(
-      total,
-      type,
-      profiles[index % profiles.length]
+  profile.forEach((entry, index) => {
+    const category = transactionCategories.find(
+      (candidate) => candidate.id === entry.id && candidate.type === type
     );
 
-    breakdown.forEach((category) => {
-      amountsByCategory.set(
-        category.id,
-        (amountsByCategory.get(category.id) ?? 0) + category.amount
-      );
-    });
+    if (!category) {
+      return;
+    }
+
+    const amount =
+      index === profile.length - 1
+        ? amountToDistribute - allocatedAmount
+        : Math.round(amountToDistribute * entry.share);
+    allocatedAmount += amount;
+    amountsByCategory.set(
+      category.id,
+      (amountsByCategory.get(category.id) ?? 0) + amount
+    );
   });
 
+  return createCategoryBreakdownItems(type, amountsByCategory);
+}
+
+function createCategoryBreakdownItems(
+  type: TransactionType,
+  amountsByCategory: ReadonlyMap<string, number>
+) {
   const totalAmount = [...amountsByCategory.values()].reduce(
     (total, amount) => total + amount,
     0
   );
-  const categories = [...amountsByCategory.entries()].map(([id, amount]) => {
-    const category = transactionCategories.find(
-      (candidate) => candidate.id === id && candidate.type === type
-    );
-    const exactPercentage = (amount * 100) / totalAmount;
 
-    return {
-      id,
-      name: category?.name ?? id,
-      amount,
-      percentage: Math.floor(exactPercentage),
-      remainder: exactPercentage % 1
-    };
-  });
+  if (totalAmount <= 0) {
+    return [];
+  }
+
+  const categories = [...amountsByCategory.entries()]
+    .filter(([, amount]) => amount > 0)
+    .map(([id, amount]) => {
+      const category = transactionCategories.find(
+        (candidate) => candidate.id === id && candidate.type === type
+      );
+      const exactPercentage = (amount * 100) / totalAmount;
+
+      return {
+        id,
+        name: category?.name ?? id,
+        amount,
+        percentage: Math.floor(exactPercentage),
+        remainder: exactPercentage % 1
+      };
+    });
   const percentagePointsToAssign =
     100 - categories.reduce((total, category) => total + category.percentage, 0);
   const roundedUpIds = new Set(
@@ -585,6 +576,62 @@ function getAllTimeCategoryBreakdown(
       percentage: category.percentage + (roundedUpIds.has(category.id) ? 1 : 0)
     }))
     .sort((first, second) => second.amount - first.amount);
+}
+
+function getMockCategoryAmounts(
+  type: TransactionType,
+  matchesDate: (date: string) => boolean
+) {
+  const amountsByCategory = new Map<string, number>();
+
+  mockStatisticsTransactions.forEach((transaction) => {
+    if (
+      transaction.type !== type ||
+      !transaction.categoryId ||
+      transaction.amountCents === undefined ||
+      !matchesDate(transaction.date)
+    ) {
+      return;
+    }
+
+    const amount = Math.round(transaction.amountCents / 100);
+    amountsByCategory.set(
+      transaction.categoryId,
+      (amountsByCategory.get(transaction.categoryId) ?? 0) + amount
+    );
+  });
+
+  return amountsByCategory;
+}
+
+function getAllTimeCategoryBreakdown(
+  type: TransactionType,
+  profiles: readonly (readonly CategoryWeight[])[]
+) {
+  const amountsByCategory = new Map<string, number>();
+
+  yearlyStats.forEach((period, index) => {
+    const total = Math.round(
+      type === "EXPENSE" ? period.expenses : period.income
+    );
+    const breakdown = getCategoryBreakdown(
+      total,
+      type,
+      profiles[index % profiles.length],
+      getMockCategoryAmounts(type, (date) =>
+        date.startsWith(`${period.year}-`)
+      )
+    );
+
+    breakdown.forEach((category) => {
+      amountsByCategory.set(
+        category.id,
+        (amountsByCategory.get(category.id) ?? 0) + category.amount
+      );
+    });
+  });
+
+  return createCategoryBreakdownItems(type, amountsByCategory);
 }
 
 type StatsCategoryColumnProps = {
@@ -724,6 +771,12 @@ export function StatsPage() {
   const balance = roundedIncome - roundedExpenses;
   const savingsPercentage =
     roundedIncome > 0 ? Math.round((balance / roundedIncome) * 100) : null;
+  const categoryPeriodPrefix =
+    mode === "MONTH"
+      ? selectedMonthKey
+      : mode === "YEAR"
+        ? `${yearlyStats[yearIndex].year}-`
+        : null;
   const expenseCategoryBreakdown =
     mode === "ALL"
       ? getAllTimeCategoryBreakdown("EXPENSE", expenseCategoryProfiles)
@@ -732,7 +785,13 @@ export function StatsPage() {
           "EXPENSE",
           expenseCategoryProfiles[
             categoryProfileIndex % expenseCategoryProfiles.length
-          ]
+          ],
+          getMockCategoryAmounts(
+            "EXPENSE",
+            (date) =>
+              categoryPeriodPrefix !== null &&
+              date.startsWith(categoryPeriodPrefix)
+          )
         );
   const incomeCategoryBreakdown =
     mode === "ALL"
@@ -742,7 +801,13 @@ export function StatsPage() {
           "INCOME",
           incomeCategoryProfiles[
             categoryProfileIndex % incomeCategoryProfiles.length
-          ]
+          ],
+          getMockCategoryAmounts(
+            "INCOME",
+            (date) =>
+              categoryPeriodPrefix !== null &&
+              date.startsWith(categoryPeriodPrefix)
+          )
         );
   const selectedMonths =
     mode === "MONTH"
@@ -1004,16 +1069,16 @@ export function StatsPage() {
 
           <div className="stats-category-columns">
             <StatsCategoryColumn
-              title="Expenses"
-              type="EXPENSE"
-              categories={expenseCategoryBreakdown}
+              title="Income"
+              type="INCOME"
+              categories={incomeCategoryBreakdown}
               valueMode={categoryValueMode}
               onToggleValueMode={toggleCategoryValueMode}
             />
             <StatsCategoryColumn
-              title="Income"
-              type="INCOME"
-              categories={incomeCategoryBreakdown}
+              title="Expenses"
+              type="EXPENSE"
+              categories={expenseCategoryBreakdown}
               valueMode={categoryValueMode}
               onToggleValueMode={toggleCategoryValueMode}
             />

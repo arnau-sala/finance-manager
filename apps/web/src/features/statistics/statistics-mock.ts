@@ -1,6 +1,9 @@
 export type MockStatisticsTransaction = {
   id: string;
   date: string;
+  type?: "INCOME" | "EXPENSE";
+  categoryId?: string;
+  amountCents?: number;
 };
 
 function getMonthKey(year: number, month: number) {
@@ -52,12 +55,16 @@ function createMockTransactions(
   return transactions;
 }
 
-export const mockStatisticsTransactions = createMockTransactions(
-  2024,
-  3,
-  2027,
-  7
-);
+export const mockStatisticsTransactions = [
+  ...createMockTransactions(2024, 3, 2027, 7),
+  {
+    id: "mock-transaction-expense-gifts-2026-04-12",
+    date: "2026-04-12",
+    type: "EXPENSE",
+    categoryId: "expense-gifts",
+    amountCents: 10000
+  }
+] satisfies MockStatisticsTransaction[];
 
 const transactionCountsByMonth = mockStatisticsTransactions.reduce(
   (counts, transaction) => {
