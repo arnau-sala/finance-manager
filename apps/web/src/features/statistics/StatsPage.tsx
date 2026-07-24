@@ -1095,39 +1095,24 @@ function StatsCategoryList({
 
 function StatsInsightItem({ insight }: { insight: StatsInsight }) {
   const Icon = insight.icon;
-  const label = (
-    <span className="stats-insight__label">
-      <Icon aria-hidden="true" />
-      {insight.label}
-    </span>
-  );
+  const value = insight.sideValue ?? insight.value;
+  const detail = insight.sideValue ? insight.value : (insight.detail ?? "");
 
   return (
-    <article
-      className={`stats-insight stats-insight--${insight.tone ?? "neutral"}${
-        insight.sideValue ? " stats-insight--split" : ""
+    <li
+      className={`stats-insight-row stats-insight-row--${
+        insight.tone ?? "neutral"
       }`}
     >
-      {insight.sideValue ? (
-        <>
-          <div className="stats-insight__body">
-            {label}
-            <strong className="stats-insight__value">{insight.value}</strong>
-          </div>
-          <strong className="stats-insight__side-value">
-            {insight.sideValue}
-          </strong>
-        </>
-      ) : (
-        <>
-          {label}
-          <strong className="stats-insight__value">{insight.value}</strong>
-          {insight.detail ? (
-            <span className="stats-insight__detail">{insight.detail}</span>
-          ) : null}
-        </>
-      )}
-    </article>
+      <span className="stats-insight-row__icon" aria-hidden="true">
+        <Icon />
+      </span>
+      <span className="stats-insight-row__details">
+        <strong>{insight.label}</strong>
+      </span>
+      <span className="stats-insight-row__detail">{detail}</span>
+      <strong className="stats-insight-row__value">{value}</strong>
+    </li>
   );
 }
 
@@ -1641,15 +1626,11 @@ export function StatsPage() {
         <section className="stats-insights" aria-labelledby="stats-insights-title">
           <h2 id="stats-insights-title">Insights</h2>
 
-          <div className="stats-insights__table">
-            {insightRows.map((row) => (
-              <div className="stats-insights__row" key={row[0].id}>
-                {row.map((insight) => (
-                  <StatsInsightItem insight={insight} key={insight.id} />
-                ))}
-              </div>
+          <ul className="stats-insights__list">
+            {insightRows.flat().map((insight) => (
+              <StatsInsightItem insight={insight} key={insight.id} />
             ))}
-          </div>
+          </ul>
         </section>
 
         <section className="stats-expenses" aria-labelledby="stats-expenses-title">

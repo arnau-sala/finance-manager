@@ -508,7 +508,9 @@ periods are ranked by savings percentage and show both balance and percentage;
 periods without income are excluded from that ranking because their savings
 percentage is undefined. They still count when calculating positive periods and
 average balances. Historical yearly mock totals are derived from monthly data so
-the different views remain consistent.
+the different views remain consistent. Insights are rendered as one full-width
+row per metric in row-major order from their logical pairs, using the same icon,
+title, supporting text, value sizing, and spacing as the category list.
 
 The final Expenses section focuses on spending behavior rather than repeating
 the main totals. It shows the median expense, the daily/monthly/yearly expense
