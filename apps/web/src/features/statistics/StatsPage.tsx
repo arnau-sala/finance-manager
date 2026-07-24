@@ -67,7 +67,6 @@ type StatsInsight = {
   detail?: string;
   icon: LucideIcon;
   tone?: InsightTone;
-  compactValue?: boolean;
   sideValue?: string;
 };
 
@@ -318,66 +317,41 @@ function formatInsightAmount(value: number, showSign = false) {
   return formatEuroAmount(value, { fractionDigits: 0, showSign });
 }
 
-function getPeriodDisplayLabel(
-  period: MonthlyStatsPeriod | YearlyStatsPeriod,
-  includeYear: boolean
-) {
-  if ("month" in period) {
-    return includeYear ? period.label : period.month;
-  }
-
-  return period.label;
-}
-
 function createExtremeInsight(
   id: string,
   label: string,
   extreme:
     | ReturnType<typeof getPeriodExtreme<MonthlyStatsPeriod>>
     | ReturnType<typeof getPeriodExtreme<YearlyStatsPeriod>>,
-  icon: LucideIcon,
-  includeYear: boolean,
-  placePeriodAside = false
+  icon: LucideIcon
 ): StatsInsight {
   if (!extreme) {
     return {
       id,
       label,
       value: "--",
-      detail: "Not enough data",
+      sideValue: "--",
       icon,
-      tone: "neutral",
-      compactValue: true
+      tone: "neutral"
     };
   }
 
-  const periodLabel = getPeriodDisplayLabel(extreme.period, includeYear);
-
-  if (placePeriodAside && "month" in extreme.period) {
-    return {
-      id,
-      label,
-      value: `${formatInsightAmount(extreme.balance, true)} (${
-        extreme.savingsPercentage
-      }%)`,
-      sideValue: `${extreme.period.month.slice(0, 3)} ${String(
-        extreme.period.year
-      ).slice(-2)}`,
-      icon,
-      tone: getInsightTone(extreme.balance)
-    };
-  }
+  const sideValue =
+    "month" in extreme.period
+      ? `${extreme.period.month.slice(0, 3)} ${String(
+          extreme.period.year
+        ).slice(-2)}`
+      : extreme.period.label;
 
   return {
     id,
     label,
-    value: periodLabel,
-    detail: `${formatInsightAmount(extreme.balance, true)} · Saved ${
+    value: `${formatInsightAmount(extreme.balance, true)} (${
       extreme.savingsPercentage
-    }%`,
+    }%)`,
+    sideValue,
     icon,
-    tone: getInsightTone(extreme.balance),
-    compactValue: true
+    tone: getInsightTone(extreme.balance)
   };
 }
 
@@ -607,13 +581,7 @@ function StatsInsightItem({ insight }: { insight: StatsInsight }) {
       ) : (
         <>
           {label}
-          <strong
-            className={`stats-insight__value${
-              insight.compactValue ? " stats-insight__value--compact" : ""
-            }`}
-          >
-            {insight.value}
-          </strong>
+          <strong className="stats-insight__value">{insight.value}</strong>
           {insight.detail ? (
             <span className="stats-insight__detail">{insight.detail}</span>
           ) : null}
@@ -690,17 +658,13 @@ export function StatsPage() {
         "best-month",
         "Best month",
         getPeriodExtreme(selectedMonths, "BEST"),
-        CalendarDays,
-        true,
-        true
+        CalendarDays
       ),
       createExtremeInsight(
         "worst-month",
         "Worst month",
         getPeriodExtreme(selectedMonths, "WORST"),
-        CalendarDays,
-        true,
-        true
+        CalendarDays
       )
     ]);
 
@@ -710,15 +674,13 @@ export function StatsPage() {
           "best-year",
           "Best year",
           getPeriodExtreme(yearlyStats, "BEST"),
-          Calendar,
-          false
+          Calendar
         ),
         createExtremeInsight(
           "worst-year",
           "Worst year",
           getPeriodExtreme(yearlyStats, "WORST"),
-          Calendar,
-          false
+          Calendar
         )
       ]);
     }

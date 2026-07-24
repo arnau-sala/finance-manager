@@ -1595,11 +1595,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   white-space: nowrap;
 }
 
-.stats-insight__value--compact {
-  font-size: 15px;
-  font-weight: 400;
-}
-
 .stats-insight--split {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -1675,10 +1670,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
   .stats-insight {
     padding-inline: 8px;
-  }
-
-  .stats-insight__value--compact {
-    font-size: 13px;
   }
 
   .stats-insight--split .stats-insight__value {
