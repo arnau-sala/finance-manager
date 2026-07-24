@@ -1750,7 +1750,7 @@ body.stats-picker-open .home-content--stats {
 .stats-insights__list {
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) auto auto;
-  column-gap: 10px;
+  column-gap: 13px;
   margin: 0;
   padding: 0;
   list-style: none;
