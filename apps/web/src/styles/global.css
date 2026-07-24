@@ -1261,12 +1261,14 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .stats-money,
-.stats-categories {
+.stats-categories,
+.stats-insights {
   margin-top: 2px;
 }
 
 .stats-money > h2,
-.stats-categories > h2 {
+.stats-categories > h2,
+.stats-insights > h2 {
   margin: 0 0 7px;
   color: var(--color-text);
   font-size: 17px;
@@ -1531,6 +1533,95 @@ body.app-logout-transition .confirm-dialog-backdrop {
   line-height: 1.4;
   text-align: center;
 }
+
+.stats-insights__table {
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.stats-insights__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.stats-insights__row + .stats-insights__row {
+  border-top: 1px solid var(--color-border);
+}
+
+.stats-insight {
+  min-width: 0;
+  min-height: 78px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  padding: 9px 10px;
+}
+
+.stats-insight + .stats-insight {
+  border-left: 1px solid var(--color-border);
+}
+
+.stats-insight__label {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-insight__label svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  stroke-width: 1.8;
+}
+
+.stats-insight__value {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 20px;
+  line-height: 1.15;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-insight__value--compact {
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.stats-insight__detail {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-insight--positive .stats-insight__value,
+.stats-insight--positive .stats-insight__detail {
+  color: var(--color-success);
+}
+
+.stats-insight--negative .stats-insight__value,
+.stats-insight--negative .stats-insight__detail {
+  color: var(--color-danger);
+}
+
 @media (max-width: 340px) {
   .stats-page {
     gap: 12px;
@@ -1550,6 +1641,14 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
   .stats-money__breakdown strong {
     font-size: 16px;
+  }
+
+  .stats-insight {
+    padding-inline: 8px;
+  }
+
+  .stats-insight__value--compact {
+    font-size: 13px;
   }
 }
 .moves-toolbar {

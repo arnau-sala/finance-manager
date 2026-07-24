@@ -7,7 +7,8 @@ import {
   Calendars,
   ChevronLeft,
   ChevronRight,
-  Scale
+  Scale,
+  type LucideIcon
 } from "lucide-react";
 
 import {
@@ -30,6 +31,21 @@ type StatsPeriod = {
   expenses: number;
 };
 
+type MonthlyStatsPeriod = StatsPeriod & {
+  month: string;
+  year: number;
+};
+
+type YearlyStatsPeriod = StatsPeriod & {
+  year: number;
+};
+
+type MonthlyStatsSeed = readonly [
+  month: string,
+  income: number,
+  expenses: number
+];
+
 type CategoryWeight = {
   id: string;
   share: number;
@@ -42,27 +58,99 @@ type CategoryBreakdownItem = {
   percentage: number;
 };
 
+type InsightTone = "positive" | "negative" | "neutral";
+
+type StatsInsight = {
+  id: string;
+  label: string;
+  value: string;
+  detail?: string;
+  icon: LucideIcon;
+  tone?: InsightTone;
+  compactValue?: boolean;
+};
+
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
   { value: "YEAR", label: "Year", icon: Calendar },
   { value: "ALL", label: "All", icon: Calendars }
 ];
 
-const monthlyStats: readonly StatsPeriod[] = [
-  { label: "January 2026", income: 3250, expenses: 2450.8 },
-  { label: "February 2026", income: 0, expenses: 482.65 },
-  { label: "March 2026", income: 4250, expenses: 1987.45 },
-  { label: "April 2026", income: 2350, expenses: 2784.2 },
-  { label: "May 2026", income: 5175.4, expenses: 2240.75 },
-  { label: "June 2026", income: 2890, expenses: 2455.85 },
-  { label: "July 2026", income: 3325.75, expenses: 1918.3 }
+function createMonthlyStats(
+  year: number,
+  entries: readonly MonthlyStatsSeed[]
+): readonly MonthlyStatsPeriod[] {
+  return entries.map(([month, income, expenses]) => ({
+    label: `${month} ${year}`,
+    month,
+    year,
+    income,
+    expenses
+  }));
+}
+
+const monthlyStats2024 = createMonthlyStats(2024, [
+  ["January", 2200, 1800],
+  ["February", 2200, 1650],
+  ["March", 2450, 1950],
+  ["April", 2250, 1700],
+  ["May", 2600, 1850],
+  ["June", 2300, 2500],
+  ["July", 2800, 2000],
+  ["August", 2100, 1600],
+  ["September", 2400, 1750],
+  ["October", 2500, 1900],
+  ["November", 2250, 1500],
+  ["December", 2400.5, 1480.25]
+]);
+
+const monthlyStats2025 = createMonthlyStats(2025, [
+  ["January", 3500, 2200],
+  ["February", 3500, 2100],
+  ["March", 3650, 2400],
+  ["April", 3500, 2250],
+  ["May", 3900, 2550],
+  ["June", 3650, 4000],
+  ["July", 4100, 2600],
+  ["August", 3400, 2000],
+  ["September", 3700, 2300],
+  ["October", 3900, 2500],
+  ["November", 3600, 1800],
+  ["December", 4100.2, 2425.85]
+]);
+
+const monthlyStats = createMonthlyStats(2026, [
+  ["January", 3250, 2450.8],
+  ["February", 0, 482.65],
+  ["March", 4250, 1987.45],
+  ["April", 2350, 2784.2],
+  ["May", 5175.4, 2240.75],
+  ["June", 2890, 2455.85],
+  ["July", 3325.75, 1918.3]
+]);
+
+const allMonthlyStats: readonly MonthlyStatsPeriod[] = [
+  ...monthlyStats2024,
+  ...monthlyStats2025,
+  ...monthlyStats
 ];
 
-const yearlyStats: readonly StatsPeriod[] = [
-  { label: "2024", income: 28450.5, expenses: 21680.25 },
-  { label: "2025", income: 44500.2, expenses: 29125.85 },
-  { label: "2026", income: 21241.15, expenses: 14320 }
-];
+function summarizeYear(year: number): YearlyStatsPeriod {
+  return allMonthlyStats
+    .filter((period) => period.year === year)
+    .reduce<YearlyStatsPeriod>(
+      (total, period) => ({
+        ...total,
+        income: total.income + period.income,
+        expenses: total.expenses + period.expenses
+      }),
+      { label: String(year), year, income: 0, expenses: 0 }
+    );
+}
+
+const yearlyStats: readonly YearlyStatsPeriod[] = [2024, 2025, 2026].map(
+  summarizeYear
+);
 
 const allTimeStats = yearlyStats.reduce<StatsPeriod>(
   (total, period) => ({
@@ -131,6 +219,177 @@ function getValueTone(value: number) {
   if (value > 0) return "stats-value--positive";
   if (value < 0) return "stats-value--negative";
   return undefined;
+}
+
+function getInsightTone(value: number): InsightTone {
+  if (value > 0) return "positive";
+  if (value < 0) return "negative";
+  return "neutral";
+}
+
+function getPeriodMetrics<Period extends StatsPeriod>(period: Period) {
+  const income = Math.round(period.income);
+  const expenses = Math.round(period.expenses);
+  const balance = income - expenses;
+
+  return {
+    period,
+    balance,
+    savingsPercentage:
+      income > 0 ? Math.round((balance / income) * 100) : null
+  };
+}
+
+function getPeriodExtreme<Period extends StatsPeriod>(
+  periods: readonly Period[],
+  direction: "BEST" | "WORST"
+) {
+  const candidates = periods
+    .map(getPeriodMetrics)
+    .filter(
+      (
+        candidate
+      ): candidate is ReturnType<typeof getPeriodMetrics<Period>> & {
+        savingsPercentage: number;
+      } => candidate.savingsPercentage !== null
+    );
+
+  return candidates.reduce<(typeof candidates)[number] | null>(
+    (selected, candidate) => {
+      if (!selected) {
+        return candidate;
+      }
+
+      const percentageDifference =
+        candidate.savingsPercentage - selected.savingsPercentage;
+      const shouldReplace =
+        direction === "BEST"
+          ? percentageDifference > 0 ||
+            (percentageDifference === 0 && candidate.balance > selected.balance)
+          : percentageDifference < 0 ||
+            (percentageDifference === 0 && candidate.balance < selected.balance);
+
+      return shouldReplace ? candidate : selected;
+    },
+    null
+  );
+}
+
+function getPeriodCollectionSummary(periods: readonly StatsPeriod[]) {
+  const metrics = periods.map(getPeriodMetrics);
+  const positivePeriods = metrics.filter((period) => period.balance > 0).length;
+  const totalBalance = metrics.reduce(
+    (total, period) => total + period.balance,
+    0
+  );
+  const totalIncome = periods.reduce(
+    (total, period) => total + Math.round(period.income),
+    0
+  );
+
+  return {
+    positivePeriods,
+    totalPeriods: periods.length,
+    positivePercentage:
+      periods.length > 0
+        ? Math.round((positivePeriods / periods.length) * 100)
+        : 0,
+    averageBalance:
+      periods.length > 0 ? Math.round(totalBalance / periods.length) : 0,
+    averageSavingsPercentage:
+      totalIncome > 0 ? Math.round((totalBalance / totalIncome) * 100) : null
+  };
+}
+
+function getLargestMovement(
+  periods: readonly StatsPeriod[],
+  type: TransactionType
+) {
+  const estimatedTransactionShare = type === "INCOME" ? 0.58 : 0.34;
+
+  return periods.reduce((largest, period) => {
+    const periodTotal = type === "INCOME" ? period.income : period.expenses;
+    return Math.max(largest, Math.round(periodTotal * estimatedTransactionShare));
+  }, 0);
+}
+
+function formatInsightAmount(value: number, showSign = false) {
+  return formatEuroAmount(value, { fractionDigits: 0, showSign });
+}
+
+function getPeriodDisplayLabel(
+  period: MonthlyStatsPeriod | YearlyStatsPeriod,
+  includeYear: boolean
+) {
+  if ("month" in period) {
+    return includeYear ? period.label : period.month;
+  }
+
+  return period.label;
+}
+
+function createExtremeInsight(
+  id: string,
+  label: string,
+  extreme:
+    | ReturnType<typeof getPeriodExtreme<MonthlyStatsPeriod>>
+    | ReturnType<typeof getPeriodExtreme<YearlyStatsPeriod>>,
+  icon: LucideIcon,
+  includeYear: boolean
+): StatsInsight {
+  if (!extreme) {
+    return {
+      id,
+      label,
+      value: "--",
+      detail: "Not enough data",
+      icon,
+      tone: "neutral",
+      compactValue: true
+    };
+  }
+
+  return {
+    id,
+    label,
+    value: getPeriodDisplayLabel(extreme.period, includeYear),
+    detail: `${formatInsightAmount(extreme.balance, true)} · Saved ${
+      extreme.savingsPercentage
+    }%`,
+    icon,
+    tone: getInsightTone(extreme.balance),
+    compactValue: true
+  };
+}
+
+function createCollectionInsights(
+  idPrefix: string,
+  periodLabel: "months" | "years",
+  averageLabel: string,
+  summary: ReturnType<typeof getPeriodCollectionSummary>,
+  icon: LucideIcon
+): readonly StatsInsight[] {
+  return [
+    {
+      id: `${idPrefix}-positive`,
+      label: `Positive ${periodLabel}`,
+      value: `${summary.positivePeriods}/${summary.totalPeriods}`,
+      detail: `${summary.positivePercentage}% positive`,
+      icon,
+      tone: summary.positivePeriods > 0 ? "positive" : "neutral"
+    },
+    {
+      id: `${idPrefix}-average`,
+      label: averageLabel,
+      value: formatInsightAmount(summary.averageBalance, true),
+      detail:
+        summary.averageSavingsPercentage === null
+          ? "Saved --"
+          : `Saved ${summary.averageSavingsPercentage}%`,
+      icon: Scale,
+      tone: getInsightTone(summary.averageBalance)
+    }
+  ];
 }
 
 function getCategoryBreakdown(
@@ -301,6 +560,31 @@ function StatsCategoryColumn({
   );
 }
 
+function StatsInsightItem({ insight }: { insight: StatsInsight }) {
+  const Icon = insight.icon;
+
+  return (
+    <article
+      className={`stats-insight stats-insight--${insight.tone ?? "neutral"}`}
+    >
+      <span className="stats-insight__label">
+        <Icon aria-hidden="true" />
+        {insight.label}
+      </span>
+      <strong
+        className={`stats-insight__value${
+          insight.compactValue ? " stats-insight__value--compact" : ""
+        }`}
+      >
+        {insight.value}
+      </strong>
+      {insight.detail ? (
+        <span className="stats-insight__detail">{insight.detail}</span>
+      ) : null}
+    </article>
+  );
+}
+
 export function StatsPage() {
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
   const [monthIndex, setMonthIndex] = useState(monthlyStats.length - 1);
@@ -331,6 +615,96 @@ export function StatsPage() {
           "INCOME",
           incomeCategoryProfiles[periodIndex % incomeCategoryProfiles.length]
         );
+  const selectedMonths =
+    mode === "MONTH"
+      ? [monthlyStats[monthIndex]]
+      : mode === "YEAR"
+        ? allMonthlyStats.filter(
+            (monthlyPeriod) =>
+              monthlyPeriod.year === yearlyStats[yearIndex].year
+          )
+        : allMonthlyStats;
+  const largestExpense = getLargestMovement(selectedMonths, "EXPENSE");
+  const largestIncome = getLargestMovement(selectedMonths, "INCOME");
+  const insightRows: StatsInsight[][] = [
+    [
+      {
+        id: "largest-expense",
+        label: "Largest expense",
+        value:
+          largestExpense > 0 ? formatInsightAmount(largestExpense) : "--",
+        icon: ArrowDownRight,
+        tone: largestExpense > 0 ? "negative" : "neutral"
+      },
+      {
+        id: "largest-income",
+        label: "Largest income",
+        value: largestIncome > 0 ? formatInsightAmount(largestIncome) : "--",
+        icon: ArrowUpRight,
+        tone: largestIncome > 0 ? "positive" : "neutral"
+      }
+    ]
+  ];
+
+  if (mode !== "MONTH") {
+    insightRows.push([
+      createExtremeInsight(
+        "best-month",
+        "Best month",
+        getPeriodExtreme(selectedMonths, "BEST"),
+        CalendarDays,
+        mode === "ALL"
+      ),
+      createExtremeInsight(
+        "worst-month",
+        "Worst month",
+        getPeriodExtreme(selectedMonths, "WORST"),
+        CalendarDays,
+        mode === "ALL"
+      )
+    ]);
+
+    if (mode === "ALL") {
+      insightRows.push([
+        createExtremeInsight(
+          "best-year",
+          "Best year",
+          getPeriodExtreme(yearlyStats, "BEST"),
+          Calendar,
+          false
+        ),
+        createExtremeInsight(
+          "worst-year",
+          "Worst year",
+          getPeriodExtreme(yearlyStats, "WORST"),
+          Calendar,
+          false
+        )
+      ]);
+    }
+
+    insightRows.push([
+      ...createCollectionInsights(
+        "monthly",
+        "months",
+        "Avg. month balance",
+        getPeriodCollectionSummary(selectedMonths),
+        CalendarDays
+      )
+    ]);
+
+    if (mode === "ALL") {
+      insightRows.push([
+        ...createCollectionInsights(
+          "yearly",
+          "years",
+          "Avg. year balance",
+          getPeriodCollectionSummary(yearlyStats),
+          Calendars
+        )
+      ]);
+    }
+  }
 
   function changePeriod(nextIndex: number) {
     if (mode === "ALL") {
@@ -480,6 +854,20 @@ export function StatsPage() {
               valueMode={categoryValueMode}
               onToggleValueMode={toggleCategoryValueMode}
             />
+          </div>
+        </section>
+
+        <section className="stats-insights" aria-labelledby="stats-insights-title">
+          <h2 id="stats-insights-title">Insights</h2>
+
+          <div className="stats-insights__table">
+            {insightRows.map((row) => (
+              <div className="stats-insights__row" key={row[0].id}>
+                {row.map((insight) => (
+                  <StatsInsightItem insight={insight} key={insight.id} />
+                ))}
+              </div>
+            ))}
           </div>
         </section>
       </div>
