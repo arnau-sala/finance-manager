@@ -378,7 +378,7 @@ function createCollectionInsights(
   return [
     {
       id: `${idPrefix}-positive`,
-      label: `Positive ${periodLabel}`,
+      label: `Up ${periodLabel}`,
       value: `${summary.positivePeriods}/${summary.totalPeriods}`,
       detail: `${summary.positivePercentage}% positive`,
       icon,
@@ -703,7 +703,7 @@ export function StatsPage() {
       ...createCollectionInsights(
         "monthly",
         "months",
-        "Avg. month balance",
+        "Month avg",
         getPeriodCollectionSummary(selectedMonths),
         CalendarDays
       )
@@ -714,7 +714,7 @@ export function StatsPage() {
         ...createCollectionInsights(
           "yearly",
           "years",
-          "Avg. year balance",
+          "Year avg",
           getPeriodCollectionSummary(yearlyStats),
           Calendars
         )
