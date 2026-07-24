@@ -1507,13 +1507,15 @@ body.month-picker-open .home-content--stats {
 
 .stats-money,
 .stats-categories,
-.stats-insights {
+.stats-insights,
+.stats-expenses {
   margin-top: 2px;
 }
 
 .stats-money > h2,
 .stats-categories > h2,
-.stats-insights > h2 {
+.stats-insights > h2,
+.stats-expenses > h2 {
   margin: 0 0 7px;
   color: var(--color-text);
   font-size: 17px;
@@ -1879,6 +1881,93 @@ body.month-picker-open .home-content--stats {
 
 .stats-insight--negative .stats-insight__side-value {
   color: var(--color-danger);
+}
+
+.stats-expenses__list {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto auto;
+  column-gap: 13px;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.stats-expense-row {
+  grid-column: 1 / -1;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  padding: 7px 8px 7px 6px;
+}
+
+.stats-expense-row + .stats-expense-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.stats-expense-row__icon {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+}
+
+.stats-expense-row__icon svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.7;
+}
+
+.stats-expense-row__details {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.stats-expense-row__details > strong {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-expense-row__detail {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 20px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-expense-row__trophy {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  color: var(--color-warning);
+  stroke-width: 1.9;
+}
+
+.stats-expense-row__value {
+  color: var(--color-danger);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
 }
 
 @media (max-width: 340px) {

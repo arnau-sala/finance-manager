@@ -14,6 +14,13 @@ function getDaysInMonth(year: number, month: number) {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
+function getLocalDateKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function createMockTransactions(
   startYear: number,
   startMonth: number,
@@ -55,16 +62,26 @@ function createMockTransactions(
   return transactions;
 }
 
+const today = new Date();
+const todayKey = getLocalDateKey(today);
+
 export const mockStatisticsTransactions = [
-  ...createMockTransactions(2024, 3, 2027, 7),
+  ...createMockTransactions(
+    2024,
+    3,
+    today.getFullYear(),
+    today.getMonth() + 1
+  ),
   {
     id: "mock-transaction-expense-gifts-2026-04-12",
     date: "2026-04-12",
-    type: "EXPENSE",
+    type: "EXPENSE" as const,
     categoryId: "expense-gifts",
     amountCents: 10000
   }
-] satisfies MockStatisticsTransaction[];
+].filter(
+  (transaction) => transaction.date <= todayKey
+) satisfies MockStatisticsTransaction[];
 
 const transactionCountsByMonth = mockStatisticsTransactions.reduce(
   (counts, transaction) => {

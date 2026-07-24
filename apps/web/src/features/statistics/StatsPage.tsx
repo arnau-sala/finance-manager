@@ -2,12 +2,16 @@ import { useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Award,
   Calendar,
   CalendarDays,
   Calendars,
+  ChartColumn,
   ChevronLeft,
   ChevronRight,
+  PiggyBank,
   Scale,
+  Trophy,
   type LucideIcon
 } from "lucide-react";
 
@@ -63,6 +67,26 @@ type CategoryBreakdownItem = {
   percentage: number;
   transactionCount: number;
   averageAmount: number;
+};
+
+type ExpenseTransaction = {
+  date: string;
+  amount: number;
+};
+
+type NoSpendStreak = {
+  days: number;
+  startDate: string | null;
+  endDate: string | null;
+};
+
+type ExpenseSectionItem = {
+  id: string;
+  label: string;
+  detail?: string;
+  value: string;
+  icon: LucideIcon;
+  earnedTrophy?: boolean;
 };
 
 type InsightTone = "positive" | "negative" | "neutral";
@@ -153,35 +177,27 @@ const monthlyStats2026 = createMonthlyStats(2026, [
   ["April", 2350, 2784.2],
   ["May", 5175.4, 2240.75],
   ["June", 2890, 2455.85],
-  ["July", 3325.75, 1918.3],
-  ["August", 3100, 2120],
-  ["September", 3890, 2650],
-  ["October", 3450, 3010],
-  ["November", 4200, 2300],
-  ["December", 4550, 3400]
+  ["July", 3325.75, 1918.3]
 ]);
-
-const monthlyStats2027 = createMonthlyStats(2027, [
-  ["January", 3800, 2700],
-  ["February", 3900, 2950],
-  ["March", 4400, 2800],
-  ["April", 4050, 3300],
-  ["May", 4750, 3100],
-  ["June", 4300, 3600],
-  ["July", 5100, 3350]
-]);
-
-const allMonthlyStats: readonly MonthlyStatsPeriod[] = [
-  ...monthlyStats2024,
-  ...monthlyStats2025,
-  ...monthlyStats2026,
-  ...monthlyStats2027
-];
 
 function toMonthKey(period: MonthlyStatsPeriod) {
   const monthNumber = monthNames.indexOf(period.month) + 1;
   return `${period.year}-${String(monthNumber).padStart(2, "0")}`;
 }
+
+function getLocalDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+const currentMonthKey = getLocalDateKey().slice(0, 7);
+const allMonthlyStats: readonly MonthlyStatsPeriod[] = [
+  ...monthlyStats2024,
+  ...monthlyStats2025,
+  ...monthlyStats2026
+].filter((period) => toMonthKey(period) <= currentMonthKey);
 
 function getInitialMonthKey(availableMonths: readonly string[]) {
   const today = new Date();
@@ -235,9 +251,9 @@ function summarizeYear(year: number): YearlyStatsPeriod {
     );
 }
 
-const yearlyStats: readonly YearlyStatsPeriod[] = [2024, 2025, 2026, 2027].map(
-  summarizeYear
-);
+const yearlyStats: readonly YearlyStatsPeriod[] = [
+  ...new Set(allMonthlyStats.map((period) => period.year))
+].map(summarizeYear);
 
 const allTimeStats = yearlyStats.reduce<StatsPeriod>(
   (total, period) => ({
@@ -324,6 +340,308 @@ const mockTypicalTransactionAmounts: Readonly<Record<string, number>> = {
   "income-sales": 180,
   "income-other": 200
 };
+
+const millisecondsPerDay = 24 * 60 * 60 * 1000;
+const shortDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC"
+});
+const fullDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC"
+});
+const weekdayFormatter = new Intl.DateTimeFormat("en-GB", {
+  weekday: "long",
+  timeZone: "UTC"
+});
+
+function parseDateParts(date: string) {
+  const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
+  return { year, month, day };
+}
+
+function toDayNumber(date: string) {
+  const { year, month, day } = parseDateParts(date);
+  return Math.floor(Date.UTC(year, month - 1, day) / millisecondsPerDay);
+}
+
+function fromDayNumber(dayNumber: number) {
+  return new Date(dayNumber * millisecondsPerDay)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function toUtcDate(date: string) {
+  const { year, month, day } = parseDateParts(date);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function getPeriodDateRange(
+  mode: StatsPeriodMode,
+  periods: readonly MonthlyStatsPeriod[],
+  transactions: readonly ExpenseTransaction[]
+) {
+  const firstPeriod = periods[0];
+  const lastPeriod = periods[periods.length - 1];
+
+  if (!firstPeriod || !lastPeriod) {
+    return null;
+  }
+
+  if (mode === "ALL" && transactions.length > 0) {
+    const dates = transactions.map((transaction) => transaction.date).sort();
+    return {
+      startDate: dates[0],
+      endDate: dates[dates.length - 1]
+    };
+  }
+
+  const firstMonth = monthNames.indexOf(firstPeriod.month) + 1;
+  const lastMonth = monthNames.indexOf(lastPeriod.month) + 1;
+  const lastDay = new Date(
+    Date.UTC(lastPeriod.year, lastMonth, 0)
+  ).getUTCDate();
+  const startDate = `${firstPeriod.year}-${String(firstMonth).padStart(
+    2,
+    "0"
+  )}-01`;
+  const naturalEndDate = `${lastPeriod.year}-${String(lastMonth).padStart(
+    2,
+    "0"
+  )}-${String(lastDay).padStart(2, "0")}`;
+  const endDate = naturalEndDate > getLocalDateKey()
+    ? getLocalDateKey()
+    : naturalEndDate;
+
+  if (startDate > endDate) {
+    return null;
+  }
+
+  return {
+    startDate,
+    endDate
+  };
+}
+
+function createMockExpenseTransactions(
+  periods: readonly MonthlyStatsPeriod[]
+) {
+  return periods.flatMap<ExpenseTransaction>((period) => {
+    const monthKey = toMonthKey(period);
+    const sourceTransactions = mockStatisticsTransactions.filter(
+      (transaction) =>
+        transaction.date.startsWith(monthKey) && transaction.type !== "INCOME"
+    );
+    const totalCents = Math.max(0, Math.round(period.expenses * 100));
+
+    if (sourceTransactions.length === 0 || totalCents === 0) {
+      return [];
+    }
+
+    const flexibleTransactions = sourceTransactions.filter(
+      (transaction) => transaction.amountCents === undefined
+    );
+    const fixedTotal = sourceTransactions.reduce(
+      (total, transaction) => total + (transaction.amountCents ?? 0),
+      0
+    );
+    const amountToDistribute = Math.max(0, totalCents - fixedTotal);
+    const weights = flexibleTransactions.map((transaction, index) => {
+      const day = Number(transaction.date.slice(-2));
+      return 1 + ((day * 3 + index * 5) % 9);
+    });
+    const totalWeight = weights.reduce((total, weight) => total + weight, 0);
+    let distributedAmount = 0;
+    let flexibleIndex = 0;
+
+    return sourceTransactions.map((transaction) => {
+      if (transaction.amountCents !== undefined) {
+        return {
+          date: transaction.date,
+          amount: transaction.amountCents / 100
+        };
+      }
+
+      const isLastFlexible =
+        flexibleIndex === flexibleTransactions.length - 1;
+      const amountCents = isLastFlexible
+        ? amountToDistribute - distributedAmount
+        : Math.round(
+            amountToDistribute *
+              ((weights[flexibleIndex] ?? 0) / Math.max(totalWeight, 1))
+          );
+      distributedAmount += amountCents;
+      flexibleIndex += 1;
+
+      return {
+        date: transaction.date,
+        amount: Math.max(0, amountCents) / 100
+      };
+    });
+  });
+}
+
+function getMedian(values: readonly number[]) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  const sortedValues = [...values].sort((first, second) => first - second);
+  const middleIndex = Math.floor(sortedValues.length / 2);
+
+  if (sortedValues.length % 2 === 1) {
+    return sortedValues[middleIndex] ?? 0;
+  }
+
+  return (
+    ((sortedValues[middleIndex - 1] ?? 0) +
+      (sortedValues[middleIndex] ?? 0)) /
+    2
+  );
+}
+
+function getNoSpendStreaks(
+  transactions: readonly ExpenseTransaction[],
+  startDate: string,
+  endDate: string
+) {
+  const startDay = toDayNumber(startDate);
+  const endDay = toDayNumber(endDate);
+  const expenseDays = new Set(
+    transactions.map((transaction) => toDayNumber(transaction.date))
+  );
+  let currentStart: number | null = null;
+  let longest: NoSpendStreak = {
+    days: 0,
+    startDate: null,
+    endDate: null
+  };
+
+  function finishStreak(streakEnd: number) {
+    if (currentStart === null) {
+      return;
+    }
+
+    const days = streakEnd - currentStart + 1;
+
+    if (days > longest.days) {
+      longest = {
+        days,
+        startDate: fromDayNumber(currentStart),
+        endDate: fromDayNumber(streakEnd)
+      };
+    }
+
+    currentStart = null;
+  }
+
+  for (let day = startDay; day <= endDay; day += 1) {
+    if (expenseDays.has(day)) {
+      finishStreak(day - 1);
+    } else if (currentStart === null) {
+      currentStart = day;
+    }
+  }
+
+  finishStreak(endDay);
+
+  let currentDays = 0;
+
+  for (
+    let day = endDay;
+    day >= startDay && !expenseDays.has(day);
+    day -= 1
+  ) {
+    currentDays += 1;
+  }
+
+  const current: NoSpendStreak = {
+    days: currentDays,
+    startDate:
+      currentDays > 0 ? fromDayNumber(endDay - currentDays + 1) : null,
+    endDate: currentDays > 0 ? endDate : null
+  };
+
+  return {
+    current,
+    longest,
+    isLongestCurrent: current.days > 0 && current.days === longest.days
+  };
+}
+
+function formatNoSpendStart(streak: NoSpendStreak) {
+  if (!streak.startDate || !streak.endDate || streak.days === 0) {
+    return "No active streak";
+  }
+
+  if (streak.days === 1) {
+    return "Since today";
+  }
+
+  if (streak.days === 2) {
+    return "Since yesterday";
+  }
+
+  const start = toUtcDate(streak.startDate);
+
+  if (streak.days <= 6) {
+    return `Since ${weekdayFormatter.format(start)}`;
+  }
+
+  const end = toUtcDate(streak.endDate);
+  const formatter =
+    start.getUTCFullYear() === end.getUTCFullYear()
+      ? shortDateFormatter
+      : fullDateFormatter;
+
+  return `Since ${formatter.format(start)}`;
+}
+
+function formatStreakPeriod(
+  streak: NoSpendStreak,
+  includeYear: boolean
+) {
+  if (!streak.startDate || !streak.endDate || streak.days === 0) {
+    return "No streak in this period";
+  }
+
+  const start = toUtcDate(streak.startDate);
+  const end = toUtcDate(streak.endDate);
+  const startDay = start.getUTCDate();
+  const endDay = end.getUTCDate();
+  const startMonth = start.toLocaleString("en-GB", {
+    month: "short",
+    timeZone: "UTC"
+  });
+  const endMonth = end.toLocaleString("en-GB", {
+    month: "short",
+    timeZone: "UTC"
+  });
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+
+  if (startYear === endYear && start.getUTCMonth() === end.getUTCMonth()) {
+    const dateRange =
+      startDay === endDay
+        ? `${startDay} ${startMonth}`
+        : `${startDay}-${endDay} ${startMonth}`;
+    return includeYear ? `${dateRange} ${startYear}` : dateRange;
+  }
+
+  if (startYear === endYear) {
+    const dateRange = `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
+    return includeYear ? `${dateRange} ${startYear}` : dateRange;
+  }
+
+  return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+}
+
+function formatDayCount(days: number) {
+  return `${days} ${days === 1 ? "day" : "days"}`;
+}
 
 function getValueTone(value: number) {
   if (value > 0) return "stats-value--positive";
@@ -804,6 +1122,31 @@ function StatsInsightItem({ insight }: { insight: StatsInsight }) {
   );
 }
 
+function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
+  const Icon = item.icon;
+
+  return (
+    <li className="stats-expense-row">
+      <span className="stats-expense-row__icon" aria-hidden="true">
+        <Icon />
+      </span>
+      <span className="stats-expense-row__details">
+        <strong>
+          {item.label}
+          {item.earnedTrophy ? (
+            <Trophy
+              className="stats-expense-row__trophy"
+              aria-label="Current streak is the longest"
+            />
+          ) : null}
+        </strong>
+      </span>
+      <span className="stats-expense-row__detail">{item.detail ?? ""}</span>
+      <strong className="stats-expense-row__value">{item.value}</strong>
+    </li>
+  );
+}
+
 export function StatsPage() {
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
@@ -888,6 +1231,87 @@ export function StatsPage() {
               monthlyPeriod.year === yearlyStats[yearIndex].year
           )
         : allMonthlyStats;
+  const mockExpenseTransactions =
+    createMockExpenseTransactions(selectedMonths);
+  const expenseRange = getPeriodDateRange(
+    mode,
+    selectedMonths,
+    mockExpenseTransactions
+  );
+  const noSpendStreaks = expenseRange
+    ? getNoSpendStreaks(
+        mockExpenseTransactions,
+        expenseRange.startDate,
+        expenseRange.endDate
+      )
+    : {
+        current: { days: 0, startDate: null, endDate: null },
+        longest: { days: 0, startDate: null, endDate: null },
+        isLongestCurrent: false
+      };
+  const averagePeriodCount =
+    mode === "MONTH"
+      ? expenseRange
+        ? toDayNumber(expenseRange.endDate) -
+          toDayNumber(expenseRange.startDate) +
+          1
+        : 1
+      : mode === "YEAR"
+        ? Math.max(selectedMonths.length, 1)
+        : Math.max(
+            new Set(selectedMonths.map((monthlyPeriod) => monthlyPeriod.year))
+              .size,
+            1
+          );
+  const averageExpense = roundedExpenses / averagePeriodCount;
+  const typicalExpense = getMedian(
+    mockExpenseTransactions.map((transaction) => transaction.amount)
+  );
+  const averageExpenseLabel =
+    mode === "MONTH"
+      ? "Daily expense"
+      : mode === "YEAR"
+        ? "Monthly expense"
+        : "Yearly expense";
+  const averageExpenseUnit =
+    mode === "MONTH" ? "day" : mode === "YEAR" ? "month" : "year";
+  const averageExpenseIcon =
+    mode === "MONTH" ? CalendarDays : mode === "YEAR" ? Calendar : Calendars;
+  const expenseItems: readonly ExpenseSectionItem[] = [
+    {
+      id: "typical-expense",
+      label: "Typical expense",
+      detail: `${mockExpenseTransactions.length} ${
+        mockExpenseTransactions.length === 1 ? "expense" : "expenses"
+      }`,
+      value: formatEuroAmount(typicalExpense, { fractionDigits: 0 }),
+      icon: ChartColumn
+    },
+    {
+      id: "average-expense",
+      label: averageExpenseLabel,
+      detail: `${averagePeriodCount} ${averageExpenseUnit}${
+        averagePeriodCount === 1 ? "" : "s"
+      }`,
+      value: formatEuroAmount(averageExpense, { fractionDigits: 0 }),
+      icon: averageExpenseIcon
+    },
+    {
+      id: "no-spend-days",
+      label: "No-spend streak",
+      detail: formatNoSpendStart(noSpendStreaks.current),
+      value: formatDayCount(noSpendStreaks.current.days),
+      icon: PiggyBank,
+      earnedTrophy: noSpendStreaks.isLongestCurrent
+    },
+    {
+      id: "longest-no-spend-streak",
+      label: "Longest streak",
+      detail: formatStreakPeriod(noSpendStreaks.longest, mode === "ALL"),
+      value: formatDayCount(noSpendStreaks.longest.days),
+      icon: Award
+    }
+  ];
   const topExpense = getTopMovement(selectedMonths, "EXPENSE");
   const topIncome = getTopMovement(selectedMonths, "INCOME");
   const insightRows: StatsInsight[][] = [
@@ -1171,6 +1595,16 @@ export function StatsPage() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="stats-expenses" aria-labelledby="stats-expenses-title">
+          <h2 id="stats-expenses-title">Expenses</h2>
+
+          <ul className="stats-expenses__list">
+            {expenseItems.map((item) => (
+              <StatsExpenseItem item={item} key={item.id} />
+            ))}
+          </ul>
         </section>
       </div>
     </section>

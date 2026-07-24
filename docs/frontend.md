@@ -472,19 +472,19 @@ the mobile layout, period navigation, and positive and negative balances. The
 all-time view aggregates yearly totals so that no month is counted twice. Money
 is kept in one group containing net balance, income, expenses, and the
 percentage of income saved. A separate category breakdown keeps expenses and
-income in two side-by-side columns, showing only active categories in descending
-amount order. This temporary data source will be replaced by authenticated
-aggregate endpoints.
-Category values show amounts by default. Selecting any value switches both
-columns to percentages; selecting one again restores the amount view.
+income behind a compact type switch, showing one full-width list at a time and
+only active categories in descending amount order. This temporary data source
+will be replaced by authenticated aggregate endpoints. Category values show
+amounts by default. Selecting any value switches the visible list to percentages;
+selecting one again restores the amount view.
 Stats displays these summary amounts as whole euros while preserving cents in
 the underlying values and elsewhere in the app.
-In Month mode, only the visible month name opens the custom month picker; the
-adjacent year remains non-interactive. During the current visual iteration, the
-picker derives its availability from deterministic mock transaction records,
-with between 5 and 30 records per month from March 2024 through July 2027.
-These bounds disable January and February 2024 plus every month after July
-2027. The picker can later consume the existing authenticated
+In Month mode, the visible month and year open the custom month picker. During
+the current visual iteration, the picker derives its availability from
+deterministic mock transaction records, with between 5 and 30 records per month
+from March 2024 through the current date. Future days and months are excluded,
+and the current period ends today when calculating daily values or no-spend
+streaks. The picker can later consume the existing authenticated
 `GET /statistics/months` response without changing its UI contract. Its year
 can be changed with bounded arrow controls, a horizontal swipe, or a
 mouse/trackpad wheel. Selecting an enabled month closes the picker and updates
@@ -500,6 +500,11 @@ periods without income are excluded from that ranking because their savings
 percentage is undefined. They still count when calculating positive periods and
 average balances. Historical yearly mock totals are derived from monthly data so
 the different views remain consistent.
+
+The final Expenses section focuses on spending behavior rather than repeating
+the main totals. It shows the median expense, the daily/monthly/yearly expense
+for the selected mode, the current no-spend streak, and the longest no-spend
+streak. A trophy marks the current streak when it is also the longest.
 
 Chart direction:
 
