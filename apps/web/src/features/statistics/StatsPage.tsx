@@ -98,6 +98,11 @@ const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "ALL", label: "All", icon: Calendars }
 ];
 
+const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
+  { value: "INCOME", label: "Income", icon: ArrowUpRight },
+  { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
+];
+
 function createMonthlyStats(
   year: number,
   entries: readonly MonthlyStatsSeed[]
@@ -634,30 +639,24 @@ function getAllTimeCategoryBreakdown(
   return createCategoryBreakdownItems(type, amountsByCategory);
 }
 
-type StatsCategoryColumnProps = {
-  title: string;
+type StatsCategoryListProps = {
   type: TransactionType;
   categories: readonly CategoryBreakdownItem[];
   valueMode: CategoryValueMode;
   onToggleValueMode: () => void;
 };
 
-function StatsCategoryColumn({
-  title,
+function StatsCategoryList({
   type,
   categories,
   valueMode,
   onToggleValueMode
-}: StatsCategoryColumnProps) {
-  const titleId = `stats-category-${type.toLowerCase()}-title`;
-
+}: StatsCategoryListProps) {
   return (
     <section
-      className={`stats-category-column stats-category-column--${type.toLowerCase()}`}
-      aria-labelledby={titleId}
+      className={`stats-category-panel stats-category-panel--${type.toLowerCase()}`}
+      aria-label={`${type === "INCOME" ? "Income" : "Expense"} categories`}
     >
-      <h3 id={titleId}>{title}</h3>
-
       {categories.length > 0 ? (
         <ul className="stats-category-list">
           {categories.map((category) => {
@@ -745,6 +744,8 @@ export function StatsPage() {
   const [yearIndex, setYearIndex] = useState(yearlyStats.length - 1);
   const [categoryValueMode, setCategoryValueMode] =
     useState<CategoryValueMode>("AMOUNT");
+  const [categoryType, setCategoryType] =
+    useState<TransactionType>("INCOME");
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const selectableMonthKeys =
     mockStatisticsMonthAvailability.availableMonths;
@@ -1067,22 +1068,26 @@ export function StatsPage() {
         >
           <h2 id="stats-categories-title">Categories</h2>
 
-          <div className="stats-category-columns">
-            <StatsCategoryColumn
-              title="Income"
-              type="INCOME"
-              categories={incomeCategoryBreakdown}
-              valueMode={categoryValueMode}
-              onToggleValueMode={toggleCategoryValueMode}
-            />
-            <StatsCategoryColumn
-              title="Expenses"
-              type="EXPENSE"
-              categories={expenseCategoryBreakdown}
-              valueMode={categoryValueMode}
-              onToggleValueMode={toggleCategoryValueMode}
-            />
-          </div>
+          <SlidingSegmentedControl
+            className="stats-category-type"
+            value={categoryType}
+            options={categoryTypeOptions}
+            onChange={setCategoryType}
+            label="Category type"
+            tone={categoryType === "INCOME" ? "income" : "expense"}
+            compact
+          />
+
+          <StatsCategoryList
+            type={categoryType}
+            categories={
+              categoryType === "INCOME"
+                ? incomeCategoryBreakdown
+                : expenseCategoryBreakdown
+            }
+            valueMode={categoryValueMode}
+            onToggleValueMode={toggleCategoryValueMode}
+          />
         </section>
 
         <section className="stats-insights" aria-labelledby="stats-insights-title">
