@@ -1553,7 +1553,7 @@ body.month-picker-open .home-content--stats {
   width: 17px;
   height: 17px;
   flex: 0 0 auto;
-  color: currentColor;
+  color: var(--color-primary);
   stroke-width: 1.8;
 }
 
@@ -1606,7 +1606,7 @@ body.month-picker-open .home-content--stats {
   width: 17px;
   height: 17px;
   flex: 0 0 auto;
-  color: currentColor;
+  color: var(--color-primary);
   stroke-width: 1.8;
 }
 
