@@ -629,19 +629,19 @@ export function StatsPage() {
   const insightRows: StatsInsight[][] = [
     [
       {
+        id: "largest-income",
+        label: "Largest income",
+        value: largestIncome > 0 ? formatInsightAmount(largestIncome) : "--",
+        icon: ArrowUpRight,
+        tone: largestIncome > 0 ? "positive" : "neutral"
+      },
+      {
         id: "largest-expense",
         label: "Largest expense",
         value:
           largestExpense > 0 ? formatInsightAmount(largestExpense) : "--",
         icon: ArrowDownRight,
         tone: largestExpense > 0 ? "negative" : "neutral"
-      },
-      {
-        id: "largest-income",
-        label: "Largest income",
-        value: largestIncome > 0 ? formatInsightAmount(largestIncome) : "--",
-        icon: ArrowUpRight,
-        tone: largestIncome > 0 ? "positive" : "neutral"
       }
     ]
   ];
