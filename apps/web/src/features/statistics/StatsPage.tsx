@@ -2,11 +2,11 @@ import { useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Calendar,
   CalendarDays,
-  CalendarRange,
+  Calendars,
   ChevronLeft,
   ChevronRight,
-  Infinity as InfinityIcon,
   Scale
 } from "lucide-react";
 
@@ -44,8 +44,8 @@ type CategoryBreakdownItem = {
 
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
-  { value: "YEAR", label: "Year", icon: CalendarRange },
-  { value: "ALL", label: "All", icon: InfinityIcon }
+  { value: "YEAR", label: "Year", icon: Calendar },
+  { value: "ALL", label: "All", icon: Calendars }
 ];
 
 const monthlyStats: readonly StatsPeriod[] = [
