@@ -20,6 +20,7 @@ import {
   type SlidingSegmentOption
 } from "../../components/ui/SlidingSegmentedControl";
 import { MonthPicker } from "../../components/ui/MonthPicker";
+import { YearPicker } from "../../components/ui/YearPicker";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
   getCategoryIcon,
@@ -28,7 +29,8 @@ import {
 } from "../transactions/category-catalog";
 import {
   mockStatisticsMonthAvailability,
-  mockStatisticsTransactions
+  mockStatisticsTransactions,
+  mockStatisticsYearAvailability
 } from "./statistics-mock";
 
 type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
@@ -1149,6 +1151,7 @@ function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
 
 export function StatsPage() {
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
+  const yearPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
   const [selectedMonthKey, setSelectedMonthKey] = useState(() =>
     getInitialMonthKey(mockStatisticsMonthAvailability.availableMonths)
@@ -1159,6 +1162,7 @@ export function StatsPage() {
   const [categoryType, setCategoryType] =
     useState<TransactionType>("INCOME");
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
   const selectableMonthKeys =
     mockStatisticsMonthAvailability.availableMonths;
   const monthIndex = Math.max(
@@ -1420,6 +1424,16 @@ export function StatsPage() {
     );
   }
 
+  function selectYear(year: number) {
+    const nextYearIndex = yearlyStats.findIndex(
+      (yearlyPeriod) => yearlyPeriod.year === year
+    );
+
+    if (nextYearIndex >= 0) {
+      setYearIndex(nextYearIndex);
+    }
+  }
+
   return (
     <section
       className="home-content home-content--stats"
@@ -1464,7 +1478,7 @@ export function StatsPage() {
                 >
                   <button
                     ref={monthPickerAnchorRef}
-                    className="stats-period-navigation__month-picker"
+                    className="stats-period-navigation__picker"
                     type="button"
                     aria-haspopup="dialog"
                     aria-expanded={isMonthPickerOpen}
@@ -1475,7 +1489,25 @@ export function StatsPage() {
                   </button>
                 </span>
               ) : (
-                <strong aria-live="polite">{period.label}</strong>
+                <span
+                  className="stats-period-navigation__label"
+                  aria-live="polite"
+                >
+                  {mockStatisticsYearAvailability.availableYears.length > 1 ? (
+                    <button
+                      ref={yearPickerAnchorRef}
+                      className="stats-period-navigation__picker"
+                      type="button"
+                      aria-haspopup="dialog"
+                      aria-expanded={isYearPickerOpen}
+                      onClick={() => setIsYearPickerOpen(true)}
+                    >
+                      {period.label}
+                    </button>
+                  ) : (
+                    <strong>{period.label}</strong>
+                  )}
+                </span>
               )}
               <button
                 type="button"
@@ -1498,6 +1530,17 @@ export function StatsPage() {
           maximumMonth={mockStatisticsMonthAvailability.maximumMonth}
           onSelect={setSelectedMonthKey}
           onClose={() => setIsMonthPickerOpen(false)}
+        />
+
+        <YearPicker
+          open={isYearPickerOpen}
+          anchorRef={yearPickerAnchorRef}
+          value={yearlyStats[yearIndex].year}
+          availableYears={mockStatisticsYearAvailability.availableYears}
+          minimumYear={mockStatisticsYearAvailability.minimumYear}
+          maximumYear={mockStatisticsYearAvailability.maximumYear}
+          onSelect={selectYear}
+          onClose={() => setIsYearPickerOpen(false)}
         />
 
         <section className="stats-money" aria-labelledby="stats-money-title">

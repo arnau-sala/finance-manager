@@ -892,7 +892,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   display: none;
 }
 
-body.month-picker-open .home-content--stats {
+body.stats-picker-open .home-content--stats {
   overflow-y: hidden;
 }
 
@@ -1272,7 +1272,7 @@ body.month-picker-open .home-content--stats {
   gap: 4px;
 }
 
-.stats-period-navigation__month-picker {
+.stats-period-navigation__picker {
   width: auto;
   height: auto;
   display: inline-flex;
@@ -1290,18 +1290,19 @@ body.month-picker-open .home-content--stats {
   -webkit-tap-highlight-color: transparent;
 }
 
-.stats-period-navigation__month-picker:disabled {
+.stats-period-navigation__picker:disabled {
   color: var(--color-text-muted);
   cursor: default;
 }
 
-.stats-period-navigation__month-picker:focus-visible {
+.stats-period-navigation__picker:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
   border-radius: 2px;
 }
 
-.month-picker-backdrop {
+.month-picker-backdrop,
+.year-picker-backdrop {
   position: fixed;
   z-index: 35;
   inset: 0;
@@ -1310,9 +1311,9 @@ body.month-picker-open .home-content--stats {
   touch-action: none;
 }
 
-.month-picker {
+.month-picker,
+.year-picker {
   position: fixed;
-  width: min(306px, calc(100% - 24px));
   overflow: hidden;
   visibility: hidden;
   opacity: 0;
@@ -1320,20 +1321,35 @@ body.month-picker-open .home-content--stats {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 22px;
-  transform-origin: var(--month-picker-origin-x, 50%) top;
+  transform-origin: var(--picker-origin-x, 50%) top;
 }
 
-.month-picker.is-positioned {
+.month-picker {
+  width: min(306px, calc(100% - 24px));
+}
+
+.year-picker--2-columns {
+  width: min(212px, calc(100% - 24px));
+}
+
+.year-picker--3-columns {
+  width: min(306px, calc(100% - 24px));
+}
+
+.month-picker.is-positioned,
+.year-picker.is-positioned {
   visibility: visible;
   animation: month-picker-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.month-picker.is-positioned.is-closing {
+.month-picker.is-positioned.is-closing,
+.year-picker.is-positioned.is-closing {
   pointer-events: none;
   animation: month-picker-out 190ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
-.month-picker:focus {
+.month-picker:focus,
+.year-picker:focus {
   outline: none;
 }
 
@@ -1479,6 +1495,79 @@ body.month-picker-open .home-content--stats {
   color: var(--color-text-muted);
   opacity: 0.3;
   cursor: default;
+}
+
+.year-picker__content {
+  max-height: min(420px, calc(100dvh - 24px));
+  display: grid;
+  gap: 4px;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+}
+
+.year-picker__content::-webkit-scrollbar {
+  display: none;
+}
+
+.year-picker__row {
+  display: grid;
+  gap: 4px;
+}
+
+.year-picker__row--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.year-picker__row--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.year-picker__row button {
+  min-width: 0;
+  height: 42px;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.year-picker__row button:not(:disabled):not(.is-selected):active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.year-picker__row button.is-current:not(.is-selected) {
+  color: var(--color-primary);
+}
+
+.year-picker__row button.is-selected {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.year-picker__row button:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.3;
+  cursor: default;
+}
+
+.year-picker__row button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 @keyframes month-picker-in {
@@ -3981,7 +4070,9 @@ body.month-picker-open .home-content--stats {
   .confirm-dialog-backdrop,
   .confirm-dialog,
   .month-picker-backdrop,
-  .month-picker {
+  .month-picker,
+  .year-picker-backdrop,
+  .year-picker {
     animation-duration: 1ms;
   }
 

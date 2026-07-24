@@ -490,6 +490,15 @@ can be changed with bounded arrow controls, a horizontal swipe, or a
 mouse/trackpad wheel. Selecting an enabled month closes the picker and updates
 the Stats period.
 
+Year mode uses an anchored picker with the same animation, focus handling, and
+outside-click behavior as the month picker. It derives available years from the
+already available month keys instead of requesting the database again. Every
+year between the first recorded year and the current year is shown; years
+without transactions are disabled. The modal is not interactive when only one
+recorded year exists. With multiple years, balanced rows contain two or three
+options: four years become a 2x2 layout, five become 3+2, and later rows expand
+when necessary so that a single orphan option is avoided.
+
 The numeric Insights section adapts to the selected period. Every mode shows
 the top expense and income with their exact mock dates. Year adds the best and
 worst month, positive month count, and average monthly balance. All adds the

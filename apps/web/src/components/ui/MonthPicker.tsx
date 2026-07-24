@@ -1,6 +1,4 @@
 import {
-  useCallback,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -11,9 +9,7 @@ import {
 } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const closeAnimationMs = 190;
-const popoverGap = 9;
-const viewportMargin = 12;
+import { useAnchoredPicker } from "./useAnchoredPicker";
 
 const monthLabels = [
   "Jan",
@@ -39,12 +35,6 @@ type MonthPickerProps = {
   maximumMonth: string;
   onSelect: (month: string) => void;
   onClose: () => void;
-};
-
-type PopoverPosition = {
-  top: number;
-  left: number;
-  originX: number;
 };
 
 function getMonthKey(year: number, monthIndex: number) {
@@ -74,14 +64,20 @@ export function MonthPicker({
   const [visibleYear, setVisibleYear] = useState(() =>
     clampYear(getYear(value), minimumYear, maximumYear)
   );
-  const [isClosing, setIsClosing] = useState(false);
-  const [position, setPosition] = useState<PopoverPosition | null>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
-  const closingRef = useRef(false);
-  const closeTimerRef = useRef<number | null>(null);
+  const {
+    dialogRef,
+    isClosing,
+    position,
+    requestClose,
+    handleBackdropPointerDown
+  } = useAnchoredPicker({
+    open,
+    anchorRef,
+    onClose,
+    positionKey: value
+  });
   const availableMonthSet = useMemo(
     () => new Set(availableMonths),
     [availableMonths]
@@ -100,27 +96,6 @@ export function MonthPicker({
     today.getMonth()
   );
 
-  const requestClose = useCallback(() => {
-    if (closingRef.current) {
-      return;
-    }
-
-    closingRef.current = true;
-    setIsClosing(true);
-    const animationDuration = window.matchMedia(
-      "(prefers-reduced-motion: reduce)"
-    ).matches
-      ? 1
-      : closeAnimationMs;
-
-    closeTimerRef.current = window.setTimeout(() => {
-      closeTimerRef.current = null;
-      closingRef.current = false;
-      setIsClosing(false);
-      onClose();
-    }, animationDuration);
-  }, [onClose]);
-
   useLayoutEffect(() => {
     if (open && !wasOpenRef.current) {
       const initialYear = clampYear(
@@ -129,10 +104,6 @@ export function MonthPicker({
         maximumYear
       );
 
-      previousFocusRef.current =
-        document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : null;
       setVisibleYear(initialYear);
 
       const viewport = viewportRef.current;
@@ -141,141 +112,10 @@ export function MonthPicker({
           (initialYear - minimumYear) * viewport.clientWidth;
       }
 
-      requestAnimationFrame(() => dialogRef.current?.focus());
-    }
-
-    if (!open && wasOpenRef.current) {
-      requestAnimationFrame(() =>
-        previousFocusRef.current?.focus({ preventScroll: true })
-      );
     }
 
     wasOpenRef.current = open;
   }, [maximumYear, minimumYear, open, value]);
-
-  useLayoutEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function updatePosition() {
-      const anchor = anchorRef.current;
-      const dialog = dialogRef.current;
-
-      if (!anchor || !dialog) {
-        return;
-      }
-
-      const anchorRect = anchor.getBoundingClientRect();
-      const dialogWidth = dialog.offsetWidth;
-      const dialogHeight = dialog.offsetHeight;
-      const left = Math.max(
-        viewportMargin,
-        (window.innerWidth - dialogWidth) / 2
-      );
-      const maximumTop = window.innerHeight - dialogHeight - viewportMargin;
-      const top = Math.min(
-        Math.max(anchorRect.bottom + popoverGap, viewportMargin),
-        Math.max(viewportMargin, maximumTop)
-      );
-      const originX = Math.min(
-        Math.max(
-          anchorRect.left + anchorRect.width / 2 - left,
-          viewportMargin
-        ),
-        dialogWidth - viewportMargin
-      );
-
-      setPosition((currentPosition) =>
-        currentPosition?.top === top &&
-        currentPosition.left === left &&
-        currentPosition.originX === originX
-          ? currentPosition
-          : { top, left, originX }
-      );
-    }
-
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    return () => window.removeEventListener("resize", updatePosition);
-  }, [anchorRef, open, value]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    document.body.classList.add("month-picker-open");
-
-    function closeWithEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        requestClose();
-        return;
-      }
-
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const controls = dialogRef.current?.querySelectorAll<HTMLButtonElement>(
-        'button:not(:disabled):not([tabindex="-1"])'
-      );
-
-      if (!controls || controls.length === 0) {
-        event.preventDefault();
-        return;
-      }
-
-      const firstControl = controls[0];
-      const lastControl = controls[controls.length - 1];
-
-      if (
-        event.shiftKey &&
-        (document.activeElement === firstControl ||
-          document.activeElement === dialogRef.current)
-      ) {
-        event.preventDefault();
-        lastControl.focus();
-      } else if (
-        !event.shiftKey &&
-        (document.activeElement === lastControl ||
-          document.activeElement === dialogRef.current)
-      ) {
-        event.preventDefault();
-        firstControl.focus();
-      }
-    }
-
-    window.addEventListener("keydown", closeWithEscape);
-    return () => {
-      document.body.classList.remove("month-picker-open");
-      window.removeEventListener("keydown", closeWithEscape);
-    };
-  }, [open, requestClose]);
-
-  useEffect(() => {
-    if (open) {
-      return;
-    }
-
-    if (closeTimerRef.current !== null) {
-      window.clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-
-    closingRef.current = false;
-    setIsClosing(false);
-    setPosition(null);
-  }, [open]);
-
-  useEffect(
-    () => () => {
-      if (closeTimerRef.current !== null) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    },
-    []
-  );
 
   if (!open) {
     return null;
@@ -342,11 +182,7 @@ export function MonthPicker({
   return (
     <div
       className="month-picker-backdrop"
-      onPointerDown={(event) => {
-        if (event.target === event.currentTarget) {
-          requestClose();
-        }
-      }}
+      onPointerDown={handleBackdropPointerDown}
     >
       <div
         ref={dialogRef}
@@ -358,7 +194,7 @@ export function MonthPicker({
             ? ({
                 top: position.top,
                 left: position.left,
-                "--month-picker-origin-x": `${position.originX}px`
+                "--picker-origin-x": `${position.originX}px`
               } as CSSProperties)
             : undefined
         }

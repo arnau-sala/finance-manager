@@ -101,3 +101,15 @@ export const mockStatisticsMonthAvailability = {
   minimumMonth: mockTransactionMonths[0].month,
   maximumMonth: mockTransactionMonths[mockTransactionMonths.length - 1].month
 } as const;
+
+const availableYears = [
+  ...new Set(
+    mockTransactionMonths.map(({ month }) => Number(month.slice(0, 4)))
+  )
+];
+
+export const mockStatisticsYearAvailability = {
+  availableYears,
+  minimumYear: availableYears[0] ?? null,
+  maximumYear: today.getFullYear()
+} as const;
