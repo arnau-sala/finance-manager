@@ -1600,6 +1600,34 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
 }
 
+.stats-insight--split {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  padding-right: 8px;
+}
+
+.stats-insight__body {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.stats-insight--split .stats-insight__value {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.stats-insight__side-value {
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.15;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .stats-insight__detail {
   min-width: 0;
   overflow: hidden;
@@ -1613,12 +1641,14 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .stats-insight--positive .stats-insight__value,
-.stats-insight--positive .stats-insight__detail {
+.stats-insight--positive .stats-insight__detail,
+.stats-insight--positive .stats-insight__side-value {
   color: var(--color-success);
 }
 
 .stats-insight--negative .stats-insight__value,
-.stats-insight--negative .stats-insight__detail {
+.stats-insight--negative .stats-insight__detail,
+.stats-insight--negative .stats-insight__side-value {
   color: var(--color-danger);
 }
 
@@ -1648,6 +1678,29 @@ body.app-logout-transition .confirm-dialog-backdrop {
   }
 
   .stats-insight__value--compact {
+    font-size: 13px;
+  }
+
+  .stats-insight--split .stats-insight__value {
+    font-size: 10px;
+  }
+
+  .stats-insight--split {
+    column-gap: 4px;
+    padding-left: 6px;
+  }
+
+  .stats-insight--split .stats-insight__label {
+    gap: 3px;
+    font-size: 10px;
+  }
+
+  .stats-insight--split .stats-insight__label svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .stats-insight__side-value {
     font-size: 13px;
   }
 }

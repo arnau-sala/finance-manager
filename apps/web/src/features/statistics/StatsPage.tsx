@@ -68,6 +68,7 @@ type StatsInsight = {
   icon: LucideIcon;
   tone?: InsightTone;
   compactValue?: boolean;
+  sideValue?: string;
 };
 
 const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
@@ -335,7 +336,8 @@ function createExtremeInsight(
     | ReturnType<typeof getPeriodExtreme<MonthlyStatsPeriod>>
     | ReturnType<typeof getPeriodExtreme<YearlyStatsPeriod>>,
   icon: LucideIcon,
-  includeYear: boolean
+  includeYear: boolean,
+  placePeriodAside = false
 ): StatsInsight {
   if (!extreme) {
     return {
@@ -349,10 +351,27 @@ function createExtremeInsight(
     };
   }
 
+  const periodLabel = getPeriodDisplayLabel(extreme.period, includeYear);
+
+  if (placePeriodAside && "month" in extreme.period) {
+    return {
+      id,
+      label,
+      value: `${formatInsightAmount(extreme.balance, true)} (${
+        extreme.savingsPercentage
+      }%)`,
+      sideValue: `${extreme.period.month.slice(0, 3)} ${String(
+        extreme.period.year
+      ).slice(-2)}`,
+      icon,
+      tone: getInsightTone(extreme.balance)
+    };
+  }
+
   return {
     id,
     label,
-    value: getPeriodDisplayLabel(extreme.period, includeYear),
+    value: periodLabel,
     detail: `${formatInsightAmount(extreme.balance, true)} · Saved ${
       extreme.savingsPercentage
     }%`,
@@ -562,25 +581,44 @@ function StatsCategoryColumn({
 
 function StatsInsightItem({ insight }: { insight: StatsInsight }) {
   const Icon = insight.icon;
+  const label = (
+    <span className="stats-insight__label">
+      <Icon aria-hidden="true" />
+      {insight.label}
+    </span>
+  );
 
   return (
     <article
-      className={`stats-insight stats-insight--${insight.tone ?? "neutral"}`}
+      className={`stats-insight stats-insight--${insight.tone ?? "neutral"}${
+        insight.sideValue ? " stats-insight--split" : ""
+      }`}
     >
-      <span className="stats-insight__label">
-        <Icon aria-hidden="true" />
-        {insight.label}
-      </span>
-      <strong
-        className={`stats-insight__value${
-          insight.compactValue ? " stats-insight__value--compact" : ""
-        }`}
-      >
-        {insight.value}
-      </strong>
-      {insight.detail ? (
-        <span className="stats-insight__detail">{insight.detail}</span>
-      ) : null}
+      {insight.sideValue ? (
+        <>
+          <div className="stats-insight__body">
+            {label}
+            <strong className="stats-insight__value">{insight.value}</strong>
+          </div>
+          <span className="stats-insight__side-value">
+            {insight.sideValue}
+          </span>
+        </>
+      ) : (
+        <>
+          {label}
+          <strong
+            className={`stats-insight__value${
+              insight.compactValue ? " stats-insight__value--compact" : ""
+            }`}
+          >
+            {insight.value}
+          </strong>
+          {insight.detail ? (
+            <span className="stats-insight__detail">{insight.detail}</span>
+          ) : null}
+        </>
+      )}
     </article>
   );
 }
@@ -653,14 +691,16 @@ export function StatsPage() {
         "Best month",
         getPeriodExtreme(selectedMonths, "BEST"),
         CalendarDays,
-        mode === "ALL"
+        true,
+        true
       ),
       createExtremeInsight(
         "worst-month",
         "Worst month",
         getPeriodExtreme(selectedMonths, "WORST"),
         CalendarDays,
-        mode === "ALL"
+        true,
+        true
       )
     ]);
 
