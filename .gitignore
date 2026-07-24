@@ -5,3 +5,4 @@ apps/web/dist/
 apps/api/.env
 
 CONTEXT.md
+CHARTS.md
