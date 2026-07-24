@@ -301,16 +301,29 @@ function getPeriodCollectionSummary(periods: readonly StatsPeriod[]) {
   };
 }
 
-function getLargestMovement(
-  periods: readonly StatsPeriod[],
+function getTopMovement(
+  periods: readonly MonthlyStatsPeriod[],
   type: TransactionType
 ) {
   const estimatedTransactionShare = type === "INCOME" ? 0.58 : 0.34;
+  const transactionDay = type === "INCOME" ? 25 : 12;
 
-  return periods.reduce((largest, period) => {
+  return periods.reduce<{
+    amount: number;
+    date: string;
+  } | null>((topMovement, period) => {
     const periodTotal = type === "INCOME" ? period.income : period.expenses;
-    return Math.max(largest, Math.round(periodTotal * estimatedTransactionShare));
-  }, 0);
+    const amount = Math.round(periodTotal * estimatedTransactionShare);
+
+    if (amount <= 0 || (topMovement && amount <= topMovement.amount)) {
+      return topMovement;
+    }
+
+    return {
+      amount,
+      date: `${transactionDay} ${period.month.slice(0, 3)} ${period.year}`
+    };
+  }, null);
 }
 
 function formatInsightAmount(value: number, showSign = false) {
@@ -630,24 +643,25 @@ export function StatsPage() {
               monthlyPeriod.year === yearlyStats[yearIndex].year
           )
         : allMonthlyStats;
-  const largestExpense = getLargestMovement(selectedMonths, "EXPENSE");
-  const largestIncome = getLargestMovement(selectedMonths, "INCOME");
+  const topExpense = getTopMovement(selectedMonths, "EXPENSE");
+  const topIncome = getTopMovement(selectedMonths, "INCOME");
   const insightRows: StatsInsight[][] = [
     [
       {
-        id: "largest-income",
-        label: "Largest income",
-        value: largestIncome > 0 ? formatInsightAmount(largestIncome) : "--",
+        id: "top-income",
+        label: "Top income",
+        value: topIncome?.date ?? "No data",
+        sideValue: topIncome ? formatInsightAmount(topIncome.amount) : "--",
         icon: ArrowUpRight,
-        tone: largestIncome > 0 ? "positive" : "neutral"
+        tone: topIncome ? "positive" : "neutral"
       },
       {
-        id: "largest-expense",
-        label: "Largest expense",
-        value:
-          largestExpense > 0 ? formatInsightAmount(largestExpense) : "--",
+        id: "top-expense",
+        label: "Top expense",
+        value: topExpense?.date ?? "No data",
+        sideValue: topExpense ? formatInsightAmount(topExpense.amount) : "--",
         icon: ArrowDownRight,
-        tone: largestExpense > 0 ? "negative" : "neutral"
+        tone: topExpense ? "negative" : "neutral"
       }
     ]
   ];

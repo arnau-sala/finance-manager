@@ -481,8 +481,9 @@ Stats displays these summary amounts as whole euros while preserving cents in
 the underlying values and elsewhere in the app.
 
 The numeric Insights section adapts to the selected period. Every mode shows
-the largest expense and income. Year adds the best and worst month, positive
-month count, and average monthly balance. All adds the same monthly indicators
+the top expense and income with their exact mock dates. Year adds the best and
+worst month, positive month count, and average monthly balance. All adds the
+same monthly indicators
 across the complete history plus their yearly equivalents. Best and worst
 periods are ranked by savings percentage and show both balance and percentage;
 periods without income are excluded from that ranking because their savings
