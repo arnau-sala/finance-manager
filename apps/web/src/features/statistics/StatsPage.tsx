@@ -379,19 +379,19 @@ function createCollectionInsights(
     {
       id: `${idPrefix}-positive`,
       label: `Up ${periodLabel}`,
-      value: `${summary.positivePeriods}/${summary.totalPeriods}`,
-      detail: `${summary.positivePercentage}% positive`,
+      value: `${summary.positivePercentage}% positive`,
+      sideValue: `${summary.positivePeriods}/${summary.totalPeriods}`,
       icon,
       tone: summary.positivePeriods > 0 ? "positive" : "neutral"
     },
     {
       id: `${idPrefix}-average`,
       label: averageLabel,
-      value: formatInsightAmount(summary.averageBalance, true),
-      detail:
+      value:
         summary.averageSavingsPercentage === null
           ? "Saved --"
           : `Saved ${summary.averageSavingsPercentage}%`,
+      sideValue: formatInsightAmount(summary.averageBalance, true),
       icon: Scale,
       tone: getInsightTone(summary.averageBalance)
     }
@@ -703,7 +703,7 @@ export function StatsPage() {
       ...createCollectionInsights(
         "monthly",
         "months",
-        "Month avg",
+        "Month avg.",
         getPeriodCollectionSummary(selectedMonths),
         CalendarDays
       )
@@ -714,7 +714,7 @@ export function StatsPage() {
         ...createCollectionInsights(
           "yearly",
           "years",
-          "Year avg",
+          "Year avg.",
           getPeriodCollectionSummary(yearlyStats),
           Calendars
         )
