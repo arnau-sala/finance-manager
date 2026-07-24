@@ -90,16 +90,16 @@ function createMonthlyStats(
 }
 
 const monthlyStats2024 = createMonthlyStats(2024, [
-  ["January", 2200, 1800],
-  ["February", 2200, 1650],
-  ["March", 2450, 1950],
-  ["April", 2250, 1700],
+  ["January", 2200, 2380],
+  ["February", 2200, 2290],
+  ["March", 2450, 2610],
+  ["April", 2250, 2425],
   ["May", 2600, 1850],
   ["June", 2300, 2500],
   ["July", 2800, 2000],
-  ["August", 2100, 1600],
+  ["August", 2100, 2240],
   ["September", 2400, 1750],
-  ["October", 2500, 1900],
+  ["October", 2500, 2675],
   ["November", 2250, 1500],
   ["December", 2400.5, 1480.25]
 ]);
@@ -336,7 +336,8 @@ function createExtremeInsight(
   extreme:
     | ReturnType<typeof getPeriodExtreme<MonthlyStatsPeriod>>
     | ReturnType<typeof getPeriodExtreme<YearlyStatsPeriod>>,
-  icon: LucideIcon
+  icon: LucideIcon,
+  tone: Exclude<InsightTone, "neutral">
 ): StatsInsight {
   if (!extreme) {
     return {
@@ -364,7 +365,7 @@ function createExtremeInsight(
     }%)`,
     sideValue,
     icon,
-    tone: getInsightTone(extreme.balance)
+    tone
   };
 }
 
@@ -382,7 +383,12 @@ function createCollectionInsights(
       value: `${summary.positivePercentage}% positive`,
       sideValue: `${summary.positivePeriods}/${summary.totalPeriods}`,
       icon,
-      tone: summary.positivePeriods > 0 ? "positive" : "neutral"
+      tone:
+        summary.totalPeriods === 0
+          ? "neutral"
+          : summary.positivePeriods * 2 < summary.totalPeriods
+            ? "negative"
+            : "positive"
     },
     {
       id: `${idPrefix}-average`,
@@ -672,13 +678,15 @@ export function StatsPage() {
         "best-month",
         "Best month",
         getPeriodExtreme(selectedMonths, "BEST"),
-        CalendarDays
+        CalendarDays,
+        "positive"
       ),
       createExtremeInsight(
         "worst-month",
         "Worst month",
         getPeriodExtreme(selectedMonths, "WORST"),
-        CalendarDays
+        CalendarDays,
+        "negative"
       )
     ]);
 
@@ -688,13 +696,15 @@ export function StatsPage() {
           "best-year",
           "Best year",
           getPeriodExtreme(yearlyStats, "BEST"),
-          Calendar
+          Calendar,
+          "positive"
         ),
         createExtremeInsight(
           "worst-year",
           "Worst year",
           getPeriodExtreme(yearlyStats, "WORST"),
-          Calendar
+          Calendar,
+          "negative"
         )
       ]);
     }
