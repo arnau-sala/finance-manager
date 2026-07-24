@@ -574,9 +574,9 @@ function StatsInsightItem({ insight }: { insight: StatsInsight }) {
             {label}
             <strong className="stats-insight__value">{insight.value}</strong>
           </div>
-          <span className="stats-insight__side-value">
+          <strong className="stats-insight__side-value">
             {insight.sideValue}
-          </span>
+          </strong>
         </>
       ) : (
         <>

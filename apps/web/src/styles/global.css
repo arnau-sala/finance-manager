@@ -1504,7 +1504,9 @@ body.app-logout-transition .confirm-dialog-backdrop {
   outline-offset: 2px;
 }
 
-.stats-category-row__values > strong {
+.stats-category-row__values > strong,
+.stats-insight__value,
+.stats-insight__side-value {
   color: var(--color-text);
   font-size: 13px;
   line-height: 20px;
@@ -1586,13 +1588,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .stats-insight__value {
   min-width: 0;
   overflow: hidden;
-  color: var(--color-text);
-  font-size: 20px;
-  line-height: 1.15;
-  font-weight: 300;
-  font-variant-numeric: tabular-nums;
+  font-size: 16px;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .stats-insight--split {
@@ -1610,17 +1607,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .stats-insight--split .stats-insight__value {
   font-size: 11px;
-  font-weight: 500;
 }
 
 .stats-insight__side-value {
-  color: var(--color-text);
   font-size: 16px;
-  line-height: 1.15;
-  font-weight: 300;
-  font-variant-numeric: tabular-nums;
   text-align: right;
-  white-space: nowrap;
 }
 
 .stats-insight__detail {
@@ -1672,10 +1663,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
     padding-inline: 8px;
   }
 
-  .stats-insight--split .stats-insight__value {
-    font-size: 10px;
-  }
-
   .stats-insight--split {
     column-gap: 4px;
     padding-left: 6px;
@@ -1691,9 +1678,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
     height: 13px;
   }
 
-  .stats-insight__side-value {
-    font-size: 13px;
-  }
 }
 .moves-toolbar {
   position: sticky;
