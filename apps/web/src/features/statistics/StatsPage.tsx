@@ -1270,10 +1270,10 @@ export function StatsPage() {
   );
   const averageExpenseLabel =
     mode === "MONTH"
-      ? "Daily expense"
+      ? "Daily Avg. expense"
       : mode === "YEAR"
-        ? "Monthly expense"
-        : "Yearly expense";
+        ? "Monthly Avg. expense"
+        : "Yearly Avg. expense";
   const averageExpenseUnit =
     mode === "MONTH" ? "day" : mode === "YEAR" ? "month" : "year";
   const averageExpenseIcon =
