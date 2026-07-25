@@ -6,6 +6,12 @@ export type MockStatisticsTransaction = {
   amountCents?: number;
 };
 
+export type MockStatisticsMonthlyTotal = {
+  month: string;
+  income: number;
+  expenses: number;
+};
+
 function getMonthKey(year: number, month: number) {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
@@ -64,6 +70,44 @@ function createMockTransactions(
 
 const today = new Date();
 const todayKey = getLocalDateKey(today);
+const currentMonthKey = getMonthKey(
+  today.getFullYear(),
+  today.getMonth() + 1
+);
+
+export const mockStatisticsMonthlyTotals = [
+  { month: "2024-03", income: 2450, expenses: 2610 },
+  { month: "2024-04", income: 2250, expenses: 2425 },
+  { month: "2024-05", income: 2600, expenses: 1850 },
+  { month: "2024-06", income: 2300, expenses: 2500 },
+  { month: "2024-07", income: 2800, expenses: 2000 },
+  { month: "2024-08", income: 2100, expenses: 2240 },
+  { month: "2024-09", income: 2400, expenses: 2550 },
+  { month: "2024-10", income: 2500, expenses: 2675 },
+  { month: "2024-11", income: 2250, expenses: 1500 },
+  { month: "2024-12", income: 2400.5, expenses: 1480.25 },
+  { month: "2025-01", income: 3500, expenses: 2200 },
+  { month: "2025-02", income: 3500, expenses: 2100 },
+  { month: "2025-03", income: 3650, expenses: 2400 },
+  { month: "2025-04", income: 3500, expenses: 2250 },
+  { month: "2025-05", income: 3900, expenses: 2550 },
+  { month: "2025-06", income: 3650, expenses: 4000 },
+  { month: "2025-07", income: 4100, expenses: 2600 },
+  { month: "2025-08", income: 3400, expenses: 2000 },
+  { month: "2025-09", income: 3700, expenses: 2300 },
+  { month: "2025-10", income: 3900, expenses: 2500 },
+  { month: "2025-11", income: 3600, expenses: 1800 },
+  { month: "2025-12", income: 4100.2, expenses: 2425.85 },
+  { month: "2026-01", income: 3250, expenses: 2450.8 },
+  { month: "2026-02", income: 0, expenses: 482.65 },
+  { month: "2026-03", income: 4250, expenses: 1987.45 },
+  { month: "2026-04", income: 2350, expenses: 2784.2 },
+  { month: "2026-05", income: 5175.4, expenses: 2240.75 },
+  { month: "2026-06", income: 2890, expenses: 2455.85 },
+  { month: "2026-07", income: 3325.75, expenses: 1918.3 }
+].filter(
+  ({ month }) => month <= currentMonthKey
+) satisfies MockStatisticsMonthlyTotal[];
 
 export const mockStatisticsTransactions = [
   ...createMockTransactions(

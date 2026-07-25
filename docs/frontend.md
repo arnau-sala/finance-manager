@@ -23,7 +23,7 @@ Recommended stack:
 - TanStack Query for server state once API usage grows beyond simple auth flows.
 - Plain CSS modules or a small design-token CSS layer first; avoid a heavy UI framework until there is a clear need.
 - Reusable confirmation dialogs live in `components/ui` and use the existing React and design-token CSS layer; adding a second UI framework is deferred until multiple components justify it.
-- Recharts or Visx later for statistics charts. Start simple; do not introduce chart complexity before the stats screens need it.
+- Apache ECharts for statistics charts, imported through its modular API and rendered as SVG. A small local React adapter owns initialization and responsive resizing; chart-specific modules register only the ECharts features they use.
 - Deploy the frontend on Vercel for the MVP.
 
 Why this stack:
@@ -517,10 +517,21 @@ the main totals. It shows the median expense, the daily/monthly/yearly expense
 for the selected mode, the current no-spend streak, and the longest no-spend
 streak. A trophy marks the current streak when it is also the longest.
 
-Chart direction:
+Stats has separate Overview and Charts views under the same period controls.
+Changing views moves only the content below the selected period, while the
+header and date controls remain fixed. The chart engine is loaded through a
+dynamic import the first time Charts is opened, so ECharts is excluded from the
+initial application bundle.
 
-- Start with simple bars/lists.
-- Add richer charts only when the data and UX justify them.
+The shared `components/charts/EChart.tsx` adapter initializes one modular
+ECharts instance, uses the SVG renderer, responds to container resizing, and
+disposes the instance with the React lifecycle. The first visualization is
+`Net Worth Evolution`. Its mock series is generated from the same monthly
+income and expense totals as Overview, beginning with a mock opening net worth
+of `6473€` in March 2024. Month and Year retain daily snapshots to preserve
+intra-month peaks; All uses month-end snapshots. Axis labels and visible point
+symbols are reduced independently from the underlying data so the mobile chart
+remains readable without flattening the line.
 
 ### 10. Account
 

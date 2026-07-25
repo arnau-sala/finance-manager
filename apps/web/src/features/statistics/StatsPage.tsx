@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -31,9 +31,12 @@ import {
 } from "../transactions/category-catalog";
 import {
   mockStatisticsMonthAvailability,
+  mockStatisticsMonthlyTotals,
   mockStatisticsTransactions,
   mockStatisticsYearAvailability
 } from "./statistics-mock";
+
+const StatsChartsView = lazy(() => import("./charts/StatsChartsView"));
 
 type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
 type StatsViewMode = "OVERVIEW" | "CHARTS";
@@ -53,12 +56,6 @@ type MonthlyStatsPeriod = StatsPeriod & {
 type YearlyStatsPeriod = StatsPeriod & {
   year: number;
 };
-
-type MonthlyStatsSeed = readonly [
-  month: MonthName,
-  income: number,
-  expenses: number
-];
 
 type CategoryWeight = {
   id: string;
@@ -139,57 +136,6 @@ const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
   { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
 ];
 
-function createMonthlyStats(
-  year: number,
-  entries: readonly MonthlyStatsSeed[]
-): readonly MonthlyStatsPeriod[] {
-  return entries.map(([month, income, expenses]) => ({
-    label: `${month} ${year}`,
-    month,
-    year,
-    income,
-    expenses
-  }));
-}
-
-const monthlyStats2024 = createMonthlyStats(2024, [
-  ["March", 2450, 2610],
-  ["April", 2250, 2425],
-  ["May", 2600, 1850],
-  ["June", 2300, 2500],
-  ["July", 2800, 2000],
-  ["August", 2100, 2240],
-  ["September", 2400, 2550],
-  ["October", 2500, 2675],
-  ["November", 2250, 1500],
-  ["December", 2400.5, 1480.25]
-]);
-
-const monthlyStats2025 = createMonthlyStats(2025, [
-  ["January", 3500, 2200],
-  ["February", 3500, 2100],
-  ["March", 3650, 2400],
-  ["April", 3500, 2250],
-  ["May", 3900, 2550],
-  ["June", 3650, 4000],
-  ["July", 4100, 2600],
-  ["August", 3400, 2000],
-  ["September", 3700, 2300],
-  ["October", 3900, 2500],
-  ["November", 3600, 1800],
-  ["December", 4100.2, 2425.85]
-]);
-
-const monthlyStats2026 = createMonthlyStats(2026, [
-  ["January", 3250, 2450.8],
-  ["February", 0, 482.65],
-  ["March", 4250, 1987.45],
-  ["April", 2350, 2784.2],
-  ["May", 5175.4, 2240.75],
-  ["June", 2890, 2455.85],
-  ["July", 3325.75, 1918.3]
-]);
-
 function toMonthKey(period: MonthlyStatsPeriod) {
   const monthNumber = monthNames.indexOf(period.month) + 1;
   return `${period.year}-${String(monthNumber).padStart(2, "0")}`;
@@ -203,11 +149,20 @@ function getLocalDateKey(date = new Date()) {
 }
 
 const currentMonthKey = getLocalDateKey().slice(0, 7);
-const allMonthlyStats: readonly MonthlyStatsPeriod[] = [
-  ...monthlyStats2024,
-  ...monthlyStats2025,
-  ...monthlyStats2026
-].filter((period) => toMonthKey(period) <= currentMonthKey);
+const allMonthlyStats: readonly MonthlyStatsPeriod[] =
+  mockStatisticsMonthlyTotals.map((total) => {
+    const [yearPart, monthPart] = total.month.split("-");
+    const year = Number(yearPart);
+    const month = monthNames[Number(monthPart) - 1] ?? monthNames[0];
+
+    return {
+      label: `${month} ${year}`,
+      month,
+      year,
+      income: total.income,
+      expenses: total.expenses
+    };
+  });
 
 function getInitialMonthKey(availableMonths: readonly string[]) {
   const today = new Date();
@@ -1153,6 +1108,7 @@ export function StatsPage() {
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const yearPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [viewMode, setViewMode] = useState<StatsViewMode>("OVERVIEW");
+  const [hasOpenedCharts, setHasOpenedCharts] = useState(false);
   const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
   const [selectedMonthKey, setSelectedMonthKey] = useState(() =>
     getInitialMonthKey(mockStatisticsMonthAvailability.availableMonths)
@@ -1176,6 +1132,8 @@ export function StatsPage() {
     0
   );
   const selectedMonth = getMonthlyPeriod(selectedMonthKey);
+  const selectedYear =
+    yearlyStats[yearIndex]?.year ?? new Date().getFullYear();
   const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
   const periodCount =
     mode === "MONTH" ? selectableMonthKeys.length : yearlyStats.length;
@@ -1440,6 +1398,14 @@ export function StatsPage() {
     }
   }
 
+  function changeViewMode(nextView: StatsViewMode) {
+    if (nextView === "CHARTS") {
+      setHasOpenedCharts(true);
+    }
+
+    setViewMode(nextView);
+  }
+
   return (
     <section
       className="home-content home-content--stats"
@@ -1453,7 +1419,7 @@ export function StatsPage() {
             className="stats-view-toggle"
             value={viewMode}
             options={statsViewOptions}
-            onChange={setViewMode}
+            onChange={changeViewMode}
             label="Statistics view"
             compact
             iconOnly
@@ -1693,7 +1659,19 @@ export function StatsPage() {
             aria-hidden={viewMode !== "CHARTS"}
             inert={viewMode !== "CHARTS"}
           >
-            <p>CHARTS</p>
+            {hasOpenedCharts ? (
+              <Suspense
+                fallback={
+                  <div className="stats-charts-loading">Loading charts...</div>
+                }
+              >
+                <StatsChartsView
+                  mode={mode}
+                  selectedMonth={selectedMonthKey}
+                  selectedYear={selectedYear}
+                />
+              </Suspense>
+            ) : null}
           </section>
         </div>
       </div>

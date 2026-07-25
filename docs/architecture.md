@@ -114,6 +114,15 @@ Transaction reads and mutations derive `userId` exclusively from the secure sess
 
 `services/statistics-service.ts` contains reusable statistics queries so route modules can expose different statistics views without duplicating database aggregation logic.
 
+Frontend charts use Apache ECharts through the tree-shakeable `echarts/core`
+entry and a local React lifecycle adapter in `components/charts`. The SVG
+renderer and only the currently required chart modules are registered. The
+complete Charts view is a lazy-loaded frontend chunk, keeping the chart engine
+out of the initial authenticated application bundle. Chart mock data remains
+inside the statistics feature and is generated from the same monthly totals as
+the numeric Overview; replacing it with authenticated API data must preserve
+that single-source contract.
+
 `routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time balance, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
 
 `money/cents.ts` centralizes integer-cent formatting for API responses that expose money as decimal strings.
