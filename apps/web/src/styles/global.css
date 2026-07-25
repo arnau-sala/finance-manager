@@ -1984,7 +1984,7 @@ body.stats-picker-open .home-content--stats {
   width: 100%;
   display: grid;
   grid-template-columns:
-    22px
+    var(--timeline-label-width)
     repeat(
       var(--timeline-columns),
       var(--timeline-cell-size)
@@ -1996,19 +1996,20 @@ body.stats-picker-open .home-content--stats {
 }
 
 .stats-category-timeline__axis-label {
-  align-self: end;
+  width: var(--timeline-label-width);
+  align-self: center;
   overflow: hidden;
   color: var(--color-text-muted);
   font-size: 9px;
   line-height: 1;
   font-weight: 400;
-  text-align: center;
+  text-align: right;
   text-overflow: clip;
   white-space: nowrap;
 }
 
 .stats-category-timeline__category-icon {
-  width: 22px;
+  width: var(--timeline-cell-size);
   height: var(--timeline-cell-size);
   display: grid;
   place-items: center;

@@ -110,7 +110,7 @@ function createMonthIntervals(selectedMonth: string): TimelineInterval[] {
 
     intervals.push({
       key: `${selectedMonth}:week-${intervals.length + 1}`,
-      axisLabel: `W${intervals.length + 1}`,
+      axisLabel: `Week ${intervals.length + 1}`,
       detailLabel: `${startDay}-${endDay} ${monthFormatter.format(
         toUtcDate(startDate)
       )}`,
@@ -123,15 +123,11 @@ function createMonthIntervals(selectedMonth: string): TimelineInterval[] {
 }
 
 function mapFinancialInterval(
-  interval: FinancialInterval,
-  mode: StatisticsCategoryPeriodMode
+  interval: FinancialInterval
 ): TimelineInterval {
   return {
     key: interval.key,
-    axisLabel:
-      mode === "ALL"
-        ? `'${interval.axisLabel.slice(-2)}`
-        : interval.axisLabel.slice(0, 1),
+    axisLabel: interval.axisLabel,
     detailLabel: interval.tooltipLabel,
     startDate: interval.startDate,
     endDate: interval.endDate
@@ -147,8 +143,8 @@ function createTimelineIntervals(
     return createMonthIntervals(selectedMonth);
   }
 
-  return getFinancialIntervals(mode, selectedYear).map((interval) =>
-    mapFinancialInterval(interval, mode)
+  return getFinancialIntervals(mode, selectedYear).map(
+    mapFinancialInterval
   );
 }
 
@@ -419,8 +415,10 @@ export default function CategoryTimelineChart({
     [intervals]
   );
   const matrixStyle = {
-    "--timeline-columns": intervals.length,
-    "--timeline-cell-size": `${getCellSize(intervals.length)}px`
+    "--timeline-columns": rows.length,
+    "--timeline-cell-size": `${getCellSize(rows.length)}px`,
+    "--timeline-label-width":
+      mode === "MONTH" ? "42px" : mode === "YEAR" ? "26px" : "32px"
   } as CSSProperties;
 
   useEffect(() => {
@@ -499,31 +497,35 @@ export default function CategoryTimelineChart({
               aria-label={`${type === "INCOME" ? "Income" : "Expense"} category intensity from ${displayedPeriod}.`}
             >
               <span aria-hidden="true" />
-              {intervals.map((interval) => (
-                <span
-                  key={interval.key}
-                  className="stats-category-timeline__axis-label"
-                  role="columnheader"
-                  aria-label={interval.detailLabel}
-                >
-                  {interval.axisLabel}
-                </span>
-              ))}
-
               {rows.map((row) => {
                 const Icon = getCategoryIcon(row.category.id, type);
 
                 return (
-                  <Fragment key={row.category.id}>
-                    <span
-                      className="stats-category-timeline__category-icon"
-                      role="rowheader"
-                      aria-label={row.category.name}
-                      title={row.category.name}
-                    >
-                      <Icon aria-hidden="true" />
-                    </span>
-                    {row.cells.map((cell) => (
+                  <span
+                    key={row.category.id}
+                    className="stats-category-timeline__category-icon"
+                    role="columnheader"
+                    aria-label={row.category.name}
+                    title={row.category.name}
+                  >
+                    <Icon aria-hidden="true" />
+                  </span>
+                );
+              })}
+
+              {intervals.map((interval, intervalIndex) => (
+                <Fragment key={interval.key}>
+                  <span
+                    className="stats-category-timeline__axis-label"
+                    role="rowheader"
+                    aria-label={interval.detailLabel}
+                  >
+                    {interval.axisLabel}
+                  </span>
+                  {rows.map((row) => {
+                    const cell = row.cells[intervalIndex];
+
+                    return cell ? (
                       <button
                         key={cell.key}
                         type="button"
@@ -548,10 +550,15 @@ export default function CategoryTimelineChart({
                           { fractionDigits: 0 }
                         )}, ${formatPercentage(cell.percentage)}`}
                       />
-                    ))}
-                  </Fragment>
-                );
-              })}
+                    ) : (
+                      <span
+                        key={`${row.category.id}:${interval.key}:empty`}
+                        aria-hidden="true"
+                      />
+                    );
+                  })}
+                </Fragment>
+              ))}
             </div>
 
             <div
