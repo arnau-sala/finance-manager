@@ -27,7 +27,21 @@ export function EChart({ option, className, ariaLabel }: EChartProps) {
     chartRef.current = chart;
 
     let resizeFrame = 0;
-    const resizeObserver = new ResizeObserver(() => {
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      if (!entry) {
+        return;
+      }
+
+      const nextWidth = Math.round(entry.contentRect.width);
+      const nextHeight = Math.round(entry.contentRect.height);
+
+      if (
+        nextWidth === chart.getWidth() &&
+        nextHeight === chart.getHeight()
+      ) {
+        return;
+      }
+
       window.cancelAnimationFrame(resizeFrame);
       resizeFrame = window.requestAnimationFrame(() => chart.resize());
     });
@@ -42,7 +56,13 @@ export function EChart({ option, className, ariaLabel }: EChartProps) {
   }, []);
 
   useEffect(() => {
-    chartRef.current?.setOption(option, {
+    const chart = chartRef.current;
+
+    if (!chart) {
+      return;
+    }
+
+    chart.setOption(option, {
       notMerge: true,
       lazyUpdate: false
     });

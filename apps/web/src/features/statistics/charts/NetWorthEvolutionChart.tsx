@@ -34,6 +34,12 @@ const fullDateFormatter = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
   timeZone: "UTC"
 });
+const periodDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC"
+});
 const compactNumberFormatter = new Intl.NumberFormat("es-ES", {
   maximumFractionDigits: 1
 });
@@ -122,13 +128,24 @@ function createMonthTicks(snapshots: readonly MockDailyFinancialSnapshot[]) {
 
 function createYearTicks(snapshots: readonly MockDailyFinancialSnapshot[]) {
   const labels = new Map<string, string>();
+  const snapshotsByMonth = new Map<string, MockDailyFinancialSnapshot[]>();
 
-  snapshots.forEach((snapshot, index) => {
-    const previousSnapshot = snapshots[index - 1];
+  snapshots.forEach((snapshot) => {
     const month = snapshot.date.slice(0, 7);
+    const monthSnapshots = snapshotsByMonth.get(month) ?? [];
+    monthSnapshots.push(snapshot);
+    snapshotsByMonth.set(month, monthSnapshots);
+  });
 
-    if (!previousSnapshot || previousSnapshot.date.slice(0, 7) !== month) {
-      labels.set(snapshot.date, shortMonthFormatter.format(toUtcDate(snapshot.date)));
+  snapshotsByMonth.forEach((monthSnapshots) => {
+    const middleSnapshot =
+      monthSnapshots[Math.floor((monthSnapshots.length - 1) / 2)];
+
+    if (middleSnapshot) {
+      labels.set(
+        middleSnapshot.date,
+        shortMonthFormatter.format(toUtcDate(middleSnapshot.date))
+      );
     }
   });
 
@@ -137,23 +154,60 @@ function createYearTicks(snapshots: readonly MockDailyFinancialSnapshot[]) {
 
 function createAllTicks(snapshots: readonly MockDailyFinancialSnapshot[]) {
   const labels = new Map<string, string>();
-  const representedYears = new Set(
-    snapshots.map((snapshot) => snapshot.date.slice(0, 4))
-  );
-  const showMidYearReference = representedYears.size <= 3;
+  const snapshotsByYear = new Map<string, MockDailyFinancialSnapshot[]>();
 
-  snapshots.forEach((snapshot, index) => {
+  snapshots.forEach((snapshot) => {
     const year = snapshot.date.slice(0, 4);
-    const month = snapshot.date.slice(5, 7);
+    const yearSnapshots = snapshotsByYear.get(year) ?? [];
+    yearSnapshots.push(snapshot);
+    snapshotsByYear.set(year, yearSnapshots);
+  });
 
-    if (index === 0 || month === "01") {
-      labels.set(snapshot.date, year);
-    } else if (showMidYearReference && month === "07") {
-      labels.set(snapshot.date, "Jul");
+  snapshotsByYear.forEach((yearSnapshots, year) => {
+    const middleSnapshot =
+      yearSnapshots[Math.floor((yearSnapshots.length - 1) / 2)];
+
+    if (middleSnapshot) {
+      labels.set(middleSnapshot.date, year);
     }
   });
 
   return labels;
+}
+
+function createPeriodStartMarkers(
+  snapshots: readonly MockDailyFinancialSnapshot[],
+  periodKeyLength: number
+) {
+  const markers = new Set<string>();
+
+  snapshots.forEach((snapshot, index) => {
+    const previousSnapshot = snapshots[index - 1];
+
+    if (
+      !previousSnapshot ||
+      previousSnapshot.date.slice(0, periodKeyLength) !==
+        snapshot.date.slice(0, periodKeyLength)
+    ) {
+      markers.add(snapshot.date);
+    }
+  });
+
+  return markers;
+}
+
+function createPeriodBoundaryTicks(
+  snapshots: readonly MockDailyFinancialSnapshot[],
+  periodKeyLength: number
+) {
+  const boundaries = createPeriodStartMarkers(snapshots, periodKeyLength);
+  const finalSnapshot = snapshots[snapshots.length - 1];
+
+  if (finalSnapshot) {
+    boundaries.add(finalSnapshot.date);
+  }
+
+  return boundaries;
 }
 
 function createTickLabels(
@@ -180,15 +234,33 @@ function formatCompactEuro(value: number) {
 }
 
 function createChartOption(
+  mode: NetWorthEvolutionChartProps["mode"],
   snapshots: readonly MockDailyFinancialSnapshot[],
   tickLabels: ReadonlyMap<string, string>,
   theme: ChartTheme
 ): EChartsCoreOption {
   const dates = snapshots.map((snapshot) => snapshot.date);
-  const values = snapshots.map((snapshot) => ({
-    value: snapshot.netWorthCents / 100,
-    symbolSize: tickLabels.has(snapshot.date) ? 6 : 0
-  }));
+  const axisTickDates =
+    mode === "YEAR"
+      ? createPeriodBoundaryTicks(snapshots, 7)
+      : mode === "ALL"
+        ? createPeriodBoundaryTicks(snapshots, 4)
+        : new Set(tickLabels.keys());
+  const markerDates =
+    mode === "YEAR"
+      ? createPeriodStartMarkers(snapshots, 7)
+      : mode === "ALL"
+        ? createPeriodStartMarkers(snapshots, 4)
+        : new Set(tickLabels.keys());
+  const values = snapshots.map((snapshot) => {
+    const isMarker = markerDates.has(snapshot.date);
+
+    return {
+      value: snapshot.netWorthCents / 100,
+      symbol: isMarker ? "circle" : "none",
+      symbolSize: isMarker ? 6 : 0
+    };
+  });
 
   return {
     animationDuration: 650,
@@ -257,15 +329,24 @@ function createChartOption(
         }
       },
       axisTick: {
-        show: false
+        show: true,
+        alignWithLabel: true,
+        interval: (_index: number, value: string) => axisTickDates.has(value),
+        length: 4,
+        lineStyle: {
+          color: theme.border,
+          width: 1
+        }
       },
       axisLabel: {
-        interval: 0,
+        interval: (_index: number, value: string) => tickLabels.has(value),
         color: theme.textMuted,
         fontFamily: theme.fontFamily,
         fontSize: 10,
         margin: 10,
-        hideOverlap: true,
+        hideOverlap: mode === "ALL",
+        showMinLabel: true,
+        showMaxLabel: true,
         formatter: (value: string) => tickLabels.get(value) ?? ""
       }
     },
@@ -300,6 +381,7 @@ function createChartOption(
         type: "line",
         data: values,
         showSymbol: true,
+        showAllSymbol: true,
         symbol: "circle",
         lineStyle: {
           color: theme.primary,
@@ -315,8 +397,7 @@ function createChartOption(
           opacity: 0.5
         },
         emphasis: {
-          focus: "series",
-          scale: 1.2
+          disabled: true
         }
       }
     ]
@@ -337,15 +418,22 @@ export default function NetWorthEvolutionChart({
     [mode, snapshots]
   );
   const option = useMemo(
-    () => createChartOption(snapshots, tickLabels, getChartTheme()),
-    [snapshots, tickLabels]
+    () => createChartOption(mode, snapshots, tickLabels, getChartTheme()),
+    [mode, snapshots, tickLabels]
   );
   const finalSnapshot = snapshots[snapshots.length - 1];
   const currentValue = finalSnapshot?.netWorthCents ?? 0;
+  const firstSnapshot = snapshots[0];
+  const displayedPeriod =
+    firstSnapshot && finalSnapshot
+      ? `${periodDateFormatter.format(toUtcDate(firstSnapshot.date))} - ${periodDateFormatter.format(
+          toUtcDate(finalSnapshot.date)
+        )}`
+      : "";
   const ariaLabel = `Net worth evolution. Final value ${formatEuroAmount(
     currentValue / 100,
     { fractionDigits: 0 }
-  )}.`;
+  )}. Displayed period ${displayedPeriod}.`;
 
   return (
     <section
@@ -353,13 +441,8 @@ export default function NetWorthEvolutionChart({
       aria-labelledby="net-worth-chart-title"
     >
       <header className="stats-chart-section__header">
-        <div>
-          <h2 id="net-worth-chart-title">Net Worth Evolution</h2>
-          <p>Mock data · Started Mar 2024</p>
-        </div>
-        <strong>
-          {formatEuroAmount(currentValue / 100, { fractionDigits: 0 })}
-        </strong>
+        <h2 id="net-worth-chart-title">Net Worth Evolution</h2>
+        <span className="stats-chart-section__period">{displayedPeriod}</span>
       </header>
 
       <EChart
