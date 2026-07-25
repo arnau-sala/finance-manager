@@ -1,4 +1,5 @@
 import CategoryBreakdownChart from "./CategoryBreakdownChart";
+import CategoryTimelineChart from "./CategoryTimelineChart";
 import IncomeExpensesChart from "./IncomeExpensesChart";
 import NetWorthEvolutionChart from "./NetWorthEvolutionChart";
 import PeriodBalanceChart from "./PeriodBalanceChart";
@@ -26,6 +27,7 @@ export default function StatsChartsView(props: StatsChartsViewProps) {
         </>
       ) : null}
       <CategoryBreakdownChart {...props} />
+      <CategoryTimelineChart {...props} />
     </div>
   );
 }

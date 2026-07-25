@@ -48,6 +48,12 @@
   --color-category-12: #9b5e43;
   --color-category-12-soft: #f3e1d8;
 
+  --color-heatmap-1: #edf8f6;
+  --color-heatmap-2: #d6efea;
+  --color-heatmap-3: #9fd8ce;
+  --color-heatmap-4: #4faf9f;
+  --color-heatmap-5: #0f766e;
+
   --color-overlay: rgba(17, 24, 39, 0.42);
 
   --shadow-screen-transition: -18px 0 40px rgba(17, 24, 39, 0.12);

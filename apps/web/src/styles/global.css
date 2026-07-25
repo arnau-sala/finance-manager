@@ -1972,6 +1972,201 @@ body.stats-picker-open .home-content--stats {
   font-size: 13px;
 }
 
+.stats-category-timeline__type {
+  margin-bottom: 10px;
+}
+
+.stats-category-timeline__interaction {
+  width: 100%;
+}
+
+.stats-category-timeline__matrix {
+  width: 100%;
+  display: grid;
+  grid-template-columns:
+    22px
+    repeat(
+      var(--timeline-columns),
+      var(--timeline-cell-size)
+    );
+  grid-auto-rows: var(--timeline-cell-size);
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.stats-category-timeline__axis-label {
+  align-self: end;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 9px;
+  line-height: 1;
+  font-weight: 400;
+  text-align: center;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.stats-category-timeline__category-icon {
+  width: 22px;
+  height: var(--timeline-cell-size);
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+}
+
+.stats-category-timeline__category-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.8;
+}
+
+.stats-category-timeline__cell {
+  width: var(--timeline-cell-size);
+  aspect-ratio: 1;
+  padding: 0;
+  appearance: none;
+  background: var(--color-surface-muted);
+  border: 0;
+  border-radius: 3px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    opacity 220ms ease,
+    box-shadow 180ms ease;
+}
+
+.stats-category-timeline__cell:disabled {
+  opacity: 1;
+}
+
+.stats-category-timeline__cell--level-1 {
+  background: var(--color-heatmap-1);
+}
+
+.stats-category-timeline__cell--level-2 {
+  background: var(--color-heatmap-2);
+}
+
+.stats-category-timeline__cell--level-3 {
+  background: var(--color-heatmap-3);
+}
+
+.stats-category-timeline__cell--level-4 {
+  background: var(--color-heatmap-4);
+}
+
+.stats-category-timeline__cell--level-5 {
+  background: var(--color-heatmap-5);
+}
+
+.stats-category-timeline__cell.is-muted {
+  opacity: 0.2;
+}
+
+.stats-category-timeline__cell.is-selected {
+  box-shadow: inset 0 0 0 2px var(--color-primary-pressed);
+}
+
+.stats-category-timeline__cell:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.stats-category-timeline__legend {
+  min-height: 18px;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.stats-category-timeline__legend-level {
+  width: 10px;
+  height: 10px;
+  display: block;
+  border-radius: 2px;
+}
+
+.stats-category-timeline__detail {
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 0 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease;
+}
+
+.stats-category-timeline__detail.is-visible {
+  border-color: var(--color-border);
+  opacity: 1;
+  visibility: visible;
+}
+
+.stats-category-timeline__detail-label {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.stats-category-timeline__detail-label strong,
+.stats-category-timeline__detail-label small {
+  overflow: hidden;
+  line-height: 1.2;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-category-timeline__detail-label strong {
+  color: var(--color-text);
+  font-size: 13px;
+}
+
+.stats-category-timeline__detail-label small {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.stats-category-timeline__detail-value {
+  font-size: 12px;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats-category-timeline__detail--income
+  .stats-category-timeline__detail-value {
+  color: var(--color-success);
+}
+
+.stats-category-timeline__detail--expense
+  .stats-category-timeline__detail-value {
+  color: var(--color-danger);
+}
+
+.stats-category-timeline__empty {
+  min-height: 100px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
 .stats-money > h2,
 .stats-categories > h2,
 .stats-insights > h2,
