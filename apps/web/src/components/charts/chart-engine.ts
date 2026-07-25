@@ -2,7 +2,6 @@ import { BarChart, LineChart } from "echarts/charts";
 import {
   AriaComponent,
   GridComponent,
-  MarkLineComponent,
   TooltipComponent
 } from "echarts/components";
 import { init, use } from "echarts/core";
@@ -19,7 +18,6 @@ use([
   LineChart,
   AriaComponent,
   GridComponent,
-  MarkLineComponent,
   TooltipComponent,
   SVGRenderer
 ]);

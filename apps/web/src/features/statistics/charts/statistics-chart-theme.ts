@@ -1,8 +1,8 @@
 export type StatisticsChartTheme = {
   primary: string;
   primarySoft: string;
-  success: string;
   danger: string;
+  dangerSoft: string;
   border: string;
   surface: string;
   text: string;
@@ -17,8 +17,8 @@ export function getStatisticsChartTheme(): StatisticsChartTheme {
   return {
     primary: token("--color-primary"),
     primarySoft: token("--color-primary-soft"),
-    success: token("--color-success"),
     danger: token("--color-danger"),
+    dangerSoft: token("--color-danger-soft"),
     border: token("--color-border"),
     surface: token("--color-surface"),
     text: token("--color-text"),

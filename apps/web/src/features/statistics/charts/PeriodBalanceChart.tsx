@@ -144,6 +144,11 @@ function formatDisplayedPeriod(intervals: readonly BalanceInterval[]) {
   )} - ${periodDateFormatter.format(toUtcDate(finalInterval.endDate))}`;
 }
 
+function getYearBarWidth(intervalCount: number) {
+  const missingMonths = Math.max(0, 12 - intervalCount);
+  return Math.min(30, 18 + missingMonths * 2);
+}
+
 function createChartOption(
   mode: PeriodBalanceChartProps["mode"],
   intervals: readonly BalanceInterval[],
@@ -204,8 +209,13 @@ function createChartOption(
       type: "category",
       data: intervals.map(({ axisLabel }) => axisLabel),
       axisLine: {
+        show: true,
+        onZero: true,
         lineStyle: {
-          color: theme.border
+          color: theme.border,
+          opacity: 1,
+          width: 1,
+          type: "solid"
         }
       },
       axisTick: {
@@ -256,31 +266,21 @@ function createChartOption(
           return {
             value,
             itemStyle: {
-              color: isPositive ? theme.success : theme.danger,
-              opacity: 0.86,
+              color: isPositive ? theme.primarySoft : theme.dangerSoft,
+              borderColor: isPositive ? theme.primary : theme.danger,
+              borderWidth: 2,
               borderRadius: isPositive ? [4, 4, 0, 0] : [0, 0, 4, 4]
             }
           };
         }),
-        barMaxWidth: mode === "YEAR" ? 18 : 34,
+        barWidth:
+          mode === "YEAR" ? getYearBarWidth(intervals.length) : undefined,
+        barMaxWidth: mode === "ALL" ? 34 : undefined,
         emphasis: {
           focus: "self",
           itemStyle: {
             opacity: 1
           }
-        },
-        markLine: {
-          silent: true,
-          symbol: ["none", "none"],
-          label: {
-            show: false
-          },
-          lineStyle: {
-            color: theme.textMuted,
-            opacity: 0.72,
-            width: 1
-          },
-          data: [{ yAxis: 0 }]
         }
       }
     ]
