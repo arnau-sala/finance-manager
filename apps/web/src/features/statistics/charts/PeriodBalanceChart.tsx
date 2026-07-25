@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EChartsCoreOption } from "../../../components/charts/chart-engine";
 import { EChart } from "../../../components/charts/EChart";
 import { formatEuroAmount } from "../../../money/format-euro";
@@ -35,11 +35,88 @@ function getYearBarWidth(intervalCount: number) {
   return Math.min(30, 18 + missingMonths * 2);
 }
 
+function createPeriodBalanceTooltipPosition(
+  intervalCount: number,
+  barWidth: number
+) {
+  return (
+    point: number[],
+    rawParams: unknown,
+    _element: unknown,
+    _rect: unknown,
+    size: {
+      contentSize: number[];
+      viewSize: number[];
+    }
+  ) => {
+    const chartEdgeGap = 8;
+    const columnGap = 16;
+    const estimatedPlotLeft = 42;
+    const chartWidth = size.viewSize[0] ?? 0;
+    const chartHeight = size.viewSize[1] ?? 0;
+    const tooltipWidth = size.contentSize[0] ?? 0;
+    const tooltipHeight = size.contentSize[1] ?? 0;
+    const dataIndex =
+      typeof rawParams === "object" &&
+      rawParams !== null &&
+      "dataIndex" in rawParams
+        ? Number(rawParams.dataIndex)
+        : -1;
+    const plotRight = Math.max(
+      estimatedPlotLeft,
+      chartWidth - chartEdgeGap
+    );
+    const intervalWidth =
+      intervalCount > 0
+        ? (plotRight - estimatedPlotLeft) / intervalCount
+        : 0;
+    const intervalCenter =
+      dataIndex >= 0
+        ? estimatedPlotLeft + (dataIndex + 0.5) * intervalWidth
+        : (point[0] ?? 0);
+    const columnLeft = intervalCenter - barWidth / 2;
+    const columnRight = intervalCenter + barWidth / 2;
+    const rightPosition = columnRight + columnGap;
+    const leftPosition = columnLeft - columnGap - tooltipWidth;
+    const maximumLeft = chartWidth - tooltipWidth - chartEdgeGap;
+    const fitsOnRight = rightPosition <= maximumLeft;
+    const fitsOnLeft = leftPosition >= chartEdgeGap;
+    let left: number;
+
+    if (fitsOnRight) {
+      left = rightPosition;
+    } else if (fitsOnLeft) {
+      left = leftPosition;
+    } else {
+      left = Math.min(
+        maximumLeft,
+        Math.max(chartEdgeGap, rightPosition)
+      );
+    }
+
+    const minimumTop = 18;
+    const maximumTop = Math.max(
+      minimumTop,
+      chartHeight - tooltipHeight - chartEdgeGap
+    );
+    const top = Math.min(
+      maximumTop,
+      Math.max(minimumTop, (point[1] ?? 0) - tooltipHeight / 2)
+    );
+
+    return [Math.max(chartEdgeGap, left), top];
+  };
+}
+
 function createChartOption(
   mode: PeriodBalanceChartProps["mode"],
   intervals: readonly FinancialInterval[],
+  selectedIntervalIndex: number | null,
   theme: StatisticsChartTheme
 ): EChartsCoreOption {
+  const barWidth =
+    mode === "YEAR" ? getYearBarWidth(intervals.length) : 34;
+
   return {
     animationDuration: 650,
     animationDurationUpdate: 420,
@@ -62,6 +139,10 @@ function createChartOption(
       trigger: "item",
       triggerOn: "none",
       confine: true,
+      position: createPeriodBalanceTooltipPosition(
+        intervals.length,
+        barWidth
+      ),
       backgroundColor: theme.surface,
       borderColor: theme.border,
       borderWidth: 1,
@@ -143,11 +224,15 @@ function createChartOption(
     },
     series: [
       {
+        id: "period-balance-series",
         name: "Balance",
         type: "bar",
-        data: intervals.map(({ balanceCents }) => {
+        data: intervals.map(({ balanceCents }, index) => {
           const value = balanceCents / 100;
           const isPositive = value >= 0;
+          const isDimmed =
+            selectedIntervalIndex !== null &&
+            selectedIntervalIndex !== index;
 
           return {
             value,
@@ -155,18 +240,17 @@ function createChartOption(
               color: isPositive ? theme.primarySoft : theme.dangerSoft,
               borderColor: isPositive ? theme.primary : theme.danger,
               borderWidth: 2,
-              borderRadius: isPositive ? [4, 4, 0, 0] : [0, 0, 4, 4]
+              borderRadius: isPositive
+                ? [4, 4, 0, 0]
+                : [0, 0, 4, 4],
+              opacity: isDimmed ? 0.2 : 1
             }
           };
         }),
-        barWidth:
-          mode === "YEAR" ? getYearBarWidth(intervals.length) : undefined,
+        barWidth: mode === "YEAR" ? barWidth : undefined,
         barMaxWidth: mode === "ALL" ? 34 : undefined,
         emphasis: {
-          focus: "self",
-          itemStyle: {
-            opacity: 1
-          }
+          disabled: true
         }
       }
     ]
@@ -177,6 +261,9 @@ export default function PeriodBalanceChart({
   mode,
   selectedYear
 }: PeriodBalanceChartProps) {
+  const [selectedIntervalIndex, setSelectedIntervalIndex] = useState<
+    number | null
+  >(null);
   const intervals = useMemo(
     () => getFinancialIntervals(mode, selectedYear),
     [mode, selectedYear]
@@ -185,9 +272,18 @@ export default function PeriodBalanceChart({
     () => formatFinancialIntervalRange(intervals),
     [intervals]
   );
+  useEffect(() => {
+    setSelectedIntervalIndex(null);
+  }, [mode, selectedYear]);
   const option = useMemo(
-    () => createChartOption(mode, intervals, getStatisticsChartTheme()),
-    [mode, intervals]
+    () =>
+      createChartOption(
+        mode,
+        intervals,
+        selectedIntervalIndex,
+        getStatisticsChartTheme()
+      ),
+    [mode, intervals, selectedIntervalIndex]
   );
   const ariaLabel = `Period balance from ${displayedPeriod}. ${intervals.length} intervals shown.`;
 
@@ -206,6 +302,10 @@ export default function PeriodBalanceChart({
         option={option}
         ariaLabel={ariaLabel}
         toggleItemSelectionOnClick
+        highlightSelectedItemOnClick={false}
+        onItemSelectionChange={setSelectedIntervalIndex}
+        mergeOptionUpdates
+        hideTooltip={selectedIntervalIndex === null}
       />
     </section>
   );

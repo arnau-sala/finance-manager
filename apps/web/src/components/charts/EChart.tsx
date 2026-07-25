@@ -11,6 +11,8 @@ type EChartProps = {
   className?: string;
   ariaLabel: string;
   toggleItemSelectionOnClick?: boolean;
+  highlightSelectedItemOnClick?: boolean;
+  onItemSelectionChange?: (dataIndex: number | null) => void;
   mergeOptionUpdates?: boolean;
   hideTooltip?: boolean;
   onAxisPointerSelection?: (
@@ -28,6 +30,8 @@ export function EChart({
   className,
   ariaLabel,
   toggleItemSelectionOnClick = false,
+  highlightSelectedItemOnClick = true,
+  onItemSelectionChange,
   mergeOptionUpdates = false,
   hideTooltip = false,
   onAxisPointerSelection
@@ -35,6 +39,13 @@ export function EChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
   const selectedItemRef = useRef<SelectedChartItem | null>(null);
+  const highlightSelectedItemRef = useRef(highlightSelectedItemOnClick);
+  const onItemSelectionChangeRef = useRef(onItemSelectionChange);
+
+  useEffect(() => {
+    highlightSelectedItemRef.current = highlightSelectedItemOnClick;
+    onItemSelectionChangeRef.current = onItemSelectionChange;
+  }, [highlightSelectedItemOnClick, onItemSelectionChange]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -73,12 +84,16 @@ export function EChart({
       if (target instanceof Node && !container.contains(target)) {
         const selectedItem = selectedItemRef.current;
 
-        if (selectedItem) {
+        if (selectedItem && highlightSelectedItemRef.current) {
           chart.dispatchAction({
             type: "downplay",
             ...selectedItem
           });
+        }
+
+        if (selectedItem) {
           selectedItemRef.current = null;
+          onItemSelectionChangeRef.current?.(null);
         }
 
         chart.dispatchAction({
@@ -130,7 +145,7 @@ export function EChart({
         selectedItem?.seriesIndex === seriesIndex &&
         selectedItem.dataIndex === dataIndex;
 
-      if (selectedItem) {
+      if (selectedItem && highlightSelectedItemOnClick) {
         chart.dispatchAction({
           type: "downplay",
           ...selectedItem
@@ -140,19 +155,25 @@ export function EChart({
       if (isSameItem) {
         chart.dispatchAction({ type: "hideTip" });
         selectedItemRef.current = null;
+        onItemSelectionChange?.(null);
         return;
       }
 
       const nextItem = { seriesIndex, dataIndex };
-      chart.dispatchAction({
-        type: "highlight",
-        ...nextItem
-      });
+
+      if (highlightSelectedItemOnClick) {
+        chart.dispatchAction({
+          type: "highlight",
+          ...nextItem
+        });
+      }
+
       chart.dispatchAction({
         type: "showTip",
         ...nextItem
       });
       selectedItemRef.current = nextItem;
+      onItemSelectionChange?.(dataIndex);
     };
 
     chart.on("click", handleItemClick);
@@ -160,7 +181,11 @@ export function EChart({
     return () => {
       chart.off("click", handleItemClick);
     };
-  }, [toggleItemSelectionOnClick]);
+  }, [
+    highlightSelectedItemOnClick,
+    onItemSelectionChange,
+    toggleItemSelectionOnClick
+  ]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -211,7 +236,10 @@ export function EChart({
       return;
     }
 
-    selectedItemRef.current = null;
+    if (!mergeOptionUpdates) {
+      selectedItemRef.current = null;
+    }
+
     chart.setOption(option, {
       notMerge: !mergeOptionUpdates,
       lazyUpdate: false
@@ -225,6 +253,16 @@ export function EChart({
       return;
     }
 
+    const selectedItem = selectedItemRef.current;
+
+    if (selectedItem && highlightSelectedItemRef.current) {
+      chart.dispatchAction({
+        type: "downplay",
+        ...selectedItem
+      });
+    }
+
+    selectedItemRef.current = null;
     chart.dispatchAction({ type: "hideTip" });
     chart.dispatchAction({
       type: "updateAxisPointer",
