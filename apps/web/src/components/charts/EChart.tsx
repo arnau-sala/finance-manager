@@ -10,11 +10,23 @@ type EChartProps = {
   option: EChartsCoreOption;
   className?: string;
   ariaLabel: string;
+  toggleItemSelectionOnClick?: boolean;
 };
 
-export function EChart({ option, className, ariaLabel }: EChartProps) {
+type SelectedChartItem = {
+  seriesIndex: number;
+  dataIndex: number;
+};
+
+export function EChart({
+  option,
+  className,
+  ariaLabel,
+  toggleItemSelectionOnClick = false
+}: EChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
+  const selectedItemRef = useRef<SelectedChartItem | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -51,6 +63,19 @@ export function EChart({ option, className, ariaLabel }: EChartProps) {
       const target = event.target;
 
       if (target instanceof Node && !container.contains(target)) {
+        const selectedItem = selectedItemRef.current;
+
+        if (selectedItem) {
+          chart.dispatchAction({
+            type: "downplay",
+            ...selectedItem
+          });
+          selectedItemRef.current = null;
+        }
+
+        chart.dispatchAction({
+          type: "hideTip"
+        });
         chart.dispatchAction({
           type: "updateAxisPointer",
           currTrigger: "leave"
@@ -71,10 +96,72 @@ export function EChart({ option, className, ariaLabel }: EChartProps) {
   useEffect(() => {
     const chart = chartRef.current;
 
+    if (!chart || !toggleItemSelectionOnClick) {
+      return;
+    }
+
+    const handleItemClick = (rawEvent: unknown) => {
+      if (
+        typeof rawEvent !== "object" ||
+        rawEvent === null ||
+        !("seriesIndex" in rawEvent) ||
+        !("dataIndex" in rawEvent)
+      ) {
+        return;
+      }
+
+      const seriesIndex = Number(rawEvent.seriesIndex);
+      const dataIndex = Number(rawEvent.dataIndex);
+
+      if (!Number.isInteger(seriesIndex) || !Number.isInteger(dataIndex)) {
+        return;
+      }
+
+      const selectedItem = selectedItemRef.current;
+      const isSameItem =
+        selectedItem?.seriesIndex === seriesIndex &&
+        selectedItem.dataIndex === dataIndex;
+
+      if (selectedItem) {
+        chart.dispatchAction({
+          type: "downplay",
+          ...selectedItem
+        });
+      }
+
+      if (isSameItem) {
+        chart.dispatchAction({ type: "hideTip" });
+        selectedItemRef.current = null;
+        return;
+      }
+
+      const nextItem = { seriesIndex, dataIndex };
+      chart.dispatchAction({
+        type: "highlight",
+        ...nextItem
+      });
+      chart.dispatchAction({
+        type: "showTip",
+        ...nextItem
+      });
+      selectedItemRef.current = nextItem;
+    };
+
+    chart.on("click", handleItemClick);
+
+    return () => {
+      chart.off("click", handleItemClick);
+    };
+  }, [toggleItemSelectionOnClick]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+
     if (!chart) {
       return;
     }
 
+    selectedItemRef.current = null;
     chart.setOption(option, {
       notMerge: true,
       lazyUpdate: false

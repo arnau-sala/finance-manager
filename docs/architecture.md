@@ -121,7 +121,9 @@ complete Charts view is a lazy-loaded frontend chunk, keeping the chart engine
 out of the initial authenticated application bundle. Chart mock data remains
 inside the statistics feature and is generated from the same monthly totals as
 the numeric Overview; replacing it with authenticated API data must preserve
-that single-source contract.
+that single-source contract. Shared chart theme access keeps typography,
+surfaces, borders, and semantic positive/negative colors aligned across the
+line and bar visualizations.
 
 `routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time balance, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
 

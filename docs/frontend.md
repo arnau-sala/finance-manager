@@ -533,6 +533,13 @@ intra-month peaks; All uses month-end snapshots. Axis labels and visible point
 symbols are reduced independently from the underlying data so the mobile chart
 remains readable without flattening the line.
 
+`Period Balance` reuses those monthly totals to display income-minus-expense
+around an explicit zero line. Year renders one bar per available month and All
+one aggregated bar per year; positive and negative intervals use the semantic
+success and danger colors. The graph is intentionally omitted from Month, and
+exact signed values appear only after pressing a bar. Pressing the selected bar
+again or pressing outside the chart clears its focus and dismisses the detail.
+
 ### 10. Account
 
 Purpose: user profile and session controls.

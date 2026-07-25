@@ -7,21 +7,15 @@ import {
   mockOpeningNetWorth,
   type MockDailyFinancialSnapshot
 } from "./statistics-chart-mock";
+import {
+  getStatisticsChartTheme,
+  type StatisticsChartTheme
+} from "./statistics-chart-theme";
 
 type NetWorthEvolutionChartProps = {
   mode: "MONTH" | "YEAR" | "ALL";
   selectedMonth: string;
   selectedYear: number;
-};
-
-type ChartTheme = {
-  primary: string;
-  primarySoft: string;
-  border: string;
-  surface: string;
-  text: string;
-  textMuted: string;
-  fontFamily: string;
 };
 
 const shortMonthFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -47,21 +41,6 @@ const compactNumberFormatter = new Intl.NumberFormat("es-ES", {
 function toUtcDate(date: string) {
   const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));
-}
-
-function getChartTheme(): ChartTheme {
-  const styles = getComputedStyle(document.documentElement);
-  const token = (name: string) => styles.getPropertyValue(name).trim();
-
-  return {
-    primary: token("--color-primary"),
-    primarySoft: token("--color-primary-soft"),
-    border: token("--color-border"),
-    surface: token("--color-surface"),
-    text: token("--color-text"),
-    textMuted: token("--color-text-muted"),
-    fontFamily: styles.fontFamily
-  };
 }
 
 function getMonthEndSnapshots(
@@ -237,7 +216,7 @@ function createChartOption(
   mode: NetWorthEvolutionChartProps["mode"],
   snapshots: readonly MockDailyFinancialSnapshot[],
   tickLabels: ReadonlyMap<string, string>,
-  theme: ChartTheme
+  theme: StatisticsChartTheme
 ): EChartsCoreOption {
   const dates = snapshots.map((snapshot) => snapshot.date);
   const axisTickDates =
@@ -418,7 +397,13 @@ export default function NetWorthEvolutionChart({
     [mode, snapshots]
   );
   const option = useMemo(
-    () => createChartOption(mode, snapshots, tickLabels, getChartTheme()),
+    () =>
+      createChartOption(
+        mode,
+        snapshots,
+        tickLabels,
+        getStatisticsChartTheme()
+      ),
     [mode, snapshots, tickLabels]
   );
   const finalSnapshot = snapshots[snapshots.length - 1];
