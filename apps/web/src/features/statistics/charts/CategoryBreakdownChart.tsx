@@ -472,15 +472,15 @@ function createMatrixCells(categories: readonly MatrixCategory[]) {
     return {
       ...cell,
       borderTop:
-        row === 0 || topCell?.category.id !== cell.category.id,
+        row > 0 && topCell?.category.id !== cell.category.id,
       borderRight:
-        column === MATRIX_COLUMNS - 1 ||
+        column < MATRIX_COLUMNS - 1 &&
         rightCell?.category.id !== cell.category.id,
       borderBottom:
-        row === MATRIX_ROWS - 1 ||
+        row < MATRIX_ROWS - 1 &&
         bottomCell?.category.id !== cell.category.id,
       borderLeft:
-        column === 0 || leftCell?.category.id !== cell.category.id
+        column > 0 && leftCell?.category.id !== cell.category.id
     };
   });
 }

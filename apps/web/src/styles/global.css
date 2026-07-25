@@ -1752,6 +1752,7 @@ body.stats-picker-open .home-content--stats {
 }
 
 .stats-category-matrix {
+  position: relative;
   width: 100%;
   aspect-ratio: 4 / 1;
   display: grid;
@@ -1760,6 +1761,16 @@ body.stats-picker-open .home-content--stats {
   gap: 0;
   overflow: hidden;
   border-radius: 8px;
+}
+
+.stats-category-matrix::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  border: 1px solid var(--color-border);
+  border-radius: inherit;
+  pointer-events: none;
 }
 
 .stats-category-matrix__cell {
@@ -1772,19 +1783,19 @@ body.stats-picker-open .home-content--stats {
 }
 
 .stats-category-matrix__cell.has-top-border {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-surface);
 }
 
 .stats-category-matrix__cell.has-right-border {
-  border-right: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-surface);
 }
 
 .stats-category-matrix__cell.has-bottom-border {
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-surface);
 }
 
 .stats-category-matrix__cell.has-left-border {
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-surface);
 }
 
 .stats-category-matrix__cell.is-top-left-corner {
