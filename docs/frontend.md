@@ -540,6 +540,15 @@ success and danger colors. The graph is intentionally omitted from Month, and
 exact signed values appear only after pressing a bar. Pressing the selected bar
 again or pressing outside the chart clears its focus and dismisses the detail.
 
+`Income vs Expenses` follows Period Balance in Year and All and is likewise
+omitted from Month. It renders stepped areas from the same shared financial
+intervals: income remains above zero, expenses below it, and each height change
+lands on an interval boundary. Labels are centered inside the represented
+month or year, future periods are not reserved, and the shared tooltip exposes
+both exact amounts. Pressing an interval outlines its income and expense areas
+while muting every other interval; pressing it again or pressing outside clears
+the selection.
+
 ### 10. Account
 
 Purpose: user profile and session controls.

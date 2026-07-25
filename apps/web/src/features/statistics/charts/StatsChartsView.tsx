@@ -1,3 +1,4 @@
+import IncomeExpensesChart from "./IncomeExpensesChart";
 import NetWorthEvolutionChart from "./NetWorthEvolutionChart";
 import PeriodBalanceChart from "./PeriodBalanceChart";
 
@@ -12,10 +13,16 @@ export default function StatsChartsView(props: StatsChartsViewProps) {
     <div className="stats-charts-page">
       <NetWorthEvolutionChart {...props} />
       {props.mode !== "MONTH" ? (
-        <PeriodBalanceChart
-          mode={props.mode}
-          selectedYear={props.selectedYear}
-        />
+        <>
+          <PeriodBalanceChart
+            mode={props.mode}
+            selectedYear={props.selectedYear}
+          />
+          <IncomeExpensesChart
+            mode={props.mode}
+            selectedYear={props.selectedYear}
+          />
+        </>
       ) : null}
     </div>
   );

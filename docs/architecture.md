@@ -123,7 +123,9 @@ inside the statistics feature and is generated from the same monthly totals as
 the numeric Overview; replacing it with authenticated API data must preserve
 that single-source contract. Shared chart theme access keeps typography,
 surfaces, borders, and semantic positive/negative colors aligned across the
-line and bar visualizations.
+line and bar visualizations. Period Balance and Income vs Expenses also share
+one interval builder, ensuring their monthly and annual income, expense, and
+balance values cannot diverge during the mock phase or the later API migration.
 
 `routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time balance, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
 

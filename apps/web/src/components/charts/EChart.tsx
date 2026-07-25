@@ -11,6 +11,11 @@ type EChartProps = {
   className?: string;
   ariaLabel: string;
   toggleItemSelectionOnClick?: boolean;
+  mergeOptionUpdates?: boolean;
+  hideTooltip?: boolean;
+  onAxisPointerSelection?: (
+    value: string | number | null
+  ) => boolean | void;
 };
 
 type SelectedChartItem = {
@@ -22,7 +27,10 @@ export function EChart({
   option,
   className,
   ariaLabel,
-  toggleItemSelectionOnClick = false
+  toggleItemSelectionOnClick = false,
+  mergeOptionUpdates = false,
+  hideTooltip = false,
+  onAxisPointerSelection
 }: EChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<EChartsType | null>(null);
@@ -157,16 +165,72 @@ export function EChart({
   useEffect(() => {
     const chart = chartRef.current;
 
+    if (!chart || !onAxisPointerSelection) {
+      return;
+    }
+
+    const handleAxisPointer = (rawEvent: unknown) => {
+      const axesInfo =
+        typeof rawEvent === "object" &&
+        rawEvent !== null &&
+        "axesInfo" in rawEvent &&
+        Array.isArray(rawEvent.axesInfo)
+          ? rawEvent.axesInfo
+          : [];
+      const firstAxis = axesInfo[0];
+      const value =
+        typeof firstAxis === "object" &&
+        firstAxis !== null &&
+        "value" in firstAxis &&
+        (typeof firstAxis.value === "string" ||
+          typeof firstAxis.value === "number")
+          ? firstAxis.value
+          : null;
+      const keepSelection = onAxisPointerSelection(value);
+
+      if (value !== null && keepSelection === false) {
+        chart.dispatchAction({ type: "hideTip" });
+        chart.dispatchAction({
+          type: "updateAxisPointer",
+          currTrigger: "leave"
+        });
+      }
+    };
+
+    chart.on("updateAxisPointer", handleAxisPointer);
+
+    return () => {
+      chart.off("updateAxisPointer", handleAxisPointer);
+    };
+  }, [onAxisPointerSelection]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+
     if (!chart) {
       return;
     }
 
     selectedItemRef.current = null;
     chart.setOption(option, {
-      notMerge: true,
+      notMerge: !mergeOptionUpdates,
       lazyUpdate: false
     });
-  }, [option]);
+  }, [mergeOptionUpdates, option]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+
+    if (!chart || !hideTooltip) {
+      return;
+    }
+
+    chart.dispatchAction({ type: "hideTip" });
+    chart.dispatchAction({
+      type: "updateAxisPointer",
+      currTrigger: "leave"
+    });
+  }, [hideTooltip, option]);
 
   return (
     <div
