@@ -1743,6 +1743,52 @@ body.stats-picker-open .home-content--stats {
   border-top: 1px solid var(--color-border);
 }
 
+.stats-category-breakdown__type {
+  margin-bottom: 8px;
+}
+
+.stats-category-breakdown__visual {
+  position: relative;
+  border-top: 1px solid var(--color-border);
+}
+
+.stats-category-breakdown__chart {
+  width: 100%;
+  height: var(--category-breakdown-chart-height, 286px);
+}
+
+.stats-category-breakdown__axis-icons {
+  position: absolute;
+  z-index: 1;
+  top: 10px;
+  bottom: 28px;
+  left: 0;
+  width: 24px;
+  display: grid;
+  pointer-events: none;
+}
+
+.stats-category-breakdown__axis-icons span {
+  display: grid;
+  place-items: center;
+}
+
+.stats-category-breakdown__axis-icons svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+}
+
+.stats-category-breakdown__visual--income
+  .stats-category-breakdown__axis-icons {
+  color: var(--color-primary);
+}
+
+.stats-category-breakdown__visual--expense
+  .stats-category-breakdown__axis-icons {
+  color: var(--color-danger);
+}
+
 .stats-money > h2,
 .stats-categories > h2,
 .stats-insights > h2,

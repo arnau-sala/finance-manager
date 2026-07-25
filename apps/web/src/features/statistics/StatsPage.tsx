@@ -26,9 +26,12 @@ import { YearPicker } from "../../components/ui/YearPicker";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
   getCategoryIcon,
-  transactionCategories,
   type TransactionType
 } from "../transactions/category-catalog";
+import {
+  getMockCategoryBreakdown,
+  type CategoryBreakdownItem
+} from "./statistics-category-mock";
 import {
   mockStatisticsMonthAvailability,
   mockStatisticsMonthlyTotals,
@@ -55,20 +58,6 @@ type MonthlyStatsPeriod = StatsPeriod & {
 
 type YearlyStatsPeriod = StatsPeriod & {
   year: number;
-};
-
-type CategoryWeight = {
-  id: string;
-  share: number;
-};
-
-type CategoryBreakdownItem = {
-  id: string;
-  name: string;
-  amount: number;
-  percentage: number;
-  transactionCount: number;
-  averageAmount: number;
 };
 
 type ExpenseTransaction = {
@@ -235,83 +224,6 @@ const allTimeStats = yearlyStats.reduce<StatsPeriod>(
   }),
   { label: "All time", income: 0, expenses: 0 }
 );
-
-const expenseCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
-  [
-    { id: "expense-housing", share: 0.38 },
-    { id: "expense-groceries", share: 0.23 },
-    { id: "expense-dining", share: 0.14 },
-    { id: "expense-transport", share: 0.1 },
-    { id: "expense-subscriptions", share: 0.08 },
-    { id: "expense-shopping", share: 0.07 }
-  ],
-  [
-    { id: "expense-groceries", share: 0.27 },
-    { id: "expense-housing", share: 0.24 },
-    { id: "expense-shopping", share: 0.18 },
-    { id: "expense-health", share: 0.12 },
-    { id: "expense-dining", share: 0.1 },
-    { id: "expense-other", share: 0.09 }
-  ],
-  [
-    { id: "expense-housing", share: 0.34 },
-    { id: "expense-education", share: 0.2 },
-    { id: "expense-groceries", share: 0.17 },
-    { id: "expense-sports", share: 0.11 },
-    { id: "expense-parties", share: 0.1 },
-    { id: "expense-transport", share: 0.08 }
-  ]
-];
-
-const incomeCategoryProfiles: readonly (readonly CategoryWeight[])[] = [
-  [
-    { id: "income-salary", share: 0.72 },
-    { id: "income-freelance", share: 0.1 },
-    { id: "income-benefits", share: 0.06 },
-    { id: "income-investments", share: 0.05 },
-    { id: "income-gifts", share: 0.04 },
-    { id: "income-sales", share: 0.03 }
-  ],
-  [
-    { id: "income-salary", share: 0.6 },
-    { id: "income-freelance", share: 0.18 },
-    { id: "income-investments", share: 0.09 },
-    { id: "income-sales", share: 0.06 },
-    { id: "income-gifts", share: 0.04 },
-    { id: "income-other", share: 0.03 }
-  ],
-  [
-    { id: "income-salary", share: 0.68 },
-    { id: "income-benefits", share: 0.12 },
-    { id: "income-sales", share: 0.08 },
-    { id: "income-allowance", share: 0.05 },
-    { id: "income-investments", share: 0.04 },
-    { id: "income-other", share: 0.03 }
-  ]
-];
-
-const mockTypicalTransactionAmounts: Readonly<Record<string, number>> = {
-  "expense-dining": 35,
-  "expense-education": 180,
-  "expense-gifts": 100,
-  "expense-groceries": 60,
-  "expense-health": 100,
-  "expense-housing": 900,
-  "expense-parties": 80,
-  "expense-shopping": 90,
-  "expense-sports": 45,
-  "expense-subscriptions": 15,
-  "expense-transport": 30,
-  "expense-other": 50,
-  "income-allowance": 100,
-  "income-benefits": 500,
-  "income-freelance": 600,
-  "income-gifts": 100,
-  "income-investments": 250,
-  "income-salary": 2500,
-  "income-sales": 180,
-  "income-other": 200
-};
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 const shortDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -804,169 +716,6 @@ function createCollectionInsights(
   ];
 }
 
-function getCategoryBreakdown(
-  total: number,
-  type: TransactionType,
-  profile: readonly CategoryWeight[],
-  fixedAmounts = new Map<string, number>()
-) {
-  if (total <= 0) {
-    return [];
-  }
-
-  const amountsByCategory = new Map(
-    [...fixedAmounts].filter(([, amount]) => amount > 0)
-  );
-  const fixedTotal = [...amountsByCategory.values()].reduce(
-    (sum, amount) => sum + amount,
-    0
-  );
-  const amountToDistribute = Math.max(0, total - fixedTotal);
-  let allocatedAmount = 0;
-
-  profile.forEach((entry, index) => {
-    const category = transactionCategories.find(
-      (candidate) => candidate.id === entry.id && candidate.type === type
-    );
-
-    if (!category) {
-      return;
-    }
-
-    const amount =
-      index === profile.length - 1
-        ? amountToDistribute - allocatedAmount
-        : Math.round(amountToDistribute * entry.share);
-    allocatedAmount += amount;
-    amountsByCategory.set(
-      category.id,
-      (amountsByCategory.get(category.id) ?? 0) + amount
-    );
-  });
-
-  return createCategoryBreakdownItems(type, amountsByCategory);
-}
-
-function createCategoryBreakdownItems(
-  type: TransactionType,
-  amountsByCategory: ReadonlyMap<string, number>
-) {
-  const totalAmount = [...amountsByCategory.values()].reduce(
-    (total, amount) => total + amount,
-    0
-  );
-
-  if (totalAmount <= 0) {
-    return [];
-  }
-
-  const categories = [...amountsByCategory.entries()]
-    .filter(([, amount]) => amount > 0)
-    .map(([id, amount]) => {
-      const category = transactionCategories.find(
-        (candidate) => candidate.id === id && candidate.type === type
-      );
-      const exactPercentage = (amount * 100) / totalAmount;
-
-      return {
-        id,
-        name: category?.name ?? id,
-        amount,
-        percentage: Math.floor(exactPercentage),
-        remainder: exactPercentage % 1
-      };
-    });
-  const percentagePointsToAssign =
-    100 - categories.reduce((total, category) => total + category.percentage, 0);
-  const roundedUpIds = new Set(
-    [...categories]
-      .sort(
-        (first, second) =>
-          second.remainder - first.remainder || second.amount - first.amount
-      )
-      .slice(0, percentagePointsToAssign)
-      .map((category) => category.id)
-  );
-
-  return categories
-    .map<CategoryBreakdownItem>((category) => {
-      const typicalAmount =
-        mockTypicalTransactionAmounts[category.id] ??
-        (type === "INCOME" ? 250 : 50);
-      const transactionCount = Math.max(
-        1,
-        Math.round(category.amount / typicalAmount)
-      );
-
-      return {
-        id: category.id,
-        name: category.name,
-        amount: category.amount,
-        percentage:
-          category.percentage + (roundedUpIds.has(category.id) ? 1 : 0),
-        transactionCount,
-        averageAmount: category.amount / transactionCount
-      };
-    })
-    .sort((first, second) => second.amount - first.amount);
-}
-
-function getMockCategoryAmounts(
-  type: TransactionType,
-  matchesDate: (date: string) => boolean
-) {
-  const amountsByCategory = new Map<string, number>();
-
-  mockStatisticsTransactions.forEach((transaction) => {
-    if (
-      transaction.type !== type ||
-      !transaction.categoryId ||
-      transaction.amountCents === undefined ||
-      !matchesDate(transaction.date)
-    ) {
-      return;
-    }
-
-    const amount = Math.round(transaction.amountCents / 100);
-    amountsByCategory.set(
-      transaction.categoryId,
-      (amountsByCategory.get(transaction.categoryId) ?? 0) + amount
-    );
-  });
-
-  return amountsByCategory;
-}
-
-function getAllTimeCategoryBreakdown(
-  type: TransactionType,
-  profiles: readonly (readonly CategoryWeight[])[]
-) {
-  const amountsByCategory = new Map<string, number>();
-
-  yearlyStats.forEach((period, index) => {
-    const total = Math.round(
-      type === "EXPENSE" ? period.expenses : period.income
-    );
-    const breakdown = getCategoryBreakdown(
-      total,
-      type,
-      profiles[index % profiles.length],
-      getMockCategoryAmounts(type, (date) =>
-        date.startsWith(`${period.year}-`)
-      )
-    );
-
-    breakdown.forEach((category) => {
-      amountsByCategory.set(
-        category.id,
-        (amountsByCategory.get(category.id) ?? 0) + category.amount
-      );
-    });
-  });
-
-  return createCategoryBreakdownItems(type, amountsByCategory);
-}
-
 type StatsCategoryListProps = {
   type: TransactionType;
   categories: readonly CategoryBreakdownItem[];
@@ -1143,53 +892,23 @@ export function StatsPage() {
       : mode === "MONTH"
         ? selectedMonth
         : yearlyStats[yearIndex];
-  const categoryProfileIndex =
-    mode === "MONTH"
-      ? selectedMonth.year * 12 + monthNames.indexOf(selectedMonth.month)
-      : periodIndex;
   const roundedIncome = Math.round(period.income);
   const roundedExpenses = Math.round(period.expenses);
   const balance = roundedIncome - roundedExpenses;
   const savingsPercentage =
     roundedIncome > 0 ? Math.round((balance / roundedIncome) * 100) : null;
-  const categoryPeriodPrefix =
-    mode === "MONTH"
-      ? selectedMonthKey
-      : mode === "YEAR"
-        ? `${yearlyStats[yearIndex].year}-`
-        : null;
-  const expenseCategoryBreakdown =
-    mode === "ALL"
-      ? getAllTimeCategoryBreakdown("EXPENSE", expenseCategoryProfiles)
-      : getCategoryBreakdown(
-          roundedExpenses,
-          "EXPENSE",
-          expenseCategoryProfiles[
-            categoryProfileIndex % expenseCategoryProfiles.length
-          ],
-          getMockCategoryAmounts(
-            "EXPENSE",
-            (date) =>
-              categoryPeriodPrefix !== null &&
-              date.startsWith(categoryPeriodPrefix)
-          )
-        );
-  const incomeCategoryBreakdown =
-    mode === "ALL"
-      ? getAllTimeCategoryBreakdown("INCOME", incomeCategoryProfiles)
-      : getCategoryBreakdown(
-          roundedIncome,
-          "INCOME",
-          incomeCategoryProfiles[
-            categoryProfileIndex % incomeCategoryProfiles.length
-          ],
-          getMockCategoryAmounts(
-            "INCOME",
-            (date) =>
-              categoryPeriodPrefix !== null &&
-              date.startsWith(categoryPeriodPrefix)
-          )
-        );
+  const expenseCategoryBreakdown = getMockCategoryBreakdown({
+    mode,
+    selectedMonth: selectedMonthKey,
+    selectedYear,
+    type: "EXPENSE"
+  });
+  const incomeCategoryBreakdown = getMockCategoryBreakdown({
+    mode,
+    selectedMonth: selectedMonthKey,
+    selectedYear,
+    type: "INCOME"
+  });
   const selectedMonths =
     mode === "MONTH"
       ? [selectedMonth]
