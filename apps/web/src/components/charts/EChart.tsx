@@ -47,7 +47,20 @@ export function EChart({ option, className, ariaLabel }: EChartProps) {
     });
     resizeObserver.observe(container);
 
+    const dismissInteraction = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (target instanceof Node && !container.contains(target)) {
+        chart.dispatchAction({
+          type: "updateAxisPointer",
+          currTrigger: "leave"
+        });
+      }
+    };
+    document.addEventListener("pointerdown", dismissInteraction, true);
+
     return () => {
+      document.removeEventListener("pointerdown", dismissInteraction, true);
       window.cancelAnimationFrame(resizeFrame);
       resizeObserver.disconnect();
       chart.dispose();
