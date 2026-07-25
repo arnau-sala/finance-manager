@@ -23,6 +23,31 @@
   --color-warning: #d97706;
   --color-warning-soft: #fef3c7;
 
+  --color-category-1: #0f766e;
+  --color-category-1-soft: #d6efea;
+  --color-category-2: #a84f6c;
+  --color-category-2-soft: #f4e0e7;
+  --color-category-3: #947b20;
+  --color-category-3-soft: #f4edcf;
+  --color-category-4: #3f6fa6;
+  --color-category-4-soft: #dfeafa;
+  --color-category-5: #397a53;
+  --color-category-5-soft: #dcecdf;
+  --color-category-6: #7d5f79;
+  --color-category-6-soft: #ebe1ea;
+  --color-category-7: #697b2d;
+  --color-category-7-soft: #e8edcf;
+  --color-category-8: #596579;
+  --color-category-8-soft: #e5e8ee;
+  --color-category-9: #a96822;
+  --color-category-9-soft: #f6e7cd;
+  --color-category-10: #2f7e85;
+  --color-category-10-soft: #dceff1;
+  --color-category-11: #735b9b;
+  --color-category-11-soft: #e8e1f4;
+  --color-category-12: #9b5e43;
+  --color-category-12-soft: #f3e1d8;
+
   --color-overlay: rgba(17, 24, 39, 0.42);
 
   --shadow-screen-transition: -18px 0 40px rgba(17, 24, 39, 0.12);

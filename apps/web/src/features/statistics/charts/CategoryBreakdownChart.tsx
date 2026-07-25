@@ -1,12 +1,5 @@
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type CSSProperties
-} from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import type { EChartsCoreOption } from "../../../components/charts/chart-engine";
-import { EChart } from "../../../components/charts/EChart";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
@@ -25,10 +18,6 @@ import {
   formatFinancialIntervalRange,
   getFinancialIntervals
 } from "./statistics-chart-periods";
-import {
-  getStatisticsChartTheme,
-  type StatisticsChartTheme
-} from "./statistics-chart-theme";
 
 type CategoryBreakdownChartProps = {
   mode: StatisticsCategoryPeriodMode;
@@ -36,28 +25,64 @@ type CategoryBreakdownChartProps = {
   selectedYear: number;
 };
 
+type MatrixRectangle = {
+  row: number;
+  column: number;
+  width: number;
+  height: number;
+};
+
+type MatrixCategorySeed = CategoryBreakdownItem & {
+  targetBlockCount: number;
+  colorIndex: number;
+};
+
+type MatrixCategory = MatrixCategorySeed & {
+  blockCount: number;
+  rectangle: MatrixRectangle;
+};
+
+type MatrixCell = {
+  category: MatrixCategory;
+  index: number;
+  row: number;
+  column: number;
+  borderTop: boolean;
+  borderRight: boolean;
+  borderBottom: boolean;
+  borderLeft: boolean;
+};
+
+type RectangularLayoutItem = MatrixRectangle & {
+  categoryIndex: number;
+};
+
+type RectangularLayout = {
+  cost: number;
+  items: RectangularLayoutItem[];
+};
+
+const MATRIX_COLUMNS = 20;
+const MATRIX_ROWS = 5;
+const MATRIX_SIZE = MATRIX_COLUMNS * MATRIX_ROWS;
+const CATEGORY_COLOR_COUNT = 12;
+const AREA_ERROR_WEIGHT = 1_000_000;
+const AREA_ERROR_SECONDARY_WEIGHT = 100_000;
+const NON_SQUARE_PENALTY = 10_000;
+const COMPACTNESS_PENALTY_WEIGHT = 20;
+const HORIZONTAL_STRIP_PENALTY = 500;
+
 const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
   { value: "INCOME", label: "Income", icon: ArrowUpRight },
   { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
 ];
 
-const compactNumberFormatter = new Intl.NumberFormat("es-ES", {
-  maximumFractionDigits: 1
-});
 const periodDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
   year: "numeric",
   timeZone: "UTC"
 });
-
-function formatCompactEuro(value: number) {
-  if (Math.abs(value) >= 1000) {
-    return `${compactNumberFormatter.format(value / 1000)}k€`;
-  }
-
-  return `${Math.round(value)}€`;
-}
 
 function toUtcDate(date: string) {
   return new Date(`${date}T00:00:00.000Z`);
@@ -96,7 +121,10 @@ function formatDisplayedPeriod(
   );
 }
 
-function getVisibleCategories(categories: readonly CategoryBreakdownItem[]) {
+function groupSmallCategories(
+  categories: readonly CategoryBreakdownItem[],
+  type: TransactionType
+) {
   const total = categories.reduce(
     (sum, category) => sum + category.amount,
     0
@@ -106,136 +134,404 @@ function getVisibleCategories(categories: readonly CategoryBreakdownItem[]) {
     return [];
   }
 
-  return categories.filter(
-    (category) => (category.amount * 100) / total >= 1
+  const otherId = `${type.toLowerCase()}-other`;
+  const hasSmallCategory = categories.some(
+    (category) => (category.amount * 100) / total < 1
+  );
+
+  if (!hasSmallCategory) {
+    return [...categories].sort(
+      (first, second) => second.amount - first.amount
+    );
+  }
+
+  const groupedCategories = categories.filter(
+    (category) =>
+      category.id !== otherId &&
+      (category.amount * 100) / total >= 1
+  );
+  const categoriesInOther = categories.filter(
+    (category) =>
+      category.id === otherId ||
+      (category.amount * 100) / total < 1
+  );
+  const otherAmount = categoriesInOther.reduce(
+    (sum, category) => sum + category.amount,
+    0
+  );
+  const otherTransactionCount = categoriesInOther.reduce(
+    (sum, category) => sum + category.transactionCount,
+    0
+  );
+
+  if (otherAmount > 0) {
+    groupedCategories.push({
+      id: otherId,
+      name: "Other",
+      amount: otherAmount,
+      percentage: 0,
+      transactionCount: otherTransactionCount,
+      averageAmount:
+        otherTransactionCount > 0
+          ? otherAmount / otherTransactionCount
+          : otherAmount
+    });
+  }
+
+  return groupedCategories.sort(
+    (first, second) => second.amount - first.amount
   );
 }
 
-function createChartOption(
-  categories: readonly CategoryBreakdownItem[],
-  type: TransactionType,
-  selectedCategoryIndex: number | null,
-  theme: StatisticsChartTheme
-): EChartsCoreOption {
-  const isIncome = type === "INCOME";
-  const color = isIncome ? theme.primary : theme.danger;
-  const softColor = isIncome ? theme.primarySoft : theme.dangerSoft;
+function createMatrixCategorySeeds(
+  sourceCategories: readonly CategoryBreakdownItem[],
+  type: TransactionType
+) {
+  const categories = groupSmallCategories(sourceCategories, type);
+  const total = categories.reduce(
+    (sum, category) => sum + category.amount,
+    0
+  );
 
-  return {
-    animationDuration: 650,
-    animationDurationUpdate: 420,
-    animationDelay: (index: number) => index * 35,
-    animationEasing: "cubicOut",
-    animationEasingUpdate: "cubicOut",
-    aria: {
-      enabled: true,
-      description: `Horizontal bar chart showing ${type.toLowerCase()} totals by category.`
-    },
-    grid: {
-      top: 10,
-      right: 8,
-      bottom: 28,
-      left: 32,
-      containLabel: false
-    },
-    tooltip: {
-      trigger: "item",
-      triggerOn: "none",
-      confine: true,
-      backgroundColor: theme.surface,
-      borderColor: theme.border,
-      borderWidth: 1,
-      padding: [8, 10],
-      textStyle: {
-        color: theme.text,
-        fontFamily: theme.fontFamily,
-        fontSize: 12,
-        fontWeight: 400
-      },
-      formatter: (rawParams: unknown) => {
-        const dataIndex =
-          typeof rawParams === "object" &&
-          rawParams !== null &&
-          "dataIndex" in rawParams
-            ? Number(rawParams.dataIndex)
-            : -1;
-        const category = categories[dataIndex];
+  if (total <= 0) {
+    return [];
+  }
 
-        if (!category) {
-          return "";
-        }
+  const allocations = categories.map((category) => {
+    const exactBlocks = (category.amount * MATRIX_SIZE) / total;
 
-        return [
-          category.name,
-          `<strong>${formatEuroAmount(category.amount, {
-            fractionDigits: 2
-          })}</strong>`,
-          `${category.percentage}% of ${isIncome ? "income" : "expenses"}`
-        ].join("<br/>");
-      }
-    },
-    xAxis: {
-      type: "value",
-      axisLine: {
-        show: false
-      },
-      axisTick: {
-        show: false
-      },
-      axisLabel: {
-        color: theme.textMuted,
-        fontFamily: theme.fontFamily,
-        fontSize: 10,
-        margin: 8,
-        formatter: (value: number) => formatCompactEuro(value)
-      },
-      splitLine: {
-        lineStyle: {
-          color: theme.border,
-          opacity: 0.55,
-          width: 1
-        }
-      }
-    },
-    yAxis: {
-      type: "category",
-      inverse: true,
-      data: categories.map(({ id }) => id),
-      axisLine: {
-        show: false
-      },
-      axisTick: {
-        show: false
-      },
-      axisLabel: {
-        show: false
-      }
-    },
-    series: [
-      {
-        id: "category-breakdown-series",
-        type: "bar",
-        data: categories.map(({ amount }, index) => ({
-          value: amount,
-          itemStyle: {
-            color: softColor,
-            borderColor: color,
-            borderWidth: 1.5,
-            borderRadius: [0, 4, 4, 0],
-            opacity:
-              selectedCategoryIndex === null ||
-              selectedCategoryIndex === index
-                ? 1
-                : 0.2
+    return {
+      category,
+      blockCount: Math.floor(exactBlocks),
+      remainder: exactBlocks % 1
+    };
+  });
+  const remainingBlocks =
+    MATRIX_SIZE -
+    allocations.reduce(
+      (sum, allocation) => sum + allocation.blockCount,
+      0
+    );
+  const roundedUpIds = new Set(
+    [...allocations]
+      .sort(
+        (first, second) =>
+          second.remainder - first.remainder ||
+          second.category.amount - first.category.amount
+      )
+      .slice(0, remainingBlocks)
+      .map(({ category }) => category.id)
+  );
+  return allocations
+    .map<MatrixCategorySeed>(({ category, blockCount }, index) => {
+      const finalBlockCount =
+        blockCount + (roundedUpIds.has(category.id) ? 1 : 0);
+
+      return {
+        ...category,
+        percentage: finalBlockCount,
+        targetBlockCount: finalBlockCount,
+        colorIndex: index % CATEGORY_COLOR_COUNT
+      };
+    })
+    .filter(({ targetBlockCount }) => targetBlockCount > 0);
+}
+
+function getRectangleCost(
+  width: number,
+  height: number,
+  targetBlockCount: number
+) {
+  const blockDifference = Math.abs(
+    width * height - targetBlockCount
+  );
+  const aspectRatio = Math.max(width / height, height / width);
+  const squarePenalty =
+    width === height ? 0 : NON_SQUARE_PENALTY;
+  const compactnessPenalty =
+    (aspectRatio - 1) ** 2 * COMPACTNESS_PENALTY_WEIGHT;
+  const orientationPenalty =
+    height === 1 && width > 1 ? HORIZONTAL_STRIP_PENALTY : 0;
+
+  return (
+    blockDifference ** 4 * AREA_ERROR_WEIGHT +
+    blockDifference ** 2 * AREA_ERROR_SECONDARY_WEIGHT +
+    squarePenalty +
+    compactnessPenalty +
+    orientationPenalty
+  );
+}
+
+function findRectangularLayout(
+  categories: readonly MatrixCategorySeed[]
+) {
+  const memo = new Map<string, RectangularLayout | null>();
+
+  function solve(
+    startIndex: number,
+    endIndex: number,
+    width: number,
+    height: number
+  ): RectangularLayout | null {
+    const categoryCount = endIndex - startIndex;
+
+    if (categoryCount <= 0 || width * height < categoryCount) {
+      return null;
+    }
+
+    const memoKey = `${startIndex}:${endIndex}:${width}:${height}`;
+
+    if (memo.has(memoKey)) {
+      return memo.get(memoKey) ?? null;
+    }
+
+    if (categoryCount === 1) {
+      const category = categories[startIndex];
+      const layout = category
+        ? {
+            cost: getRectangleCost(
+              width,
+              height,
+              category.targetBlockCount
+            ),
+            items: [
+              {
+                categoryIndex: startIndex,
+                row: 0,
+                column: 0,
+                width,
+                height
+              }
+            ]
           }
-        })),
-        barWidth: 18,
-        emphasis: {
-          disabled: true
+        : null;
+
+      memo.set(memoKey, layout);
+      return layout;
+    }
+
+    let bestLayout: RectangularLayout | null = null;
+
+    function considerLayout(
+      firstLayout: RectangularLayout | null,
+      secondLayout: RectangularLayout | null,
+      secondOffset: Pick<MatrixRectangle, "row" | "column">
+    ) {
+      if (!firstLayout || !secondLayout) {
+        return;
+      }
+
+      const candidate: RectangularLayout = {
+        cost: firstLayout.cost + secondLayout.cost,
+        items: [
+          ...firstLayout.items,
+          ...secondLayout.items.map((item) => ({
+            ...item,
+            row: item.row + secondOffset.row,
+            column: item.column + secondOffset.column
+          }))
+        ]
+      };
+
+      if (!bestLayout || candidate.cost < bestLayout.cost) {
+        bestLayout = candidate;
+      }
+    }
+
+    for (
+      let splitIndex = startIndex + 1;
+      splitIndex < endIndex;
+      splitIndex += 1
+    ) {
+      const firstCategoryCount = splitIndex - startIndex;
+      const secondCategoryCount = endIndex - splitIndex;
+
+      for (let cut = 1; cut < width; cut += 1) {
+        if (
+          cut * height < firstCategoryCount ||
+          (width - cut) * height < secondCategoryCount
+        ) {
+          continue;
+        }
+
+        considerLayout(
+          solve(startIndex, splitIndex, cut, height),
+          solve(splitIndex, endIndex, width - cut, height),
+          { row: 0, column: cut }
+        );
+      }
+
+      for (let cut = 1; cut < height; cut += 1) {
+        if (
+          width * cut < firstCategoryCount ||
+          width * (height - cut) < secondCategoryCount
+        ) {
+          continue;
+        }
+
+        considerLayout(
+          solve(startIndex, splitIndex, width, cut),
+          solve(splitIndex, endIndex, width, height - cut),
+          { row: cut, column: 0 }
+        );
+      }
+    }
+
+    memo.set(memoKey, bestLayout);
+    return bestLayout;
+  }
+
+  return solve(
+    0,
+    categories.length,
+    MATRIX_COLUMNS,
+    MATRIX_ROWS
+  );
+}
+
+function createMatrixCategories(
+  sourceCategories: readonly CategoryBreakdownItem[],
+  type: TransactionType
+) {
+  const categorySeeds = createMatrixCategorySeeds(
+    sourceCategories,
+    type
+  );
+  const layout = findRectangularLayout(categorySeeds);
+
+  if (!layout) {
+    return [];
+  }
+
+  return layout.items.flatMap<MatrixCategory>((item) => {
+    const category = categorySeeds[item.categoryIndex];
+
+    if (!category) {
+      return [];
+    }
+
+    const blockCount = item.width * item.height;
+
+    return [
+      {
+        ...category,
+        percentage: blockCount,
+        blockCount,
+        rectangle: {
+          row: item.row,
+          column: item.column,
+          width: item.width,
+          height: item.height
         }
       }
-    ]
-  };
+    ];
+  });
+}
+
+function createMatrixCells(categories: readonly MatrixCategory[]) {
+  const cells = categories.flatMap((category) => {
+    const { row, column, width, height } = category.rectangle;
+
+    return Array.from({ length: height }, (_, rowOffset) =>
+      Array.from({ length: width }, (_, columnOffset) => {
+        const cellRow = row + rowOffset;
+        const cellColumn = column + columnOffset;
+
+        return {
+          category,
+          index: cellRow * MATRIX_COLUMNS + cellColumn,
+          row: cellRow,
+          column: cellColumn
+        };
+      })
+    ).flat();
+  });
+  const cellsByPosition = new Map(
+    cells.map((cell) => [`${cell.row}:${cell.column}`, cell])
+  );
+
+  return cells.map<MatrixCell>((cell) => {
+    const { row, column } = cell;
+    const topCell =
+      row > 0
+        ? cellsByPosition.get(`${row - 1}:${column}`)
+        : undefined;
+    const rightCell =
+      column < MATRIX_COLUMNS - 1
+        ? cellsByPosition.get(`${row}:${column + 1}`)
+        : undefined;
+    const bottomCell =
+      row < MATRIX_ROWS - 1
+        ? cellsByPosition.get(`${row + 1}:${column}`)
+        : undefined;
+    const leftCell =
+      column > 0
+        ? cellsByPosition.get(`${row}:${column - 1}`)
+        : undefined;
+
+    return {
+      ...cell,
+      borderTop:
+        row === 0 || topCell?.category.id !== cell.category.id,
+      borderRight:
+        column === MATRIX_COLUMNS - 1 ||
+        rightCell?.category.id !== cell.category.id,
+      borderBottom:
+        row === MATRIX_ROWS - 1 ||
+        bottomCell?.category.id !== cell.category.id,
+      borderLeft:
+        column === 0 || leftCell?.category.id !== cell.category.id
+    };
+  });
+}
+
+function getCellClassName(
+  cell: MatrixCell,
+  selectedCategoryId: string | null
+) {
+  return [
+    "stats-category-matrix__cell",
+    `stats-category-matrix__cell--tone-${cell.category.colorIndex + 1}`,
+    cell.borderTop ? "has-top-border" : "",
+    cell.borderRight ? "has-right-border" : "",
+    cell.borderBottom ? "has-bottom-border" : "",
+    cell.borderLeft ? "has-left-border" : "",
+    cell.row === 0 && cell.column === 0
+      ? "is-top-left-corner"
+      : "",
+    cell.row === 0 && cell.column === MATRIX_COLUMNS - 1
+      ? "is-top-right-corner"
+      : "",
+    cell.row === MATRIX_ROWS - 1 && cell.column === 0
+      ? "is-bottom-left-corner"
+      : "",
+    cell.row === MATRIX_ROWS - 1 &&
+    cell.column === MATRIX_COLUMNS - 1
+      ? "is-bottom-right-corner"
+      : "",
+    selectedCategoryId !== null &&
+    selectedCategoryId !== cell.category.id
+      ? "is-muted"
+      : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function getCategoryControlClassName(
+  category: MatrixCategory,
+  selectedCategoryId: string | null
+) {
+  return [
+    "stats-category-matrix__category-control",
+    `stats-category-matrix__cell--tone-${category.colorIndex + 1}`,
+    selectedCategoryId !== null &&
+    selectedCategoryId !== category.id
+      ? "is-muted"
+      : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
 export default function CategoryBreakdownChart({
@@ -243,52 +539,72 @@ export default function CategoryBreakdownChart({
   selectedMonth,
   selectedYear
 }: CategoryBreakdownChartProps) {
+  const matrixRef = useRef<HTMLDivElement>(null);
   const [type, setType] = useState<TransactionType>("INCOME");
-  const [selectedCategoryIndex, setSelectedCategoryIndex] = useState<
-    number | null
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    string | null
   >(null);
   const categories = useMemo(
     () =>
-      getVisibleCategories(
+      createMatrixCategories(
         getMockCategoryBreakdown({
           mode,
           selectedMonth,
           selectedYear,
           type
-        })
+        }),
+        type
       ),
     [mode, selectedMonth, selectedYear, type]
   );
+  const cells = useMemo(
+    () => createMatrixCells(categories),
+    [categories]
+  );
+  const selectedCategory =
+    categories.find(({ id }) => id === selectedCategoryId) ?? null;
   const displayedPeriod = useMemo(
     () => formatDisplayedPeriod(mode, selectedMonth, selectedYear),
     [mode, selectedMonth, selectedYear]
   );
-  const chartHeight = Math.max(240, categories.length * 38 + 58);
 
   useEffect(() => {
-    setSelectedCategoryIndex(null);
+    setSelectedCategoryId(null);
   }, [mode, selectedMonth, selectedYear, type]);
 
-  const option = useMemo(
-    () =>
-      createChartOption(
-        categories,
-        type,
-        selectedCategoryIndex,
-        getStatisticsChartTheme()
-      ),
-    [categories, selectedCategoryIndex, type]
-  );
+  useEffect(() => {
+    if (selectedCategoryId === null) {
+      return;
+    }
+
+    const dismissSelection = (event: PointerEvent) => {
+      const target = event.target;
+
+      if (
+        target instanceof Node &&
+        !matrixRef.current?.contains(target)
+      ) {
+        setSelectedCategoryId(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", dismissSelection, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", dismissSelection, true);
+    };
+  }, [selectedCategoryId]);
+
+  function selectCategory(categoryId: string) {
+    setSelectedCategoryId((currentCategoryId) =>
+      currentCategoryId === categoryId ? null : categoryId
+    );
+  }
 
   return (
     <section
       className="stats-chart-section stats-category-breakdown"
       aria-labelledby="category-breakdown-chart-title"
-      style={
-        {
-          "--category-breakdown-chart-height": `${chartHeight}px`
-        } as CSSProperties
-      }
     >
       <header className="stats-chart-section__header">
         <h2 id="category-breakdown-chart-title">Category Breakdown</h2>
@@ -305,37 +621,80 @@ export default function CategoryBreakdownChart({
         compact
       />
 
-      <div
-        className={`stats-category-breakdown__visual stats-category-breakdown__visual--${type.toLowerCase()}`}
-      >
+      <div className="stats-category-matrix__interaction" ref={matrixRef}>
+        {cells.length === MATRIX_SIZE ? (
+          <div
+            className="stats-category-matrix"
+            role="group"
+            aria-label={`${type === "INCOME" ? "Income" : "Expense"} category breakdown from ${displayedPeriod}. Each square represents one percent.`}
+          >
+            {cells.map((cell) => (
+              <span
+                key={cell.index}
+                className={getCellClassName(
+                  cell,
+                  selectedCategoryId
+                )}
+                style={{
+                  gridColumn: cell.column + 1,
+                  gridRow: cell.row + 1
+                }}
+                aria-hidden="true"
+              />
+            ))}
+
+            {categories.map((category) => {
+              const Icon = getCategoryIcon(category.id, type);
+              const { row, column, width, height } =
+                category.rectangle;
+
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  className={getCategoryControlClassName(
+                    category,
+                    selectedCategoryId
+                  )}
+                  style={{
+                    gridColumn: `${column + 1} / span ${width}`,
+                    gridRow: `${row + 1} / span ${height}`
+                  }}
+                  onClick={() => selectCategory(category.id)}
+                  aria-label={`${category.name}: ${category.percentage}%`}
+                >
+                  <Icon aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="stats-category-matrix__empty">
+            No {type === "INCOME" ? "income" : "expense"} data
+          </p>
+        )}
+
         <div
-          className="stats-category-breakdown__axis-icons"
-          style={{
-            gridTemplateRows: `repeat(${categories.length}, minmax(0, 1fr))`
-          }}
-          aria-hidden="true"
+          className={`stats-category-matrix__detail${
+            selectedCategory ? " is-visible" : ""
+          } stats-category-matrix__detail--${type.toLowerCase()}`}
+          aria-live="polite"
+          aria-hidden={selectedCategory ? undefined : true}
         >
-          {categories.map((category) => {
-            const Icon = getCategoryIcon(category.id, type);
-
-            return (
-              <span key={category.id}>
-                <Icon />
+          {selectedCategory ? (
+            <>
+              <strong>{selectedCategory.name}</strong>
+              <span className="stats-category-matrix__detail-value">
+                {selectedCategory.percentage}%
               </span>
-            );
-          })}
+              <span className="stats-category-matrix__detail-value">
+                {formatEuroAmount(selectedCategory.amount, {
+                  fractionDigits: 0
+                })}
+              </span>
+            </>
+          ) : null}
         </div>
-
-        <EChart
-          className="stats-category-breakdown__chart"
-          option={option}
-          ariaLabel={`${type === "INCOME" ? "Income" : "Expense"} category breakdown from ${displayedPeriod}.`}
-          toggleItemSelectionOnClick
-          highlightSelectedItemOnClick={false}
-          onItemSelectionChange={setSelectedCategoryIndex}
-          mergeOptionUpdates
-          hideTooltip={selectedCategoryIndex === null}
-        />
       </div>
     </section>
   );
