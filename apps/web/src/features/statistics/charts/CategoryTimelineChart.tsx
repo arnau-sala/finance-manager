@@ -56,6 +56,7 @@ type TimelineRow = {
 };
 
 const INTENSITY_LEVELS = [1, 2, 3, 4, 5] as const;
+const TIMELINE_CELL_SIZE = 20;
 const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
   { value: "INCOME", label: "Income", icon: ArrowUpRight },
   { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
@@ -343,18 +344,6 @@ function createTimelineRows(
   }));
 }
 
-function getCellSize(columnCount: number) {
-  if (columnCount >= 10) {
-    return 20;
-  }
-
-  if (columnCount >= 6) {
-    return 24;
-  }
-
-  return 28;
-}
-
 function formatPercentage(value: number) {
   if (value > 0 && value < 1) {
     return "<1%";
@@ -416,7 +405,7 @@ export default function CategoryTimelineChart({
   );
   const matrixStyle = {
     "--timeline-columns": rows.length,
-    "--timeline-cell-size": `${getCellSize(rows.length)}px`,
+    "--timeline-cell-size": `${TIMELINE_CELL_SIZE}px`,
     "--timeline-label-width":
       mode === "MONTH" ? "42px" : mode === "YEAR" ? "26px" : "32px"
   } as CSSProperties;
