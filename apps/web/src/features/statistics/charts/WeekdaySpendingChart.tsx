@@ -13,7 +13,9 @@ import {
 } from "./statistics-chart-theme";
 
 type WeekdaySpendingChartProps = {
+  mode: "MONTH" | "YEAR" | "ALL";
   selectedMonth: string;
+  selectedYear: number;
 };
 
 type SpendingInterval = {
@@ -28,6 +30,12 @@ type SpendingInterval = {
 type ExpenseTransaction = {
   date: string;
   amount: number;
+};
+
+type SpendingPeriod = {
+  monthKeys: string[];
+  startDate: string;
+  endDate: string;
 };
 
 const WEEKDAY_LABELS = [
@@ -159,17 +167,54 @@ function getWeekdayIndex(date: string) {
   return (toUtcDate(date).getUTCDay() + 6) % 7;
 }
 
-function createMonthSpendingIntervals(selectedMonth: string) {
-  const endDate = getMonthEndDate(selectedMonth);
-  const finalDay = Number(endDate.slice(8, 10));
-  const transactions = createMonthExpenseTransactions(selectedMonth);
+function createSpendingPeriod(
+  mode: WeekdaySpendingChartProps["mode"],
+  selectedMonth: string,
+  selectedYear: number
+): SpendingPeriod {
+  if (mode === "MONTH") {
+    return {
+      monthKeys: [selectedMonth],
+      startDate: `${selectedMonth}-01`,
+      endDate: getMonthEndDate(selectedMonth)
+    };
+  }
+
+  const monthKeys = mockStatisticsMonthlyTotals
+    .filter(
+      ({ month }) =>
+        mode === "ALL" || month.startsWith(`${selectedYear}-`)
+    )
+    .map(({ month }) => month);
+  const firstMonth = monthKeys[0];
+  const finalMonth = monthKeys[monthKeys.length - 1];
+
+  return {
+    monthKeys,
+    startDate: firstMonth
+      ? `${firstMonth}-01`
+      : `${selectedYear}-01-01`,
+    endDate: finalMonth
+      ? getMonthEndDate(finalMonth)
+      : `${selectedYear}-12-31`
+  };
+}
+
+function createWeekdaySpendingData(period: SpendingPeriod) {
+  const transactions = period.monthKeys.flatMap(
+    createMonthExpenseTransactions
+  );
   const occurrenceCounts = Array.from({ length: 7 }, () => 0);
   const totalAmounts = Array.from({ length: 7 }, () => 0);
   const transactionCounts = Array.from({ length: 7 }, () => 0);
+  const endDate = toUtcDate(period.endDate);
 
-  for (let day = 1; day <= finalDay; day += 1) {
-    const date = `${selectedMonth}-${String(day).padStart(2, "0")}`;
-    const weekdayIndex = getWeekdayIndex(date);
+  for (
+    const date = toUtcDate(period.startDate);
+    date <= endDate;
+    date.setUTCDate(date.getUTCDate() + 1)
+  ) {
+    const weekdayIndex = (date.getUTCDay() + 6) % 7;
 
     occurrenceCounts[weekdayIndex] =
       (occurrenceCounts[weekdayIndex] ?? 0) + 1;
@@ -185,8 +230,8 @@ function createMonthSpendingIntervals(selectedMonth: string) {
 
   return {
     hasEnoughData: transactions.length > 5,
-    startDate: `${selectedMonth}-01`,
-    endDate,
+    startDate: period.startDate,
+    endDate: period.endDate,
     intervals: WEEKDAY_LABELS.map<SpendingInterval>(
       (weekday, weekdayIndex) => {
         const totalAmount = totalAmounts[weekdayIndex] ?? 0;
@@ -427,14 +472,20 @@ function createChartOption(
 }
 
 export default function WeekdaySpendingChart({
-  selectedMonth
+  mode,
+  selectedMonth,
+  selectedYear
 }: WeekdaySpendingChartProps) {
   const [selectedIntervalIndex, setSelectedIntervalIndex] = useState<
     number | null
   >(null);
+  const period = useMemo(
+    () => createSpendingPeriod(mode, selectedMonth, selectedYear),
+    [mode, selectedMonth, selectedYear]
+  );
   const chartData = useMemo(
-    () => createMonthSpendingIntervals(selectedMonth),
-    [selectedMonth]
+    () => createWeekdaySpendingData(period),
+    [period]
   );
   const displayedPeriod = useMemo(
     () =>
@@ -453,7 +504,7 @@ export default function WeekdaySpendingChart({
 
   useEffect(() => {
     setSelectedIntervalIndex(null);
-  }, [selectedMonth]);
+  }, [mode, selectedMonth, selectedYear]);
 
   if (!chartData.hasEnoughData) {
     return null;

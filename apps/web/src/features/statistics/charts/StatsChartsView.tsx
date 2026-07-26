@@ -29,9 +29,7 @@ export default function StatsChartsView(props: StatsChartsViewProps) {
       ) : null}
       <CategoryBreakdownChart {...props} />
       <CategoryTimelineChart {...props} />
-      {props.mode === "MONTH" ? (
-        <WeekdaySpendingChart selectedMonth={props.selectedMonth} />
-      ) : null}
+      <WeekdaySpendingChart {...props} />
     </div>
   );
 }
