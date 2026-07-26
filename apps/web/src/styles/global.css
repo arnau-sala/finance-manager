@@ -2032,6 +2032,7 @@ body.stats-picker-open .home-content--stats {
 }
 
 .stats-category-timeline__cell {
+  position: relative;
   width: var(--timeline-cell-size);
   aspect-ratio: 1;
   padding: 0;
@@ -2043,7 +2044,8 @@ body.stats-picker-open .home-content--stats {
   touch-action: manipulation;
   transition:
     opacity 220ms ease,
-    box-shadow 180ms ease;
+    box-shadow 180ms ease,
+    transform 180ms ease;
 }
 
 .stats-category-timeline__cell:disabled {
@@ -2070,12 +2072,12 @@ body.stats-picker-open .home-content--stats {
   background: var(--color-heatmap-5);
 }
 
-.stats-category-timeline__cell.is-muted {
-  opacity: 0.2;
-}
-
 .stats-category-timeline__cell.is-selected {
-  box-shadow: inset 0 0 0 2px var(--color-primary-pressed);
+  z-index: 1;
+  box-shadow:
+    inset 0 0 0 2px var(--color-surface),
+    0 0 0 2px var(--color-primary);
+  transform: scale(1.08);
 }
 
 .stats-category-timeline__cell:focus-visible {

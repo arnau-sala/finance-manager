@@ -521,10 +521,6 @@ export default function CategoryTimelineChart({
                         className={[
                           "stats-category-timeline__cell",
                           `stats-category-timeline__cell--level-${cell.intensity}`,
-                          selectedCellKey !== null &&
-                          selectedCellKey !== cell.key
-                            ? "is-muted"
-                            : "",
                           selectedCellKey === cell.key
                             ? "is-selected"
                             : ""
