@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ExpiringMemoryCache } from "../../cache/expiring-memory-cache";
+
 const moneySchema = z
   .string()
   .regex(/^-?\d+\.\d{2}$/)
@@ -173,46 +175,17 @@ export class StatisticsApiError extends Error {
   }
 }
 
-type CacheEntry<T> = {
-  value: T;
-  expiresAt: number;
-};
-
 const REPORT_CACHE_TTL_MS = 30_000;
 const AVAILABILITY_CACHE_TTL_MS = 60_000;
-const overviewCache = new Map<string, CacheEntry<StatisticsOverview>>();
-const chartsCache = new Map<string, CacheEntry<StatisticsCharts>>();
-const availabilityCache = new Map<
-  string,
-  CacheEntry<StatisticsAvailability>
->();
-
-function readCache<T>(cache: Map<string, CacheEntry<T>>, key: string) {
-  const entry = cache.get(key);
-
-  if (!entry) {
-    return null;
-  }
-
-  if (entry.expiresAt <= Date.now()) {
-    cache.delete(key);
-    return null;
-  }
-
-  return entry.value;
-}
-
-function writeCache<T>(
-  cache: Map<string, CacheEntry<T>>,
-  key: string,
-  value: T,
-  ttl: number
-) {
-  cache.set(key, {
-    value,
-    expiresAt: Date.now() + ttl
-  });
-}
+const overviewCache = new ExpiringMemoryCache<StatisticsOverview>(
+  REPORT_CACHE_TTL_MS
+);
+const chartsCache = new ExpiringMemoryCache<StatisticsCharts>(
+  REPORT_CACHE_TTL_MS
+);
+const availabilityCache = new ExpiringMemoryCache<StatisticsAvailability>(
+  AVAILABILITY_CACHE_TTL_MS
+);
 
 function getPeriodQuery(period: StatisticsPeriodRequest) {
   const query = new URLSearchParams({
@@ -260,9 +233,9 @@ export async function getStatisticsAvailability(
   ownerId: string,
   signal?: AbortSignal
 ) {
-  const cached = readCache(availabilityCache, ownerId);
+  const cached = availabilityCache.get(ownerId);
 
-  if (cached) {
+  if (cached !== null) {
     return cached;
   }
 
@@ -272,12 +245,7 @@ export async function getStatisticsAvailability(
     "Unable to load available statistics periods."
   );
   const availability = availabilityResponseSchema.parse(rawResponse);
-  writeCache(
-    availabilityCache,
-    ownerId,
-    availability,
-    AVAILABILITY_CACHE_TTL_MS
-  );
+  availabilityCache.set(ownerId, availability);
   return availability;
 }
 
@@ -288,9 +256,9 @@ export async function getStatisticsOverview(
 ) {
   const periodQuery = getPeriodQuery(period);
   const cacheKey = `${ownerId}:${periodQuery}`;
-  const cached = readCache(overviewCache, cacheKey);
+  const cached = overviewCache.get(cacheKey);
 
-  if (cached) {
+  if (cached !== null) {
     return cached;
   }
 
@@ -300,7 +268,7 @@ export async function getStatisticsOverview(
     "Unable to load your statistics."
   );
   const overview = overviewResponseSchema.parse(rawResponse).overview;
-  writeCache(overviewCache, cacheKey, overview, REPORT_CACHE_TTL_MS);
+  overviewCache.set(cacheKey, overview);
   return overview;
 }
 
@@ -311,9 +279,9 @@ export async function getStatisticsCharts(
 ) {
   const periodQuery = getPeriodQuery(period);
   const cacheKey = `${ownerId}:${periodQuery}`;
-  const cached = readCache(chartsCache, cacheKey);
+  const cached = chartsCache.get(cacheKey);
 
-  if (cached) {
+  if (cached !== null) {
     return cached;
   }
 
@@ -323,7 +291,7 @@ export async function getStatisticsCharts(
     "Unable to load your charts."
   );
   const charts = chartsResponseSchema.parse(rawResponse).charts;
-  writeCache(chartsCache, cacheKey, charts, REPORT_CACHE_TTL_MS);
+  chartsCache.set(cacheKey, charts);
   return charts;
 }
 

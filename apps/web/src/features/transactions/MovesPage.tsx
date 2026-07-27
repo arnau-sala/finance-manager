@@ -30,6 +30,7 @@ const FILTER_PANEL_ID = "moves-filter-panel";
 type MovesLoadingState = "loading" | "ready" | "error";
 
 type MovesPageProps = {
+  userId: string;
   refreshKey: number;
   onNewTransaction: () => void;
   onSessionExpired: () => void;
@@ -68,6 +69,7 @@ function getResultLabel(count: number, isSearching: boolean) {
 }
 
 export function MovesPage({
+  userId,
   refreshKey,
   onNewTransaction,
   onSessionExpired
@@ -184,7 +186,7 @@ export function MovesPage({
     const controller = new AbortController();
     setLoadingState("loading");
 
-    getTransactions(controller.signal)
+    getTransactions(userId, controller.signal)
       .then((loadedTransactions) => {
         setTransactions(loadedTransactions);
         setLoadingState("ready");
@@ -202,7 +204,7 @@ export function MovesPage({
       });
 
     return () => controller.abort();
-  }, [onSessionExpired, refreshKey]);
+  }, [onSessionExpired, refreshKey, userId]);
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);

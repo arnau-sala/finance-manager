@@ -1,3 +1,4 @@
+import { ExpiringMemoryCache } from "../../cache/expiring-memory-cache";
 import type { CreateTransactionInput } from "./transaction-validation";
 
 type TransactionApiIssue = {
@@ -34,6 +35,11 @@ type TransactionsPage = {
     nextOffset: number | null;
   };
 };
+
+const TRANSACTIONS_CACHE_TTL_MS = 30_000;
+const transactionsCache = new ExpiringMemoryCache<TransactionListItem[]>(
+  TRANSACTIONS_CACHE_TTL_MS
+);
 
 export class TransactionApiError extends Error {
   readonly status: number;
@@ -79,7 +85,16 @@ async function createTransactionApiError(
   return new TransactionApiError(message, response.status, body.issues);
 }
 
-export async function getTransactions(signal?: AbortSignal) {
+export async function getTransactions(
+  ownerId: string,
+  signal?: AbortSignal
+) {
+  const cached = transactionsCache.get(ownerId);
+
+  if (cached !== null) {
+    return cached;
+  }
+
   const transactions: TransactionListItem[] = [];
   let offset = 0;
 
@@ -123,6 +138,7 @@ export async function getTransactions(signal?: AbortSignal) {
     transactions.push(...page.transactions);
 
     if (page.pagination.nextOffset === null) {
+      transactionsCache.set(ownerId, transactions);
       return transactions;
     }
 
@@ -156,4 +172,10 @@ export async function createTransaction(input: CreateTransactionInput) {
   if (!response.ok) {
     throw await createTransactionApiError(response);
   }
+
+  transactionsCache.clear();
+}
+
+export function clearTransactionsCache() {
+  transactionsCache.clear();
 }

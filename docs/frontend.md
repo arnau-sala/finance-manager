@@ -421,7 +421,10 @@ The `Moves` footer item loads the current user's records from
 `nextOffset` is `null`, ensuring that search and filters operate over the full
 history. It uses the shared transaction-row component also used by Home, so
 icon, category, date, amount formatting, and income/expense colors remain
-consistent.
+consistent. Completed histories, including empty ones, are cached in memory for
+30 seconds under the authenticated `userId`. Returning to Moves during that
+window avoids repeating its paginated reads. Successful transaction creation
+and session termination clear the cache.
 
 Current behavior:
 

@@ -52,11 +52,13 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     />
   ),
   moves: ({
+    user,
     onSessionExpired,
     onNewTransaction,
     financialRefreshKey
   }) => (
     <MovesPage
+      userId={user.id}
       refreshKey={financialRefreshKey}
       onNewTransaction={onNewTransaction}
       onSessionExpired={onSessionExpired}
