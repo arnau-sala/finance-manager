@@ -2,20 +2,20 @@ import { useEffect, useMemo, useState } from "react";
 import type { EChartsCoreOption } from "../../../components/charts/chart-engine";
 import { EChart } from "../../../components/charts/EChart";
 import { formatEuroAmount } from "../../../money/format-euro";
-import {
-  mockStatisticsMonthlyTotals,
-  mockStatisticsTransactions,
-  type MockStatisticsTransaction
-} from "../statistics-mock";
+import type {
+  StatisticsCharts,
+  StatisticsPeriodMode
+} from "../statistics-api";
 import {
   getStatisticsChartTheme,
   type StatisticsChartTheme
 } from "./statistics-chart-theme";
 
 type WeekdaySpendingChartProps = {
-  mode: "MONTH" | "YEAR" | "ALL";
-  selectedMonth: string;
-  selectedYear: number;
+  mode: StatisticsPeriodMode;
+  periodStart: string;
+  periodEnd: string;
+  spending: StatisticsCharts["weekdaySpending"];
 };
 
 type SpendingInterval = {
@@ -25,17 +25,6 @@ type SpendingInterval = {
   averageAmount: number;
   totalAmount: number;
   transactionCount: number;
-};
-
-type ExpenseTransaction = {
-  date: string;
-  amount: number;
-};
-
-type SpendingPeriod = {
-  monthKeys: string[];
-  startDate: string;
-  endDate: string;
 };
 
 const WEEKDAY_LABELS = [
@@ -61,202 +50,12 @@ function toUtcDate(date: string) {
   return new Date(`${date}T00:00:00.000Z`);
 }
 
-function getLocalDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function getMonthEndDate(monthKey: string) {
-  const todayKey = getLocalDateKey(new Date());
-
-  if (monthKey === todayKey.slice(0, 7)) {
-    return todayKey;
-  }
-
-  const [year = 0, month = 1] = monthKey.split("-").map(Number);
-  const finalDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-
-  return `${monthKey}-${String(finalDay).padStart(2, "0")}`;
-}
-
-function getStringHash(value: string) {
-  let hash = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  return hash;
-}
-
-function getMonthlyExpenseTotal(monthKey: string) {
-  return (
-    mockStatisticsMonthlyTotals.find(({ month }) => month === monthKey)
-      ?.expenses ?? 0
-  );
-}
-
-function isExpenseTransaction(transaction: MockStatisticsTransaction) {
-  return transaction.type !== "INCOME";
-}
-
-function createMonthExpenseTransactions(monthKey: string) {
-  const monthlyTotal = getMonthlyExpenseTotal(monthKey);
-  const transactions = mockStatisticsTransactions.filter(
-    (transaction) =>
-      transaction.date.startsWith(`${monthKey}-`) &&
-      isExpenseTransaction(transaction)
-  );
-
-  if (monthlyTotal <= 0 || transactions.length === 0) {
-    return [];
-  }
-
-  const fixedTransactions = transactions.filter(
-    (transaction) => transaction.amountCents !== undefined
-  );
-  const generatedTransactions = transactions.filter(
-    (transaction) => transaction.amountCents === undefined
-  );
-  const fixedTotal = fixedTransactions.reduce(
-    (total, transaction) =>
-      total + (transaction.amountCents ?? 0) / 100,
-    0
-  );
-  const amountToDistribute = Math.max(0, monthlyTotal - fixedTotal);
-  const weights = generatedTransactions.map(
-    (transaction) => 20 + (getStringHash(transaction.id) % 181)
-  );
-  const totalWeight = weights.reduce(
-    (total, weight) => total + weight,
-    0
-  );
-  let allocatedAmount = 0;
-
-  const generatedExpenses = generatedTransactions.map<ExpenseTransaction>(
-    (transaction, index) => {
-      const amount =
-        index === generatedTransactions.length - 1
-          ? amountToDistribute - allocatedAmount
-          : Math.round(
-              ((amountToDistribute * (weights[index] ?? 0)) /
-                totalWeight) *
-                100
-            ) / 100;
-      allocatedAmount += amount;
-
-      return {
-        date: transaction.date,
-        amount: Math.max(0, amount)
-      };
-    }
-  );
-
-  return [
-    ...generatedExpenses,
-    ...fixedTransactions.map<ExpenseTransaction>((transaction) => ({
-      date: transaction.date,
-      amount: (transaction.amountCents ?? 0) / 100
-    }))
-  ];
-}
-
-function getWeekdayIndex(date: string) {
-  return (toUtcDate(date).getUTCDay() + 6) % 7;
-}
-
-function createSpendingPeriod(
-  mode: WeekdaySpendingChartProps["mode"],
-  selectedMonth: string,
-  selectedYear: number
-): SpendingPeriod {
-  if (mode === "MONTH") {
-    return {
-      monthKeys: [selectedMonth],
-      startDate: `${selectedMonth}-01`,
-      endDate: getMonthEndDate(selectedMonth)
-    };
-  }
-
-  const monthKeys = mockStatisticsMonthlyTotals
-    .filter(
-      ({ month }) =>
-        mode === "ALL" || month.startsWith(`${selectedYear}-`)
-    )
-    .map(({ month }) => month);
-  const firstMonth = monthKeys[0];
-  const finalMonth = monthKeys[monthKeys.length - 1];
-
-  return {
-    monthKeys,
-    startDate: firstMonth
-      ? `${firstMonth}-01`
-      : `${selectedYear}-01-01`,
-    endDate: finalMonth
-      ? getMonthEndDate(finalMonth)
-      : `${selectedYear}-12-31`
-  };
-}
-
-function createWeekdaySpendingData(period: SpendingPeriod) {
-  const transactions = period.monthKeys.flatMap(
-    createMonthExpenseTransactions
-  );
-  const occurrenceCounts = Array.from({ length: 7 }, () => 0);
-  const totalAmounts = Array.from({ length: 7 }, () => 0);
-  const transactionCounts = Array.from({ length: 7 }, () => 0);
-  const endDate = toUtcDate(period.endDate);
-
-  for (
-    const date = toUtcDate(period.startDate);
-    date <= endDate;
-    date.setUTCDate(date.getUTCDate() + 1)
-  ) {
-    const weekdayIndex = (date.getUTCDay() + 6) % 7;
-
-    occurrenceCounts[weekdayIndex] =
-      (occurrenceCounts[weekdayIndex] ?? 0) + 1;
-  }
-
-  transactions.forEach((transaction) => {
-    const weekdayIndex = getWeekdayIndex(transaction.date);
-    totalAmounts[weekdayIndex] =
-      (totalAmounts[weekdayIndex] ?? 0) + transaction.amount;
-    transactionCounts[weekdayIndex] =
-      (transactionCounts[weekdayIndex] ?? 0) + 1;
-  });
-
-  return {
-    hasEnoughData: transactions.length > 5,
-    startDate: period.startDate,
-    endDate: period.endDate,
-    intervals: WEEKDAY_LABELS.map<SpendingInterval>(
-      (weekday, weekdayIndex) => {
-        const totalAmount = totalAmounts[weekdayIndex] ?? 0;
-        const occurrenceCount = occurrenceCounts[weekdayIndex] ?? 0;
-
-        return {
-          key: weekday.axis,
-          axisLabel: weekday.axis,
-          tooltipLabel: weekday.full,
-          averageAmount:
-            occurrenceCount > 0 ? totalAmount / occurrenceCount : 0,
-          totalAmount,
-          transactionCount: transactionCounts[weekdayIndex] ?? 0
-        };
-      }
-    )
-  };
-}
-
 function formatCompactEuro(value: number) {
   if (Math.abs(value) >= 1000) {
-    return `${compactNumberFormatter.format(value / 1000)}k\u20ac`;
+    return `${compactNumberFormatter.format(value / 1000)}k€`;
   }
 
-  return `${Math.round(value)}\u20ac`;
+  return `${Math.round(value)}€`;
 }
 
 function formatDisplayedPeriod(startDate: string, endDate: string) {
@@ -340,7 +139,7 @@ function createChartOption(
     aria: {
       enabled: true,
       description:
-        "Bar chart showing average spending for each displayed interval."
+        "Bar chart showing average spending for each displayed weekday."
     },
     grid: {
       top: 18,
@@ -473,40 +272,48 @@ function createChartOption(
 
 export default function WeekdaySpendingChart({
   mode,
-  selectedMonth,
-  selectedYear
+  periodStart,
+  periodEnd,
+  spending
 }: WeekdaySpendingChartProps) {
   const [selectedIntervalIndex, setSelectedIntervalIndex] = useState<
     number | null
   >(null);
-  const period = useMemo(
-    () => createSpendingPeriod(mode, selectedMonth, selectedYear),
-    [mode, selectedMonth, selectedYear]
-  );
-  const chartData = useMemo(
-    () => createWeekdaySpendingData(period),
-    [period]
+  const intervals = useMemo(
+    () =>
+      spending.values.map<SpendingInterval>((value) => {
+        const label = WEEKDAY_LABELS[value.weekday - 1] ?? WEEKDAY_LABELS[0];
+
+        return {
+          key: label.axis,
+          axisLabel: label.axis,
+          tooltipLabel: label.full,
+          averageAmount: value.averageAmount,
+          totalAmount: value.totalAmount,
+          transactionCount: value.transactionCount
+        };
+      }),
+    [spending.values]
   );
   const displayedPeriod = useMemo(
-    () =>
-      formatDisplayedPeriod(chartData.startDate, chartData.endDate),
-    [chartData.endDate, chartData.startDate]
+    () => formatDisplayedPeriod(periodStart, periodEnd),
+    [periodEnd, periodStart]
   );
   const option = useMemo(
     () =>
       createChartOption(
-        chartData.intervals,
+        intervals,
         selectedIntervalIndex,
         getStatisticsChartTheme()
       ),
-    [chartData.intervals, selectedIntervalIndex]
+    [intervals, selectedIntervalIndex]
   );
 
   useEffect(() => {
     setSelectedIntervalIndex(null);
-  }, [mode, selectedMonth, selectedYear]);
+  }, [mode, periodEnd, periodStart]);
 
-  if (!chartData.hasEnoughData) {
+  if (!spending.hasEnoughData) {
     return null;
   }
 

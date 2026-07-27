@@ -10,7 +10,6 @@ import { EChart } from "../../../components/charts/EChart";
 import { formatEuroAmount } from "../../../money/format-euro";
 import {
   formatFinancialIntervalRange,
-  getFinancialIntervals,
   type AggregateChartMode,
   type FinancialInterval
 } from "./statistics-chart-periods";
@@ -21,7 +20,7 @@ import {
 
 type IncomeExpensesChartProps = {
   mode: AggregateChartMode;
-  selectedYear: number;
+  intervals: readonly FinancialInterval[];
 };
 
 type StepChartData = {
@@ -485,16 +484,12 @@ function createChartOption(
 
 export default function IncomeExpensesChart({
   mode,
-  selectedYear
+  intervals
 }: IncomeExpensesChartProps) {
   const [selectedIntervalIndex, setSelectedIntervalIndex] = useState<
     number | null
   >(null);
   const selectedIntervalIndexRef = useRef<number | null>(null);
-  const intervals = useMemo(
-    () => getFinancialIntervals(mode, selectedYear),
-    [mode, selectedYear]
-  );
   const stepData = useMemo(
     () => createStepChartData(intervals),
     [intervals]
@@ -506,7 +501,7 @@ export default function IncomeExpensesChart({
   useEffect(() => {
     selectedIntervalIndexRef.current = null;
     setSelectedIntervalIndex(null);
-  }, [mode, selectedYear]);
+  }, [intervals, mode]);
   const handleAxisPointerSelection = useCallback(
     (axisValue: string | number | null) => {
       if (axisValue === null) {

@@ -1,5 +1,3 @@
-import { mockStatisticsMonthlyTotals } from "../statistics-mock";
-
 export type AggregateChartMode = "YEAR" | "ALL";
 
 export type FinancialInterval = {
@@ -30,94 +28,36 @@ const periodDateFormatter = new Intl.DateTimeFormat("en-GB", {
 });
 
 function toUtcDate(date: string) {
-  const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day));
+  return new Date(`${date}T00:00:00.000Z`);
 }
 
-function getLocalDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-function getMonthEndDate(monthKey: string) {
-  const todayKey = getLocalDateKey(new Date());
-
-  if (monthKey === todayKey.slice(0, 7)) {
-    return todayKey;
-  }
-
-  const [year = 0, month = 1] = monthKey.split("-").map(Number);
-  const finalDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return `${monthKey}-${String(finalDay).padStart(2, "0")}`;
-}
-
-function toCents(value: number) {
-  return Math.round(value * 100);
-}
-
-function createYearIntervals(selectedYear: number): FinancialInterval[] {
-  return mockStatisticsMonthlyTotals
-    .filter(({ month }) => month.startsWith(`${selectedYear}-`))
-    .map(({ month, income, expenses }) => {
-      const startDate = `${month}-01`;
-      const date = toUtcDate(startDate);
-      const incomeCents = toCents(income);
-      const expenseCents = toCents(expenses);
-
-      return {
-        key: month,
-        axisLabel: shortMonthFormatter.format(date),
-        tooltipLabel: longMonthFormatter.format(date),
-        startDate,
-        endDate: getMonthEndDate(month),
-        incomeCents,
-        expenseCents,
-        balanceCents: incomeCents - expenseCents
-      };
-    });
-}
-
-function createAllIntervals(): FinancialInterval[] {
-  const intervalsByYear = new Map<number, FinancialInterval>();
-
-  mockStatisticsMonthlyTotals.forEach(({ month, income, expenses }) => {
-    const year = Number(month.slice(0, 4));
-    const incomeCents = toCents(income);
-    const expenseCents = toCents(expenses);
-    const existingInterval = intervalsByYear.get(year);
-
-    if (existingInterval) {
-      existingInterval.endDate = getMonthEndDate(month);
-      existingInterval.incomeCents += incomeCents;
-      existingInterval.expenseCents += expenseCents;
-      existingInterval.balanceCents += incomeCents - expenseCents;
-      return;
-    }
-
-    intervalsByYear.set(year, {
-      key: String(year),
-      axisLabel: String(year),
-      tooltipLabel: String(year),
-      startDate: `${month}-01`,
-      endDate: getMonthEndDate(month),
-      incomeCents,
-      expenseCents,
-      balanceCents: incomeCents - expenseCents
-    });
-  });
-
-  return [...intervalsByYear.values()];
-}
-
-export function getFinancialIntervals(
+export function createFinancialIntervals(
   mode: AggregateChartMode,
-  selectedYear: number
-) {
-  return mode === "YEAR"
-    ? createYearIntervals(selectedYear)
-    : createAllIntervals();
+  intervals: readonly {
+    key: string;
+    startDate: string;
+    endDate: string;
+    income: number;
+    expenses: number;
+    balance: number;
+  }[]
+): FinancialInterval[] {
+  return intervals.map((interval) => {
+    const date = toUtcDate(interval.startDate);
+
+    return {
+      key: interval.key,
+      axisLabel:
+        mode === "YEAR" ? shortMonthFormatter.format(date) : interval.key,
+      tooltipLabel:
+        mode === "YEAR" ? longMonthFormatter.format(date) : interval.key,
+      startDate: interval.startDate,
+      endDate: interval.endDate,
+      incomeCents: Math.round(interval.income * 100),
+      expenseCents: Math.round(interval.expenses * 100),
+      balanceCents: Math.round(interval.balance * 100)
+    };
+  });
 }
 
 export function formatFinancialIntervalRange(

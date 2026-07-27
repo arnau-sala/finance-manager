@@ -1,6 +1,7 @@
 import { type ReactNode, useState } from "react";
 
 import type { SessionUser } from "../auth/auth-api";
+import { clearStatisticsCache } from "../statistics/statistics-api";
 import { StatsPage } from "../statistics/StatsPage";
 import { MovesPage } from "../transactions/MovesPage";
 import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
@@ -53,7 +54,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   moves: ({ onSessionExpired }) => (
     <MovesPage onSessionExpired={onSessionExpired} />
   ),
-  stats: () => <StatsPage />,
+  stats: ({ user, onSessionExpired }) => (
+    <StatsPage userId={user.id} onSessionExpired={onSessionExpired} />
+  ),
   profile: ({
     user,
     onProfileUpdated,
@@ -122,6 +125,7 @@ export function HomePage({
         open={isTransactionComposerOpen}
         onClose={() => setIsTransactionComposerOpen(false)}
         onCreated={() => {
+          clearStatisticsCache();
           setIsTransactionComposerOpen(false);
           setHomeRefreshKey((current) => current + 1);
         }}

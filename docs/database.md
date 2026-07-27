@@ -120,3 +120,14 @@ Category responses place expenses first. Within each type, names are alphabetica
 `Transaction.userId` references `User.id` with `ON DELETE CASCADE`, ensuring account deletion removes every owned transaction. `Transaction.categoryId` references `Category.id` with `ON DELETE RESTRICT`, protecting the predefined catalog while transactions still use a category. The API validates that the category exists and matches the transaction type before writes.
 
 The `(userId, occurredOn)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing orders equal dates by `createdAt` and filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
+
+Balances, percentages, chart points, medians, averages, and streaks are derived
+from `Transaction`; they are not persisted as duplicate state. Statistics
+queries aggregate by the authenticated owner and calendar period using the
+`(userId, occurredOn)` index. This keeps edits and deletions immediately
+consistent without maintaining summary tables.
+
+The schema does not yet store opening net worth. Consequently, net cash flow can
+be derived but real net worth cannot. An opening amount and effective date must
+be introduced as financial source data before Net Worth Evolution is enabled;
+it must not be represented as a fake income transaction.

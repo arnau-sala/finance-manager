@@ -18,6 +18,7 @@ import {
   HomePage,
   type GoogleAccountDeletionFeedback
 } from "../features/home/HomePage";
+import { clearStatisticsCache } from "../features/statistics/statistics-api";
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
 type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
@@ -233,6 +234,7 @@ export function App() {
   }
 
   function returnToAnonymousLanding() {
+    clearStatisticsCache();
     setIsSessionExpired(false);
     setSessionUser(null);
     setLoginEmail("");

@@ -1,4 +1,11 @@
-import { lazy, Suspense, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -12,16 +19,17 @@ import {
   ChevronRight,
   List,
   PiggyBank,
+  RefreshCw,
   Scale,
   Trophy,
   type LucideIcon
 } from "lucide-react";
 
+import { MonthPicker } from "../../components/ui/MonthPicker";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
 } from "../../components/ui/SlidingSegmentedControl";
-import { MonthPicker } from "../../components/ui/MonthPicker";
 import { YearPicker } from "../../components/ui/YearPicker";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
@@ -29,47 +37,29 @@ import {
   type TransactionType
 } from "../transactions/category-catalog";
 import {
-  getMockCategoryBreakdown,
-  type CategoryBreakdownItem
-} from "./statistics-category-mock";
-import {
-  mockStatisticsMonthAvailability,
-  mockStatisticsMonthlyTotals,
-  mockStatisticsTransactions,
-  mockStatisticsYearAvailability
-} from "./statistics-mock";
+  getStatisticsAvailability,
+  getStatisticsCharts,
+  getStatisticsOverview,
+  StatisticsApiError,
+  type StatisticsAvailability,
+  type StatisticsCharts,
+  type StatisticsOverview,
+  type StatisticsPeriodMode,
+  type StatisticsPeriodRequest
+} from "./statistics-api";
+import type { CategoryBreakdownItem } from "./statistics-categories";
 
 const StatsChartsView = lazy(() => import("./charts/StatsChartsView"));
 
-type StatsPeriodMode = "MONTH" | "YEAR" | "ALL";
+type StatsPageProps = {
+  userId: string;
+  onSessionExpired: () => void;
+};
+
 type StatsViewMode = "OVERVIEW" | "CHARTS";
 type CategoryValueMode = "AMOUNT" | "PERCENTAGE";
-
-type StatsPeriod = {
-  label: string;
-  income: number;
-  expenses: number;
-};
-
-type MonthlyStatsPeriod = StatsPeriod & {
-  month: MonthName;
-  year: number;
-};
-
-type YearlyStatsPeriod = StatsPeriod & {
-  year: number;
-};
-
-type ExpenseTransaction = {
-  date: string;
-  amount: number;
-};
-
-type NoSpendStreak = {
-  days: number;
-  startDate: string | null;
-  endDate: string | null;
-};
+type LoadingState = "loading" | "ready" | "error";
+type InsightTone = "positive" | "negative" | "neutral";
 
 type ExpenseSectionItem = {
   id: string;
@@ -79,8 +69,6 @@ type ExpenseSectionItem = {
   icon: LucideIcon;
   earnedTrophy?: boolean;
 };
-
-type InsightTone = "positive" | "negative" | "neutral";
 
 type StatsInsight = {
   id: string;
@@ -107,9 +95,7 @@ const monthNames = [
   "December"
 ] as const;
 
-type MonthName = (typeof monthNames)[number];
-
-const periodOptions: readonly SlidingSegmentOption<StatsPeriodMode>[] = [
+const periodOptions: readonly SlidingSegmentOption<StatisticsPeriodMode>[] = [
   { value: "MONTH", label: "Month", icon: CalendarDays },
   { value: "YEAR", label: "Year", icon: Calendar },
   { value: "ALL", label: "All", icon: Calendars }
@@ -125,107 +111,6 @@ const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
   { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
 ];
 
-function toMonthKey(period: MonthlyStatsPeriod) {
-  const monthNumber = monthNames.indexOf(period.month) + 1;
-  return `${period.year}-${String(monthNumber).padStart(2, "0")}`;
-}
-
-function getLocalDateKey(date = new Date()) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
-const currentMonthKey = getLocalDateKey().slice(0, 7);
-const allMonthlyStats: readonly MonthlyStatsPeriod[] =
-  mockStatisticsMonthlyTotals.map((total) => {
-    const [yearPart, monthPart] = total.month.split("-");
-    const year = Number(yearPart);
-    const month = monthNames[Number(monthPart) - 1] ?? monthNames[0];
-
-    return {
-      label: `${month} ${year}`,
-      month,
-      year,
-      income: total.income,
-      expenses: total.expenses
-    };
-  });
-
-function getInitialMonthKey(availableMonths: readonly string[]) {
-  const today = new Date();
-  const currentMonth = `${today.getFullYear()}-${String(
-    today.getMonth() + 1
-  ).padStart(2, "0")}`;
-
-  for (let index = availableMonths.length - 1; index >= 0; index -= 1) {
-    const month = availableMonths[index];
-
-    if (month && month <= currentMonth) {
-      return month;
-    }
-  }
-
-  return currentMonth;
-}
-
-function formatMonthKey(month: string) {
-  const [year, monthNumber] = month.split("-");
-  const monthName = monthNames[Number(monthNumber) - 1];
-
-  return `${monthName?.slice(0, 3) ?? month} ${year}`;
-}
-
-function createEmptyMonthlyPeriod(month: string): MonthlyStatsPeriod {
-  const [yearPart, monthPart] = month.split("-");
-  const year = Number(yearPart);
-  const monthIndex = Number(monthPart) - 1;
-  const monthName = monthNames[monthIndex] ?? monthNames[0];
-
-  return {
-    label: `${monthName} ${year}`,
-    month: monthName,
-    year,
-    income: 0,
-    expenses: 0
-  };
-}
-
-function getMonthlyPeriod(month: string) {
-  return (
-    allMonthlyStats.find((period) => toMonthKey(period) === month) ??
-    createEmptyMonthlyPeriod(month)
-  );
-}
-
-function summarizeYear(year: number): YearlyStatsPeriod {
-  return allMonthlyStats
-    .filter((period) => period.year === year)
-    .reduce<YearlyStatsPeriod>(
-      (total, period) => ({
-        ...total,
-        income: total.income + period.income,
-        expenses: total.expenses + period.expenses
-      }),
-      { label: String(year), year, income: 0, expenses: 0 }
-    );
-}
-
-const yearlyStats: readonly YearlyStatsPeriod[] = [
-  ...new Set(allMonthlyStats.map((period) => period.year))
-].map(summarizeYear);
-
-const allTimeStats = yearlyStats.reduce<StatsPeriod>(
-  (total, period) => ({
-    label: "All time",
-    income: total.income + period.income,
-    expenses: total.expenses + period.expenses
-  }),
-  { label: "All time", income: 0, expenses: 0 }
-);
-
-const millisecondsPerDay = 24 * 60 * 60 * 1000;
 const shortDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
@@ -242,242 +127,77 @@ const weekdayFormatter = new Intl.DateTimeFormat("en-GB", {
   timeZone: "UTC"
 });
 
-function parseDateParts(date: string) {
-  const [year = 0, month = 1, day = 1] = date.split("-").map(Number);
-  return { year, month, day };
-}
-
-function toDayNumber(date: string) {
-  const { year, month, day } = parseDateParts(date);
-  return Math.floor(Date.UTC(year, month - 1, day) / millisecondsPerDay);
-}
-
-function fromDayNumber(dayNumber: number) {
-  return new Date(dayNumber * millisecondsPerDay)
-    .toISOString()
-    .slice(0, 10);
+function getLocalDateKey(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function toUtcDate(date: string) {
-  const { year, month, day } = parseDateParts(date);
-  return new Date(Date.UTC(year, month - 1, day));
+  return new Date(`${date}T00:00:00.000Z`);
 }
 
-function getPeriodDateRange(
-  mode: StatsPeriodMode,
-  periods: readonly MonthlyStatsPeriod[],
-  transactions: readonly ExpenseTransaction[]
-) {
-  const firstPeriod = periods[0];
-  const lastPeriod = periods[periods.length - 1];
+function formatMonthKey(month: string) {
+  const [year, monthNumber] = month.split("-");
+  const monthName = monthNames[Number(monthNumber) - 1];
 
-  if (!firstPeriod || !lastPeriod) {
-    return null;
-  }
+  return `${monthName?.slice(0, 3) ?? month} ${year}`;
+}
 
-  if (mode === "ALL" && transactions.length > 0) {
-    const dates = transactions.map((transaction) => transaction.date).sort();
-    return {
-      startDate: dates[0],
-      endDate: dates[dates.length - 1]
-    };
-  }
-
-  const firstMonth = monthNames.indexOf(firstPeriod.month) + 1;
-  const lastMonth = monthNames.indexOf(lastPeriod.month) + 1;
-  const lastDay = new Date(
-    Date.UTC(lastPeriod.year, lastMonth, 0)
-  ).getUTCDate();
-  const startDate = `${firstPeriod.year}-${String(firstMonth).padStart(
-    2,
-    "0"
-  )}-01`;
-  const naturalEndDate = `${lastPeriod.year}-${String(lastMonth).padStart(
-    2,
-    "0"
-  )}-${String(lastDay).padStart(2, "0")}`;
-  const endDate = naturalEndDate > getLocalDateKey()
-    ? getLocalDateKey()
-    : naturalEndDate;
-
-  if (startDate > endDate) {
-    return null;
-  }
-
+function getMonthParts(month: string) {
+  const [year = "", monthNumber = "1"] = month.split("-");
   return {
-    startDate,
-    endDate
+    month: monthNames[Number(monthNumber) - 1] ?? monthNames[0],
+    year
   };
 }
 
-function createMockExpenseTransactions(
-  periods: readonly MonthlyStatsPeriod[]
+function getValueTone(value: number) {
+  if (value > 0) return "stats-value--positive";
+  if (value < 0) return "stats-value--negative";
+  return undefined;
+}
+
+function getInsightTone(value: number): InsightTone {
+  if (value > 0) return "positive";
+  if (value < 0) return "negative";
+  return "neutral";
+}
+
+function formatInsightAmount(value: number, showSign = false) {
+  return formatEuroAmount(value, { fractionDigits: 0, showSign });
+}
+
+function formatMovementDate(date: string) {
+  return fullDateFormatter.format(toUtcDate(date));
+}
+
+function formatNoSpendStart(
+  streak: StatisticsOverview["expenses"]["currentStreak"]
 ) {
-  return periods.flatMap<ExpenseTransaction>((period) => {
-    const monthKey = toMonthKey(period);
-    const sourceTransactions = mockStatisticsTransactions.filter(
-      (transaction) =>
-        transaction.date.startsWith(monthKey) && transaction.type !== "INCOME"
-    );
-    const totalCents = Math.max(0, Math.round(period.expenses * 100));
-
-    if (sourceTransactions.length === 0 || totalCents === 0) {
-      return [];
-    }
-
-    const flexibleTransactions = sourceTransactions.filter(
-      (transaction) => transaction.amountCents === undefined
-    );
-    const fixedTotal = sourceTransactions.reduce(
-      (total, transaction) => total + (transaction.amountCents ?? 0),
-      0
-    );
-    const amountToDistribute = Math.max(0, totalCents - fixedTotal);
-    const weights = flexibleTransactions.map((transaction, index) => {
-      const day = Number(transaction.date.slice(-2));
-      return 1 + ((day * 3 + index * 5) % 9);
-    });
-    const totalWeight = weights.reduce((total, weight) => total + weight, 0);
-    let distributedAmount = 0;
-    let flexibleIndex = 0;
-
-    return sourceTransactions.map((transaction) => {
-      if (transaction.amountCents !== undefined) {
-        return {
-          date: transaction.date,
-          amount: transaction.amountCents / 100
-        };
-      }
-
-      const isLastFlexible =
-        flexibleIndex === flexibleTransactions.length - 1;
-      const amountCents = isLastFlexible
-        ? amountToDistribute - distributedAmount
-        : Math.round(
-            amountToDistribute *
-              ((weights[flexibleIndex] ?? 0) / Math.max(totalWeight, 1))
-          );
-      distributedAmount += amountCents;
-      flexibleIndex += 1;
-
-      return {
-        date: transaction.date,
-        amount: Math.max(0, amountCents) / 100
-      };
-    });
-  });
-}
-
-function getMedian(values: readonly number[]) {
-  if (values.length === 0) {
-    return 0;
-  }
-
-  const sortedValues = [...values].sort((first, second) => first - second);
-  const middleIndex = Math.floor(sortedValues.length / 2);
-
-  if (sortedValues.length % 2 === 1) {
-    return sortedValues[middleIndex] ?? 0;
-  }
-
-  return (
-    ((sortedValues[middleIndex - 1] ?? 0) +
-      (sortedValues[middleIndex] ?? 0)) /
-    2
-  );
-}
-
-function getNoSpendStreaks(
-  transactions: readonly ExpenseTransaction[],
-  startDate: string,
-  endDate: string
-) {
-  const startDay = toDayNumber(startDate);
-  const endDay = toDayNumber(endDate);
-  const expenseDays = new Set(
-    transactions.map((transaction) => toDayNumber(transaction.date))
-  );
-  let currentStart: number | null = null;
-  let longest: NoSpendStreak = {
-    days: 0,
-    startDate: null,
-    endDate: null
-  };
-
-  function finishStreak(streakEnd: number) {
-    if (currentStart === null) {
-      return;
-    }
-
-    const days = streakEnd - currentStart + 1;
-
-    if (days > longest.days) {
-      longest = {
-        days,
-        startDate: fromDayNumber(currentStart),
-        endDate: fromDayNumber(streakEnd)
-      };
-    }
-
-    currentStart = null;
-  }
-
-  for (let day = startDay; day <= endDay; day += 1) {
-    if (expenseDays.has(day)) {
-      finishStreak(day - 1);
-    } else if (currentStart === null) {
-      currentStart = day;
-    }
-  }
-
-  finishStreak(endDay);
-
-  let currentDays = 0;
-
-  for (
-    let day = endDay;
-    day >= startDay && !expenseDays.has(day);
-    day -= 1
-  ) {
-    currentDays += 1;
-  }
-
-  const current: NoSpendStreak = {
-    days: currentDays,
-    startDate:
-      currentDays > 0 ? fromDayNumber(endDay - currentDays + 1) : null,
-    endDate: currentDays > 0 ? endDate : null
-  };
-
-  return {
-    current,
-    longest,
-    isLongestCurrent: current.days > 0 && current.days === longest.days
-  };
-}
-
-function formatNoSpendStart(streak: NoSpendStreak) {
   if (!streak.startDate || !streak.endDate || streak.days === 0) {
     return "No active streak";
   }
 
-  if (streak.days === 1) {
+  const isCurrent = streak.endDate === getLocalDateKey();
+
+  if (isCurrent && streak.days === 1) {
     return "Since today";
   }
 
-  if (streak.days === 2) {
+  if (isCurrent && streak.days === 2) {
     return "Since yesterday";
   }
 
   const start = toUtcDate(streak.startDate);
 
-  if (streak.days <= 6) {
+  if (isCurrent && streak.days <= 6) {
     return `Since ${weekdayFormatter.format(start)}`;
   }
 
-  const end = toUtcDate(streak.endDate);
   const formatter =
-    start.getUTCFullYear() === end.getUTCFullYear()
+    start.getUTCFullYear() === new Date().getFullYear()
       ? shortDateFormatter
       : fullDateFormatter;
 
@@ -485,7 +205,7 @@ function formatNoSpendStart(streak: NoSpendStreak) {
 }
 
 function formatStreakPeriod(
-  streak: NoSpendStreak,
+  streak: StatisticsOverview["expenses"]["longestStreak"],
   includeYear: boolean
 ) {
   if (!streak.startDate || !streak.endDate || streak.days === 0) {
@@ -508,16 +228,16 @@ function formatStreakPeriod(
   const endYear = end.getUTCFullYear();
 
   if (startYear === endYear && start.getUTCMonth() === end.getUTCMonth()) {
-    const dateRange =
+    const range =
       startDay === endDay
         ? `${startDay} ${startMonth}`
         : `${startDay}-${endDay} ${startMonth}`;
-    return includeYear ? `${dateRange} ${startYear}` : dateRange;
+    return includeYear ? `${range} ${startYear}` : range;
   }
 
   if (startYear === endYear) {
-    const dateRange = `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
-    return includeYear ? `${dateRange} ${startYear}` : dateRange;
+    const range = `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
+    return includeYear ? `${range} ${startYear}` : range;
   }
 
   return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
@@ -527,129 +247,13 @@ function formatDayCount(days: number) {
   return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
-function getValueTone(value: number) {
-  if (value > 0) return "stats-value--positive";
-  if (value < 0) return "stats-value--negative";
-  return undefined;
-}
-
-function getInsightTone(value: number): InsightTone {
-  if (value > 0) return "positive";
-  if (value < 0) return "negative";
-  return "neutral";
-}
-
-function getPeriodMetrics<Period extends StatsPeriod>(period: Period) {
-  const income = Math.round(period.income);
-  const expenses = Math.round(period.expenses);
-  const balance = income - expenses;
-
-  return {
-    period,
-    balance,
-    savingsPercentage:
-      income > 0 ? Math.round((balance / income) * 100) : null
-  };
-}
-
-function getPeriodExtreme<Period extends StatsPeriod>(
-  periods: readonly Period[],
-  direction: "BEST" | "WORST"
-) {
-  const candidates = periods
-    .map(getPeriodMetrics)
-    .filter(
-      (
-        candidate
-      ): candidate is ReturnType<typeof getPeriodMetrics<Period>> & {
-        savingsPercentage: number;
-      } => candidate.savingsPercentage !== null
-    );
-
-  return candidates.reduce<(typeof candidates)[number] | null>(
-    (selected, candidate) => {
-      if (!selected) {
-        return candidate;
-      }
-
-      const percentageDifference =
-        candidate.savingsPercentage - selected.savingsPercentage;
-      const shouldReplace =
-        direction === "BEST"
-          ? percentageDifference > 0 ||
-            (percentageDifference === 0 && candidate.balance > selected.balance)
-          : percentageDifference < 0 ||
-            (percentageDifference === 0 && candidate.balance < selected.balance);
-
-      return shouldReplace ? candidate : selected;
-    },
-    null
-  );
-}
-
-function getPeriodCollectionSummary(periods: readonly StatsPeriod[]) {
-  const metrics = periods.map(getPeriodMetrics);
-  const positivePeriods = metrics.filter((period) => period.balance > 0).length;
-  const totalBalance = metrics.reduce(
-    (total, period) => total + period.balance,
-    0
-  );
-  const totalIncome = periods.reduce(
-    (total, period) => total + Math.round(period.income),
-    0
-  );
-
-  return {
-    positivePeriods,
-    totalPeriods: periods.length,
-    positivePercentage:
-      periods.length > 0
-        ? Math.round((positivePeriods / periods.length) * 100)
-        : 0,
-    averageBalance:
-      periods.length > 0 ? Math.round(totalBalance / periods.length) : 0,
-    averageSavingsPercentage:
-      totalIncome > 0 ? Math.round((totalBalance / totalIncome) * 100) : null
-  };
-}
-
-function getTopMovement(
-  periods: readonly MonthlyStatsPeriod[],
-  type: TransactionType
-) {
-  const estimatedTransactionShare = type === "INCOME" ? 0.58 : 0.34;
-  const transactionDay = type === "INCOME" ? 25 : 12;
-
-  return periods.reduce<{
-    amount: number;
-    date: string;
-  } | null>((topMovement, period) => {
-    const periodTotal = type === "INCOME" ? period.income : period.expenses;
-    const amount = Math.round(periodTotal * estimatedTransactionShare);
-
-    if (amount <= 0 || (topMovement && amount <= topMovement.amount)) {
-      return topMovement;
-    }
-
-    return {
-      amount,
-      date: `${transactionDay} ${period.month.slice(0, 3)} ${period.year}`
-    };
-  }, null);
-}
-
-function formatInsightAmount(value: number, showSign = false) {
-  return formatEuroAmount(value, { fractionDigits: 0, showSign });
-}
-
 function createExtremeInsight(
   id: string,
   label: string,
-  extreme:
-    | ReturnType<typeof getPeriodExtreme<MonthlyStatsPeriod>>
-    | ReturnType<typeof getPeriodExtreme<YearlyStatsPeriod>>,
+  extreme: StatisticsOverview["insights"]["bestMonth"],
   icon: LucideIcon,
-  tone: Exclude<InsightTone, "neutral">
+  tone: Exclude<InsightTone, "neutral">,
+  period: "MONTH" | "YEAR"
 ): StatsInsight {
   if (!extreme) {
     return {
@@ -662,20 +266,19 @@ function createExtremeInsight(
     };
   }
 
-  const sideValue =
-    "month" in extreme.period
-      ? `${extreme.period.month.slice(0, 3)} ${String(
-          extreme.period.year
-        ).slice(-2)}`
-      : extreme.period.label;
-
   return {
     id,
     label,
     value: `${formatInsightAmount(extreme.balance, true)} (${
       extreme.savingsPercentage
     }%)`,
-    sideValue,
+    sideValue:
+      period === "MONTH"
+        ? `${formatMonthKey(extreme.key).slice(0, 3)} ${extreme.key.slice(
+            2,
+            4
+          )}`
+        : extreme.key,
     icon,
     tone
   };
@@ -685,7 +288,7 @@ function createCollectionInsights(
   idPrefix: string,
   periodLabel: "months" | "years",
   averageLabel: string,
-  summary: ReturnType<typeof getPeriodCollectionSummary>,
+  summary: NonNullable<StatisticsOverview["insights"]["months"]>,
   icon: LucideIcon
 ): readonly StatsInsight[] {
   return [
@@ -712,6 +315,168 @@ function createCollectionInsights(
       sideValue: formatInsightAmount(summary.averageBalance, true),
       icon: Scale,
       tone: getInsightTone(summary.averageBalance)
+    }
+  ];
+}
+
+function createInsightRows(overview: StatisticsOverview) {
+  const { insights, period } = overview;
+  const rows: StatsInsight[][] = [
+    [
+      {
+        id: "top-income",
+        label: "Largest income",
+        value: insights.largestIncome
+          ? formatMovementDate(insights.largestIncome.date)
+          : "No data",
+        sideValue: insights.largestIncome
+          ? formatInsightAmount(insights.largestIncome.amount)
+          : "--",
+        icon: ArrowUpRight,
+        tone: insights.largestIncome ? "positive" : "neutral"
+      },
+      {
+        id: "top-expense",
+        label: "Largest expense",
+        value: insights.largestExpense
+          ? formatMovementDate(insights.largestExpense.date)
+          : "No data",
+        sideValue: insights.largestExpense
+          ? formatInsightAmount(insights.largestExpense.amount)
+          : "--",
+        icon: ArrowDownRight,
+        tone: insights.largestExpense ? "negative" : "neutral"
+      }
+    ]
+  ];
+
+  if (period.mode !== "MONTH") {
+    rows.push([
+      createExtremeInsight(
+        "best-month",
+        "Best month",
+        insights.bestMonth,
+        CalendarDays,
+        "positive",
+        "MONTH"
+      ),
+      createExtremeInsight(
+        "worst-month",
+        "Worst month",
+        insights.worstMonth,
+        CalendarDays,
+        "negative",
+        "MONTH"
+      )
+    ]);
+
+    if (period.mode === "ALL") {
+      rows.push([
+        createExtremeInsight(
+          "best-year",
+          "Best year",
+          insights.bestYear,
+          Calendar,
+          "positive",
+          "YEAR"
+        ),
+        createExtremeInsight(
+          "worst-year",
+          "Worst year",
+          insights.worstYear,
+          Calendar,
+          "negative",
+          "YEAR"
+        )
+      ]);
+    }
+
+    if (insights.months) {
+      rows.push([
+        ...createCollectionInsights(
+          "monthly",
+          "months",
+          "Avg. month balance",
+          insights.months,
+          CalendarDays
+        )
+      ]);
+    }
+
+    if (period.mode === "ALL" && insights.years) {
+      rows.push([
+        ...createCollectionInsights(
+          "yearly",
+          "years",
+          "Avg. year balance",
+          insights.years,
+          Calendars
+        )
+      ]);
+    }
+  }
+
+  return rows;
+}
+
+function createExpenseItems(
+  overview: StatisticsOverview
+): readonly ExpenseSectionItem[] {
+  const { expenses, period } = overview;
+  const unit = expenses.averagePeriodUnit.toLowerCase();
+  const averageLabel =
+    expenses.averagePeriodUnit === "DAY"
+      ? "Daily Avg. expense"
+      : expenses.averagePeriodUnit === "MONTH"
+        ? "Monthly Avg. expense"
+        : "Yearly Avg. expense";
+  const averageIcon =
+    expenses.averagePeriodUnit === "DAY"
+      ? CalendarDays
+      : expenses.averagePeriodUnit === "MONTH"
+        ? Calendar
+        : Calendars;
+
+  return [
+    {
+      id: "typical-expense",
+      label: "Typical expense",
+      detail: `${expenses.transactionCount} ${
+        expenses.transactionCount === 1 ? "expense" : "expenses"
+      }`,
+      value: formatEuroAmount(expenses.typicalAmount, {
+        fractionDigits: 0
+      }),
+      icon: ChartColumn
+    },
+    {
+      id: "average-expense",
+      label: averageLabel,
+      detail: `${expenses.averagePeriodCount} ${unit}${
+        expenses.averagePeriodCount === 1 ? "" : "s"
+      }`,
+      value: formatEuroAmount(expenses.averageAmount, {
+        fractionDigits: 0
+      }),
+      icon: averageIcon
+    },
+    {
+      id: "no-spend-days",
+      label: "No-spend streak",
+      detail: formatNoSpendStart(expenses.currentStreak),
+      value: formatDayCount(expenses.currentStreak.days),
+      icon: PiggyBank,
+      earnedTrophy: expenses.isLongestCurrent
+    },
+    {
+      id: "longest-no-spend-streak",
+      label: "Longest streak",
+      detail: formatStreakPeriod(
+        expenses.longestStreak,
+        period.mode === "ALL"
+      ),
+      value: formatDayCount(expenses.longestStreak.days),
+      icon: Award
     }
   ];
 }
@@ -788,7 +553,9 @@ function StatsCategoryList({
                 >
                   <strong>
                     {valueMode === "AMOUNT"
-                      ? formatEuroAmount(category.amount, { fractionDigits: 0 })
+                      ? formatEuroAmount(category.amount, {
+                          fractionDigits: 0
+                        })
                       : `${category.percentage}%`}
                   </strong>
                 </button>
@@ -853,234 +620,312 @@ function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
   );
 }
 
-export function StatsPage() {
+function StatisticsLoadState({
+  message,
+  retry
+}: {
+  message: string;
+  retry?: () => void;
+}) {
+  return (
+    <div className="stats-load-state" role={retry ? "alert" : "status"}>
+      <span>{message}</span>
+      {retry ? (
+        <button type="button" onClick={retry}>
+          <RefreshCw aria-hidden="true" />
+          Try again
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function StatsOverviewContent({
+  overview,
+  categoryType,
+  onCategoryTypeChange,
+  categoryValueMode,
+  onToggleCategoryValueMode
+}: {
+  overview: StatisticsOverview;
+  categoryType: TransactionType;
+  onCategoryTypeChange: (type: TransactionType) => void;
+  categoryValueMode: CategoryValueMode;
+  onToggleCategoryValueMode: () => void;
+}) {
+  const { money } = overview;
+  const categories = overview.categories.filter(
+    (category) => category.type === categoryType
+  );
+  const insightRows = createInsightRows(overview);
+  const expenseItems = createExpenseItems(overview);
+
+  return (
+    <div className="stats-sections">
+      <section className="stats-money" aria-labelledby="stats-money-title">
+        <h2 id="stats-money-title">Money</h2>
+
+        <div className="stats-money__content">
+          <div className="stats-money__balance">
+            <span>
+              <Scale aria-hidden="true" />
+              Net balance
+            </span>
+            <strong className={getValueTone(money.balance)}>
+              {formatEuroAmount(money.balance, {
+                showSign: true,
+                fractionDigits: 0
+              })}
+            </strong>
+            <p
+              className="stats-money__saved-rate"
+              aria-label="Percentage of income saved"
+            >
+              Saved:{" "}
+              <strong
+                className={
+                  money.savingsPercentage === null
+                    ? undefined
+                    : getValueTone(money.savingsPercentage)
+                }
+              >
+                {money.savingsPercentage === null
+                  ? "--"
+                  : `${money.savingsPercentage}%`}
+              </strong>
+            </p>
+          </div>
+
+          <div className="stats-money__breakdown">
+            <div>
+              <span>
+                <ArrowUpRight aria-hidden="true" />
+                Income
+              </span>
+              <strong className="stats-value--positive">
+                {formatEuroAmount(money.income, { fractionDigits: 0 })}
+              </strong>
+            </div>
+            <div>
+              <span>
+                <ArrowDownRight aria-hidden="true" />
+                Expenses
+              </span>
+              <strong className="stats-value--negative">
+                {formatEuroAmount(money.expenses, { fractionDigits: 0 })}
+              </strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="stats-categories"
+        aria-labelledby="stats-categories-title"
+      >
+        <h2 id="stats-categories-title">Categories</h2>
+
+        <SlidingSegmentedControl
+          className="stats-category-type"
+          value={categoryType}
+          options={categoryTypeOptions}
+          onChange={onCategoryTypeChange}
+          label="Category type"
+          tone={categoryType === "INCOME" ? "income" : "expense"}
+          compact
+        />
+
+        <StatsCategoryList
+          type={categoryType}
+          categories={categories}
+          valueMode={categoryValueMode}
+          onToggleValueMode={onToggleCategoryValueMode}
+        />
+      </section>
+
+      <section
+        className="stats-insights"
+        aria-labelledby="stats-insights-title"
+      >
+        <h2 id="stats-insights-title">Insights</h2>
+
+        <ul className="stats-insights__list">
+          {insightRows.flat().map((insight) => (
+            <StatsInsightItem insight={insight} key={insight.id} />
+          ))}
+        </ul>
+      </section>
+
+      <section
+        className="stats-expenses"
+        aria-labelledby="stats-expenses-title"
+      >
+        <h2 id="stats-expenses-title">Expenses</h2>
+
+        <ul className="stats-expenses__list">
+          {expenseItems.map((item) => (
+            <StatsExpenseItem item={item} key={item.id} />
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
+  const currentMonthKey = getLocalDateKey().slice(0, 7);
+  const currentYear = Number(currentMonthKey.slice(0, 4));
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const yearPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [viewMode, setViewMode] = useState<StatsViewMode>("OVERVIEW");
   const [hasOpenedCharts, setHasOpenedCharts] = useState(false);
-  const [mode, setMode] = useState<StatsPeriodMode>("MONTH");
-  const [selectedMonthKey, setSelectedMonthKey] = useState(() =>
-    getInitialMonthKey(mockStatisticsMonthAvailability.availableMonths)
-  );
-  const [yearIndex, setYearIndex] = useState(yearlyStats.length - 1);
+  const [mode, setMode] = useState<StatisticsPeriodMode>("MONTH");
+  const [selectedMonthKey, setSelectedMonthKey] = useState(currentMonthKey);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [categoryValueMode, setCategoryValueMode] =
     useState<CategoryValueMode>("AMOUNT");
   const [categoryType, setCategoryType] =
     useState<TransactionType>("INCOME");
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
-  const selectableMonthKeys =
-    mockStatisticsMonthAvailability.availableMonths;
+  const [availability, setAvailability] =
+    useState<StatisticsAvailability | null>(null);
+  const [overview, setOverview] = useState<StatisticsOverview | null>(null);
+  const [charts, setCharts] = useState<StatisticsCharts | null>(null);
+  const [overviewState, setOverviewState] =
+    useState<LoadingState>("loading");
+  const [chartsState, setChartsState] =
+    useState<LoadingState>("loading");
+  const [overviewRetryKey, setOverviewRetryKey] = useState(0);
+  const [chartsRetryKey, setChartsRetryKey] = useState(0);
+
+  const periodRequest = useMemo<StatisticsPeriodRequest>(
+    () =>
+      mode === "MONTH"
+        ? { mode, month: selectedMonthKey }
+        : mode === "YEAR"
+          ? { mode, year: selectedYear }
+          : { mode },
+    [mode, selectedMonthKey, selectedYear]
+  );
+  const availableMonths = availability?.availableMonths ?? [];
+  const monthNavigationKeys = useMemo(
+    () => [...new Set([...availableMonths, currentMonthKey])].sort(),
+    [availableMonths, currentMonthKey]
+  );
+  const availableYears = useMemo(
+    () => [
+      ...new Set(
+        availableMonths.map((month) => Number(month.slice(0, 4)))
+      )
+    ],
+    [availableMonths]
+  );
+  const yearNavigationValues = useMemo(
+    () => [...new Set([...availableYears, currentYear])].sort(),
+    [availableYears, currentYear]
+  );
+  const monthIndex = monthNavigationKeys.indexOf(selectedMonthKey);
+  const yearIndex = yearNavigationValues.indexOf(selectedYear);
+  const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
+  const periodCount =
+    mode === "MONTH"
+      ? monthNavigationKeys.length
+      : yearNavigationValues.length;
+  const selectedMonth = getMonthParts(selectedMonthKey);
   const firstAvailableMonth =
-    mockStatisticsMonthAvailability.minimumMonth ?? currentMonthKey;
+    availability?.minimumMonth ?? currentMonthKey;
   const allPeriodLabel = `${formatMonthKey(
     firstAvailableMonth
   )} - ${formatMonthKey(currentMonthKey)}`;
-  const monthIndex = Math.max(
-    selectableMonthKeys.indexOf(selectedMonthKey),
-    0
-  );
-  const selectedMonth = getMonthlyPeriod(selectedMonthKey);
-  const selectedYear =
-    yearlyStats[yearIndex]?.year ?? new Date().getFullYear();
-  const periodIndex = mode === "MONTH" ? monthIndex : yearIndex;
-  const periodCount =
-    mode === "MONTH" ? selectableMonthKeys.length : yearlyStats.length;
-  const period =
-    mode === "ALL"
-      ? allTimeStats
-      : mode === "MONTH"
-        ? selectedMonth
-        : yearlyStats[yearIndex];
-  const roundedIncome = Math.round(period.income);
-  const roundedExpenses = Math.round(period.expenses);
-  const balance = roundedIncome - roundedExpenses;
-  const savingsPercentage =
-    roundedIncome > 0 ? Math.round((balance / roundedIncome) * 100) : null;
-  const expenseCategoryBreakdown = getMockCategoryBreakdown({
-    mode,
-    selectedMonth: selectedMonthKey,
-    selectedYear,
-    type: "EXPENSE"
-  });
-  const incomeCategoryBreakdown = getMockCategoryBreakdown({
-    mode,
-    selectedMonth: selectedMonthKey,
-    selectedYear,
-    type: "INCOME"
-  });
-  const selectedMonths =
-    mode === "MONTH"
-      ? [selectedMonth]
-      : mode === "YEAR"
-        ? allMonthlyStats.filter(
-            (monthlyPeriod) =>
-              monthlyPeriod.year === yearlyStats[yearIndex].year
-          )
-        : allMonthlyStats;
-  const mockExpenseTransactions =
-    createMockExpenseTransactions(selectedMonths);
-  const expenseRange = getPeriodDateRange(
-    mode,
-    selectedMonths,
-    mockExpenseTransactions
-  );
-  const noSpendStreaks = expenseRange
-    ? getNoSpendStreaks(
-        mockExpenseTransactions,
-        expenseRange.startDate,
-        expenseRange.endDate
-      )
-    : {
-        current: { days: 0, startDate: null, endDate: null },
-        longest: { days: 0, startDate: null, endDate: null },
-        isLongestCurrent: false
-      };
-  const averagePeriodCount =
-    mode === "MONTH"
-      ? expenseRange
-        ? toDayNumber(expenseRange.endDate) -
-          toDayNumber(expenseRange.startDate) +
-          1
-        : 1
-      : mode === "YEAR"
-        ? Math.max(selectedMonths.length, 1)
-        : Math.max(
-            new Set(selectedMonths.map((monthlyPeriod) => monthlyPeriod.year))
-              .size,
-            1
-          );
-  const averageExpense = roundedExpenses / averagePeriodCount;
-  const typicalExpense = getMedian(
-    mockExpenseTransactions.map((transaction) => transaction.amount)
-  );
-  const averageExpenseLabel =
-    mode === "MONTH"
-      ? "Daily Avg. expense"
-      : mode === "YEAR"
-        ? "Monthly Avg. expense"
-        : "Yearly Avg. expense";
-  const averageExpenseUnit =
-    mode === "MONTH" ? "day" : mode === "YEAR" ? "month" : "year";
-  const averageExpenseIcon =
-    mode === "MONTH" ? CalendarDays : mode === "YEAR" ? Calendar : Calendars;
-  const expenseItems: readonly ExpenseSectionItem[] = [
-    {
-      id: "typical-expense",
-      label: "Typical expense",
-      detail: `${mockExpenseTransactions.length} ${
-        mockExpenseTransactions.length === 1 ? "expense" : "expenses"
-      }`,
-      value: formatEuroAmount(typicalExpense, { fractionDigits: 0 }),
-      icon: ChartColumn
-    },
-    {
-      id: "average-expense",
-      label: averageExpenseLabel,
-      detail: `${averagePeriodCount} ${averageExpenseUnit}${
-        averagePeriodCount === 1 ? "" : "s"
-      }`,
-      value: formatEuroAmount(averageExpense, { fractionDigits: 0 }),
-      icon: averageExpenseIcon
-    },
-    {
-      id: "no-spend-days",
-      label: "No-spend streak",
-      detail: formatNoSpendStart(noSpendStreaks.current),
-      value: formatDayCount(noSpendStreaks.current.days),
-      icon: PiggyBank,
-      earnedTrophy: noSpendStreaks.isLongestCurrent
-    },
-    {
-      id: "longest-no-spend-streak",
-      label: "Longest streak",
-      detail: formatStreakPeriod(noSpendStreaks.longest, mode === "ALL"),
-      value: formatDayCount(noSpendStreaks.longest.days),
-      icon: Award
-    }
-  ];
-  const topExpense = getTopMovement(selectedMonths, "EXPENSE");
-  const topIncome = getTopMovement(selectedMonths, "INCOME");
-  const insightRows: StatsInsight[][] = [
-    [
-      {
-        id: "top-income",
-        label: "Largest income",
-        value: topIncome?.date ?? "No data",
-        sideValue: topIncome ? formatInsightAmount(topIncome.amount) : "--",
-        icon: ArrowUpRight,
-        tone: topIncome ? "positive" : "neutral"
-      },
-      {
-        id: "top-expense",
-        label: "Largest expense",
-        value: topExpense?.date ?? "No data",
-        sideValue: topExpense ? formatInsightAmount(topExpense.amount) : "--",
-        icon: ArrowDownRight,
-        tone: topExpense ? "negative" : "neutral"
-      }
-    ]
-  ];
 
-  if (mode !== "MONTH") {
-    insightRows.push([
-      createExtremeInsight(
-        "best-month",
-        "Best month",
-        getPeriodExtreme(selectedMonths, "BEST"),
-        CalendarDays,
-        "positive"
-      ),
-      createExtremeInsight(
-        "worst-month",
-        "Worst month",
-        getPeriodExtreme(selectedMonths, "WORST"),
-        CalendarDays,
-        "negative"
-      )
-    ]);
+  useEffect(() => {
+    const controller = new AbortController();
 
-    if (mode === "ALL") {
-      insightRows.push([
-        createExtremeInsight(
-          "best-year",
-          "Best year",
-          getPeriodExtreme(yearlyStats, "BEST"),
-          Calendar,
-          "positive"
-        ),
-        createExtremeInsight(
-          "worst-year",
-          "Worst year",
-          getPeriodExtreme(yearlyStats, "WORST"),
-          Calendar,
-          "negative"
-        )
-      ]);
+    getStatisticsAvailability(userId, controller.signal)
+      .then(setAvailability)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        if (error instanceof StatisticsApiError && error.status === 401) {
+          onSessionExpired();
+        }
+      });
+
+    return () => controller.abort();
+  }, [onSessionExpired, userId]);
+
+  useEffect(() => {
+    if (viewMode !== "OVERVIEW") {
+      return;
     }
 
-    insightRows.push([
-      ...createCollectionInsights(
-        "monthly",
-        "months",
-        "Avg. month balance",
-        getPeriodCollectionSummary(selectedMonths),
-        CalendarDays
-      )
-    ]);
+    const controller = new AbortController();
+    setOverview(null);
+    setOverviewState("loading");
 
-    if (mode === "ALL") {
-      insightRows.push([
-        ...createCollectionInsights(
-          "yearly",
-          "years",
-          "Avg. year balance",
-          getPeriodCollectionSummary(yearlyStats),
-          Calendars
-        )
-      ]);
+    getStatisticsOverview(userId, periodRequest, controller.signal)
+      .then((nextOverview) => {
+        setOverview(nextOverview);
+        setOverviewState("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setOverviewState("error");
+
+        if (error instanceof StatisticsApiError && error.status === 401) {
+          onSessionExpired();
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    onSessionExpired,
+    overviewRetryKey,
+    periodRequest,
+    userId,
+    viewMode
+  ]);
+
+  useEffect(() => {
+    if (viewMode !== "CHARTS") {
+      return;
     }
-  }
+
+    const controller = new AbortController();
+    setCharts(null);
+    setChartsState("loading");
+
+    getStatisticsCharts(userId, periodRequest, controller.signal)
+      .then((nextCharts) => {
+        setCharts(nextCharts);
+        setChartsState("ready");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setChartsState("error");
+
+        if (error instanceof StatisticsApiError && error.status === 401) {
+          onSessionExpired();
+        }
+      });
+
+    return () => controller.abort();
+  }, [
+    chartsRetryKey,
+    onSessionExpired,
+    periodRequest,
+    userId,
+    viewMode
+  ]);
 
   function changePeriod(nextIndex: number) {
     if (mode === "ALL") {
@@ -1088,7 +933,7 @@ export function StatsPage() {
     }
 
     if (mode === "MONTH") {
-      const nextMonth = selectableMonthKeys[nextIndex];
+      const nextMonth = monthNavigationKeys[nextIndex];
 
       if (nextMonth) {
         setSelectedMonthKey(nextMonth);
@@ -1096,8 +941,10 @@ export function StatsPage() {
       return;
     }
 
-    if (nextIndex >= 0 && nextIndex < yearlyStats.length) {
-      setYearIndex(nextIndex);
+    const nextYear = yearNavigationValues[nextIndex];
+
+    if (nextYear !== undefined) {
+      setSelectedYear(nextYear);
     }
   }
 
@@ -1105,16 +952,6 @@ export function StatsPage() {
     setCategoryValueMode((currentMode) =>
       currentMode === "AMOUNT" ? "PERCENTAGE" : "AMOUNT"
     );
-  }
-
-  function selectYear(year: number) {
-    const nextYearIndex = yearlyStats.findIndex(
-      (yearlyPeriod) => yearlyPeriod.year === year
-    );
-
-    if (nextYearIndex >= 0) {
-      setYearIndex(nextYearIndex);
-    }
   }
 
   function changeViewMode(nextView: StatsViewMode) {
@@ -1168,7 +1005,7 @@ export function StatsPage() {
               <button
                 type="button"
                 onClick={() => changePeriod(periodIndex - 1)}
-                disabled={periodIndex === 0}
+                disabled={periodIndex <= 0}
                 aria-label="Previous period"
               >
                 <ChevronLeft aria-hidden="true" />
@@ -1195,7 +1032,7 @@ export function StatsPage() {
                   className="stats-period-navigation__label"
                   aria-live="polite"
                 >
-                  {mockStatisticsYearAvailability.availableYears.length > 1 ? (
+                  {availableYears.length > 1 ? (
                     <button
                       ref={yearPickerAnchorRef}
                       className="stats-period-navigation__picker"
@@ -1204,17 +1041,17 @@ export function StatsPage() {
                       aria-expanded={isYearPickerOpen}
                       onClick={() => setIsYearPickerOpen(true)}
                     >
-                      {period.label}
+                      {selectedYear}
                     </button>
                   ) : (
-                    <strong>{period.label}</strong>
+                    <strong>{selectedYear}</strong>
                   )}
                 </span>
               )}
               <button
                 type="button"
                 onClick={() => changePeriod(periodIndex + 1)}
-                disabled={periodIndex === periodCount - 1}
+                disabled={periodIndex < 0 || periodIndex === periodCount - 1}
                 aria-label="Next period"
               >
                 <ChevronRight aria-hidden="true" />
@@ -1227,9 +1064,9 @@ export function StatsPage() {
           open={isMonthPickerOpen}
           anchorRef={monthPickerAnchorRef}
           value={selectedMonthKey}
-          availableMonths={mockStatisticsMonthAvailability.availableMonths}
-          minimumMonth={mockStatisticsMonthAvailability.minimumMonth}
-          maximumMonth={mockStatisticsMonthAvailability.maximumMonth}
+          availableMonths={availableMonths}
+          minimumMonth={availability?.minimumMonth ?? currentMonthKey}
+          maximumMonth={availability?.maximumMonth ?? currentMonthKey}
           onSelect={setSelectedMonthKey}
           onClose={() => setIsMonthPickerOpen(false)}
         />
@@ -1237,11 +1074,11 @@ export function StatsPage() {
         <YearPicker
           open={isYearPickerOpen}
           anchorRef={yearPickerAnchorRef}
-          value={yearlyStats[yearIndex].year}
-          availableYears={mockStatisticsYearAvailability.availableYears}
-          minimumYear={mockStatisticsYearAvailability.minimumYear}
-          maximumYear={mockStatisticsYearAvailability.maximumYear}
-          onSelect={selectYear}
+          value={selectedYear}
+          availableYears={availableYears}
+          minimumYear={availableYears[0] ?? currentYear}
+          maximumYear={currentYear}
+          onSelect={setSelectedYear}
           onClose={() => setIsYearPickerOpen(false)}
         />
 
@@ -1253,123 +1090,24 @@ export function StatsPage() {
             aria-hidden={viewMode !== "OVERVIEW"}
             inert={viewMode !== "OVERVIEW"}
           >
-            <div className="stats-sections">
-              <section
-                className="stats-money"
-                aria-labelledby="stats-money-title"
-              >
-                <h2 id="stats-money-title">Money</h2>
-
-                <div className="stats-money__content">
-                  <div className="stats-money__balance">
-                    <span>
-                      <Scale aria-hidden="true" />
-                      Net balance
-                    </span>
-                    <strong className={getValueTone(balance)}>
-                      {formatEuroAmount(balance, {
-                        showSign: true,
-                        fractionDigits: 0
-                      })}
-                    </strong>
-                    <p
-                      className="stats-money__saved-rate"
-                      aria-label="Percentage of income saved"
-                    >
-                      Saved:{" "}
-                      <strong
-                        className={
-                          savingsPercentage === null
-                            ? undefined
-                            : getValueTone(savingsPercentage)
-                        }
-                      >
-                        {savingsPercentage === null
-                          ? "--"
-                          : `${savingsPercentage}%`}
-                      </strong>
-                    </p>
-                  </div>
-
-                  <div className="stats-money__breakdown">
-                    <div>
-                      <span>
-                        <ArrowUpRight aria-hidden="true" />
-                        Income
-                      </span>
-                      <strong className="stats-value--positive">
-                        {formatEuroAmount(roundedIncome, { fractionDigits: 0 })}
-                      </strong>
-                    </div>
-                    <div>
-                      <span>
-                        <ArrowDownRight aria-hidden="true" />
-                        Expenses
-                      </span>
-                      <strong className="stats-value--negative">
-                        {formatEuroAmount(roundedExpenses, {
-                          fractionDigits: 0
-                        })}
-                      </strong>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section
-                className="stats-categories"
-                aria-labelledby="stats-categories-title"
-              >
-                <h2 id="stats-categories-title">Categories</h2>
-
-                <SlidingSegmentedControl
-                  className="stats-category-type"
-                  value={categoryType}
-                  options={categoryTypeOptions}
-                  onChange={setCategoryType}
-                  label="Category type"
-                  tone={categoryType === "INCOME" ? "income" : "expense"}
-                  compact
-                />
-
-                <StatsCategoryList
-                  type={categoryType}
-                  categories={
-                    categoryType === "INCOME"
-                      ? incomeCategoryBreakdown
-                      : expenseCategoryBreakdown
-                  }
-                  valueMode={categoryValueMode}
-                  onToggleValueMode={toggleCategoryValueMode}
-                />
-              </section>
-
-              <section
-                className="stats-insights"
-                aria-labelledby="stats-insights-title"
-              >
-                <h2 id="stats-insights-title">Insights</h2>
-
-                <ul className="stats-insights__list">
-                  {insightRows.flat().map((insight) => (
-                    <StatsInsightItem insight={insight} key={insight.id} />
-                  ))}
-                </ul>
-              </section>
-
-              <section
-                className="stats-expenses"
-                aria-labelledby="stats-expenses-title"
-              >
-                <h2 id="stats-expenses-title">Expenses</h2>
-
-                <ul className="stats-expenses__list">
-                  {expenseItems.map((item) => (
-                    <StatsExpenseItem item={item} key={item.id} />
-                  ))}
-                </ul>
-              </section>
-            </div>
+            {overviewState === "ready" && overview ? (
+              <StatsOverviewContent
+                overview={overview}
+                categoryType={categoryType}
+                onCategoryTypeChange={setCategoryType}
+                categoryValueMode={categoryValueMode}
+                onToggleCategoryValueMode={toggleCategoryValueMode}
+              />
+            ) : overviewState === "error" ? (
+              <StatisticsLoadState
+                message="Your statistics could not be loaded."
+                retry={() =>
+                  setOverviewRetryKey((current) => current + 1)
+                }
+              />
+            ) : (
+              <StatisticsLoadState message="Loading statistics..." />
+            )}
           </div>
 
           <section
@@ -1381,14 +1119,21 @@ export function StatsPage() {
             {hasOpenedCharts ? (
               <Suspense
                 fallback={
-                  <div className="stats-charts-loading">Loading charts...</div>
+                  <StatisticsLoadState message="Loading charts..." />
                 }
               >
-                <StatsChartsView
-                  mode={mode}
-                  selectedMonth={selectedMonthKey}
-                  selectedYear={selectedYear}
-                />
+                {chartsState === "ready" && charts ? (
+                  <StatsChartsView charts={charts} />
+                ) : chartsState === "error" ? (
+                  <StatisticsLoadState
+                    message="Your charts could not be loaded."
+                    retry={() =>
+                      setChartsRetryKey((current) => current + 1)
+                    }
+                  />
+                ) : (
+                  <StatisticsLoadState message="Loading charts..." />
+                )}
               </Suspense>
             ) : null}
           </section>

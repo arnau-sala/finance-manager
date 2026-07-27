@@ -112,20 +112,52 @@ Transaction reads and mutations derive `userId` exclusively from the secure sess
 
 `GET /statistics/months` performs one owner-scoped database aggregation over `occurredOn` and returns only distinct `YYYY-MM` values through the current day. The Stats month picker uses this compact result to derive its oldest selectable month and disable empty or future months without downloading the user's transaction history. The year picker derives its distinct years and disabled gaps from the same response, avoiding a second database query.
 
-`services/statistics-service.ts` contains reusable statistics queries so route modules can expose different statistics views without duplicating database aggregation logic.
+`GET /statistics/overview` and `GET /statistics/charts` are view-oriented
+aggregate endpoints. Both accept `period=month`, `period=year`, or `period=all`
+with an optional explicit month/year and default to the current month. A shared
+period parser rejects future periods and uses inclusive calendar dates with an
+exclusive SQL upper bound. All mode starts at the caller's earliest
+non-future transaction and ends today.
+
+Overview executes monthly totals, category totals, largest movements, and
+expense-distribution reads in parallel. PostgreSQL calculates the median
+expense, while the API derives balances, exact category percentages, interval
+summaries, averages, and no-spend streaks in integer cents. Empty calendar
+intervals are filled with zero values so chart continuity and positive-period
+denominators remain deterministic.
+
+Charts executes three bounded aggregations in parallel: financial intervals,
+category-by-interval totals, and weekday expense totals. The financial series
+is shared by Period Balance and Income vs Expenses. Category totals are derived
+from the category timeline query and shared by Category Breakdown and Category
+Timeline. Month returns weekly category buckets, Year monthly buckets, and All
+yearly buckets; Weekday Spending always returns seven values. No transaction
+rows or `userId` values cross the API boundary.
+
+`services/statistics-service.ts` retains the focused balance/category queries.
+`services/statistics-report-service.ts` owns the view aggregates, and
+`services/statistics-period.ts` owns their calendar contract. The existing
+`(userId, occurredOn)` transaction index supports every period scan; additional
+rollup tables and indexes remain deferred until measured data volumes justify
+their synchronization cost.
 
 Frontend charts use Apache ECharts through the tree-shakeable `echarts/core`
 entry and a local React lifecycle adapter in `components/charts`. The SVG
 renderer and only the currently required chart modules are registered. The
 complete Charts view is a lazy-loaded frontend chunk, keeping the chart engine
-out of the initial authenticated application bundle. Chart mock data remains
-inside the statistics feature and is generated from the same monthly totals as
-the numeric Overview; replacing it with authenticated API data must preserve
-that single-source contract. Shared chart theme access keeps typography,
-surfaces, borders, and semantic positive/negative colors aligned across the
-line and bar visualizations. Period Balance and Income vs Expenses also share
-one interval builder, ensuring their monthly and annual income, expense, and
-balance values cannot diverge during the mock phase or the later API migration.
+out of the initial authenticated application bundle. Overview data is requested
+only while Overview is active; chart data is requested only while Charts is
+active. Successful report responses use a 30-second in-memory cache by user and
+period, while period availability uses 60 seconds. Financial writes invalidate
+all three caches, and session termination clears them. Browser HTTP caching
+stays disabled for private financial responses. The former deterministic mock
+fixtures remain temporarily in the repository for comparison, but no active
+Statistics component imports or bundles them.
+
+Net Worth Evolution intentionally reports that an opening balance is required.
+Tracked income minus expenses is not presented as net worth. A later financial
+profile or auditable balance-adjustment model must store that missing source
+fact before the chart can expose real points.
 
 `routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time balance, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
 

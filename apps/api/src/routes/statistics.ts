@@ -12,6 +12,11 @@ import {
   getUserCategoryStatistics,
   getUserTransactionMonths,
 } from "../services/statistics-service.js";
+import {
+  getStatisticsCharts,
+  getStatisticsOverview,
+} from "../services/statistics-report-service.js";
+import type { StatisticsPeriodSelection } from "../services/statistics-period.js";
 import { financialReadRateLimit } from "../security/rate-limit.js";
 
 const monthSchema = z.coerce.number().int().min(1).max(12);
@@ -48,6 +53,68 @@ const typedYearlyCategoryStatisticsParamsSchema = z
     year: z.coerce.number().int().min(2000).optional(),
   })
   .strict();
+
+const statisticsReportQuerySchema = z
+  .object({
+    period: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.enum(["month", "year", "all"]))
+      .default("month"),
+    month: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-(0[1-9]|1[0-2])$/)
+      .optional(),
+    year: z.coerce.number().int().min(2000).optional(),
+  })
+  .strict();
+
+function parseStatisticsPeriod(
+  query: unknown,
+  today: string,
+): StatisticsPeriodSelection | null {
+  const parsedQuery = statisticsReportQuerySchema.safeParse(query);
+
+  if (!parsedQuery.success) {
+    return null;
+  }
+
+  const currentMonth = today.slice(0, 7);
+  const currentYear = Number(today.slice(0, 4));
+  const { period, month, year } = parsedQuery.data;
+
+  if (period === "month") {
+    if (year !== undefined) {
+      return null;
+    }
+
+    const selectedMonth = month ?? currentMonth;
+
+    return selectedMonth <= currentMonth
+      ? { mode: "MONTH", month: selectedMonth }
+      : null;
+  }
+
+  if (period === "year") {
+    if (month !== undefined) {
+      return null;
+    }
+
+    const selectedYear = year ?? currentYear;
+
+    return selectedYear <= currentYear
+      ? { mode: "YEAR", year: selectedYear }
+      : null;
+  }
+
+  if (month !== undefined || year !== undefined) {
+    return null;
+  }
+
+  return { mode: "ALL" };
+}
 
 function getMonthlyBalanceParamsSchema(currentYear: number) {
   return z
@@ -313,11 +380,63 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       const today = getTodayDateOnly();
       const availableMonths = await getUserTransactionMonths(userId, today);
 
-      return reply.send({
-        availableMonths,
-        minimumMonth: availableMonths[0] ?? null,
-        maximumMonth: today.slice(0, 7),
-      });
+      return reply
+        .header("Cache-Control", "private, no-store")
+        .send({
+          availableMonths,
+          minimumMonth: availableMonths[0] ?? null,
+          maximumMonth: today.slice(0, 7),
+        });
+    },
+  );
+
+  app.get(
+    "/statistics/overview",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const today = getTodayDateOnly();
+      const period = parseStatisticsPeriod(request.query, today);
+
+      if (!period) {
+        return reply.code(400).send({ error: "Invalid statistics period." });
+      }
+
+      const overview = await getStatisticsOverview(userId, period, today);
+
+      return reply
+        .header("Cache-Control", "private, no-store")
+        .send({ overview });
+    },
+  );
+
+  app.get(
+    "/statistics/charts",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const today = getTodayDateOnly();
+      const period = parseStatisticsPeriod(request.query, today);
+
+      if (!period) {
+        return reply.code(400).send({ error: "Invalid statistics period." });
+      }
+
+      const charts = await getStatisticsCharts(userId, period, today);
+
+      return reply
+        .header("Cache-Control", "private, no-store")
+        .send({ charts });
     },
   );
 

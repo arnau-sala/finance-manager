@@ -162,3 +162,16 @@
 - Add authenticated `GET /statistics/categories/type/:type/year`, defaulting to the current year.
 - Restrict `:type` to `income` or `expense`.
 - Combine transaction type and period filters in the same category-percentage query.
+
+## Phase 10: Statistics Experience
+
+- Add authenticated `GET /statistics/overview` for the complete numeric view.
+- Add authenticated `GET /statistics/charts` for bounded chart-ready series.
+- Support Month, Year, and All with one shared period contract.
+- Load Overview immediately and Charts lazily.
+- Cache successful responses briefly in owner-scoped memory and invalidate them
+  after financial writes or session termination.
+- Derive all displayed values from PostgreSQL transactions without sending raw
+  transaction history to the browser.
+- Keep Net Worth Evolution unavailable until opening net worth and its effective
+  date can be stored as real source data.

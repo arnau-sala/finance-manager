@@ -4,7 +4,6 @@ import { EChart } from "../../../components/charts/EChart";
 import { formatEuroAmount } from "../../../money/format-euro";
 import {
   formatFinancialIntervalRange,
-  getFinancialIntervals,
   type AggregateChartMode,
   type FinancialInterval
 } from "./statistics-chart-periods";
@@ -15,7 +14,7 @@ import {
 
 type PeriodBalanceChartProps = {
   mode: AggregateChartMode;
-  selectedYear: number;
+  intervals: readonly FinancialInterval[];
 };
 
 const compactNumberFormatter = new Intl.NumberFormat("es-ES", {
@@ -259,22 +258,18 @@ function createChartOption(
 
 export default function PeriodBalanceChart({
   mode,
-  selectedYear
+  intervals
 }: PeriodBalanceChartProps) {
   const [selectedIntervalIndex, setSelectedIntervalIndex] = useState<
     number | null
   >(null);
-  const intervals = useMemo(
-    () => getFinancialIntervals(mode, selectedYear),
-    [mode, selectedYear]
-  );
   const displayedPeriod = useMemo(
     () => formatFinancialIntervalRange(intervals),
     [intervals]
   );
   useEffect(() => {
     setSelectedIntervalIndex(null);
-  }, [mode, selectedYear]);
+  }, [intervals, mode]);
   const option = useMemo(
     () =>
       createChartOption(

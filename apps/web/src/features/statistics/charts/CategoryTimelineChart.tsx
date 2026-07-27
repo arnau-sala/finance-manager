@@ -17,20 +17,24 @@ import {
   type TransactionType
 } from "../../transactions/category-catalog";
 import {
-  getMockCategoryBreakdown,
   getVisibleCategoryBreakdown,
-  type CategoryBreakdownItem,
-  type StatisticsCategoryPeriodMode
-} from "../statistics-category-mock";
-import {
-  getFinancialIntervals,
-  type FinancialInterval
-} from "./statistics-chart-periods";
+  type CategoryBreakdownItem
+} from "../statistics-categories";
+import type {
+  StatisticsCharts,
+  StatisticsPeriodMode
+} from "../statistics-api";
+
+type TimelineCategory = CategoryBreakdownItem & {
+  type: TransactionType;
+};
 
 type CategoryTimelineChartProps = {
-  mode: StatisticsCategoryPeriodMode;
-  selectedMonth: string;
-  selectedYear: number;
+  mode: StatisticsPeriodMode;
+  periodStart: string;
+  periodEnd: string;
+  categories: readonly TimelineCategory[];
+  timeline: StatisticsCharts["categoryTimeline"];
 };
 
 type TimelineInterval = {
@@ -72,225 +76,42 @@ const monthFormatter = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
   timeZone: "UTC"
 });
+const shortMonthFormatter = new Intl.DateTimeFormat("en-GB", {
+  month: "short",
+  timeZone: "UTC"
+});
 
 function toUtcDate(date: string) {
   return new Date(`${date}T00:00:00.000Z`);
 }
 
-function getLocalDateKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}-${String(date.getDate()).padStart(2, "0")}`;
+function formatDisplayedPeriod(startDate: string, endDate: string) {
+  return `${periodDateFormatter.format(
+    toUtcDate(startDate)
+  )} - ${periodDateFormatter.format(toUtcDate(endDate))}`;
 }
 
-function getMonthEndDate(monthKey: string) {
-  const todayKey = getLocalDateKey(new Date());
-
-  if (monthKey === todayKey.slice(0, 7)) {
-    return todayKey;
-  }
-
-  const [year = 0, month = 1] = monthKey.split("-").map(Number);
-  const finalDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-
-  return `${monthKey}-${String(finalDay).padStart(2, "0")}`;
-}
-
-function createMonthIntervals(selectedMonth: string): TimelineInterval[] {
-  const finalDay = Number(getMonthEndDate(selectedMonth).slice(8, 10));
-  const intervals: TimelineInterval[] = [];
-
-  for (let startDay = 1; startDay <= finalDay; startDay += 7) {
-    const endDay = Math.min(startDay + 6, finalDay);
-    const startDate = `${selectedMonth}-${String(startDay).padStart(
-      2,
-      "0"
-    )}`;
-    const endDate = `${selectedMonth}-${String(endDay).padStart(2, "0")}`;
-
-    intervals.push({
-      key: `${selectedMonth}:week-${intervals.length + 1}`,
-      axisLabel: `Week ${intervals.length + 1}`,
-      detailLabel: `${startDay}-${endDay} ${monthFormatter.format(
-        toUtcDate(startDate)
-      )}`,
-      startDate,
-      endDate
-    });
-  }
-
-  return intervals;
-}
-
-function mapFinancialInterval(
-  interval: FinancialInterval
-): TimelineInterval {
-  return {
+function createIntervals(
+  mode: StatisticsPeriodMode,
+  intervals: StatisticsCharts["categoryTimeline"]["intervals"]
+) {
+  return intervals.map<TimelineInterval>((interval) => ({
     key: interval.key,
-    axisLabel: interval.axisLabel,
-    detailLabel: interval.tooltipLabel,
+    axisLabel:
+      mode === "YEAR"
+        ? shortMonthFormatter.format(toUtcDate(interval.startDate))
+        : interval.label,
+    detailLabel:
+      mode === "MONTH"
+        ? `${Number(interval.startDate.slice(-2))}-${Number(
+            interval.endDate.slice(-2)
+          )} ${monthFormatter.format(toUtcDate(interval.startDate))}`
+        : mode === "YEAR"
+          ? monthFormatter.format(toUtcDate(interval.startDate))
+          : interval.label,
     startDate: interval.startDate,
     endDate: interval.endDate
-  };
-}
-
-function createTimelineIntervals(
-  mode: StatisticsCategoryPeriodMode,
-  selectedMonth: string,
-  selectedYear: number
-) {
-  if (mode === "MONTH") {
-    return createMonthIntervals(selectedMonth);
-  }
-
-  return getFinancialIntervals(mode, selectedYear).map(
-    mapFinancialInterval
-  );
-}
-
-function formatDisplayedPeriod(intervals: readonly TimelineInterval[]) {
-  const firstInterval = intervals[0];
-  const finalInterval = intervals[intervals.length - 1];
-
-  if (!firstInterval || !finalInterval) {
-    return "";
-  }
-
-  return `${periodDateFormatter.format(
-    toUtcDate(firstInterval.startDate)
-  )} - ${periodDateFormatter.format(toUtcDate(finalInterval.endDate))}`;
-}
-
-function getStringHash(value: string) {
-  let hash = 0;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = (hash * 31 + value.charCodeAt(index)) >>> 0;
-  }
-
-  return hash;
-}
-
-function distributeMonthAmounts(
-  categories: readonly CategoryBreakdownItem[],
-  intervals: readonly TimelineInterval[],
-  selectedMonth: string
-) {
-  const amountsByInterval = new Map<
-    string,
-    ReadonlyMap<string, number>
-  >(
-    intervals.map((interval) => [
-      interval.key,
-      new Map<string, number>()
-    ])
-  );
-
-  categories.forEach((category) => {
-    const anchor =
-      intervals.length > 0
-        ? getStringHash(`${selectedMonth}:${category.id}`) %
-          intervals.length
-        : 0;
-    const weights = intervals.map((_, intervalIndex) => {
-      const distance = Math.abs(intervalIndex - anchor);
-      const variation =
-        (getStringHash(`${category.id}:${intervalIndex}`) % 3) + 1;
-
-      return Math.max(1, 6 - distance * 2 + variation);
-    });
-    const totalWeight = weights.reduce(
-      (total, weight) => total + weight,
-      0
-    );
-    let allocatedAmount = 0;
-
-    intervals.forEach((interval, intervalIndex) => {
-      const amount =
-        intervalIndex === intervals.length - 1
-          ? category.amount - allocatedAmount
-          : Math.round(
-              ((category.amount * (weights[intervalIndex] ?? 0)) /
-                totalWeight) *
-                100
-            ) / 100;
-      allocatedAmount += amount;
-      const intervalAmounts = amountsByInterval.get(interval.key);
-
-      if (intervalAmounts instanceof Map) {
-        intervalAmounts.set(category.id, Math.max(0, amount));
-      }
-    });
-  });
-
-  return amountsByInterval;
-}
-
-function groupIntervalAmounts(
-  breakdown: readonly CategoryBreakdownItem[],
-  visibleCategories: readonly CategoryBreakdownItem[],
-  type: TransactionType
-) {
-  const otherId = `${type.toLowerCase()}-other`;
-  const visibleCategoryIds = new Set(
-    visibleCategories
-      .filter((category) => category.id !== otherId)
-      .map((category) => category.id)
-  );
-  const amountsByCategory = new Map(
-    breakdown.map((category) => [category.id, category.amount])
-  );
-
-  if (visibleCategories.some((category) => category.id === otherId)) {
-    const otherAmount = breakdown
-      .filter(
-        (category) =>
-          category.id === otherId ||
-          !visibleCategoryIds.has(category.id)
-      )
-      .reduce((total, category) => total + category.amount, 0);
-    amountsByCategory.set(otherId, otherAmount);
-  }
-
-  return new Map(
-    visibleCategories.map((category) => [
-      category.id,
-      amountsByCategory.get(category.id) ?? 0
-    ])
-  );
-}
-
-function createIntervalAmounts(
-  mode: StatisticsCategoryPeriodMode,
-  selectedMonth: string,
-  selectedYear: number,
-  type: TransactionType,
-  intervals: readonly TimelineInterval[],
-  categories: readonly CategoryBreakdownItem[]
-) {
-  if (mode === "MONTH") {
-    return distributeMonthAmounts(categories, intervals, selectedMonth);
-  }
-
-  return new Map(
-    intervals.map((interval) => {
-      const intervalYear = Number(interval.key.slice(0, 4));
-      const breakdown = getMockCategoryBreakdown({
-        mode: mode === "YEAR" ? "MONTH" : "YEAR",
-        selectedMonth:
-          mode === "YEAR" ? interval.key : `${interval.key}-01`,
-        selectedYear:
-          mode === "YEAR" ? selectedYear : intervalYear,
-        type
-      });
-
-      return [
-        interval.key,
-        groupIntervalAmounts(breakdown, categories, type)
-      ];
-    })
-  );
+  }));
 }
 
 function getIntensity(amount: number, maximumAmount: number) {
@@ -307,29 +128,40 @@ function getIntensity(amount: number, maximumAmount: number) {
 function createTimelineRows(
   categories: readonly CategoryBreakdownItem[],
   intervals: readonly TimelineInterval[],
-  amountsByInterval: ReadonlyMap<
-    string,
-    ReadonlyMap<string, number>
-  >
+  sourceCells: StatisticsCharts["categoryTimeline"]["cells"],
+  type: TransactionType
 ) {
-  const maximumAmount = Math.max(
-    0,
-    ...intervals.flatMap((interval) => [
-      ...categories.map(
-        (category) =>
-          amountsByInterval.get(interval.key)?.get(category.id) ?? 0
-      )
-    ])
+  const otherId = `${type.toLowerCase()}-other`;
+  const directCategoryIds = new Set(
+    categories
+      .filter((category) => category.id !== otherId)
+      .map((category) => category.id)
   );
+  const amountsByCell = new Map<string, number>();
+  const intervalTotals = new Map<string, number>();
+
+  sourceCells
+    .filter((cell) => cell.type === type)
+    .forEach((cell) => {
+      intervalTotals.set(
+        cell.intervalKey,
+        (intervalTotals.get(cell.intervalKey) ?? 0) + cell.amount
+      );
+      const categoryId = directCategoryIds.has(cell.categoryId)
+        ? cell.categoryId
+        : otherId;
+      const key = `${categoryId}:${cell.intervalKey}`;
+      amountsByCell.set(key, (amountsByCell.get(key) ?? 0) + cell.amount);
+    });
+
+  const maximumAmount = Math.max(0, ...amountsByCell.values());
 
   return categories.map<TimelineRow>((category) => ({
     category,
     cells: intervals.map((interval) => {
-      const intervalAmounts = amountsByInterval.get(interval.key);
-      const amount = intervalAmounts?.get(category.id) ?? 0;
-      const intervalTotal = [
-        ...(intervalAmounts?.values() ?? [])
-      ].reduce((total, intervalAmount) => total + intervalAmount, 0);
+      const amount =
+        amountsByCell.get(`${category.id}:${interval.key}`) ?? 0;
+      const intervalTotal = intervalTotals.get(interval.key) ?? 0;
 
       return {
         key: `${category.id}:${interval.key}`,
@@ -354,8 +186,10 @@ function formatPercentage(value: number) {
 
 export default function CategoryTimelineChart({
   mode,
-  selectedMonth,
-  selectedYear
+  periodStart,
+  periodEnd,
+  categories: sourceCategories,
+  timeline
 }: CategoryTimelineChartProps) {
   const interactionRef = useRef<HTMLDivElement>(null);
   const [type, setType] = useState<TransactionType>("INCOME");
@@ -363,45 +197,34 @@ export default function CategoryTimelineChart({
     null
   );
   const intervals = useMemo(
-    () => createTimelineIntervals(mode, selectedMonth, selectedYear),
-    [mode, selectedMonth, selectedYear]
+    () => createIntervals(mode, timeline.intervals),
+    [mode, timeline.intervals]
   );
   const categories = useMemo(
     () =>
       getVisibleCategoryBreakdown(
-        getMockCategoryBreakdown({
-          mode,
-          selectedMonth,
-          selectedYear,
-          type
-        }),
+        sourceCategories.filter((category) => category.type === type),
         type
       ),
-    [mode, selectedMonth, selectedYear, type]
-  );
-  const amountsByInterval = useMemo(
-    () =>
-      createIntervalAmounts(
-        mode,
-        selectedMonth,
-        selectedYear,
-        type,
-        intervals,
-        categories
-      ),
-    [categories, intervals, mode, selectedMonth, selectedYear, type]
+    [sourceCategories, type]
   );
   const rows = useMemo(
-    () => createTimelineRows(categories, intervals, amountsByInterval),
-    [amountsByInterval, categories, intervals]
+    () =>
+      createTimelineRows(
+        categories,
+        intervals,
+        timeline.cells,
+        type
+      ),
+    [categories, intervals, timeline.cells, type]
   );
   const selectedCell =
     rows
       .flatMap((row) => row.cells)
       .find((cell) => cell.key === selectedCellKey) ?? null;
   const displayedPeriod = useMemo(
-    () => formatDisplayedPeriod(intervals),
-    [intervals]
+    () => formatDisplayedPeriod(periodStart, periodEnd),
+    [periodEnd, periodStart]
   );
   const matrixStyle = {
     "--timeline-columns": rows.length,
@@ -412,7 +235,7 @@ export default function CategoryTimelineChart({
 
   useEffect(() => {
     setSelectedCellKey(null);
-  }, [mode, selectedMonth, selectedYear, type]);
+  }, [mode, periodEnd, periodStart, type]);
 
   useEffect(() => {
     if (selectedCellKey === null) {

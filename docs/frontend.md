@@ -466,29 +466,22 @@ MVP content:
 - All-time balance.
 - Category percentages.
 
-The first visual iteration focuses on numeric information before charts are
-introduced. It uses varied mock monthly, yearly, and all-time periods to validate
-the mobile layout, period navigation, and positive and negative balances. The
-all-time view aggregates yearly totals so that no month is counted twice. Money
-is kept in one group containing net balance, income, expenses, and the
-percentage of income saved. A separate category breakdown keeps expenses and
-income behind a compact type switch, showing one full-width list at a time and
-only active categories in descending amount order. This temporary data source
-will be replaced by authenticated aggregate endpoints. Category values show
-amounts by default. Selecting any value switches the visible list to percentages;
-selecting one again restores the amount view.
-Stats displays these summary amounts as whole euros while preserving cents in
-the underlying values and elsewhere in the app.
-In Month mode, the visible month and year open the custom month picker. During
-the current visual iteration, the picker derives its availability from
-deterministic mock transaction records, with between 5 and 30 records per month
-from March 2024 through the current date. Future days and months are excluded,
-and the current period ends today when calculating daily values or no-spend
-streaks. The picker can later consume the existing authenticated
-`GET /statistics/months` response without changing its UI contract. Its year
-can be changed with bounded arrow controls, a horizontal swipe, or a
-mouse/trackpad wheel. Selecting an enabled month closes the picker and updates
-the Stats period.
+The numeric view consumes the authenticated `GET /statistics/overview`
+endpoint. One response provides the money summary, category totals, insights,
+and expense behavior required by the complete view. Month, Year, and All use
+the same response contract, and no raw transactions or `userId` values reach
+the browser. Money is kept in one group containing net balance, income,
+expenses, and the percentage of income saved. Category values show amounts by
+default. Selecting any value switches the visible list to percentages;
+selecting one again restores the amount view. Summary amounts are displayed as
+whole euros while cents remain preserved in the API values.
+
+In Month mode, the visible month and year open the custom month picker. Enabled
+months come from the authenticated `GET /statistics/months` endpoint. Future
+days and months are excluded, and the current period ends today when
+calculating daily values or no-spend streaks. The picker's year can be changed
+with bounded arrow controls, a horizontal swipe, or a mouse/trackpad wheel.
+Selecting an enabled month closes the picker and updates the Stats period.
 
 Year mode uses an anchored picker with the same animation, focus handling, and
 outside-click behavior as the month picker. It derives available years from the
@@ -500,17 +493,14 @@ options: four years become a 2x2 layout, five become 3+2, and later rows expand
 when necessary so that a single orphan option is avoided.
 
 The numeric Insights section adapts to the selected period. Every mode shows
-the top expense and income with their exact mock dates. Year adds the best and
-worst month, positive month count, and average monthly balance. All adds the
-same monthly indicators
-across the complete history plus their yearly equivalents. Best and worst
-periods are ranked by savings percentage and show both balance and percentage;
-periods without income are excluded from that ranking because their savings
-percentage is undefined. They still count when calculating positive periods and
-average balances. Historical yearly mock totals are derived from monthly data so
-the different views remain consistent. Insights are rendered as one full-width
-row per metric in row-major order from their logical pairs, using the same icon,
-title, supporting text, value sizing, and spacing as the category list.
+the top expense and income with their exact dates. Year adds the best and worst
+month, positive month count, and average monthly balance. All adds the same
+monthly indicators across the complete history plus their yearly equivalents.
+Best and worst periods are ranked by savings percentage and show both balance
+and percentage. Periods without income are excluded from that ranking because
+their savings percentage is undefined, but they still count toward positive
+period and average balance calculations. Insights use the same row structure,
+icon treatment, type scale, and spacing as the category list.
 
 The final Expenses section focuses on spending behavior rather than repeating
 the main totals. It shows the median expense, the daily/monthly/yearly expense
@@ -521,24 +511,28 @@ Stats has separate Overview and Charts views under the same period controls.
 Changing views moves only the content below the selected period, while the
 header and date controls remain fixed. The chart engine is loaded through a
 dynamic import the first time Charts is opened, so ECharts is excluded from the
-initial application bundle.
+initial application bundle. The charts response is also requested only when
+that view is active. Overview and Charts results use a short 30-second
+in-memory cache by authenticated account and period. Period availability uses
+60 seconds. Transaction changes, logout, account deletion, and session
+expiration invalidate those caches.
 
 The shared `components/charts/EChart.tsx` adapter initializes one modular
 ECharts instance, uses the SVG renderer, responds to container resizing, and
-disposes the instance with the React lifecycle. The first visualization is
-`Net Worth Evolution`. Its mock series is generated from the same monthly
-income and expense totals as Overview, beginning with a mock opening net worth
-of `6473€` in March 2024. Month and Year retain daily snapshots to preserve
-intra-month peaks; All uses month-end snapshots. Axis labels and visible point
-symbols are reduced independently from the underlying data so the mobile chart
-remains readable without flattening the line.
+disposes the instance with the React lifecycle. Charts consumes one
+authenticated `GET /statistics/charts` response. Shared financial intervals
+feed Period Balance and Income vs Expenses, while one category-by-interval
+aggregation feeds both Category Breakdown and Category Timeline.
 
-`Period Balance` reuses those monthly totals to display income-minus-expense
-around an explicit zero line. Year renders one bar per available month and All
-one aggregated bar per year; positive and negative intervals use the semantic
-success and danger colors. The graph is intentionally omitted from Month, and
-exact signed values appear only after pressing a bar. Pressing the selected bar
-again or pressing outside the chart clears its focus and dismisses the detail.
+`Net Worth Evolution` remains visibly unavailable until the data model stores
+an opening net worth and its effective date. The API reports
+`OPENING_BALANCE_REQUIRED` instead of drawing a misleading line from zero.
+
+`Period Balance` displays income minus expenses around an explicit zero line.
+Year renders one bar per available month and All one aggregated bar per year.
+The graph is intentionally omitted from Month, and exact signed values appear
+only after pressing a bar. Pressing the selected bar again or pressing outside
+the chart clears its focus and dismisses the detail.
 
 `Income vs Expenses` follows Period Balance in Year and All and is likewise
 omitted from Month. It renders stepped areas from the same shared financial
@@ -548,6 +542,17 @@ month or year, future periods are not reserved, and the shared tooltip exposes
 both exact amounts. Pressing an interval outlines its income and expense areas
 while muting every other interval; pressing it again or pressing outside clears
 the selection.
+
+`Category Breakdown` and `Category Timeline` share the same category totals.
+Categories below one percent are grouped into Other when necessary. Breakdown
+uses the compact percentage matrix; Timeline shows how each category is
+distributed over weeks, months, or years. `Weekday Spending` uses seven
+server-provided weekday aggregates and appears when the selected period has
+enough expense transactions.
+
+The deterministic statistics fixture files remain in the repository as visual
+development references, but production components do not import or bundle
+them.
 
 ### 10. Account
 

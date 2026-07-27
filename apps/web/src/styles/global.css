@@ -1687,13 +1687,34 @@ body.stats-picker-open .home-content--stats {
   transform: translateX(0);
 }
 
-.stats-charts-loading {
+.stats-load-state {
   min-height: max(280px, calc(100dvh - 290px));
   display: grid;
-  place-items: center;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
   color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.4;
+  text-align: center;
+}
+
+.stats-load-state button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.stats-load-state button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .stats-charts-page {
@@ -1735,7 +1756,25 @@ body.stats-picker-open .home-content--stats {
   white-space: nowrap;
 }
 
-.stats-net-worth__chart,
+.stats-chart-unavailable {
+  min-height: 178px;
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  padding: 20px;
+  border-block: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.stats-chart-unavailable strong {
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 400;
+}
+
 .stats-period-balance__chart,
 .stats-income-expenses__chart,
 .stats-weekday-spending__chart {

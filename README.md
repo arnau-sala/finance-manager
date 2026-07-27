@@ -4,7 +4,9 @@ Backend-first personal finance manager.
 
 ## Current Phase
 
-Frontend work has started with the initial mobile-first auth screens and Google sign-in foundation.
+The mobile-first authenticated experience now includes real Home, Moves, Profile,
+and Statistics screens. Statistics Overview and Charts use owner-scoped
+PostgreSQL aggregations rather than frontend fixtures.
 
 Implemented:
 
@@ -75,6 +77,8 @@ Transactions:
 Statistics:
 
 - `GET /statistics/months`
+- `GET /statistics/overview`
+- `GET /statistics/charts`
 - `GET /statistics/balance`
 - `GET /statistics/balance/:month/:year`
 - `GET /statistics/balance/:month`
@@ -783,6 +787,74 @@ transactions nor `userId` values are exposed:
 
 `minimumMonth` is `null` when the account has no transactions.
 `maximumMonth` is always the current calendar month.
+
+## Get My Statistics Overview
+
+An active login session is required. The endpoint accepts one of three periods:
+
+```http
+GET /statistics/overview
+GET /statistics/overview?period=month&month=2026-07
+GET /statistics/overview?period=year&year=2026
+GET /statistics/overview?period=all
+```
+
+Without query parameters it uses the current month. Future months and years are
+rejected. The response is designed for the numeric Stats view and contains:
+
+- income, expenses, balance, and saved percentage;
+- category amount, percentage, transaction count, and average;
+- largest movements and monthly/yearly insights where applicable;
+- median expense, period average, and no-spend streaks.
+
+All calculations use only transactions owned by the authenticated user. Empty
+periods return zero values and empty category collections. Money is calculated
+in integer cents and exposed as decimal strings. Representative response
+excerpt:
+
+```json
+{
+  "overview": {
+    "period": {
+      "mode": "MONTH",
+      "key": "2026-07",
+      "startDate": "2026-07-01",
+      "endDate": "2026-07-27"
+    },
+    "money": {
+      "income": "1380.00",
+      "expenses": "2534.50",
+      "balance": "-1154.50",
+      "savingsPercentage": -84
+    }
+  }
+}
+```
+
+## Get My Statistics Charts
+
+Charts use the same period query:
+
+```http
+GET /statistics/charts
+GET /statistics/charts?period=month&month=2026-07
+GET /statistics/charts?period=year&year=2026
+GET /statistics/charts?period=all
+```
+
+The response returns chart-neutral financial series rather than ECharts
+configuration. It includes shared income/expense/balance intervals, category
+totals, category-by-interval cells, and seven weekday spending aggregates.
+Period Balance and Income vs Expenses therefore use one common series, while
+Category Breakdown and Category Timeline use one common category aggregation.
+
+Net Worth Evolution currently returns
+`status: "OPENING_BALANCE_REQUIRED"` and no points. A real net-worth series
+cannot be calculated until an opening balance and effective date are stored;
+the API never substitutes a fictitious zero balance.
+
+Both aggregate endpoints derive ownership from the secure session, never accept
+`userId`, exclude dates after today, and send `Cache-Control: private, no-store`.
 
 ## Get My Balance
 

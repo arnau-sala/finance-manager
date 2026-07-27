@@ -10,20 +10,18 @@ import {
   type TransactionType
 } from "../../transactions/category-catalog";
 import {
-  getMockCategoryBreakdown,
   getVisibleCategoryBreakdown,
-  type CategoryBreakdownItem,
-  type StatisticsCategoryPeriodMode
-} from "../statistics-category-mock";
-import {
-  formatFinancialIntervalRange,
-  getFinancialIntervals
-} from "./statistics-chart-periods";
+  type CategoryBreakdownItem
+} from "../statistics-categories";
+import type { StatisticsPeriodMode } from "../statistics-api";
 
 type CategoryBreakdownChartProps = {
-  mode: StatisticsCategoryPeriodMode;
-  selectedMonth: string;
-  selectedYear: number;
+  mode: StatisticsPeriodMode;
+  periodStart: string;
+  periodEnd: string;
+  categories: readonly (CategoryBreakdownItem & {
+    type: TransactionType;
+  })[];
 };
 
 type MatrixRectangle = {
@@ -89,37 +87,10 @@ function toUtcDate(date: string) {
   return new Date(`${date}T00:00:00.000Z`);
 }
 
-function getMonthEndDate(monthKey: string) {
-  const [year = 0, month = 1] = monthKey.split("-").map(Number);
-  const today = new Date();
-  const currentMonthKey = `${today.getFullYear()}-${String(
-    today.getMonth() + 1
-  ).padStart(2, "0")}`;
-
-  if (monthKey === currentMonthKey) {
-    return `${monthKey}-${String(today.getDate()).padStart(2, "0")}`;
-  }
-
-  const finalDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return `${monthKey}-${String(finalDay).padStart(2, "0")}`;
-}
-
-function formatDisplayedPeriod(
-  mode: StatisticsCategoryPeriodMode,
-  selectedMonth: string,
-  selectedYear: number
-) {
-  if (mode === "MONTH") {
-    return `${periodDateFormatter.format(
-      toUtcDate(`${selectedMonth}-01`)
-    )} - ${periodDateFormatter.format(
-      toUtcDate(getMonthEndDate(selectedMonth))
-    )}`;
-  }
-
-  return formatFinancialIntervalRange(
-    getFinancialIntervals(mode, selectedYear)
-  );
+function formatDisplayedPeriod(startDate: string, endDate: string) {
+  return `${periodDateFormatter.format(
+    toUtcDate(startDate)
+  )} - ${periodDateFormatter.format(toUtcDate(endDate))}`;
 }
 
 function createMatrixCategorySeeds(
@@ -478,8 +449,9 @@ function getCategoryControlClassName(
 
 export default function CategoryBreakdownChart({
   mode,
-  selectedMonth,
-  selectedYear
+  periodStart,
+  periodEnd,
+  categories: sourceCategories
 }: CategoryBreakdownChartProps) {
   const matrixRef = useRef<HTMLDivElement>(null);
   const [type, setType] = useState<TransactionType>("INCOME");
@@ -489,15 +461,10 @@ export default function CategoryBreakdownChart({
   const categories = useMemo(
     () =>
       createMatrixCategories(
-        getMockCategoryBreakdown({
-          mode,
-          selectedMonth,
-          selectedYear,
-          type
-        }),
+        sourceCategories.filter((category) => category.type === type),
         type
       ),
-    [mode, selectedMonth, selectedYear, type]
+    [sourceCategories, type]
   );
   const cells = useMemo(
     () => createMatrixCells(categories),
@@ -506,13 +473,13 @@ export default function CategoryBreakdownChart({
   const selectedCategory =
     categories.find(({ id }) => id === selectedCategoryId) ?? null;
   const displayedPeriod = useMemo(
-    () => formatDisplayedPeriod(mode, selectedMonth, selectedYear),
-    [mode, selectedMonth, selectedYear]
+    () => formatDisplayedPeriod(periodStart, periodEnd),
+    [periodEnd, periodStart]
   );
 
   useEffect(() => {
     setSelectedCategoryId(null);
-  }, [mode, selectedMonth, selectedYear, type]);
+  }, [mode, periodEnd, periodStart, type]);
 
   useEffect(() => {
     if (selectedCategoryId === null) {
