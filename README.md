@@ -846,8 +846,9 @@ GET /statistics/charts?period=all
 The response returns chart-neutral financial series rather than ECharts
 configuration. It includes shared income/expense/balance intervals, category
 totals, category-by-interval cells, and seven weekday spending aggregates.
-Period Balance and Income vs Expenses therefore use one common series, while
-Category Breakdown and Category Timeline use one common category aggregation.
+The combined Cash Flow chart renders income, expenses, and balance from that
+single financial series, while Category Breakdown and Category Timeline use one
+common category aggregation.
 
 Net Worth Evolution currently returns
 `status: "OPENING_BALANCE_REQUIRED"` and no points. A real net-worth series

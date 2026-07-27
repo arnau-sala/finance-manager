@@ -544,27 +544,24 @@ The shared `components/charts/EChart.tsx` adapter initializes one modular
 ECharts instance, uses the SVG renderer, responds to container resizing, and
 disposes the instance with the React lifecycle. Charts consumes one
 authenticated `GET /statistics/charts` response. Shared financial intervals
-feed Period Balance and Income vs Expenses, while one category-by-interval
-aggregation feeds both Category Breakdown and Category Timeline.
+feed the combined Cash Flow chart, while one category-by-interval aggregation
+feeds both Category Breakdown and Category Timeline.
 
 `Net Worth Evolution` remains visibly unavailable until the data model stores
 an opening net worth and its effective date. The API reports
 `OPENING_BALANCE_REQUIRED` instead of drawing a misleading line from zero.
 
-`Period Balance` displays income minus expenses around an explicit zero line.
-Year renders one bar per available month and All one aggregated bar per year.
-The graph is intentionally omitted from Month, and exact signed values appear
-only after pressing a bar. Pressing the selected bar again or pressing outside
-the chart clears its focus and dismisses the detail.
+`Cash Flow` combines the former Period Balance and Income vs Expenses charts
+and is shown in Year and All, while Month intentionally omits it. Every month or
+year occupies one vertical column position: income rises above zero, expenses
+fall below it, and the signed balance is drawn in amber over the corresponding
+side. All three layers share the same width and horizontal position.
 
-`Income vs Expenses` follows Period Balance in Year and All and is likewise
-omitted from Month. It renders stepped areas from the same shared financial
-intervals: income remains above zero, expenses below it, and each height change
-lands on an interval boundary. Labels are centered inside the represented
-month or year, future periods are not reserved, and the shared tooltip exposes
-both exact amounts. Pressing an interval outlines its income and expense areas
-while muting every other interval; pressing it again or pressing outside clears
-the selection.
+Three independent icon controls in the header toggle Income, Expenses, and
+Balance. All begin enabled, at least one must remain visible, and each layer
+animates between its value and zero. Pressing any visible part selects the whole
+interval; the shared tooltip includes only enabled metrics. Pressing it again,
+changing a visible metric, or pressing outside clears the selection.
 
 `Category Breakdown` and `Category Timeline` share the same category totals.
 Categories below one percent are grouped into Other when necessary. Breakdown

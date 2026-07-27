@@ -140,11 +140,12 @@ describes the selected closed period.
 
 Charts executes three bounded aggregations in parallel: financial intervals,
 category-by-interval totals, and weekday expense totals. The financial series
-is shared by Period Balance and Income vs Expenses. Category totals are derived
-from the category timeline query and shared by Category Breakdown and Category
-Timeline. Month returns weekly category buckets, Year monthly buckets, and All
-yearly buckets; Weekday Spending always returns seven values. No transaction
-rows or `userId` values cross the API boundary.
+feeds the combined Cash Flow visualization, including income, expenses, and
+their balance without another query. Category totals are derived from the
+category timeline query and shared by Category Breakdown and Category Timeline.
+Month returns weekly category buckets, Year monthly buckets, and All yearly
+buckets; Weekday Spending always returns seven values. No transaction rows or
+`userId` values cross the API boundary.
 
 `services/statistics-service.ts` retains the focused balance/category queries.
 `services/statistics-report-service.ts` owns the view aggregates, and

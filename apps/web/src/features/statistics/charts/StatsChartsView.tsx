@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 
 import type { StatisticsCharts } from "../statistics-api";
+import CashFlowChart from "./CashFlowChart";
 import CategoryBreakdownChart from "./CategoryBreakdownChart";
 import CategoryTimelineChart from "./CategoryTimelineChart";
-import IncomeExpensesChart from "./IncomeExpensesChart";
 import NetWorthEvolutionChart from "./NetWorthEvolutionChart";
-import PeriodBalanceChart from "./PeriodBalanceChart";
 import { createFinancialIntervals } from "./statistics-chart-periods";
 import WeekdaySpendingChart from "./WeekdaySpendingChart";
 
@@ -35,16 +34,10 @@ export default function StatsChartsView({ charts }: StatsChartsViewProps) {
         netWorth={charts.netWorth}
       />
       {period.mode !== "MONTH" ? (
-        <>
-          <PeriodBalanceChart
-            mode={aggregateMode}
-            intervals={financialIntervals}
-          />
-          <IncomeExpensesChart
-            mode={aggregateMode}
-            intervals={financialIntervals}
-          />
-        </>
+        <CashFlowChart
+          mode={aggregateMode}
+          intervals={financialIntervals}
+        />
       ) : null}
       <CategoryBreakdownChart
         mode={period.mode}
