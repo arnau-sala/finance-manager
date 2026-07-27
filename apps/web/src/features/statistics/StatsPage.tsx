@@ -1029,27 +1029,33 @@ export function StatsPage({
         className="home-content home-content--stats"
         aria-labelledby="stats-empty-title"
       >
-        <div className="stats-account-empty">
-          <ReceiptText aria-hidden="true" />
-          <h1 id="stats-empty-title">No transactions yet</h1>
-          <p>
-            Add your first transaction to start seeing your financial
-            statistics.
-          </p>
-          <button
-            className="home-new-transaction stats-account-empty__action"
-            type="button"
-            onClick={onNewTransaction}
-          >
-            <span
-              className="home-new-transaction__icon"
-              aria-hidden="true"
+        <div className="stats-page stats-page--empty">
+          <header className="stats-page__header">
+            <h1>Stats</h1>
+          </header>
+
+          <div className="stats-account-empty">
+            <ReceiptText aria-hidden="true" />
+            <h2 id="stats-empty-title">No transactions yet</h2>
+            <p>
+              Add your first transaction to start seeing your financial
+              statistics.
+            </p>
+            <button
+              className="home-new-transaction stats-account-empty__action"
+              type="button"
+              onClick={onNewTransaction}
             >
-              <Plus />
-            </span>
-            <span>New transaction</span>
-            <ChevronRight aria-hidden="true" />
-          </button>
+              <span
+                className="home-new-transaction__icon"
+                aria-hidden="true"
+              >
+                <Plus />
+              </span>
+              <span>New transaction</span>
+              <ChevronRight aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </section>
     );

@@ -477,10 +477,11 @@ selecting one again restores the amount view. Summary amounts are displayed as
 whole euros while cents remain preserved in the API values.
 
 When `GET /statistics/months` reports no recorded period, Stats replaces its
-entire header, period controls, Overview, and Charts content with one empty
-state. Its action opens the shared New Transaction composer. A successful first
-transaction clears the statistics caches, refreshes the availability and
-Overview reads, closes the composer, and leaves Stats as the active section.
+period controls, view selector, Overview, and Charts content with one empty
+state while retaining the `Stats` page title. Its action opens the shared New
+Transaction composer. A successful first transaction clears the statistics
+caches, refreshes the availability and Overview reads, closes the composer, and
+leaves Stats as the active section.
 
 In Month mode, the visible month and year open the custom month picker. Enabled
 months come from the authenticated `GET /statistics/months` endpoint. Future

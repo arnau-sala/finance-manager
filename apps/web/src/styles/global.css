@@ -1217,6 +1217,12 @@ body.stats-picker-open .home-content--stats {
   line-height: 1.2;
 }
 
+.stats-page--empty {
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
 .stats-account-empty {
   width: min(100%, 440px);
   min-height: calc(
@@ -1233,6 +1239,12 @@ body.stats-picker-open .home-content--stats {
   text-align: center;
 }
 
+.stats-page--empty .stats-account-empty {
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+
 .stats-account-empty > svg {
   width: 32px;
   height: 32px;
@@ -1241,7 +1253,9 @@ body.stats-picker-open .home-content--stats {
   stroke-width: 1.6;
 }
 
-.home-content .stats-account-empty h1 {
+.home-content .stats-account-empty h2 {
+  margin: 0;
+  color: var(--color-text);
   font-size: 18px;
   line-height: 1.35;
   font-weight: 400;
