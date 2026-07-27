@@ -442,8 +442,10 @@ function createExpenseItems(
         ? Calendar
         : Calendars;
 
-  const items: ExpenseSectionItem[] = [
-    {
+  const items: ExpenseSectionItem[] = [];
+
+  if (expenses.transactionCount > 0) {
+    items.push({
       id: "typical-expense",
       label: "Typical expense",
       detail: `${expenses.transactionCount} ${
@@ -453,8 +455,8 @@ function createExpenseItems(
         fractionDigits: 0
       }),
       icon: ChartColumn
-    },
-    {
+    });
+    items.push({
       id: "average-expense",
       label: averageLabel,
       detail: `${expenses.averagePeriodCount} ${unit}${
@@ -464,8 +466,8 @@ function createExpenseItems(
         fractionDigits: 0
       }),
       icon: averageIcon
-    }
-  ];
+    });
+  }
 
   if (expenses.currentStreak) {
     items.push({

@@ -504,10 +504,11 @@ icon treatment, type scale, and spacing as the category list.
 
 The final Expenses section focuses on spending behavior rather than repeating
 the main totals. It shows the median expense, the daily/monthly/yearly expense
-for the selected mode, and the longest no-spend streak. The current no-spend
-streak appears only for the current month, current year, and All; closed
-month/year periods omit the row entirely. A trophy marks the current streak
-when it is also the longest.
+for the selected mode, and the longest no-spend streak. Median and average
+expense rows are omitted when the selected period contains no expenses. The
+current no-spend streak appears only for the current month, current year, and
+All; closed month/year periods omit the row entirely. A trophy marks the
+current streak when it is also the longest.
 
 Stats has separate Overview and Charts views under the same period controls.
 Changing views moves only the content below the selected period, while the
