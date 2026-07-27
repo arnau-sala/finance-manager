@@ -336,9 +336,9 @@ function createInsightRows(overview: StatisticsOverview) {
           : "No data",
         sideValue: insights.largestIncome
           ? formatInsightAmount(insights.largestIncome.amount)
-          : "--",
+          : formatInsightAmount(0),
         icon: ArrowUpRight,
-        tone: insights.largestIncome ? "positive" : "neutral"
+        tone: "positive"
       },
       {
         id: "top-expense",
@@ -348,9 +348,9 @@ function createInsightRows(overview: StatisticsOverview) {
           : "No data",
         sideValue: insights.largestExpense
           ? formatInsightAmount(insights.largestExpense.amount)
-          : "--",
+          : formatInsightAmount(0),
         icon: ArrowDownRight,
-        tone: insights.largestExpense ? "negative" : "neutral"
+        tone: "negative"
       }
     ]
   ];
