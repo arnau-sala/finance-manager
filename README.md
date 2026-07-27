@@ -805,7 +805,8 @@ rejected. The response is designed for the numeric Stats view and contains:
 - income, expenses, balance, and saved percentage;
 - category amount, percentage, transaction count, and average;
 - largest movements and monthly/yearly insights where applicable;
-- median expense, period average, and no-spend streaks.
+- median expense, period average, and no-spend streaks. The current streak is
+  returned only for the current month, current year, and All.
 
 All calculations use only transactions owned by the authenticated user. Empty
 periods return zero values and empty category collections. Money is calculated

@@ -126,6 +126,11 @@ summaries, averages, and no-spend streaks in integer cents. Empty calendar
 intervals are filled with zero values so chart continuity and positive-period
 denominators remain deterministic.
 
+The current no-spend streak is calculated only when the requested period ends
+today: the current month, current year, or All. Historical month/year responses
+set `currentStreak` to `null`; their longest streak remains available because it
+describes the selected closed period.
+
 Charts executes three bounded aggregations in parallel: financial intervals,
 category-by-interval totals, and weekday expense totals. The financial series
 is shared by Period Balance and Income vs Expenses. Category totals are derived

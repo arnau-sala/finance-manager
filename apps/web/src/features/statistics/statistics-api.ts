@@ -82,7 +82,7 @@ const overviewResponseSchema = z.object({
       averageAmount: moneySchema,
       averagePeriodCount: z.number().int().nonnegative(),
       averagePeriodUnit: z.enum(["DAY", "MONTH", "YEAR"]),
-      currentStreak: streakSchema,
+      currentStreak: streakSchema.nullable(),
       longestStreak: streakSchema,
       isLongestCurrent: z.boolean()
     })

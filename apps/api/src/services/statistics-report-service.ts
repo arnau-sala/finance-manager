@@ -368,7 +368,8 @@ function dayNumberToDate(dayNumber: number) {
 function getNoSpendStreaks(
   expenseDates: readonly string[],
   from: string,
-  endDate: string
+  endDate: string,
+  includeCurrent: boolean
 ) {
   const expenseDays = new Set(expenseDates.map(dateToDayNumber));
   const startDay = dateToDayNumber(from);
@@ -408,27 +409,36 @@ function getNoSpendStreaks(
 
   finishStreak(finalDay);
 
-  let currentDays = 0;
+  let current: NoSpendStreak | null = null;
 
-  for (
-    let day = finalDay;
-    day >= startDay && !expenseDays.has(day);
-    day -= 1
-  ) {
-    currentDays += 1;
+  if (includeCurrent) {
+    let currentDays = 0;
+
+    for (
+      let day = finalDay;
+      day >= startDay && !expenseDays.has(day);
+      day -= 1
+    ) {
+      currentDays += 1;
+    }
+
+    current = {
+      days: currentDays,
+      startDate:
+        currentDays > 0
+          ? dayNumberToDate(finalDay - currentDays + 1)
+          : null,
+      endDate: currentDays > 0 ? endDate : null
+    };
   }
-
-  const current = {
-    days: currentDays,
-    startDate:
-      currentDays > 0 ? dayNumberToDate(finalDay - currentDays + 1) : null,
-    endDate: currentDays > 0 ? endDate : null
-  };
 
   return {
     current,
     longest,
-    isLongestCurrent: current.days > 0 && current.days === longest.days
+    isLongestCurrent:
+      current !== null &&
+      current.days > 0 &&
+      current.days === longest.days
   };
 }
 
@@ -585,7 +595,8 @@ export async function getStatisticsOverview(
   const streaks = getNoSpendStreaks(
     expenseAggregate.expenseDates,
     period.from,
-    period.endDate
+    period.endDate,
+    period.endDate === today
   );
 
   function serializeMovement(type: TransactionType) {

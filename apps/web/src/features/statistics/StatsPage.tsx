@@ -176,7 +176,12 @@ function formatMovementDate(date: string) {
 function formatNoSpendStart(
   streak: StatisticsOverview["expenses"]["currentStreak"]
 ) {
-  if (!streak.startDate || !streak.endDate || streak.days === 0) {
+  if (
+    !streak ||
+    !streak.startDate ||
+    !streak.endDate ||
+    streak.days === 0
+  ) {
     return "No active streak";
   }
 
@@ -437,7 +442,7 @@ function createExpenseItems(
         ? Calendar
         : Calendars;
 
-  return [
+  const items: ExpenseSectionItem[] = [
     {
       id: "typical-expense",
       label: "Typical expense",
@@ -459,26 +464,32 @@ function createExpenseItems(
         fractionDigits: 0
       }),
       icon: averageIcon
-    },
-    {
+    }
+  ];
+
+  if (expenses.currentStreak) {
+    items.push({
       id: "no-spend-days",
       label: "No-spend streak",
       detail: formatNoSpendStart(expenses.currentStreak),
       value: formatDayCount(expenses.currentStreak.days),
       icon: PiggyBank,
       earnedTrophy: expenses.isLongestCurrent
-    },
-    {
-      id: "longest-no-spend-streak",
-      label: "Longest streak",
-      detail: formatStreakPeriod(
-        expenses.longestStreak,
-        period.mode === "ALL"
-      ),
-      value: formatDayCount(expenses.longestStreak.days),
-      icon: Award
-    }
-  ];
+    });
+  }
+
+  items.push({
+    id: "longest-no-spend-streak",
+    label: "Longest streak",
+    detail: formatStreakPeriod(
+      expenses.longestStreak,
+      period.mode === "ALL"
+    ),
+    value: formatDayCount(expenses.longestStreak.days),
+    icon: Award
+  });
+
+  return items;
 }
 
 type StatsCategoryListProps = {
