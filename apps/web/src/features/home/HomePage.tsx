@@ -51,8 +51,16 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       refreshKey={financialRefreshKey}
     />
   ),
-  moves: ({ onSessionExpired }) => (
-    <MovesPage onSessionExpired={onSessionExpired} />
+  moves: ({
+    onSessionExpired,
+    onNewTransaction,
+    financialRefreshKey
+  }) => (
+    <MovesPage
+      refreshKey={financialRefreshKey}
+      onNewTransaction={onNewTransaction}
+      onSessionExpired={onSessionExpired}
+    />
   ),
   stats: ({
     user,

@@ -19,8 +19,6 @@ import {
   ChevronRight,
   List,
   PiggyBank,
-  Plus,
-  ReceiptText,
   RefreshCw,
   Scale,
   Trophy,
@@ -38,6 +36,7 @@ import {
   getCategoryIcon,
   type TransactionType
 } from "../transactions/category-catalog";
+import { FirstTransactionEmptyState } from "../transactions/FirstTransactionEmptyState";
 import {
   getStatisticsAvailability,
   getStatisticsCharts,
@@ -1027,35 +1026,17 @@ export function StatsPage({
     return (
       <section
         className="home-content home-content--stats"
-        aria-labelledby="stats-empty-title"
+        aria-labelledby="stats-page-title"
       >
         <div className="stats-page stats-page--empty">
           <header className="stats-page__header">
-            <h1>Stats</h1>
+            <h1 id="stats-page-title">Stats</h1>
           </header>
 
-          <div className="stats-account-empty">
-            <ReceiptText aria-hidden="true" />
-            <h2 id="stats-empty-title">No transactions yet</h2>
-            <p>
-              Add your first transaction to start seeing your financial
-              statistics.
-            </p>
-            <button
-              className="home-new-transaction stats-account-empty__action"
-              type="button"
-              onClick={onNewTransaction}
-            >
-              <span
-                className="home-new-transaction__icon"
-                aria-hidden="true"
-              >
-                <Plus />
-              </span>
-              <span>New transaction</span>
-              <ChevronRight aria-hidden="true" />
-            </button>
-          </div>
+          <FirstTransactionEmptyState
+            headingId="stats-empty-title"
+            onNewTransaction={onNewTransaction}
+          />
         </div>
       </section>
     );

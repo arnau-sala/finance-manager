@@ -437,6 +437,16 @@ Current behavior:
   those values when reopened.
 - A `401 Unauthorized` response opens the shared expired-session dialog.
 
+When the account has no transactions, Moves retains the `Transactions` title
+but hides its result count, search, filters, and history. It uses the same first
+transaction empty state and shared New Transaction composer as Stats. After a
+successful creation, the shared financial refresh key reloads Moves while
+keeping it as the active section.
+
+While its transaction request is loading, Moves renders only the
+`Transactions` title. The result count, search field, filter control, and list
+remain absent until the request finishes.
+
 Final MVP content:
 
 - Paginated transaction list.

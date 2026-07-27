@@ -22,6 +22,7 @@ import {
   TransactionApiError,
   type TransactionListItem
 } from "./transaction-api";
+import { FirstTransactionEmptyState } from "./FirstTransactionEmptyState";
 
 const PAGE_SIZE = 12;
 const FILTER_PANEL_ID = "moves-filter-panel";
@@ -29,6 +30,8 @@ const FILTER_PANEL_ID = "moves-filter-panel";
 type MovesLoadingState = "loading" | "ready" | "error";
 
 type MovesPageProps = {
+  refreshKey: number;
+  onNewTransaction: () => void;
   onSessionExpired: () => void;
 };
 
@@ -64,7 +67,11 @@ function getResultLabel(count: number, isSearching: boolean) {
   return `${count} ${count === 1 ? "transaction" : "transactions"}`;
 }
 
-export function MovesPage({ onSessionExpired }: MovesPageProps) {
+export function MovesPage({
+  refreshKey,
+  onNewTransaction,
+  onSessionExpired
+}: MovesPageProps) {
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
   const [loadingState, setLoadingState] =
     useState<MovesLoadingState>("loading");
@@ -175,6 +182,7 @@ export function MovesPage({ onSessionExpired }: MovesPageProps) {
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoadingState("loading");
 
     getTransactions(controller.signal)
       .then((loadedTransactions) => {
@@ -194,7 +202,7 @@ export function MovesPage({ onSessionExpired }: MovesPageProps) {
       });
 
     return () => controller.abort();
-  }, [onSessionExpired]);
+  }, [onSessionExpired, refreshKey]);
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
@@ -238,6 +246,43 @@ export function MovesPage({ onSessionExpired }: MovesPageProps) {
     return () => observer.disconnect();
   }, [filteredTransactions.length, hasMore, visibleCount]);
 
+  if (loadingState === "loading") {
+    return (
+      <section
+        ref={scrollContainer}
+        className="home-content home-content--moves"
+        aria-labelledby="moves-page-title"
+      >
+        <div className="moves-page">
+          <header className="moves-page__header">
+            <h1 id="moves-page-title">Transactions</h1>
+          </header>
+        </div>
+      </section>
+    );
+  }
+
+  if (loadingState === "ready" && transactions.length === 0) {
+    return (
+      <section
+        ref={scrollContainer}
+        className="home-content home-content--moves"
+        aria-labelledby="moves-page-title"
+      >
+        <div className="moves-page moves-page--empty">
+          <header className="moves-page__header">
+            <h1 id="moves-page-title">Transactions</h1>
+          </header>
+
+          <FirstTransactionEmptyState
+            headingId="moves-empty-title"
+            onNewTransaction={onNewTransaction}
+          />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       ref={scrollContainer}
@@ -248,12 +293,10 @@ export function MovesPage({ onSessionExpired }: MovesPageProps) {
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
           <p aria-live="polite">
-            {loadingState === "loading"
-              ? "Loading..."
-              : getResultLabel(
-                  filteredTransactions.length,
-                  normalizedQuery.length > 0 || activeFilterCount > 0
-                )}
+            {getResultLabel(
+              filteredTransactions.length,
+              normalizedQuery.length > 0 || activeFilterCount > 0
+            )}
           </p>
         </header>
 
@@ -344,12 +387,6 @@ export function MovesPage({ onSessionExpired }: MovesPageProps) {
               );
             })}
           </ul>
-        ) : loadingState === "loading" ? (
-          <div className="moves-empty-state" role="status">
-            <Search aria-hidden="true" />
-            <h2>Loading transactions</h2>
-            <p>Your movements will appear here shortly.</p>
-          </div>
         ) : loadingState === "error" ? (
           <div className="moves-empty-state" role="alert">
             <Search aria-hidden="true" />
