@@ -30,7 +30,7 @@ type HomeSectionProps = {
   onSessionExpired: () => void;
   onNewTransaction: () => void;
   onNavigateToMoves: () => void;
-  homeRefreshKey: number;
+  financialRefreshKey: number;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
@@ -41,21 +41,31 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onNewTransaction,
     onNavigateToMoves,
-    homeRefreshKey
+    financialRefreshKey
   }) => (
     <HomeOverviewPage
       user={user}
       onSessionExpired={onSessionExpired}
       onNewTransaction={onNewTransaction}
       onSeeAllMoves={onNavigateToMoves}
-      refreshKey={homeRefreshKey}
+      refreshKey={financialRefreshKey}
     />
   ),
   moves: ({ onSessionExpired }) => (
     <MovesPage onSessionExpired={onSessionExpired} />
   ),
-  stats: ({ user, onSessionExpired }) => (
-    <StatsPage userId={user.id} onSessionExpired={onSessionExpired} />
+  stats: ({
+    user,
+    onSessionExpired,
+    onNewTransaction,
+    financialRefreshKey
+  }) => (
+    <StatsPage
+      userId={user.id}
+      refreshKey={financialRefreshKey}
+      onNewTransaction={onNewTransaction}
+      onSessionExpired={onSessionExpired}
+    />
   ),
   profile: ({
     user,
@@ -92,7 +102,7 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
-  const [homeRefreshKey, setHomeRefreshKey] = useState(0);
+  const [financialRefreshKey, setFinancialRefreshKey] = useState(0);
   const ActiveSection = homeSections[activeSection];
 
   return (
@@ -110,7 +120,7 @@ export function HomePage({
           onSessionExpired,
           onNewTransaction: () => setIsTransactionComposerOpen(true),
           onNavigateToMoves: () => setActiveSection("moves"),
-          homeRefreshKey,
+          financialRefreshKey,
           googleAccountDeletionFeedback,
           onGoogleAccountDeletionFeedbackHandled
         })}
@@ -127,7 +137,7 @@ export function HomePage({
         onCreated={() => {
           clearStatisticsCache();
           setIsTransactionComposerOpen(false);
-          setHomeRefreshKey((current) => current + 1);
+          setFinancialRefreshKey((current) => current + 1);
         }}
         onSessionExpired={onSessionExpired}
       />

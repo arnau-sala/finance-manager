@@ -19,6 +19,8 @@ import {
   ChevronRight,
   List,
   PiggyBank,
+  Plus,
+  ReceiptText,
   RefreshCw,
   Scale,
   Trophy,
@@ -53,6 +55,8 @@ const StatsChartsView = lazy(() => import("./charts/StatsChartsView"));
 
 type StatsPageProps = {
   userId: string;
+  refreshKey: number;
+  onNewTransaction: () => void;
   onSessionExpired: () => void;
 };
 
@@ -785,7 +789,12 @@ function StatsOverviewContent({
   );
 }
 
-export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
+export function StatsPage({
+  userId,
+  refreshKey,
+  onNewTransaction,
+  onSessionExpired
+}: StatsPageProps) {
   const currentMonthKey = getLocalDateKey().slice(0, 7);
   const currentYear = Number(currentMonthKey.slice(0, 4));
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
@@ -803,6 +812,8 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
   const [availability, setAvailability] =
     useState<StatisticsAvailability | null>(null);
+  const [availabilityState, setAvailabilityState] =
+    useState<LoadingState>("loading");
   const [overview, setOverview] = useState<StatisticsOverview | null>(null);
   const [charts, setCharts] = useState<StatisticsCharts | null>(null);
   const [overviewState, setOverviewState] =
@@ -811,6 +822,7 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
     useState<LoadingState>("loading");
   const [overviewRetryKey, setOverviewRetryKey] = useState(0);
   const [chartsRetryKey, setChartsRetryKey] = useState(0);
+  const [availabilityRetryKey, setAvailabilityRetryKey] = useState(0);
 
   const periodRequest = useMemo<StatisticsPeriodRequest>(
     () =>
@@ -854,13 +866,20 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
 
   useEffect(() => {
     const controller = new AbortController();
+    setAvailability(null);
+    setAvailabilityState("loading");
 
     getStatisticsAvailability(userId, controller.signal)
-      .then(setAvailability)
+      .then((nextAvailability) => {
+        setAvailability(nextAvailability);
+        setAvailabilityState("ready");
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
+
+        setAvailabilityState("error");
 
         if (error instanceof StatisticsApiError && error.status === 401) {
           onSessionExpired();
@@ -868,7 +887,12 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
       });
 
     return () => controller.abort();
-  }, [onSessionExpired, userId]);
+  }, [
+    availabilityRetryKey,
+    onSessionExpired,
+    refreshKey,
+    userId
+  ]);
 
   useEffect(() => {
     if (viewMode !== "OVERVIEW") {
@@ -901,6 +925,7 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
     onSessionExpired,
     overviewRetryKey,
     periodRequest,
+    refreshKey,
     userId,
     viewMode
   ]);
@@ -936,6 +961,7 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
     chartsRetryKey,
     onSessionExpired,
     periodRequest,
+    refreshKey,
     userId,
     viewMode
   ]);
@@ -973,6 +999,60 @@ export function StatsPage({ userId, onSessionExpired }: StatsPageProps) {
     }
 
     setViewMode(nextView);
+  }
+
+  if (availabilityState !== "ready" || !availability) {
+    return (
+      <section
+        className="home-content home-content--stats"
+        aria-label="Statistics"
+      >
+        <div className="stats-account-empty">
+          {availabilityState === "error" ? (
+            <StatisticsLoadState
+              message="Your statistics could not be loaded."
+              retry={() =>
+                setAvailabilityRetryKey((current) => current + 1)
+              }
+            />
+          ) : (
+            <StatisticsLoadState message="Loading statistics..." />
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (availableMonths.length === 0) {
+    return (
+      <section
+        className="home-content home-content--stats"
+        aria-labelledby="stats-empty-title"
+      >
+        <div className="stats-account-empty">
+          <ReceiptText aria-hidden="true" />
+          <h1 id="stats-empty-title">No transactions yet</h1>
+          <p>
+            Add your first transaction to start seeing your financial
+            statistics.
+          </p>
+          <button
+            className="home-new-transaction stats-account-empty__action"
+            type="button"
+            onClick={onNewTransaction}
+          >
+            <span
+              className="home-new-transaction__icon"
+              aria-hidden="true"
+            >
+              <Plus />
+            </span>
+            <span>New transaction</span>
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      </section>
+    );
   }
 
   return (
