@@ -4446,18 +4446,29 @@ body.stats-picker-open .home-content--stats {
 
 .home-footer-nav__label {
   position: relative;
+  flex: 0 0 auto;
   display: inline-block;
+  width: max-content;
   max-width: 0;
   overflow: hidden;
   opacity: 0;
   padding-bottom: 6px;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   text-transform: capitalize;
   transform: translateX(10px);
   transition:
     max-width 240ms cubic-bezier(0.32, 0.72, 0, 1),
     opacity 180ms ease,
     transform 280ms cubic-bezier(0.32, 0.72, 0, 1);
+  white-space: nowrap;
+}
+
+.home-footer-nav__label-text {
+  display: block;
+  width: max-content;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: clip;
   white-space: nowrap;
 }
 

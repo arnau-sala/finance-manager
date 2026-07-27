@@ -25,7 +25,9 @@ export function HomeFooterNav({ activeSection, onSectionChange }: HomeFooterNavP
               <Icon className="home-footer-nav__icon-svg" />
             </span>
             <span className="home-footer-nav__label">
-              {item.label}
+              <span className="home-footer-nav__label-text">
+                {item.label}
+              </span>
             </span>
           </button>
         );
