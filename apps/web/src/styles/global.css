@@ -1219,10 +1219,22 @@ body.stats-picker-open .home-content--stats {
 
 .stats-page--empty,
 .moves-page--empty {
+  width: min(100%, 440px);
+  min-height: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: 33px minmax(0, 1fr);
   align-content: stretch;
+  gap: 0;
+  margin: 0 auto;
+  padding: 2px 0 calc(82px + env(safe-area-inset-bottom));
+}
+
+.stats-page--empty .stats-page__header,
+.moves-page--empty .moves-page__header {
+  min-height: 33px;
+  height: 33px;
+  align-items: center;
 }
 
 .stats-account-empty {
