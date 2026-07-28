@@ -488,6 +488,10 @@ Month/Year/All context selector for category rank, type rank, and period impact.
 All three contexts arrive together, so changing the selector performs no
 additional network request.
 
+Transaction titles wrap normally between words. A single word wider than the
+entire title line receives browser-visible soft hyphens at its actual wrap
+points, preventing overflow without splitting ordinary phrases unnecessarily.
+
 The action control expands Share, Edit, and Delete around its trigger. Share
 builds a compact English summary from the transaction already held in the
 sheet and opens the browser or operating system's native share interface

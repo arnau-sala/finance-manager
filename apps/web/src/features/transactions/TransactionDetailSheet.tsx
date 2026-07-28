@@ -3,6 +3,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState
 } from "react";
@@ -67,6 +68,95 @@ const detailScopeOptions = [
   { value: "YEAR", label: "Year" },
   { value: "ALL", label: "All" }
 ] as const;
+
+function addSoftHyphens(value: string) {
+  return Array.from(value).join("\u00ad");
+}
+
+function TransactionDetailTitle({
+  id,
+  value
+}: {
+  id: string;
+  value: string;
+}) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const [displayValue, setDisplayValue] = useState(value);
+
+  useLayoutEffect(() => {
+    const title = titleRef.current;
+    const container = title?.parentElement;
+
+    if (!title || !container) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    if (!context) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const titleElement = title;
+    const containerElement = container;
+    const measurementContext = context;
+    let active = true;
+
+    function updateTitle() {
+      if (!active) {
+        return;
+      }
+
+      const styles = window.getComputedStyle(titleElement);
+      const availableWidth =
+        containerElement.getBoundingClientRect().width;
+
+      if (availableWidth <= 0) {
+        return;
+      }
+
+      measurementContext.font = [
+        styles.fontStyle,
+        styles.fontWeight,
+        styles.fontSize,
+        styles.fontFamily
+      ].join(" ");
+
+      const nextValue = value
+        .split(/(\s+)/)
+        .map((part) =>
+          /\s+/.test(part) ||
+          measurementContext.measureText(part).width <= availableWidth
+            ? part
+            : addSoftHyphens(part)
+        )
+        .join("");
+
+      setDisplayValue(nextValue);
+    }
+
+    updateTitle();
+
+    const resizeObserver = new ResizeObserver(updateTitle);
+    resizeObserver.observe(containerElement);
+
+    void document.fonts?.ready.then(updateTitle);
+
+    return () => {
+      active = false;
+      resizeObserver.disconnect();
+    };
+  }, [value]);
+
+  return (
+    <h2 ref={titleRef} id={id} aria-label={value}>
+      {displayValue}
+    </h2>
+  );
+}
 
 function formatFullDate(value: string) {
   const date = parseLocalDateOnly(value);
@@ -841,7 +931,10 @@ export function TransactionDetailSheet({
                   <p>
                     {displayedTransaction.category.name} &middot; {typeLabel}
                   </p>
-                  <h2 id={titleId}>{displayedTransaction.description}</h2>
+                  <TransactionDetailTitle
+                    id={titleId}
+                    value={displayedTransaction.description}
+                  />
                   <strong>
                     {formatEuroAmount(signedAmount, { showSign: true })}
                   </strong>
