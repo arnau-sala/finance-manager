@@ -3535,9 +3535,10 @@ button.transaction-row__content:focus-visible {
 
 .transaction-detail-sheet__toolbar {
   width: min(100%, 440px);
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  position: relative;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   margin: 0 auto;
   padding:
     0
@@ -3547,23 +3548,28 @@ button.transaction-row__content:focus-visible {
 }
 
 .transaction-detail-sheet__toolbar button {
-  grid-column: 3;
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
   margin: 0;
   padding: 0;
-  color: var(--color-text);
-  background: transparent;
-  border: 0;
-  border-radius: 50%;
+  font: inherit;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
-.transaction-detail-sheet__toolbar button:active {
+.transaction-detail-sheet__action-button,
+.transaction-detail-sheet__close {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+}
+
+.transaction-detail-sheet__action-button:active,
+.transaction-detail-sheet__close:active {
   background: var(--color-surface-muted);
 }
 
@@ -3576,6 +3582,64 @@ button.transaction-row__content:focus-visible {
   width: 22px;
   height: 22px;
   stroke-width: 1.7;
+}
+
+.transaction-detail-sheet__actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.transaction-detail-sheet__more {
+  position: relative;
+}
+
+.transaction-detail-sheet__action-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 2;
+  width: 210px;
+  overflow: hidden;
+  padding: 5px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-dialog);
+}
+
+.transaction-detail-sheet__action-menu button {
+  width: 100%;
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0 11px;
+  color: var(--color-text);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+}
+
+.transaction-detail-sheet__action-menu button:active {
+  background: var(--color-surface-muted);
+}
+
+.transaction-detail-sheet__action-menu button + button {
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 8px 8px;
+}
+
+.transaction-detail-sheet__action-menu svg {
+  width: 19px;
+  height: 19px;
+}
+
+.transaction-detail-sheet__action-menu
+  .transaction-detail-sheet__delete-action {
+  color: var(--color-danger);
 }
 
 .transaction-detail-sheet__scroll-area {

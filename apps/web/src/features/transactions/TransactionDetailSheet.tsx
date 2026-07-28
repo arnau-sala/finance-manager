@@ -6,7 +6,14 @@ import {
   useRef,
   useState
 } from "react";
-import { ArrowRight, X } from "lucide-react";
+import {
+  ArrowRight,
+  Ellipsis,
+  Pencil,
+  Share,
+  Trash2,
+  X
+} from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
@@ -144,6 +151,7 @@ export function TransactionDetailSheet({
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [detailError, setDetailError] = useState<{
     transactionId: string;
     message: string;
@@ -190,6 +198,7 @@ export function TransactionDetailSheet({
     if (!open) {
       dragGesture.current = null;
       dismissSwipeGesture.current = null;
+      setActionsOpen(false);
       setDragOffset(0);
       setIsDragging(false);
       return;
@@ -199,6 +208,7 @@ export function TransactionDetailSheet({
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
+    setActionsOpen(false);
     setScope("MONTH");
 
     const focusFrame = requestAnimationFrame(() => {
@@ -445,9 +455,55 @@ export function TransactionDetailSheet({
         </div>
 
         <div className="transaction-detail-sheet__toolbar">
-          <span aria-hidden="true" />
+          <div className="transaction-detail-sheet__actions">
+            <button
+              type="button"
+              className="transaction-detail-sheet__action-button"
+              aria-label="Share transaction"
+              title="Share"
+            >
+              <Share aria-hidden="true" />
+            </button>
+
+            <div className="transaction-detail-sheet__more">
+              <button
+                type="button"
+                className="transaction-detail-sheet__action-button"
+                aria-label="More transaction actions"
+                aria-haspopup="menu"
+                aria-expanded={actionsOpen}
+                title="More"
+                onClick={() => setActionsOpen((current) => !current)}
+              >
+                <Ellipsis aria-hidden="true" />
+              </button>
+
+              {actionsOpen ? (
+                <div
+                  className="transaction-detail-sheet__action-menu"
+                  role="menu"
+                  aria-label="Transaction actions"
+                >
+                  <button type="button" role="menuitem">
+                    <Pencil aria-hidden="true" />
+                    <span>Edit transaction</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="transaction-detail-sheet__delete-action"
+                    role="menuitem"
+                  >
+                    <Trash2 aria-hidden="true" />
+                    <span>Delete transaction</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          </div>
+
           <button
             type="button"
+            className="transaction-detail-sheet__close"
             aria-label="Close transaction details"
             title="Close"
             onClick={onClose}
