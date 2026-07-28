@@ -106,12 +106,21 @@ Phase 6 currently supports transaction creation, partial editing, deletion, and 
 
 Transaction reads and mutations derive `userId` exclusively from the secure session. Listing, category-filtered listing, and detail retrieval therefore return only the caller's transactions, with no administrative bypass. ID-based operations combine the transaction ID with that `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Financial account containers remain deferred.
 
-The Moves client stores a completed paginated history in the shared expiring
-memory-cache utility for 30 seconds, keyed by authenticated `userId`. Empty
-histories are cached as valid results. Successful financial writes invalidate
-the transaction cache through their frontend integration; transaction creation
-does so today. Session termination clears it before another user can
-authenticate.
+`services/transaction-service.ts` owns the transaction response serializer and
+the detail aggregate. `GET /transactions/:id` uses one owner-scoped PostgreSQL
+statement to return the movement, its tracked balance before and after, and
+Month/Year/All category rank, type rank, and period impact. Same-day ordering
+uses `occurredOn`, `createdAt`, and `id`, while equal-amount rankings use those
+fields as deterministic tie-breakers. Derived values are intentionally not
+stored because backdated edits and deletions would invalidate later balances
+and ranks.
+
+The Moves client stores a completed paginated history and transaction-detail
+responses in the shared expiring memory-cache utility for 30 seconds, keyed by
+authenticated `userId`. Empty histories are cached as valid results. Successful
+financial writes invalidate both transaction caches through their frontend
+integration; transaction creation does so today. Session termination clears
+them before another user can authenticate.
 
 `routes/statistics.ts` owns the first read-only statistics endpoints. `GET /statistics/balance` groups all of the current user's transactions by type and returns total income, total spent, and income-minus-expense balance. `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same calculation to a calendar month, with the short form defaulting to the current year. `GET /statistics/balance/year/:year` and `GET /statistics/balance/year` apply it to a full calendar year. They use the same session-derived ownership rule as transaction reads, so administrators do not receive cross-user financial totals.
 

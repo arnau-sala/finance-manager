@@ -1,7 +1,5 @@
 import {
   Prisma,
-  type Category,
-  type Transaction,
   type TransactionType,
 } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
@@ -9,12 +7,10 @@ import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import {
-  formatDateOnly,
   getTodayDateOnly,
   parseDateOnly,
 } from "../dates/date-only.js";
 import { db } from "../db/client.js";
-import { centsToDecimal } from "../money/cents.js";
 import {
   getPaginatedResponse,
   getPaginationQuerySchema,
@@ -23,11 +19,10 @@ import {
   financialReadRateLimit,
   financialWriteRateLimit,
 } from "../security/rate-limit.js";
-
-type TransactionCategory = Pick<Category, "id" | "name" | "type">;
-type TransactionWithCategory = Transaction & {
-  category: TransactionCategory;
-};
+import {
+  getTransactionDetail,
+  toTransactionResponse,
+} from "../services/transaction-service.js";
 
 type TransactionWithCategoryRow = {
   id: string;
@@ -138,19 +133,6 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
       name: row.categoryName,
       type: row.categoryType,
     },
-  };
-}
-
-function toTransactionResponse(transaction: TransactionWithCategory) {
-  return {
-    id: transaction.id,
-    type: transaction.type,
-    categoryId: transaction.categoryId,
-    category: transaction.category,
-    amount: centsToDecimal(transaction.amountCents),
-    description: transaction.description,
-    date: formatDateOnly(transaction.occurredOn),
-    createdAt: transaction.createdAt.toISOString(),
   };
 }
 
@@ -290,37 +272,16 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid transaction id." });
       }
 
-      const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
-        Prisma.sql`
-        SELECT
-          t."id" AS "id",
-          t."userId" AS "userId",
-          t."type" AS "type",
-          t."categoryId" AS "categoryId",
-          t."amountCents" AS "amountCents",
-          t."description" AS "description",
-          t."occurredOn" AS "occurredOn",
-          t."createdAt" AS "createdAt",
-          c."name" AS "categoryName",
-          c."type" AS "categoryType"
-        FROM "Transaction" t
-        INNER JOIN "Category" c ON c."id" = t."categoryId"
-        WHERE t."id" = ${parsedParams.data.id}
-          AND t."userId" = ${userId}
-        LIMIT 1
-      `,
+      const detail = await getTransactionDetail(
+        userId,
+        parsedParams.data.id,
       );
-      const transaction = transactions[0];
 
-      if (!transaction) {
+      if (!detail) {
         return reply.code(404).send({ error: "Transaction not found." });
       }
 
-      return reply.send({
-        transaction: toTransactionResponse(
-          toTransactionWithCategory(transaction),
-        ),
-      });
+      return reply.send(detail);
     },
   );
 

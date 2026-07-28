@@ -6,6 +6,7 @@ import { StatsPage } from "../statistics/StatsPage";
 import { MovesPage } from "../transactions/MovesPage";
 import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
+import type { TransactionPreview } from "../transactions/transaction-api";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import type { HomeSectionId } from "./home-sections";
@@ -31,7 +32,7 @@ type HomeSectionProps = {
   onSessionExpired: () => void;
   onNewTransaction: () => void;
   onNavigateToMoves: () => void;
-  onTransactionSelect: (transactionId: string) => void;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
   financialRefreshKey: number;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
@@ -118,13 +119,12 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
-  const [selectedTransactionId, setSelectedTransactionId] = useState<
-    string | null
-  >(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<TransactionPreview | null>(null);
   const [financialRefreshKey, setFinancialRefreshKey] = useState(0);
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
-    isTransactionComposerOpen || selectedTransactionId !== null;
+    isTransactionComposerOpen || selectedTransaction !== null;
 
   return (
     <main className="home-screen">
@@ -141,7 +141,7 @@ export function HomePage({
           onSessionExpired,
           onNewTransaction: () => setIsTransactionComposerOpen(true),
           onNavigateToMoves: () => setActiveSection("moves"),
-          onTransactionSelect: setSelectedTransactionId,
+          onTransactionSelect: setSelectedTransaction,
           financialRefreshKey,
           googleAccountDeletionFeedback,
           onGoogleAccountDeletionFeedbackHandled
@@ -165,8 +165,10 @@ export function HomePage({
       />
 
       <TransactionDetailSheet
-        transactionId={selectedTransactionId}
-        onClose={() => setSelectedTransactionId(null)}
+        ownerId={user.id}
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+        onSessionExpired={onSessionExpired}
       />
     </main>
   );

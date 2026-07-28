@@ -628,7 +628,8 @@ An active session is required:
 GET /transactions/:id
 ```
 
-The endpoint returns the requested transaction only when it belongs to the current session user:
+The endpoint returns the requested transaction and the derived information used
+by its detail sheet only when it belongs to the current session user:
 
 ```json
 {
@@ -645,11 +646,67 @@ The endpoint returns the requested transaction only when it belongs to the curre
     "description": "Weekly groceries",
     "date": "2026-07-05",
     "createdAt": "2026-07-05T16:31:00.000Z"
+  },
+  "trackedBalance": {
+    "before": "1000.00",
+    "after": "957.50"
+  },
+  "contexts": {
+    "month": {
+      "categoryRank": {
+        "position": 2,
+        "total": 5
+      },
+      "typeRank": {
+        "position": 8,
+        "total": 31
+      },
+      "periodImpactPercentage": 7
+    },
+    "year": {
+      "categoryRank": {
+        "position": 5,
+        "total": 42
+      },
+      "typeRank": {
+        "position": 24,
+        "total": 214
+      },
+      "periodImpactPercentage": 0.8
+    },
+    "all": {
+      "categoryRank": {
+        "position": 14,
+        "total": 126
+      },
+      "typeRank": {
+        "position": 63,
+        "total": 642
+      },
+      "periodImpactPercentage": 0.3
+    }
   }
 }
 ```
 
-A missing transaction and one owned by another user both return `404 Not Found` with `{"error":"Transaction not found."}`. Administrators receive no ownership bypass.
+Month and year contexts are derived from the transaction's own calendar date.
+Ranks order higher amounts first; equal amounts use transaction date, creation
+timestamp, and ID as deterministic tie-breakers. Period impact is the
+transaction amount divided by all income or all expenses, according to its
+type, in that context. Positive impacts below `1%` are returned with one decimal
+and never collapse to `0%`; impacts of at least `1%` are rounded to whole
+percentages.
+
+`trackedBalance` is calculated from registered transactions ordered by
+transaction date, creation timestamp, and ID. Until opening net worth is
+implemented, it starts at zero and must not be interpreted as the user's full
+real-world wealth.
+
+All derived values are produced in the same database statement, so switching
+between Month, Year, and All in the interface requires no additional request. A
+missing transaction and one owned by another user both return `404 Not Found`
+with `{"error":"Transaction not found."}`. Administrators receive no ownership
+bypass.
 
 ## Create Transaction
 

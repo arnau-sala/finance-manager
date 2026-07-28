@@ -8,6 +8,7 @@ import {
 
 import { formatEuroAmount } from "../../money/format-euro";
 import type { SessionUser } from "../auth/auth-api";
+import type { TransactionPreview } from "../transactions/transaction-api";
 import { TransactionRow } from "../transactions/TransactionRow";
 import {
   getHomeOverview,
@@ -21,7 +22,7 @@ type HomeOverviewPageProps = {
   onSessionExpired: () => void;
   onNewTransaction: () => void;
   onSeeAllMoves: () => void;
-  onTransactionSelect: (transactionId: string) => void;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
   refreshKey: number;
 };
 
@@ -157,7 +158,17 @@ export function HomeOverviewPage({
                   amount={move.amount}
                   description={move.description}
                   date={move.date}
-                  onSelect={() => onTransactionSelect(move.id)}
+                  onSelect={() =>
+                    onTransactionSelect({
+                      id: move.id,
+                      type: move.type,
+                      categoryId: move.category.id,
+                      category: move.category,
+                      amount: move.amount,
+                      description: move.description,
+                      date: move.date
+                    })
+                  }
                 />
               );
             })}

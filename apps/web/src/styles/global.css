@@ -3740,6 +3740,21 @@ button.transaction-row__content:focus-visible {
   font-size: 12px;
 }
 
+.transaction-detail-context__status {
+  min-height: 183px;
+  display: grid;
+  place-items: center;
+  margin: 12px 0 0;
+  padding: 20px;
+  color: var(--color-danger);
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+  text-align: center;
+}
+
 .transaction-detail-context__rows {
   margin: 12px 0 0;
   padding: 0;

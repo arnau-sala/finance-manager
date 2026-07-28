@@ -20,6 +20,7 @@ import {
 import {
   getTransactions,
   TransactionApiError,
+  type TransactionPreview,
   type TransactionListItem
 } from "./transaction-api";
 import { FirstTransactionEmptyState } from "./FirstTransactionEmptyState";
@@ -33,7 +34,7 @@ type MovesPageProps = {
   userId: string;
   refreshKey: number;
   onNewTransaction: () => void;
-  onTransactionSelect: (transactionId: string) => void;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
 
@@ -386,7 +387,7 @@ export function MovesPage({
                     amount={transaction.amount}
                     description={transaction.description}
                     date={transaction.date}
-                    onSelect={() => onTransactionSelect(transaction.id)}
+                    onSelect={() => onTransactionSelect(transaction)}
                   />
                 </Fragment>
               );

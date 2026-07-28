@@ -27,6 +27,33 @@ export type TransactionListItem = {
   createdAt: string;
 };
 
+export type TransactionPreview = Omit<TransactionListItem, "createdAt">;
+
+export type TransactionDetailContext = {
+  categoryRank: {
+    position: number;
+    total: number;
+  };
+  typeRank: {
+    position: number;
+    total: number;
+  };
+  periodImpactPercentage: number;
+};
+
+export type TransactionDetail = {
+  transaction: TransactionListItem;
+  trackedBalance: {
+    before: string;
+    after: string;
+  };
+  contexts: {
+    month: TransactionDetailContext;
+    year: TransactionDetailContext;
+    all: TransactionDetailContext;
+  };
+};
+
 type TransactionsPage = {
   transactions: TransactionListItem[];
   pagination: {
@@ -38,6 +65,9 @@ type TransactionsPage = {
 
 const TRANSACTIONS_CACHE_TTL_MS = 30_000;
 const transactionsCache = new ExpiringMemoryCache<TransactionListItem[]>(
+  TRANSACTIONS_CACHE_TTL_MS
+);
+const transactionDetailsCache = new ExpiringMemoryCache<TransactionDetail>(
   TRANSACTIONS_CACHE_TTL_MS
 );
 
@@ -174,8 +204,70 @@ export async function createTransaction(input: CreateTransactionInput) {
   }
 
   transactionsCache.clear();
+  transactionDetailsCache.clear();
+}
+
+export async function getTransactionDetail(
+  ownerId: string,
+  transactionId: string,
+  signal?: AbortSignal
+) {
+  const cacheKey = `${ownerId}:${transactionId}`;
+  const cached = transactionDetailsCache.get(cacheKey);
+
+  if (cached !== null) {
+    return cached;
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `/api/transactions/${encodeURIComponent(transactionId)}`,
+      {
+        method: "GET",
+        credentials: "include",
+        signal
+      }
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
+    }
+
+    throw new TransactionApiError(
+      "Unable to connect. Check your connection and try again.",
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw await createTransactionApiError(
+      response,
+      "Unable to load the transaction details. Please try again."
+    );
+  }
+
+  const detail = (await response.json()) as TransactionDetail;
+
+  if (
+    detail.transaction?.id !== transactionId ||
+    !detail.trackedBalance ||
+    !detail.contexts?.month ||
+    !detail.contexts?.year ||
+    !detail.contexts?.all
+  ) {
+    throw new TransactionApiError(
+      "Invalid transaction detail response.",
+      500
+    );
+  }
+
+  transactionDetailsCache.set(cacheKey, detail);
+  return detail;
 }
 
 export function clearTransactionsCache() {
   transactionsCache.clear();
+  transactionDetailsCache.clear();
 }

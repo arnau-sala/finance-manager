@@ -13,10 +13,19 @@ import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedCon
 import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import { getCategoryIcon } from "./category-catalog";
+import {
+  getTransactionDetail,
+  TransactionApiError,
+  type TransactionDetail,
+  type TransactionDetailContext,
+  type TransactionPreview
+} from "./transaction-api";
 
 type TransactionDetailSheetProps = {
-  transactionId: string | null;
+  ownerId: string;
+  transaction: TransactionPreview | null;
   onClose: () => void;
+  onSessionExpired: () => void;
 };
 
 type TransactionDetailScope = "MONTH" | "YEAR" | "ALL";
@@ -45,43 +54,6 @@ const detailScopeOptions = [
   { value: "ALL", label: "All" }
 ] as const;
 
-const mockTransaction = {
-  type: "EXPENSE" as const,
-  categoryId: "expense-groceries",
-  categoryName: "Groceries",
-  title: "Weekly groceries",
-  amount: -84.6,
-  date: "2026-07-26",
-  balanceBefore: 4286.4,
-  balanceAfter: 4201.8,
-  context: {
-    MONTH: {
-      period: "July 2026",
-      categoryRank: 2,
-      categoryTotal: 5,
-      typeRank: 8,
-      typeTotal: 31,
-      periodImpact: 7
-    },
-    YEAR: {
-      period: "2026",
-      categoryRank: 5,
-      categoryTotal: 42,
-      typeRank: 24,
-      typeTotal: 214,
-      periodImpact: 0.8
-    },
-    ALL: {
-      period: "All time",
-      categoryRank: 14,
-      categoryTotal: 126,
-      typeRank: 63,
-      typeTotal: 642,
-      periodImpact: 0.3
-    }
-  }
-};
-
 function formatFullDate(value: string) {
   const date = parseLocalDateOnly(value);
 
@@ -108,11 +80,56 @@ function formatPeriodImpact(value: number) {
   return `${Math.round(value).toLocaleString("es-ES")}%`;
 }
 
+function formatContextPeriod(
+  dateValue: string,
+  scope: TransactionDetailScope
+) {
+  if (scope === "ALL") {
+    return "All time";
+  }
+
+  const date = parseLocalDateOnly(dateValue);
+
+  if (!date) {
+    return "Unknown period";
+  }
+
+  if (scope === "YEAR") {
+    return String(date.getFullYear());
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
+function getContext(
+  detail: TransactionDetail | null,
+  scope: TransactionDetailScope
+): TransactionDetailContext | null {
+  if (!detail) {
+    return null;
+  }
+
+  if (scope === "MONTH") {
+    return detail.contexts.month;
+  }
+
+  if (scope === "YEAR") {
+    return detail.contexts.year;
+  }
+
+  return detail.contexts.all;
+}
+
 export function TransactionDetailSheet({
-  transactionId,
-  onClose
+  ownerId,
+  transaction,
+  onClose,
+  onSessionExpired
 }: TransactionDetailSheetProps) {
-  const open = transactionId !== null;
+  const open = transaction !== null;
   const titleId = useId();
   const dateId = useId();
   const sheetRef = useRef<HTMLElement>(null);
@@ -122,14 +139,50 @@ export function TransactionDetailSheet({
   const suppressClickUntil = useRef(0);
   const previousFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  const renderedTransactionRef = useRef<TransactionPreview | null>(null);
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [detail, setDetail] = useState<TransactionDetail | null>(null);
+  const [detailError, setDetailError] = useState<{
+    transactionId: string;
+    message: string;
+  } | null>(null);
+
+  if (transaction) {
+    renderedTransactionRef.current = transaction;
+  }
+
+  const renderedTransaction = transaction ?? renderedTransactionRef.current;
+  const matchingDetail =
+    detail && detail.transaction.id === renderedTransaction?.id ? detail : null;
+  const matchingError =
+    detailError && detailError.transactionId === renderedTransaction?.id
+      ? detailError.message
+      : null;
+  const displayedTransaction =
+    matchingDetail?.transaction ?? renderedTransaction;
   const CategoryIcon = getCategoryIcon(
-    mockTransaction.categoryId,
-    mockTransaction.type
+    displayedTransaction?.categoryId,
+    displayedTransaction?.type ?? "EXPENSE"
   );
-  const context = mockTransaction.context[scope];
+  const context = getContext(matchingDetail, scope);
+  const contextPeriod = displayedTransaction
+    ? formatContextPeriod(displayedTransaction.date, scope)
+    : "";
+  const typeLabel =
+    displayedTransaction?.type === "INCOME" ? "Income" : "Expense";
+  const typeRankCollection =
+    displayedTransaction?.type === "INCOME"
+      ? "income transactions"
+      : "expenses";
+  const typeImpactCollection =
+    displayedTransaction?.type === "INCOME" ? "income" : "expenses";
+  const displayedAmount = Number(displayedTransaction?.amount ?? 0);
+  const signedAmount =
+    displayedTransaction?.type === "INCOME"
+      ? Math.abs(displayedAmount)
+      : -Math.abs(displayedAmount);
 
   onCloseRef.current = onClose;
 
@@ -191,7 +244,41 @@ export function TransactionDetailSheet({
       document.removeEventListener("keydown", handleKeyDown);
       previousFocus.current?.focus({ preventScroll: true });
     };
-  }, [open, transactionId]);
+  }, [open, transaction?.id]);
+
+  useEffect(() => {
+    if (!transaction) {
+      return;
+    }
+
+    const controller = new AbortController();
+    setDetailError(null);
+
+    getTransactionDetail(ownerId, transaction.id, controller.signal)
+      .then((loadedDetail) => {
+        setDetail(loadedDetail);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        if (error instanceof TransactionApiError && error.status === 401) {
+          onSessionExpired();
+          return;
+        }
+
+        setDetailError({
+          transactionId: transaction.id,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to load the transaction details."
+        });
+      });
+
+    return () => controller.abort();
+  }, [onSessionExpired, ownerId, transaction?.id]);
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) {
@@ -319,7 +406,9 @@ export function TransactionDetailSheet({
     >
       <article
         ref={sheetRef}
-        className={`transaction-detail-sheet transaction-detail-sheet--${mockTransaction.type.toLowerCase()}${
+        className={`transaction-detail-sheet transaction-detail-sheet--${(
+          displayedTransaction?.type ?? "EXPENSE"
+        ).toLowerCase()}${
           isDragging ? " is-dragging" : ""
         }`}
         style={
@@ -372,87 +461,133 @@ export function TransactionDetailSheet({
           className="transaction-detail-sheet__scroll-area"
         >
           <div className="transaction-detail-sheet__content">
-            <header className="transaction-detail-hero">
-              <span className="transaction-detail-hero__icon" aria-hidden="true">
-                <CategoryIcon />
-              </span>
-              <p>{mockTransaction.categoryName}</p>
-              <h2 id={titleId}>{mockTransaction.title}</h2>
-              <strong>
-                {formatEuroAmount(mockTransaction.amount, { showSign: true })}
-              </strong>
-              <time id={dateId} dateTime={mockTransaction.date}>
-                {formatFullDate(mockTransaction.date)}
-              </time>
-            </header>
-
-            <section
-              className="transaction-detail-section"
-              aria-label="Balance impact"
-            >
-              <div className="transaction-balance-flow">
-                <span>
-                  <small>Before</small>
+            {displayedTransaction ? (
+              <>
+                <header className="transaction-detail-hero">
+                  <span
+                    className="transaction-detail-hero__icon"
+                    aria-hidden="true"
+                  >
+                    <CategoryIcon />
+                  </span>
+                  <p>
+                    {displayedTransaction.category.name} &middot; {typeLabel}
+                  </p>
+                  <h2 id={titleId}>{displayedTransaction.description}</h2>
                   <strong>
-                    {formatEuroAmount(mockTransaction.balanceBefore)}
+                    {formatEuroAmount(signedAmount, { showSign: true })}
                   </strong>
-                </span>
-                <ArrowRight aria-hidden="true" />
-                <span>
-                  <small>After</small>
-                  <strong>{formatEuroAmount(mockTransaction.balanceAfter)}</strong>
-                </span>
-              </div>
-            </section>
+                  <time id={dateId} dateTime={displayedTransaction.date}>
+                    {formatFullDate(displayedTransaction.date)}
+                  </time>
+                </header>
 
-            <section
-              className="transaction-detail-section transaction-detail-context"
-              aria-labelledby="transaction-context-title"
-            >
-              <div className="transaction-detail-section__heading">
-                <h3 id="transaction-context-title">Context</h3>
-                <span>{context.period}</span>
-              </div>
-
-              <SlidingSegmentedControl
-                className="transaction-detail-context__scope"
-                value={scope}
-                options={detailScopeOptions}
-                label="Transaction ranking period"
-                compact
-                allowDrag={false}
-                onChange={setScope}
-              />
-
-              <dl className="transaction-detail-context__rows">
-                <div>
-                  <dt>
-                    Category rank
+                <section
+                  className="transaction-detail-section"
+                  aria-label="Balance impact"
+                  aria-busy={!matchingDetail && !matchingError}
+                >
+                  <div className="transaction-balance-flow">
                     <span>
-                      Among {context.categoryTotal}{" "}
-                      {mockTransaction.categoryName.toLowerCase()} expenses
+                      <small>Before</small>
+                      <strong>
+                        {matchingDetail
+                          ? formatEuroAmount(
+                              matchingDetail.trackedBalance.before
+                            )
+                          : "--"}
+                      </strong>
                     </span>
-                  </dt>
-                  <dd>#{context.categoryRank}</dd>
-                </div>
-                <div>
-                  <dt>
-                    Expense rank
-                    <span>Among {context.typeTotal} expenses</span>
-                  </dt>
-                  <dd>#{context.typeRank}</dd>
-                </div>
-                <div>
-                  <dt>
-                    Period impact
+                    <ArrowRight aria-hidden="true" />
                     <span>
-                      Share of expenses during {context.period.toLowerCase()}
+                      <small>After</small>
+                      <strong>
+                        {matchingDetail
+                          ? formatEuroAmount(
+                              matchingDetail.trackedBalance.after
+                            )
+                          : "--"}
+                      </strong>
                     </span>
-                  </dt>
-                  <dd>{formatPeriodImpact(context.periodImpact)}</dd>
-                </div>
-              </dl>
-            </section>
+                  </div>
+                </section>
+
+                <section
+                  className="transaction-detail-section transaction-detail-context"
+                  aria-labelledby="transaction-context-title"
+                  aria-busy={!matchingDetail && !matchingError}
+                >
+                  <div className="transaction-detail-section__heading">
+                    <h3 id="transaction-context-title">Context</h3>
+                    <span>{contextPeriod}</span>
+                  </div>
+
+                  <SlidingSegmentedControl
+                    className="transaction-detail-context__scope"
+                    value={scope}
+                    options={detailScopeOptions}
+                    label="Transaction ranking period"
+                    compact
+                    allowDrag={false}
+                    onChange={setScope}
+                  />
+
+                  {matchingError ? (
+                    <p
+                      className="transaction-detail-context__status"
+                      role="alert"
+                    >
+                      {matchingError}
+                    </p>
+                  ) : (
+                    <dl className="transaction-detail-context__rows">
+                      <div>
+                        <dt>
+                          Category rank
+                          <span>
+                            {context
+                              ? `Among ${context.categoryRank.total} ${displayedTransaction.category.name.toLowerCase()} transactions`
+                              : "Loading category position"}
+                          </span>
+                        </dt>
+                        <dd>
+                          {context ? `#${context.categoryRank.position}` : "--"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>
+                          {typeLabel} rank
+                          <span>
+                            {context
+                              ? `Among ${context.typeRank.total} ${typeRankCollection}`
+                              : `Loading ${typeRankCollection} position`}
+                          </span>
+                        </dt>
+                        <dd>
+                          {context ? `#${context.typeRank.position}` : "--"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>
+                          Period impact
+                          <span>
+                            Share of {typeImpactCollection} during{" "}
+                            {contextPeriod.toLowerCase()}
+                          </span>
+                        </dt>
+                        <dd>
+                          {context
+                            ? formatPeriodImpact(
+                                context.periodImpactPercentage
+                              )
+                            : "--"}
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+                </section>
+              </>
+            ) : null}
           </div>
         </div>
       </article>

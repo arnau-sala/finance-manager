@@ -470,16 +470,17 @@ The content swipe is disabled whenever vertical overflow is present so it
 cannot compete with scrolling. The sheet restores focus to the transaction that
 opened it.
 
-The initial visual prototype uses one mock transaction while retaining the real
-clicked transaction ID in UI state. It presents the category, title, signed
-amount, full date, balance before and after the movement, and a local
-Month/Year/All context selector for category rank, type rank, and period
-impact. Replacing the mock with the authenticated transaction-detail response
-will not require changing the sheet navigation or either source list.
+The sheet opens immediately with the real summary already held by Home or
+Moves, then completes its derived values through one authenticated
+`GET /transactions/:id` request. The response is cached in memory for 30
+seconds per user and transaction. It presents the category, type, title, signed
+amount, full date, tracked balance before and after the movement, and a local
+Month/Year/All context selector for category rank, type rank, and period impact.
+All three contexts arrive together, so changing the selector performs no
+additional network request.
 
 Remaining MVP work:
 
-- Connect the selected transaction ID to real detail and ranking data.
 - Add the edit flow.
 - Add the delete confirmation.
 
