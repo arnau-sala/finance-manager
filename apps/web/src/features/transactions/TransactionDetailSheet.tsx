@@ -27,8 +27,17 @@ type DragGesture = {
   startedAt: number;
 };
 
+type DismissSwipeGesture = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startedAt: number;
+};
+
 const CLOSE_DISTANCE_PX = 88;
 const CLOSE_VELOCITY_PX_PER_MS = 0.55;
+const DISMISS_SWIPE_DISTANCE_PX = 48;
+const DISMISS_SWIPE_MAX_DURATION_MS = 700;
 
 const detailScopeOptions = [
   { value: "MONTH", label: "Month" },
@@ -107,7 +116,10 @@ export function TransactionDetailSheet({
   const titleId = useId();
   const dateId = useId();
   const sheetRef = useRef<HTMLElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const dragGesture = useRef<DragGesture | null>(null);
+  const dismissSwipeGesture = useRef<DismissSwipeGesture | null>(null);
+  const suppressClickUntil = useRef(0);
   const previousFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
@@ -124,6 +136,7 @@ export function TransactionDetailSheet({
   useEffect(() => {
     if (!open) {
       dragGesture.current = null;
+      dismissSwipeGesture.current = null;
       setDragOffset(0);
       setIsDragging(false);
       return;
@@ -241,13 +254,65 @@ export function TransactionDetailSheet({
     setDragOffset(0);
   }
 
+  function startDismissSwipe(event: ReactPointerEvent<HTMLElement>) {
+    const target = event.target;
+    const scrollArea = scrollAreaRef.current;
+
+    if (
+      event.pointerType === "mouse" ||
+      !(target instanceof Element) ||
+      target.closest(".transaction-detail-sheet__drag-region") ||
+      !scrollArea ||
+      scrollArea.scrollHeight > scrollArea.clientHeight + 1
+    ) {
+      dismissSwipeGesture.current = null;
+      return;
+    }
+
+    dismissSwipeGesture.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startedAt: performance.now()
+    };
+  }
+
+  function finishDismissSwipe(event: ReactPointerEvent<HTMLElement>) {
+    const gesture = dismissSwipeGesture.current;
+
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    dismissSwipeGesture.current = null;
+
+    const horizontalDistance = event.clientX - gesture.startX;
+    const verticalDistance = event.clientY - gesture.startY;
+    const duration = performance.now() - gesture.startedAt;
+    const isDownwardSwipe =
+      verticalDistance >= DISMISS_SWIPE_DISTANCE_PX &&
+      verticalDistance > Math.abs(horizontalDistance) &&
+      duration <= DISMISS_SWIPE_MAX_DURATION_MS;
+
+    if (!isDownwardSwipe) {
+      return;
+    }
+
+    suppressClickUntil.current = performance.now() + 500;
+    event.preventDefault();
+    event.stopPropagation();
+    onClose();
+  }
+
   return createPortal(
     <div
       className={`transaction-detail-backdrop${open ? " is-open" : ""}`}
       aria-hidden={!open}
       inert={!open}
-      onPointerDown={(event) => {
+      onClick={(event) => {
         if (event.target === event.currentTarget) {
+          event.preventDefault();
+          event.stopPropagation();
           onClose();
         }
       }}
@@ -267,6 +332,17 @@ export function TransactionDetailSheet({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={dateId}
+        onPointerDownCapture={startDismissSwipe}
+        onPointerUpCapture={finishDismissSwipe}
+        onPointerCancel={() => {
+          dismissSwipeGesture.current = null;
+        }}
+        onClickCapture={(event) => {
+          if (performance.now() < suppressClickUntil.current) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}
       >
         <div
           className="transaction-detail-sheet__drag-region"
@@ -291,7 +367,10 @@ export function TransactionDetailSheet({
           </button>
         </div>
 
-        <div className="transaction-detail-sheet__scroll-area">
+        <div
+          ref={scrollAreaRef}
+          className="transaction-detail-sheet__scroll-area"
+        >
           <div className="transaction-detail-sheet__content">
             <header className="transaction-detail-hero">
               <span className="transaction-detail-hero__icon" aria-hidden="true">
