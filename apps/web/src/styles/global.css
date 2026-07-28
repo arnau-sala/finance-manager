@@ -3467,7 +3467,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .transaction-detail-backdrop.is-open {
-  background: var(--color-overlay);
+  background: transparent;
   visibility: visible;
   pointer-events: auto;
   transition-delay: 0s;
@@ -3487,6 +3487,8 @@ button.transaction-row__content:focus-visible {
   overflow: hidden;
   color: var(--color-text);
   background: var(--color-surface);
+  border: 1px solid var(--color-primary-border);
+  border-bottom: 0;
   border-radius: 28px 28px 0 0;
   box-shadow: var(--shadow-bottom-sheet);
   outline: none;

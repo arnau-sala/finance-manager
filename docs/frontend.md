@@ -472,9 +472,11 @@ Purpose: view, update, or delete one transaction.
 
 Transaction rows in Home and Moves open a shared mobile bottom sheet above the
 current section. The underlying screen remains mounted and inert, preserving
-its scroll position, search, and filters. The sheet can be dismissed through
-its close control, the backdrop, `Escape`, a controlled downward drag from its
-handle, or a direct downward swipe over the rest of its non-scrollable content.
+its scroll position, search, and filters. A transparent backdrop blurs that
+content without applying a gray tint, so white surfaces and the iOS status-bar
+region retain their normal color. The sheet can be dismissed through its close
+control, the backdrop, `Escape`, a controlled downward drag from its handle, or
+a direct downward swipe over the rest of its non-scrollable content.
 The content swipe is disabled whenever vertical overflow is present so it
 cannot compete with scrolling. The sheet restores focus to the transaction that
 opened it.
