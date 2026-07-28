@@ -1,6 +1,7 @@
 import {
   type FormEvent,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState
 } from "react";
@@ -138,6 +139,7 @@ export function TransactionComposer({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
+  const nameInput = useRef<HTMLTextAreaElement>(null);
   const scrollArea = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
@@ -200,6 +202,41 @@ export function TransactionComposer({
     window.addEventListener("keydown", closeWithEscape);
     return () => window.removeEventListener("keydown", closeWithEscape);
   }, [isSubmitting, onClose, open]);
+
+  useLayoutEffect(() => {
+    const input = nameInput.current;
+
+    if (!open || !input) {
+      return;
+    }
+
+    input.style.height = "auto";
+
+    const styles = window.getComputedStyle(input);
+    const minHeight = Number.parseFloat(styles.minHeight);
+    const maxHeight = Number.parseFloat(styles.maxHeight);
+    const borderHeight =
+      Number.parseFloat(styles.borderTopWidth) +
+      Number.parseFloat(styles.borderBottomWidth);
+
+    if (
+      !Number.isFinite(minHeight) ||
+      !Number.isFinite(maxHeight) ||
+      !Number.isFinite(borderHeight)
+    ) {
+      return;
+    }
+
+    const contentHeight = input.scrollHeight + borderHeight;
+    const wrappedContentBuffer = contentHeight > minHeight + 1 ? 1 : 0;
+    const requiredHeight = contentHeight + wrappedContentBuffer;
+    input.style.height = `${Math.min(
+      Math.max(requiredHeight, minHeight),
+      maxHeight
+    )}px`;
+    input.style.overflowY =
+      contentHeight > maxHeight + 1 ? "auto" : "hidden";
+  }, [name, open]);
 
   function clearFieldError(field: CreateTransactionField) {
     setInvalidFields((current) => {
@@ -417,21 +454,31 @@ export function TransactionComposer({
 
             <div className="transaction-composer__field">
               <span id="transaction-name-label">Name</span>
-              <input
+              <textarea
+                ref={nameInput}
                 id="transaction-name"
                 name="description"
-                type="text"
+                rows={1}
                 enterKeyHint="next"
                 autoComplete="off"
                 placeholder="What was it?"
                 value={name}
-                maxLength={100}
+                maxLength={50}
                 disabled={isSubmitting}
                 aria-labelledby="transaction-name-label"
                 aria-invalid={invalidFields.description === true}
                 aria-describedby={formError ? "transaction-form-error" : undefined}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    event.currentTarget.form?.requestSubmit();
+                  }
+                }}
                 onChange={(event) => {
-                  setName(event.target.value);
+                  setName(event.target.value.replace(/[\r\n]+/g, " "));
                   clearFieldError("description");
                 }}
               />

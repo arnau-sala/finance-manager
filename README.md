@@ -733,7 +733,7 @@ Content-Type: application/json
 }
 ```
 
-`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 100 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is an optional calendar date in `YYYY-MM-DD` format and defaults to the server's current calendar date. Times and timezone offsets are rejected.
+`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 50 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is an optional calendar date in `YYYY-MM-DD` format and defaults to the server's current calendar date. Times and timezone offsets are rejected.
 
 The backend obtains `userId` exclusively from the session and stores the amount as integer cents. The transaction day is stored as PostgreSQL `DATE`, while `createdAt` independently records the exact creation timestamp. Transaction responses include the selected category's ID, name, and type.
 

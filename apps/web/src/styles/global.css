@@ -4451,7 +4451,8 @@ button.transaction-row__content:focus-visible {
   stroke-width: 1.8;
 }
 
-.transaction-composer__field input {
+.transaction-composer__field input,
+.transaction-composer__field textarea {
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -4468,6 +4469,21 @@ button.transaction-row__content:focus-visible {
   user-select: text;
   -webkit-user-select: text;
   touch-action: manipulation;
+}
+
+.transaction-composer__field textarea {
+  min-height: var(--transaction-composer-control-height);
+  max-height: calc(var(--transaction-composer-control-height) + 44px);
+  padding: 11px 16px;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  line-height: 22px;
+  resize: none;
+  scrollbar-width: none;
+}
+
+.transaction-composer__field textarea::-webkit-scrollbar {
+  display: none;
 }
 
 .transaction-composer__date-control {
@@ -4533,12 +4549,14 @@ button.transaction-row__content:focus-visible {
   box-shadow: none;
 }
 
-.transaction-composer__field input::placeholder {
+.transaction-composer__field input::placeholder,
+.transaction-composer__field textarea::placeholder {
   color: var(--color-text-muted);
   opacity: 1;
 }
 
-.transaction-composer__field input[aria-invalid="true"] {
+.transaction-composer__field input[aria-invalid="true"],
+.transaction-composer__field textarea[aria-invalid="true"] {
   border-color: var(--color-danger);
   box-shadow: 0 0 0 4px var(--color-danger-soft);
 }
@@ -4616,13 +4634,15 @@ button.transaction-row__content:focus-visible {
   outline-offset: 2px;
 }
 
-.transaction-composer__field input:focus {
+.transaction-composer__field input:focus,
+.transaction-composer__field textarea:focus {
   background: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-focus-ring);
 }
 
 .transaction-composer__field input[aria-invalid="true"]:focus,
+.transaction-composer__field textarea[aria-invalid="true"]:focus,
 .transaction-composer__date-control.is-invalid:focus-within {
   border-color: var(--color-danger);
   box-shadow: 0 0 0 4px var(--color-danger-soft);
@@ -5307,6 +5327,10 @@ button.transaction-row__content:focus-visible {
       max(20px, env(safe-area-inset-right))
       max(6px, env(safe-area-inset-bottom))
       max(20px, env(safe-area-inset-left));
+  }
+
+  .transaction-composer__field textarea {
+    padding-block: 10px;
   }
 
   .transaction-composer__footer > div {

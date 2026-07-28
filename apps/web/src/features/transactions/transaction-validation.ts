@@ -50,7 +50,7 @@ export const createTransactionSchema = z
       .string()
       .trim()
       .min(1, "Enter a name.")
-      .max(100, "Name must be 100 characters or fewer."),
+      .max(50, "Name must be 50 characters or fewer."),
     categoryId: z.string().trim().min(1, "Choose a category."),
     date: z
       .string()

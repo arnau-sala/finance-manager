@@ -158,7 +158,7 @@ Transaction security decisions:
 - Missing and foreign-owned transaction details return the same `404` response.
 - Balance and ranking aggregates in transaction detail are restricted to that
   same session `userId`, and the response never exposes an owner ID.
-- Description, amount, type, category, and the `YYYY-MM-DD` calendar date are validated before persistence; transaction timestamps and timezone offsets are rejected.
+- Description, amount, type, category, and the `YYYY-MM-DD` calendar date are validated before persistence; descriptions are limited to 50 characters, while transaction timestamps and timezone offsets are rejected.
 - Categories must exist and match the transaction type on creation and editing.
 - Category references are validated by the API before transaction writes.
 - PostgreSQL foreign keys reject transactions that reference missing users or categories.

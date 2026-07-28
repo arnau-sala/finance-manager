@@ -397,6 +397,11 @@ UX notes:
   save action continues to use the petroleum brand color.
 - The amount input uses the mobile decimal keyboard and the fields retain their
   natural form order for previous/next keyboard navigation.
+- The Name control starts at one line and grows automatically up to three full
+  wrapped lines. Longer values scroll inside that fixed maximum; manual
+  resizing and explicit line breaks remain disabled, preserving the
+  single-name value used by the API. Creation and editing both enforce a
+  50-character maximum.
 - Categories are selected from a four-column icon grid backed by the same
   category catalog used on Home; no dropdown is used.
 - The composer keeps its confirmation action fixed near the bottom thumb area.

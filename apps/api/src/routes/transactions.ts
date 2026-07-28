@@ -83,7 +83,7 @@ const amountSchema = z
   .transform((amount) => Number(decimalToCents(amount)));
 
 const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
-const transactionDescriptionSchema = z.string().trim().min(1).max(100);
+const transactionDescriptionSchema = z.string().trim().min(1).max(50);
 const transactionDateSchema = z.iso.date().transform(parseDateOnly);
 
 const createTransactionBodySchema = z
