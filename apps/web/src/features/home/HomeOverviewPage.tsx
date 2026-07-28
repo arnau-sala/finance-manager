@@ -21,6 +21,7 @@ type HomeOverviewPageProps = {
   onSessionExpired: () => void;
   onNewTransaction: () => void;
   onSeeAllMoves: () => void;
+  onTransactionSelect: (transactionId: string) => void;
   refreshKey: number;
 };
 
@@ -55,6 +56,7 @@ export function HomeOverviewPage({
   onSessionExpired,
   onNewTransaction,
   onSeeAllMoves,
+  onTransactionSelect,
   refreshKey
 }: HomeOverviewPageProps) {
   const [overview, setOverview] = useState<HomeOverview | null>(null);
@@ -155,6 +157,7 @@ export function HomeOverviewPage({
                   amount={move.amount}
                   description={move.description}
                   date={move.date}
+                  onSelect={() => onTransactionSelect(move.id)}
                 />
               );
             })}

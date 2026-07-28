@@ -5,6 +5,7 @@ import { clearStatisticsCache } from "../statistics/statistics-api";
 import { StatsPage } from "../statistics/StatsPage";
 import { MovesPage } from "../transactions/MovesPage";
 import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
+import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import type { HomeSectionId } from "./home-sections";
@@ -30,6 +31,7 @@ type HomeSectionProps = {
   onSessionExpired: () => void;
   onNewTransaction: () => void;
   onNavigateToMoves: () => void;
+  onTransactionSelect: (transactionId: string) => void;
   financialRefreshKey: number;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
@@ -41,6 +43,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onNewTransaction,
     onNavigateToMoves,
+    onTransactionSelect,
     financialRefreshKey
   }) => (
     <HomeOverviewPage
@@ -48,6 +51,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onSessionExpired={onSessionExpired}
       onNewTransaction={onNewTransaction}
       onSeeAllMoves={onNavigateToMoves}
+      onTransactionSelect={onTransactionSelect}
       refreshKey={financialRefreshKey}
     />
   ),
@@ -55,12 +59,14 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onSessionExpired,
     onNewTransaction,
+    onTransactionSelect,
     financialRefreshKey
   }) => (
     <MovesPage
       userId={user.id}
       refreshKey={financialRefreshKey}
       onNewTransaction={onNewTransaction}
+      onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
     />
   ),
@@ -112,15 +118,20 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<
+    string | null
+  >(null);
   const [financialRefreshKey, setFinancialRefreshKey] = useState(0);
   const ActiveSection = homeSections[activeSection];
+  const isOverlayOpen =
+    isTransactionComposerOpen || selectedTransactionId !== null;
 
   return (
     <main className="home-screen">
       <div
         className="home-main-layer"
-        aria-hidden={isTransactionComposerOpen}
-        inert={isTransactionComposerOpen}
+        aria-hidden={isOverlayOpen}
+        inert={isOverlayOpen}
       >
         {ActiveSection({
           user,
@@ -130,6 +141,7 @@ export function HomePage({
           onSessionExpired,
           onNewTransaction: () => setIsTransactionComposerOpen(true),
           onNavigateToMoves: () => setActiveSection("moves"),
+          onTransactionSelect: setSelectedTransactionId,
           financialRefreshKey,
           googleAccountDeletionFeedback,
           onGoogleAccountDeletionFeedbackHandled
@@ -150,6 +162,11 @@ export function HomePage({
           setFinancialRefreshKey((current) => current + 1);
         }}
         onSessionExpired={onSessionExpired}
+      />
+
+      <TransactionDetailSheet
+        transactionId={selectedTransactionId}
+        onClose={() => setSelectedTransactionId(null)}
       />
     </main>
   );

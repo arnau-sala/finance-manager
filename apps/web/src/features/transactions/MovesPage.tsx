@@ -33,6 +33,7 @@ type MovesPageProps = {
   userId: string;
   refreshKey: number;
   onNewTransaction: () => void;
+  onTransactionSelect: (transactionId: string) => void;
   onSessionExpired: () => void;
 };
 
@@ -72,6 +73,7 @@ export function MovesPage({
   userId,
   refreshKey,
   onNewTransaction,
+  onTransactionSelect,
   onSessionExpired
 }: MovesPageProps) {
   const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
@@ -384,6 +386,7 @@ export function MovesPage({
                     amount={transaction.amount}
                     description={transaction.description}
                     date={transaction.date}
+                    onSelect={() => onTransactionSelect(transaction.id)}
                   />
                 </Fragment>
               );

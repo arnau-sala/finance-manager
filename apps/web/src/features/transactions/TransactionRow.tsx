@@ -9,6 +9,7 @@ export type TransactionRowData = {
   amount: string | number;
   description: string;
   date: string;
+  onSelect?: () => void;
 };
 
 function formatTransactionAmount(
@@ -57,12 +58,12 @@ export function TransactionRow({
   categoryName,
   amount,
   description,
-  date
+  date,
+  onSelect
 }: TransactionRowData) {
   const Icon = getCategoryIcon(categoryId, type);
-
-  return (
-    <li className="transaction-row">
+  const content = (
+    <>
       <span className="transaction-row__icon" aria-hidden="true">
         <Icon />
       </span>
@@ -77,6 +78,23 @@ export function TransactionRow({
       >
         {formatTransactionAmount(amount, type)}
       </span>
+    </>
+  );
+
+  return (
+    <li className="transaction-row">
+      {onSelect ? (
+        <button
+          className="transaction-row__content"
+          type="button"
+          aria-label={`View ${description} transaction details`}
+          onClick={onSelect}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="transaction-row__content">{content}</div>
+      )}
     </li>
   );
 }

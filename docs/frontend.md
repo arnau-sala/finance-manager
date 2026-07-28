@@ -461,11 +461,24 @@ Final MVP content:
 
 Purpose: view, update, or delete one transaction.
 
-MVP content:
+Transaction rows in Home and Moves open a shared mobile bottom sheet above the
+current section. The underlying screen remains mounted and inert, preserving
+its scroll position, search, and filters. The sheet can be dismissed through
+its close control, the backdrop, `Escape`, or a downward drag from its handle.
+It restores focus to the transaction that opened it.
 
-- Transaction details.
-- Edit form.
-- Delete confirmation.
+The initial visual prototype uses one mock transaction while retaining the real
+clicked transaction ID in UI state. It presents the category, title, signed
+amount, full date, balance before and after the movement, and a local
+Month/Year/All context selector for category rank, type rank, and category
+activity. Replacing the mock with the authenticated transaction-detail response
+will not require changing the sheet navigation or either source list.
+
+Remaining MVP work:
+
+- Connect the selected transaction ID to real detail and ranking data.
+- Add the edit flow.
+- Add the delete confirmation.
 
 ### 9. Statistics
 
