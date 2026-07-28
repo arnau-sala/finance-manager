@@ -28,6 +28,7 @@ import {
   type TransactionDetailContext,
   type TransactionPreview
 } from "./transaction-api";
+import { shareTransaction } from "./transaction-share";
 
 type TransactionDetailSheetProps = {
   ownerId: string;
@@ -160,6 +161,7 @@ export function TransactionDetailSheet({
   const suspendedRef = useRef(suspended);
   const deleteConfirmOpenRef = useRef(false);
   const isDeletingRef = useRef(false);
+  const shareNoticeTimerRef = useRef<number | null>(null);
   const renderedTransactionRef = useRef<TransactionPreview | null>(null);
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
   const [dragOffset, setDragOffset] = useState(0);
@@ -172,6 +174,11 @@ export function TransactionDetailSheet({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
   const [detailError, setDetailError] = useState<{
     transactionId: string;
     message: string;
@@ -225,6 +232,8 @@ export function TransactionDetailSheet({
       setDeleteConfirmOpen(false);
       setDeleteError(null);
       setIsDeleting(false);
+      setIsSharing(false);
+      setShareNotice(null);
       setDragOffset(0);
       setIsDragging(false);
       return;
@@ -238,6 +247,8 @@ export function TransactionDetailSheet({
     setDeleteConfirmOpen(false);
     setDeleteError(null);
     setIsDeleting(false);
+    setIsSharing(false);
+    setShareNotice(null);
     setScope("MONTH");
 
     const focusFrame = requestAnimationFrame(() => {
@@ -309,6 +320,10 @@ export function TransactionDetailSheet({
     return () => {
       cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKeyDown);
+      if (shareNoticeTimerRef.current !== null) {
+        window.clearTimeout(shareNoticeTimerRef.current);
+        shareNoticeTimerRef.current = null;
+      }
       previousFocus.current?.focus({ preventScroll: true });
     };
   }, [open, transaction?.id]);
@@ -539,6 +554,50 @@ export function TransactionDetailSheet({
     }
   }
 
+  function showShareNotice(
+    kind: "success" | "error",
+    message: string
+  ) {
+    if (shareNoticeTimerRef.current !== null) {
+      window.clearTimeout(shareNoticeTimerRef.current);
+    }
+
+    setShareNotice({ kind, message });
+    shareNoticeTimerRef.current = window.setTimeout(() => {
+      setShareNotice(null);
+      shareNoticeTimerRef.current = null;
+    }, 2800);
+  }
+
+  async function shareDisplayedTransaction() {
+    if (!displayedTransaction || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+    setShareNotice(null);
+
+    try {
+      const result = await shareTransaction(displayedTransaction);
+
+      if (result === "shared" || result === "copied") {
+        setActionsOpen(false);
+      }
+
+      if (result === "copied") {
+        showShareNotice("success", "Transaction copied to clipboard.");
+      }
+    } catch {
+      setActionsOpen(false);
+      showShareNotice(
+        "error",
+        "Unable to share this transaction. Please try again."
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   return createPortal(
     <div
       className={`transaction-detail-backdrop${open ? " is-open" : ""}`}
@@ -649,7 +708,10 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Share transaction"
                   title="Share"
-                  disabled={!actionsInteractive || deleteConfirmOpen}
+                  disabled={
+                    !actionsInteractive || deleteConfirmOpen || isSharing
+                  }
+                  onClick={shareDisplayedTransaction}
                 >
                   <Share aria-hidden="true" />
                 </button>
@@ -751,6 +813,16 @@ export function TransactionDetailSheet({
             <X aria-hidden="true" />
           </button>
         </div>
+
+        {shareNotice ? (
+          <p
+            className={`transaction-detail-sheet__share-notice transaction-detail-sheet__share-notice--${shareNotice.kind}`}
+            role={shareNotice.kind === "error" ? "alert" : "status"}
+            aria-live="polite"
+          >
+            {shareNotice.message}
+          </p>
+        ) : null}
 
         <div
           ref={scrollAreaRef}

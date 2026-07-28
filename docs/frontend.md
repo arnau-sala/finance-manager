@@ -483,12 +483,19 @@ Month/Year/All context selector for category rank, type rank, and period impact.
 All three contexts arrive together, so changing the selector performs no
 additional network request.
 
-The action control expands Share, Edit, and Delete around its trigger. Edit
-opens the same full-screen transaction composer used for creation above the
-detail sheet; the detail remains mounted but inert underneath. Every field is
-prefilled, the save action stays disabled until a value changes, and changing
-the transaction type clears the incompatible category. The client repeats the
-creation validations and sends only changed fields through
+The action control expands Share, Edit, and Delete around its trigger. Share
+builds a compact English summary from the transaction already held in the
+sheet and opens the browser or operating system's native share interface
+through Web Share. It sends a `Finance Manager` title plus type, description,
+signed amount, category, and date as text. Cancelling the native interface has
+no side effect; unsupported browsers copy the same text to the clipboard and
+show brief feedback.
+
+Edit opens the same full-screen transaction composer used for creation above
+the detail sheet; the detail remains mounted but inert underneath. Every field
+is prefilled, the save action stays disabled until a value changes, and
+changing the transaction type clears the incompatible category. The client
+repeats the creation validations and sends only changed fields through
 `PATCH /transactions/:id`.
 
 Closing the editor without saving reveals the unchanged detail. A successful
@@ -502,10 +509,6 @@ keeps the underlying detail mounted but inactive. Outside clicks and `Escape`
 cancel only the confirmation. While the authenticated `DELETE` request is in
 progress, every confirmation control is disabled; success closes the detail and
 refreshes every financial view, while failures remain visible in the popover.
-
-Remaining MVP work:
-
-- Add native sharing with a clipboard fallback.
 
 ### 9. Statistics
 

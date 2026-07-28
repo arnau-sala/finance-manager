@@ -126,6 +126,12 @@ fresh derived data. Editing increments a detail refresh key after the successful
 the editor reveals the underlying detail sheet. Session termination clears
 caches before another user can authenticate.
 
+Transaction sharing is a frontend-only capability. The detail sheet formats
+the already loaded transaction and invokes Web Share synchronously from the
+Share control, preserving the browser's required user activation. It does not
+create a public URL or call a sharing endpoint. A clipboard fallback keeps the
+feature usable when the native interface is unavailable.
+
 `routes/statistics.ts` owns the first read-only statistics endpoints. `GET /statistics/balance` groups all of the current user's transactions by type and returns total income, total spent, and income-minus-expense balance. `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same calculation to a calendar month, with the short form defaulting to the current year. `GET /statistics/balance/year/:year` and `GET /statistics/balance/year` apply it to a full calendar year. They use the same session-derived ownership rule as transaction reads, so administrators do not receive cross-user financial totals.
 
 `GET /statistics/categories` and `GET /statistics/categories/type/:type` aggregate the caller's transactions by category with a single database join between `Transaction` and `Category`. Monthly and yearly category-statistics endpoints reuse the same query with date-only calendar boundaries, avoiding timezone-dependent period changes. Typed period routes such as `GET /statistics/categories/type/expense/6/2026`, `GET /statistics/categories/type/expense/6`, `GET /statistics/categories/type/income/year/2026`, and `GET /statistics/categories/type/income/year` combine the transaction-type and period filters. Routes without an explicit year default to the server's current year. Percentages are calculated separately for `EXPENSE` and `INCOME`, categories without transactions are omitted, and integer percentages are adjusted to total exactly 100 within each returned type.

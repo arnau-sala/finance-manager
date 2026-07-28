@@ -3590,6 +3590,34 @@ button.transaction-row__content:focus-visible {
   z-index: 3;
 }
 
+.transaction-detail-sheet__share-notice {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  z-index: 5;
+  max-width: calc(100% - 40px);
+  margin: 0;
+  padding: 8px 12px;
+  color: var(--color-primary-pressed);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.35;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.transaction-detail-sheet__share-notice--error {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: color-mix(
+    in srgb,
+    var(--color-danger) 28%,
+    transparent
+  );
+}
+
 .transaction-detail-sheet__delete-dismiss-layer {
   position: absolute;
   inset: 0;

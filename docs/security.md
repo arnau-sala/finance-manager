@@ -167,6 +167,9 @@ Transaction security decisions:
 - Deletion filters by transaction ID and authenticated `userId` in one database operation.
 - Partial editing applies the same ownership filter and validates every supplied field.
 - Empty edits verify ownership and succeed without changing stored data.
+- Native sharing is initiated locally and includes only type, description,
+  signed amount, category, and date. It does not expose transaction IDs,
+  ownership identifiers, tracked balances, ranks, or an authenticated URL.
 - Category-filtered transaction reads filter by category ID and authenticated `userId`.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
 - The Moves and transaction-detail in-memory caches are keyed by authenticated `userId`, expire after 30 seconds, and are cleared after transaction creation, editing, deletion, or session termination.

@@ -708,6 +708,12 @@ missing transaction and one owned by another user both return `404 Not Found`
 with `{"error":"Transaction not found."}`. Administrators receive no ownership
 bypass.
 
+The detail sheet can share a compact text summary through the device's native
+share sheet. The message contains only the transaction type, description,
+signed amount, category, and date. It is built locally from the already loaded
+transaction and does not require another API request; browsers without Web
+Share support copy the same text to the clipboard.
+
 ## Create Transaction
 
 An active login session is required:
