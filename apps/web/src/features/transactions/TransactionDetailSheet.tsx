@@ -52,7 +52,7 @@ const mockTransaction = {
       categoryTotal: 5,
       typeRank: 8,
       typeTotal: 31,
-      categoryCount: 5
+      periodImpact: 7
     },
     YEAR: {
       period: "2026",
@@ -60,7 +60,7 @@ const mockTransaction = {
       categoryTotal: 42,
       typeRank: 24,
       typeTotal: 214,
-      categoryCount: 42
+      periodImpact: 0.8
     },
     ALL: {
       period: "All time",
@@ -68,7 +68,7 @@ const mockTransaction = {
       categoryTotal: 126,
       typeRank: 63,
       typeTotal: 642,
-      categoryCount: 126
+      periodImpact: 0.3
     }
   }
 };
@@ -86,6 +86,17 @@ function formatFullDate(value: string) {
     day: "numeric",
     year: "numeric"
   }).format(date);
+}
+
+function formatPeriodImpact(value: number) {
+  if (value > 0 && value < 1) {
+    return `${value.toLocaleString("es-ES", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    })}%`;
+  }
+
+  return `${Math.round(value).toLocaleString("es-ES")}%`;
 }
 
 export function TransactionDetailSheet({
@@ -354,10 +365,12 @@ export function TransactionDetailSheet({
                 </div>
                 <div>
                   <dt>
-                    Category activity
-                    <span>Transactions during {context.period.toLowerCase()}</span>
+                    Period impact
+                    <span>
+                      Share of expenses during {context.period.toLowerCase()}
+                    </span>
                   </dt>
-                  <dd>{context.categoryCount}</dd>
+                  <dd>{formatPeriodImpact(context.periodImpact)}</dd>
                 </div>
               </dl>
             </section>

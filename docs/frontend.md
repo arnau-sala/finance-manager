@@ -470,8 +470,8 @@ It restores focus to the transaction that opened it.
 The initial visual prototype uses one mock transaction while retaining the real
 clicked transaction ID in UI state. It presents the category, title, signed
 amount, full date, balance before and after the movement, and a local
-Month/Year/All context selector for category rank, type rank, and category
-activity. Replacing the mock with the authenticated transaction-detail response
+Month/Year/All context selector for category rank, type rank, and period
+impact. Replacing the mock with the authenticated transaction-detail response
 will not require changing the sheet navigation or either source list.
 
 Remaining MVP work:
