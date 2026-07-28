@@ -453,7 +453,17 @@ export function TransactionComposer({
             />
 
             <div className="transaction-composer__field">
-              <span id="transaction-name-label">Name</span>
+              <div className="transaction-composer__field-heading">
+                <span id="transaction-name-label">Name</span>
+                {name.length >= 35 ? (
+                  <span
+                    className="transaction-composer__character-count"
+                    aria-live="polite"
+                  >
+                    {name.length}/50
+                  </span>
+                ) : null}
+              </div>
               <textarea
                 ref={nameInput}
                 id="transaction-name"

@@ -4438,11 +4438,30 @@ button.transaction-row__content:focus-visible {
   display: grid;
 }
 
-.transaction-composer__field > span {
+.transaction-composer__field > span,
+.transaction-composer__field-heading {
   min-height: 17px;
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.transaction-composer__field-heading {
+  justify-content: space-between;
+  margin: 0 0 6px;
+}
+
+.transaction-composer__field-heading > span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-composer__field-heading
+  .transaction-composer__character-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .transaction-composer__field > span svg {

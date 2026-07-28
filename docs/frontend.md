@@ -401,7 +401,7 @@ UX notes:
   wrapped lines. Longer values scroll inside that fixed maximum; manual
   resizing and explicit line breaks remain disabled, preserving the
   single-name value used by the API. Creation and editing both enforce a
-  50-character maximum.
+  50-character maximum. A compact counter appears from character 35 onward.
 - Categories are selected from a four-column icon grid backed by the same
   category catalog used on Home; no dropdown is used.
 - The composer keeps its confirmation action fixed near the bottom thumb area.
