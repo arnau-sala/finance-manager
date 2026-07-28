@@ -3584,61 +3584,58 @@ button.transaction-row__content:focus-visible {
   stroke-width: 1.7;
 }
 
-.transaction-detail-sheet__actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-}
-
 .transaction-detail-sheet__more {
   position: relative;
+  z-index: 3;
 }
 
 .transaction-detail-sheet__action-menu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: 0;
   left: 0;
   z-index: 2;
-  width: 210px;
-  overflow: hidden;
-  padding: 5px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-dialog);
-}
-
-.transaction-detail-sheet__action-menu button {
-  width: 100%;
-  min-height: 44px;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  align-items: center;
-  gap: 10px;
-  padding: 0 11px;
-  color: var(--color-text);
-  text-align: left;
-  background: transparent;
-  border: 0;
-  border-radius: 8px;
-}
-
-.transaction-detail-sheet__action-menu button:active {
-  background: var(--color-surface-muted);
-}
-
-.transaction-detail-sheet__action-menu button + button {
-  border-top: 1px solid var(--color-border);
-  border-radius: 0 0 8px 8px;
-}
-
-.transaction-detail-sheet__action-menu svg {
-  width: 19px;
-  height: 19px;
+  width: 100px;
+  height: 100px;
+  pointer-events: none;
 }
 
 .transaction-detail-sheet__action-menu
-  .transaction-detail-sheet__delete-action {
+  .transaction-detail-sheet__floating-action {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  pointer-events: auto;
+}
+
+.transaction-detail-sheet__floating-action--share {
+  top: 0;
+  left: 52px;
+}
+
+.transaction-detail-sheet__floating-action--edit {
+  top: 42px;
+  left: 42px;
+}
+
+.transaction-detail-sheet__floating-action--delete {
+  top: 52px;
+  left: 0;
+}
+
+.transaction-detail-sheet__action-menu svg {
+  width: 21px;
+  height: 21px;
+}
+
+.transaction-detail-sheet__action-menu
+  .transaction-detail-sheet__floating-action--delete {
   color: var(--color-danger);
 }
 

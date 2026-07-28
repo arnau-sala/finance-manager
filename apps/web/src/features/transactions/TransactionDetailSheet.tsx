@@ -455,50 +455,54 @@ export function TransactionDetailSheet({
         </div>
 
         <div className="transaction-detail-sheet__toolbar">
-          <div className="transaction-detail-sheet__actions">
+          <div className="transaction-detail-sheet__more">
             <button
               type="button"
               className="transaction-detail-sheet__action-button"
-              aria-label="Share transaction"
-              title="Share"
+              aria-label="More transaction actions"
+              aria-haspopup="menu"
+              aria-expanded={actionsOpen}
+              title="More"
+              onClick={() => setActionsOpen((current) => !current)}
             >
-              <Share aria-hidden="true" />
+              <Ellipsis aria-hidden="true" />
             </button>
 
-            <div className="transaction-detail-sheet__more">
-              <button
-                type="button"
-                className="transaction-detail-sheet__action-button"
-                aria-label="More transaction actions"
-                aria-haspopup="menu"
-                aria-expanded={actionsOpen}
-                title="More"
-                onClick={() => setActionsOpen((current) => !current)}
+            {actionsOpen ? (
+              <div
+                className="transaction-detail-sheet__action-menu"
+                role="menu"
+                aria-label="Transaction actions"
               >
-                <Ellipsis aria-hidden="true" />
-              </button>
-
-              {actionsOpen ? (
-                <div
-                  className="transaction-detail-sheet__action-menu"
-                  role="menu"
-                  aria-label="Transaction actions"
+                <button
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--share"
+                  role="menuitem"
+                  aria-label="Share transaction"
+                  title="Share"
                 >
-                  <button type="button" role="menuitem">
-                    <Pencil aria-hidden="true" />
-                    <span>Edit transaction</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="transaction-detail-sheet__delete-action"
-                    role="menuitem"
-                  >
-                    <Trash2 aria-hidden="true" />
-                    <span>Delete transaction</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
+                  <Share aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
+                  role="menuitem"
+                  aria-label="Edit transaction"
+                  title="Edit"
+                >
+                  <Pencil aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--delete"
+                  role="menuitem"
+                  aria-label="Delete transaction"
+                  title="Delete"
+                >
+                  <Trash2 aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
           </div>
 
           <button
