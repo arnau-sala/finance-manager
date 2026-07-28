@@ -119,8 +119,12 @@ The Moves client stores a completed paginated history and transaction-detail
 responses in the shared expiring memory-cache utility for 30 seconds, keyed by
 authenticated `userId`. Empty histories are cached as valid results. Successful
 financial writes invalidate both transaction caches through their frontend
-integration; transaction creation does so today. Session termination clears
-them before another user can authenticate.
+integration. Creation and editing also invalidate the Statistics caches and
+increment the shared financial refresh key so Home, Moves, and Stats request
+fresh derived data. Editing increments a detail refresh key after the successful
+`PATCH`, causing its owner-scoped balance and rankings to be recalculated before
+the editor reveals the underlying detail sheet. Session termination clears
+caches before another user can authenticate.
 
 `routes/statistics.ts` owns the first read-only statistics endpoints. `GET /statistics/balance` groups all of the current user's transactions by type and returns total income, total spent, and income-minus-expense balance. `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same calculation to a calendar month, with the short form defaulting to the current year. `GET /statistics/balance/year/:year` and `GET /statistics/balance/year` apply it to a full calendar year. They use the same session-derived ownership rule as transaction reads, so administrators do not receive cross-user financial totals.
 

@@ -207,6 +207,42 @@ export async function createTransaction(input: CreateTransactionInput) {
   transactionDetailsCache.clear();
 }
 
+export async function updateTransaction(
+  transactionId: string,
+  input: Partial<CreateTransactionInput>
+) {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `/api/transactions/${encodeURIComponent(transactionId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify(input)
+      }
+    );
+  } catch {
+    throw new TransactionApiError(
+      "Unable to connect. Check your connection and try again.",
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw await createTransactionApiError(
+      response,
+      "Unable to update the transaction. Please try again."
+    );
+  }
+
+  transactionsCache.clear();
+  transactionDetailsCache.clear();
+}
+
 export async function getTransactionDetail(
   ownerId: string,
   transactionId: string,

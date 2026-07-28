@@ -3611,22 +3611,41 @@ button.transaction-row__content:focus-visible {
   background: transparent;
   border: 0;
   border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 220ms cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 220ms ease;
+  will-change: transform, opacity;
+}
+
+.transaction-detail-sheet__action-menu.is-open
+  .transaction-detail-sheet__floating-action {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+.transaction-detail-sheet__action-menu.is-interactive
+  .transaction-detail-sheet__floating-action {
   pointer-events: auto;
 }
 
 .transaction-detail-sheet__floating-action--share {
   top: 0;
   left: 52px;
+  transform: translate3d(-52px, 0, 0) scale(0.2);
 }
 
 .transaction-detail-sheet__floating-action--edit {
   top: 42px;
   left: 42px;
+  transform: translate3d(-42px, -42px, 0) scale(0.2);
 }
 
 .transaction-detail-sheet__floating-action--delete {
   top: 52px;
   left: 0;
+  transform: translate3d(0, -52px, 0) scale(0.2);
 }
 
 .transaction-detail-sheet__action-menu svg {
@@ -3888,6 +3907,10 @@ button.transaction-row__content:focus-visible {
 .transaction-composer--income {
   --transaction-type-color: var(--color-success);
   --transaction-type-soft: var(--color-success-soft);
+}
+
+.transaction-composer--editing {
+  z-index: 60;
 }
 
 .transaction-composer.is-open {
@@ -5219,6 +5242,7 @@ button.transaction-row__content:focus-visible {
   .transaction-composer,
   .transaction-detail-backdrop,
   .transaction-detail-sheet,
+  .transaction-detail-sheet__floating-action,
   .sliding-segmented-control__indicator,
   .stats-view-panel {
     transition-duration: 1ms;

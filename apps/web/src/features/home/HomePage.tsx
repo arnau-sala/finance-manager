@@ -4,7 +4,7 @@ import type { SessionUser } from "../auth/auth-api";
 import { clearStatisticsCache } from "../statistics/statistics-api";
 import { StatsPage } from "../statistics/StatsPage";
 import { MovesPage } from "../transactions/MovesPage";
-import { NewTransactionComposer } from "../transactions/NewTransactionComposer";
+import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import { HomeFooterNav } from "./HomeFooterNav";
@@ -121,10 +121,25 @@ export function HomePage({
     useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionPreview | null>(null);
+  const [transactionBeingEdited, setTransactionBeingEdited] =
+    useState<TransactionPreview | null>(null);
   const [financialRefreshKey, setFinancialRefreshKey] = useState(0);
+  const [transactionDetailRefreshKey, setTransactionDetailRefreshKey] =
+    useState(0);
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
     isTransactionComposerOpen || selectedTransaction !== null;
+
+  function openNewTransaction() {
+    setTransactionBeingEdited(null);
+    setIsTransactionComposerOpen(true);
+  }
+
+  function finishFinancialWrite() {
+    clearStatisticsCache();
+    setIsTransactionComposerOpen(false);
+    setFinancialRefreshKey((current) => current + 1);
+  }
 
   return (
     <main className="home-screen">
@@ -139,7 +154,7 @@ export function HomePage({
           onLogout,
           onAccountDeleted,
           onSessionExpired,
-          onNewTransaction: () => setIsTransactionComposerOpen(true),
+          onNewTransaction: openNewTransaction,
           onNavigateToMoves: () => setActiveSection("moves"),
           onTransactionSelect: setSelectedTransaction,
           financialRefreshKey,
@@ -153,13 +168,14 @@ export function HomePage({
         />
       </div>
 
-      <NewTransactionComposer
+      <TransactionComposer
         open={isTransactionComposerOpen}
+        transaction={transactionBeingEdited}
         onClose={() => setIsTransactionComposerOpen(false)}
-        onCreated={() => {
-          clearStatisticsCache();
-          setIsTransactionComposerOpen(false);
-          setFinancialRefreshKey((current) => current + 1);
+        onCreated={finishFinancialWrite}
+        onUpdated={() => {
+          finishFinancialWrite();
+          setTransactionDetailRefreshKey((current) => current + 1);
         }}
         onSessionExpired={onSessionExpired}
       />
@@ -167,7 +183,15 @@ export function HomePage({
       <TransactionDetailSheet
         ownerId={user.id}
         transaction={selectedTransaction}
+        refreshKey={transactionDetailRefreshKey}
+        suspended={
+          isTransactionComposerOpen && transactionBeingEdited !== null
+        }
         onClose={() => setSelectedTransaction(null)}
+        onEdit={(transaction) => {
+          setTransactionBeingEdited(transaction);
+          setIsTransactionComposerOpen(true);
+        }}
         onSessionExpired={onSessionExpired}
       />
     </main>

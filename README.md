@@ -776,6 +776,11 @@ Send only the fields that must change. All fields are optional, and an empty obj
 
 The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
 
+The authenticated interface opens the shared transaction composer from the
+detail sheet, prefilled with the current values. It sends only changed fields,
+then invalidates transaction and statistics caches and reloads the detail
+aggregates before revealing the sheet again.
+
 ## Get Home Overview
 
 An active login session is required:

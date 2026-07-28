@@ -479,10 +479,23 @@ Month/Year/All context selector for category rank, type rank, and period impact.
 All three contexts arrive together, so changing the selector performs no
 additional network request.
 
+The action control expands Share, Edit, and Delete around its trigger. Edit
+opens the same full-screen transaction composer used for creation above the
+detail sheet; the detail remains mounted but inert underneath. Every field is
+prefilled, the save action stays disabled until a value changes, and changing
+the transaction type clears the incompatible category. The client repeats the
+creation validations and sends only changed fields through
+`PATCH /transactions/:id`.
+
+Closing the editor without saving reveals the unchanged detail. A successful
+save clears transaction and Statistics caches, refreshes Home, Moves, and Stats,
+and reloads the selected transaction's derived balance, ranks, and period impact
+before the composer finishes leaving the screen.
+
 Remaining MVP work:
 
-- Add the edit flow.
 - Add the delete confirmation.
+- Add native sharing with a clipboard fallback.
 
 ### 9. Statistics
 

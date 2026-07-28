@@ -31,7 +31,10 @@ import {
 type TransactionDetailSheetProps = {
   ownerId: string;
   transaction: TransactionPreview | null;
+  refreshKey: number;
+  suspended: boolean;
   onClose: () => void;
+  onEdit: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
 
@@ -54,6 +57,7 @@ const CLOSE_DISTANCE_PX = 88;
 const CLOSE_VELOCITY_PX_PER_MS = 0.55;
 const DISMISS_SWIPE_DISTANCE_PX = 48;
 const DISMISS_SWIPE_MAX_DURATION_MS = 700;
+const ACTIONS_ANIMATION_MS = 220;
 
 const detailScopeOptions = [
   { value: "MONTH", label: "Month" },
@@ -133,7 +137,10 @@ function getContext(
 export function TransactionDetailSheet({
   ownerId,
   transaction,
+  refreshKey,
+  suspended,
   onClose,
+  onEdit,
   onSessionExpired
 }: TransactionDetailSheetProps) {
   const open = transaction !== null;
@@ -146,12 +153,16 @@ export function TransactionDetailSheet({
   const suppressClickUntil = useRef(0);
   const previousFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  const suspendedRef = useRef(suspended);
   const renderedTransactionRef = useRef<TransactionPreview | null>(null);
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionsRendered, setActionsRendered] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [actionsInteractive, setActionsInteractive] = useState(false);
   const [detailError, setDetailError] = useState<{
     transactionId: string;
     message: string;
@@ -193,6 +204,7 @@ export function TransactionDetailSheet({
       : -Math.abs(displayedAmount);
 
   onCloseRef.current = onClose;
+  suspendedRef.current = suspended;
 
   useEffect(() => {
     if (!open) {
@@ -216,6 +228,10 @@ export function TransactionDetailSheet({
     });
 
     function handleKeyDown(event: KeyboardEvent) {
+      if (suspendedRef.current) {
+        return;
+      }
+
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();
@@ -257,11 +273,59 @@ export function TransactionDetailSheet({
   }, [open, transaction?.id]);
 
   useEffect(() => {
+    setActionsInteractive(false);
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (actionsOpen) {
+      setActionsRendered(true);
+
+      if (reduceMotion) {
+        setActionsExpanded(true);
+        setActionsInteractive(true);
+        return;
+      }
+
+      const expansionFrame = requestAnimationFrame(() => {
+        setActionsExpanded(true);
+      });
+      const interactionTimer = window.setTimeout(() => {
+        setActionsInteractive(true);
+      }, ACTIONS_ANIMATION_MS);
+
+      return () => {
+        cancelAnimationFrame(expansionFrame);
+        window.clearTimeout(interactionTimer);
+      };
+    }
+
+    setActionsExpanded(false);
+
+    if (!actionsRendered) {
+      return;
+    }
+
+    if (reduceMotion) {
+      setActionsRendered(false);
+      return;
+    }
+
+    const unmountTimer = window.setTimeout(() => {
+      setActionsRendered(false);
+    }, ACTIONS_ANIMATION_MS);
+
+    return () => window.clearTimeout(unmountTimer);
+  }, [actionsOpen, actionsRendered]);
+
+  useEffect(() => {
     if (!transaction) {
       return;
     }
 
     const controller = new AbortController();
+    setDetail(null);
     setDetailError(null);
 
     getTransactionDetail(ownerId, transaction.id, controller.signal)
@@ -288,7 +352,7 @@ export function TransactionDetailSheet({
       });
 
     return () => controller.abort();
-  }, [onSessionExpired, ownerId, transaction?.id]);
+  }, [onSessionExpired, ownerId, refreshKey, transaction?.id]);
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) {
@@ -404,8 +468,8 @@ export function TransactionDetailSheet({
   return createPortal(
     <div
       className={`transaction-detail-backdrop${open ? " is-open" : ""}`}
-      aria-hidden={!open}
-      inert={!open}
+      aria-hidden={!open || suspended}
+      inert={!open || suspended}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           event.preventDefault();
@@ -468,9 +532,11 @@ export function TransactionDetailSheet({
               <Ellipsis aria-hidden="true" />
             </button>
 
-            {actionsOpen ? (
+            {actionsRendered ? (
               <div
-                className="transaction-detail-sheet__action-menu"
+                className={`transaction-detail-sheet__action-menu${
+                  actionsExpanded ? " is-open" : ""
+                }${actionsInteractive ? " is-interactive" : ""}`}
                 role="menu"
                 aria-label="Transaction actions"
               >
@@ -480,6 +546,7 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Share transaction"
                   title="Share"
+                  disabled={!actionsInteractive}
                 >
                   <Share aria-hidden="true" />
                 </button>
@@ -489,6 +556,20 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Edit transaction"
                   title="Edit"
+                  disabled={!actionsInteractive}
+                  onClick={() => {
+                    if (!displayedTransaction) {
+                      return;
+                    }
+
+                    sheetRef.current
+                      ?.querySelector<HTMLElement>(
+                        ".transaction-detail-sheet__action-button"
+                      )
+                      ?.focus({ preventScroll: true });
+                    setActionsOpen(false);
+                    onEdit(displayedTransaction);
+                  }}
                 >
                   <Pencil aria-hidden="true" />
                 </button>
@@ -498,6 +579,7 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Delete transaction"
                   title="Delete"
+                  disabled={!actionsInteractive}
                 >
                   <Trash2 aria-hidden="true" />
                 </button>

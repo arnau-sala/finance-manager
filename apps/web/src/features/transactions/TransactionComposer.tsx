@@ -5,12 +5,15 @@ import {
   useState
 } from "react";
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { getTodayDateOnly } from "../../dates/date-only";
 import { type TransactionType } from "./category-catalog";
 import {
   createTransaction,
-  TransactionApiError
+  TransactionApiError,
+  type TransactionPreview,
+  updateTransaction
 } from "./transaction-api";
 import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
 import { TransactionDateField } from "./TransactionDateField";
@@ -19,14 +22,17 @@ import {
   type TransactionTypeSelection
 } from "./TransactionTypeSwitch";
 import {
+  type CreateTransactionInput,
   type CreateTransactionField,
   validateCreateTransaction
 } from "./transaction-validation";
 
-type NewTransactionComposerProps = {
+type TransactionComposerProps = {
   open: boolean;
+  transaction: TransactionPreview | null;
   onClose: () => void;
   onCreated: () => void;
+  onUpdated: () => void;
   onSessionExpired: () => void;
 };
 
@@ -53,12 +59,73 @@ function normalizeAmountInput(value: string) {
   return value.replace(/\./g, ",").replace(/\s/g, "");
 }
 
-export function NewTransactionComposer({
+function formatStoredAmountInput(value: string) {
+  const normalizedValue = normalizeAmountInput(value);
+  const [wholePart, decimalPart] = normalizedValue.split(",");
+
+  if (decimalPart && Number(decimalPart) === 0) {
+    return wholePart;
+  }
+
+  return normalizedValue;
+}
+
+function amountToComparableCents(value: string) {
+  const normalizedValue = value.trim().replace(",", ".");
+
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const [wholePart, decimalPart = ""] = normalizedValue.split(".");
+
+  return (
+    BigInt(wholePart) * 100n +
+    BigInt(decimalPart.padEnd(2, "0"))
+  ).toString();
+}
+
+function getChangedFields(
+  transaction: TransactionPreview,
+  input: CreateTransactionInput
+) {
+  const changes: Partial<CreateTransactionInput> = {};
+
+  if (input.type !== transaction.type) {
+    changes.type = input.type;
+  }
+
+  if (input.categoryId !== transaction.categoryId) {
+    changes.categoryId = input.categoryId;
+  }
+
+  if (input.description !== transaction.description) {
+    changes.description = input.description;
+  }
+
+  if (input.date !== transaction.date) {
+    changes.date = input.date;
+  }
+
+  if (
+    amountToComparableCents(input.amount) !==
+    amountToComparableCents(transaction.amount)
+  ) {
+    changes.amount = input.amount;
+  }
+
+  return changes;
+}
+
+export function TransactionComposer({
   open,
+  transaction,
   onClose,
   onCreated,
+  onUpdated,
   onSessionExpired
-}: NewTransactionComposerProps) {
+}: TransactionComposerProps) {
+  const isEditing = transaction !== null;
   const [type, setType] = useState<TransactionType>("EXPENSE");
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
@@ -74,12 +141,21 @@ export function NewTransactionComposer({
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
-  const canAdd =
+  const hasChanges =
+    transaction === null ||
+    type !== transaction.type ||
+    selectedCategoryId !== transaction.categoryId ||
+    name.trim() !== transaction.description ||
+    date !== transaction.date ||
+    amountToComparableCents(amount) !==
+      amountToComparableCents(transaction.amount);
+  const canSubmit =
     !isSubmitting &&
     amount.length > 0 &&
     name.trim().length > 0 &&
     selectedCategoryId !== null &&
-    date.length > 0;
+    date.length > 0 &&
+    hasChanges;
 
   useEffect(() => {
     if (open && !wasOpen.current) {
@@ -88,12 +164,14 @@ export function NewTransactionComposer({
           ? document.activeElement
           : null;
 
-      setType("EXPENSE");
-      setAmount("");
-      setSelectedCategoryId(null);
-      setName("");
-      setDate(getTodayDateOnly());
-      setHasSelectedDate(false);
+      setType(transaction?.type ?? "EXPENSE");
+      setAmount(
+        transaction ? formatStoredAmountInput(transaction.amount) : ""
+      );
+      setSelectedCategoryId(transaction?.categoryId ?? null);
+      setName(transaction?.description ?? "");
+      setDate(transaction?.date ?? getTodayDateOnly());
+      setHasSelectedDate(transaction !== null);
       setInvalidFields({});
       setFormError(null);
       setIsSubmitting(false);
@@ -104,7 +182,7 @@ export function NewTransactionComposer({
     }
 
     wasOpen.current = open;
-  }, [open]);
+  }, [open, transaction]);
 
   useEffect(() => {
     if (!open) {
@@ -208,8 +286,22 @@ export function NewTransactionComposer({
     setIsSubmitting(true);
 
     try {
-      await createTransaction(parsedTransaction.data);
-      onCreated();
+      if (transaction) {
+        const changedFields = getChangedFields(
+          transaction,
+          parsedTransaction.data
+        );
+
+        if (Object.keys(changedFields).length === 0) {
+          return;
+        }
+
+        await updateTransaction(transaction.id, changedFields);
+        onUpdated();
+      } else {
+        await createTransaction(parsedTransaction.data);
+        onCreated();
+      }
     } catch (error) {
       if (error instanceof TransactionApiError && error.status === 401) {
         onSessionExpired();
@@ -233,21 +325,23 @@ export function NewTransactionComposer({
       setFormError(
         error instanceof Error
           ? error.message
-          : "Unable to add the transaction. Please try again."
+          : isEditing
+            ? "Unable to update the transaction. Please try again."
+            : "Unable to add the transaction. Please try again."
       );
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  return (
+  return createPortal(
     <section
       className={`transaction-composer transaction-composer--${type.toLowerCase()}${
-        open ? " is-open" : ""
-      }`}
+        isEditing ? " transaction-composer--editing" : ""
+      }${open ? " is-open" : ""}`}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="new-transaction-title"
+      aria-labelledby="transaction-composer-title"
       aria-hidden={!open}
       inert={!open}
     >
@@ -257,13 +351,17 @@ export function NewTransactionComposer({
             className="transaction-composer__close"
             type="button"
             disabled={isSubmitting}
-            aria-label="Close new transaction"
+            aria-label={
+              isEditing ? "Close transaction editor" : "Close new transaction"
+            }
             title="Close"
             onClick={onClose}
           >
             <X aria-hidden="true" />
           </button>
-          <h1 id="new-transaction-title">New transaction</h1>
+          <h1 id="transaction-composer-title">
+            {isEditing ? "Edit transaction" : "New transaction"}
+          </h1>
           <span aria-hidden="true" />
         </div>
       </header>
@@ -376,12 +474,19 @@ export function NewTransactionComposer({
             >
               {formError ?? ""}
             </p>
-            <button type="submit" disabled={!canAdd}>
-              {isSubmitting ? "Adding..." : "Add transaction"}
+            <button type="submit" disabled={!canSubmit}>
+              {isSubmitting
+                ? isEditing
+                  ? "Saving..."
+                  : "Adding..."
+                : isEditing
+                  ? "Save changes"
+                  : "Add transaction"}
             </button>
           </div>
         </footer>
       </form>
-    </section>
+    </section>,
+    document.body
   );
 }
