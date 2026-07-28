@@ -169,7 +169,7 @@ Transaction security decisions:
 - Empty edits verify ownership and succeed without changing stored data.
 - Category-filtered transaction reads filter by category ID and authenticated `userId`.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
-- The Moves and transaction-detail in-memory caches are keyed by authenticated `userId`, expire after 30 seconds, and are cleared after transaction creation, transaction editing, or session termination.
+- The Moves and transaction-detail in-memory caches are keyed by authenticated `userId`, expire after 30 seconds, and are cleared after transaction creation, editing, deletion, or session termination.
 - Statistics endpoints must filter transactions by the authenticated `userId`.
 - `GET /statistics/balance` returns only the caller's own totals, including for administrators.
 - `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same owner-only rule to monthly totals.

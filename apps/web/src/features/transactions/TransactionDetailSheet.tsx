@@ -21,6 +21,7 @@ import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import { getCategoryIcon } from "./category-catalog";
 import {
+  deleteTransaction,
   getTransactionDetail,
   TransactionApiError,
   type TransactionDetail,
@@ -34,6 +35,7 @@ type TransactionDetailSheetProps = {
   refreshKey: number;
   suspended: boolean;
   onClose: () => void;
+  onDeleted: () => void;
   onEdit: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
@@ -140,12 +142,14 @@ export function TransactionDetailSheet({
   refreshKey,
   suspended,
   onClose,
+  onDeleted,
   onEdit,
   onSessionExpired
 }: TransactionDetailSheetProps) {
   const open = transaction !== null;
   const titleId = useId();
   const dateId = useId();
+  const deleteTitleId = useId();
   const sheetRef = useRef<HTMLElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const dragGesture = useRef<DragGesture | null>(null);
@@ -154,6 +158,8 @@ export function TransactionDetailSheet({
   const previousFocus = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   const suspendedRef = useRef(suspended);
+  const deleteConfirmOpenRef = useRef(false);
+  const isDeletingRef = useRef(false);
   const renderedTransactionRef = useRef<TransactionPreview | null>(null);
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
   const [dragOffset, setDragOffset] = useState(0);
@@ -163,6 +169,9 @@ export function TransactionDetailSheet({
   const [actionsRendered, setActionsRendered] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [actionsInteractive, setActionsInteractive] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [detailError, setDetailError] = useState<{
     transactionId: string;
     message: string;
@@ -205,12 +214,17 @@ export function TransactionDetailSheet({
 
   onCloseRef.current = onClose;
   suspendedRef.current = suspended;
+  deleteConfirmOpenRef.current = deleteConfirmOpen;
+  isDeletingRef.current = isDeleting;
 
   useEffect(() => {
     if (!open) {
       dragGesture.current = null;
       dismissSwipeGesture.current = null;
       setActionsOpen(false);
+      setDeleteConfirmOpen(false);
+      setDeleteError(null);
+      setIsDeleting(false);
       setDragOffset(0);
       setIsDragging(false);
       return;
@@ -221,6 +235,9 @@ export function TransactionDetailSheet({
         ? document.activeElement
         : null;
     setActionsOpen(false);
+    setDeleteConfirmOpen(false);
+    setDeleteError(null);
+    setIsDeleting(false);
     setScope("MONTH");
 
     const focusFrame = requestAnimationFrame(() => {
@@ -229,6 +246,17 @@ export function TransactionDetailSheet({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (suspendedRef.current) {
+        return;
+      }
+
+      if (event.key === "Escape" && deleteConfirmOpenRef.current) {
+        event.preventDefault();
+
+        if (!isDeletingRef.current) {
+          setDeleteConfirmOpen(false);
+          setDeleteError(null);
+        }
+
         return;
       }
 
@@ -243,7 +271,9 @@ export function TransactionDetailSheet({
       }
 
       const controls = sheetRef.current?.querySelectorAll<HTMLElement>(
-        "button:not(:disabled)"
+        deleteConfirmOpenRef.current
+          ? ".transaction-detail-delete-confirm button:not(:disabled)"
+          : "button:not(:disabled)"
       );
 
       if (!controls?.length) {
@@ -254,7 +284,18 @@ export function TransactionDetailSheet({
       const firstControl = controls[0];
       const lastControl = controls[controls.length - 1];
 
-      if (event.shiftKey && document.activeElement === firstControl) {
+      if (
+        deleteConfirmOpenRef.current &&
+        !Array.from(controls).includes(
+          document.activeElement as HTMLElement
+        )
+      ) {
+        event.preventDefault();
+        (event.shiftKey ? lastControl : firstControl).focus();
+      } else if (
+        event.shiftKey &&
+        document.activeElement === firstControl
+      ) {
         event.preventDefault();
         lastControl.focus();
       } else if (!event.shiftKey && document.activeElement === lastControl) {
@@ -423,6 +464,9 @@ export function TransactionDetailSheet({
       event.pointerType === "mouse" ||
       !(target instanceof Element) ||
       target.closest(".transaction-detail-sheet__drag-region") ||
+      target.closest(".transaction-detail-sheet__action-menu") ||
+      target.closest(".transaction-detail-delete-confirm") ||
+      target.closest(".transaction-detail-sheet__delete-dismiss-layer") ||
       !scrollArea ||
       scrollArea.scrollHeight > scrollArea.clientHeight + 1
     ) {
@@ -465,6 +509,36 @@ export function TransactionDetailSheet({
     onClose();
   }
 
+  async function confirmDeleteTransaction() {
+    if (!displayedTransaction || isDeleting) {
+      return;
+    }
+
+    setDeleteError(null);
+    setIsDeleting(true);
+
+    try {
+      await deleteTransaction(displayedTransaction.id);
+      setDeleteConfirmOpen(false);
+      setActionsOpen(false);
+      onDeleted();
+    } catch (error) {
+      if (error instanceof TransactionApiError && error.status === 401) {
+        setDeleteConfirmOpen(false);
+        onSessionExpired();
+        return;
+      }
+
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete the transaction. Please try again."
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return createPortal(
     <div
       className={`transaction-detail-backdrop${open ? " is-open" : ""}`}
@@ -474,7 +548,15 @@ export function TransactionDetailSheet({
         if (event.target === event.currentTarget) {
           event.preventDefault();
           event.stopPropagation();
-          onClose();
+
+          if (deleteConfirmOpen) {
+            if (!isDeleting) {
+              setDeleteConfirmOpen(false);
+              setDeleteError(null);
+            }
+          } else {
+            onClose();
+          }
         }
       }}
     >
@@ -507,6 +589,22 @@ export function TransactionDetailSheet({
           }
         }}
       >
+        {deleteConfirmOpen ? (
+          <div
+            className="transaction-detail-sheet__delete-dismiss-layer"
+            aria-hidden="true"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+
+              if (!isDeleting) {
+                setDeleteConfirmOpen(false);
+                setDeleteError(null);
+              }
+            }}
+          />
+        ) : null}
+
         <div
           className="transaction-detail-sheet__drag-region"
           aria-hidden="true"
@@ -527,7 +625,12 @@ export function TransactionDetailSheet({
               aria-haspopup="menu"
               aria-expanded={actionsOpen}
               title="More"
-              onClick={() => setActionsOpen((current) => !current)}
+              disabled={isDeleting}
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                setDeleteError(null);
+                setActionsOpen((current) => !current);
+              }}
             >
               <Ellipsis aria-hidden="true" />
             </button>
@@ -546,7 +649,7 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Share transaction"
                   title="Share"
-                  disabled={!actionsInteractive}
+                  disabled={!actionsInteractive || deleteConfirmOpen}
                 >
                   <Share aria-hidden="true" />
                 </button>
@@ -556,7 +659,7 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Edit transaction"
                   title="Edit"
-                  disabled={!actionsInteractive}
+                  disabled={!actionsInteractive || deleteConfirmOpen}
                   onClick={() => {
                     if (!displayedTransaction) {
                       return;
@@ -579,10 +682,61 @@ export function TransactionDetailSheet({
                   role="menuitem"
                   aria-label="Delete transaction"
                   title="Delete"
-                  disabled={!actionsInteractive}
+                  disabled={!actionsInteractive || deleteConfirmOpen}
+                  onClick={() => {
+                    setDeleteError(null);
+                    setDeleteConfirmOpen(true);
+                  }}
                 >
                   <Trash2 aria-hidden="true" />
                 </button>
+              </div>
+            ) : null}
+
+            {deleteConfirmOpen && displayedTransaction ? (
+              <div
+                className="transaction-detail-delete-confirm"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby={deleteTitleId}
+              >
+                <strong id={deleteTitleId}>Delete permanently?</strong>
+                <span className="transaction-detail-delete-confirm__summary">
+                  <span>{displayedTransaction.description}</span>
+                  <b>
+                    {formatEuroAmount(signedAmount, { showSign: true })}
+                  </b>
+                </span>
+
+                {deleteError ? (
+                  <p
+                    className="transaction-detail-delete-confirm__error"
+                    role="alert"
+                  >
+                    {deleteError}
+                  </p>
+                ) : null}
+
+                <div className="transaction-detail-delete-confirm__actions">
+                  <button
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => {
+                      setDeleteConfirmOpen(false);
+                      setDeleteError(null);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="transaction-detail-delete-confirm__submit"
+                    disabled={isDeleting}
+                    onClick={confirmDeleteTransaction}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>

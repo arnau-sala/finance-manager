@@ -119,7 +119,7 @@ The Moves client stores a completed paginated history and transaction-detail
 responses in the shared expiring memory-cache utility for 30 seconds, keyed by
 authenticated `userId`. Empty histories are cached as valid results. Successful
 financial writes invalidate both transaction caches through their frontend
-integration. Creation and editing also invalidate the Statistics caches and
+integration. Creation, editing, and deletion also invalidate the Statistics caches and
 increment the shared financial refresh key so Home, Moves, and Stats request
 fresh derived data. Editing increments a detail refresh key after the successful
 `PATCH`, causing its owner-scoped balance and rankings to be recalculated before

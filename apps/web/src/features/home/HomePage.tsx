@@ -188,6 +188,11 @@ export function HomePage({
           isTransactionComposerOpen && transactionBeingEdited !== null
         }
         onClose={() => setSelectedTransaction(null)}
+        onDeleted={() => {
+          clearStatisticsCache();
+          setSelectedTransaction(null);
+          setFinancialRefreshKey((current) => current + 1);
+        }}
         onEdit={(transaction) => {
           setTransactionBeingEdited(transaction);
           setIsTransactionComposerOpen(true);

@@ -496,9 +496,15 @@ save clears transaction and Statistics caches, refreshes Home, Moves, and Stats,
 and reloads the selected transaction's derived balance, ranks, and period impact
 before the composer finishes leaving the screen.
 
+Delete opens a compact confirmation popover directly below the trash action.
+It identifies the transaction, states that the operation cannot be undone, and
+keeps the underlying detail mounted but inactive. Outside clicks and `Escape`
+cancel only the confirmation. While the authenticated `DELETE` request is in
+progress, every confirmation control is disabled; success closes the detail and
+refreshes every financial view, while failures remain visible in the popover.
+
 Remaining MVP work:
 
-- Add the delete confirmation.
 - Add native sharing with a clipboard fallback.
 
 ### 9. Statistics

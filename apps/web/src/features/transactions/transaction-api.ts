@@ -243,6 +243,35 @@ export async function updateTransaction(
   transactionDetailsCache.clear();
 }
 
+export async function deleteTransaction(transactionId: string) {
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `/api/transactions/${encodeURIComponent(transactionId)}`,
+      {
+        method: "DELETE",
+        credentials: "include"
+      }
+    );
+  } catch {
+    throw new TransactionApiError(
+      "Unable to connect. Check your connection and try again.",
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw await createTransactionApiError(
+      response,
+      "Unable to delete the transaction. Please try again."
+    );
+  }
+
+  transactionsCache.clear();
+  transactionDetailsCache.clear();
+}
+
 export async function getTransactionDetail(
   ownerId: string,
   transactionId: string,

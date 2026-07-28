@@ -755,6 +755,11 @@ An unknown transaction ID and a transaction owned by another user both return th
 }
 ```
 
+The authenticated interface confirms this irreversible action in a compact
+popover anchored below the transaction's Delete control. A successful deletion
+closes the detail sheet, clears private financial caches, and refreshes Home,
+Moves, and Stats.
+
 ## Update Transaction
 
 An active login session is required, and the transaction must belong to that user:
