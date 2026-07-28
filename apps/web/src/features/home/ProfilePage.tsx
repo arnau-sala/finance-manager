@@ -5,6 +5,7 @@ import {
   CircleCheck,
   Clock3,
   KeyRound,
+  Landmark,
   LogOut,
   Mail,
   PencilLine,
@@ -15,6 +16,7 @@ import {
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { formatEuroAmount } from "../../money/format-euro";
 import {
   ApiRequestError,
   changePassword,
@@ -50,6 +52,16 @@ function formatCreationDate(value: string) {
     month: "long",
     year: "numeric"
   }).format(date);
+}
+
+function formatStartingNetWorth(value: string | null) {
+  if (value === null) {
+    return "Not set";
+  }
+
+  return formatEuroAmount(value, {
+    fractionDigits: Number.isInteger(Number(value)) ? 0 : 2
+  });
 }
 
 export function ProfilePage({
@@ -333,6 +345,16 @@ export function ProfilePage({
                 <div>
                   <dt>Date created</dt>
                   <dd>{formatCreationDate(user.createdAt)}</dd>
+                </div>
+              </div>
+
+              <div className="profile-detail">
+                <span className="profile-detail__icon" aria-hidden="true">
+                  <Landmark />
+                </span>
+                <div>
+                  <dt>Starting net worth</dt>
+                  <dd>{formatStartingNetWorth(user.startingNetWorth)}</dd>
                 </div>
               </div>
             </dl>
