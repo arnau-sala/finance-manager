@@ -18,7 +18,7 @@ import {
   isEditableStartingNetWorth,
   parseStartingNetWorth,
   STARTING_NET_WORTH_ERROR
-} from "./starting-net-worth-validation";
+} from "../../money/starting-net-worth-validation";
 
 type StartingNetWorthPageProps = {
   onComplete: (user: SessionUser) => void;

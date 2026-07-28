@@ -67,8 +67,12 @@ Account deletion security decisions:
 Profile editing security decisions:
 
 - `PATCH /account` derives the target user only from the encrypted session and accepts no user ID.
-- The strict request body accepts only `name`; email, role, status, provider, and unknown fields are rejected.
+- The strict request body accepts only optional `name` and
+  `startingNetWorth`, requires at least one, and rejects email, role, status,
+  provider, and unknown fields.
 - Name validation is shared with registration: surrounding whitespace is removed and the result must contain 1 to 100 characters.
+- Starting net worth uses the same signed range and decimal validation as
+  onboarding and updates only the authenticated user's timeless baseline.
 - Only an existing `APPROVED` session user can be updated, and the response excludes password and Google subject data.
 
 Password change security decisions:

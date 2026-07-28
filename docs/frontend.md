@@ -655,17 +655,24 @@ Purpose: user profile and session controls.
 
 MVP content:
 
-- Name and account creation date.
+- Name, account creation date, and starting net worth.
 - Email.
 - Provider-specific account actions.
-- Name editing through a focused modal; email remains read-only account data.
+- Name and starting-net-worth editing through a focused modal; email remains
+  read-only account data.
 - Password changes through a three-field modal for password accounts.
 - Confirmed logout.
 - Irreversible account deletion confirmed by password or fresh Google account selection.
 
 Google deletion returns to the profile with a warning dialog when the selected account does not match the active session. The dialog identifies the required session email without exposing it in the OAuth redirect URL.
 
-The edit-profile modal uses the current name as its placeholder, validates the shared 1-to-100-character name rule locally, and enables submission only for a valid changed value. The profile replaces its session user with the `PATCH /account` response so the new name appears without another API read.
+The edit-profile modal pre-fills the current name and starting net worth so
+either value can be edited in place, independently or together. Name uses
+the shared 1-to-100-character rule, while starting net worth reuses the signed
+eight-integer-digit, two-decimal, and `-10M` to `10M` validation from onboarding.
+Only changed fields are sent. The profile replaces its session user with the
+`PATCH /account` response and invalidates financial caches when the baseline
+changes.
 
 The change-password modal requires the current password and two copies of the new password. It enables submission once all three fields contain a value, then validates the registration password policy and matching new-password fields locally before calling `PATCH /account/password`. A successful request replaces the form with confirmation content in the same dialog; API and rate-limit errors remain visible alongside the form.
 

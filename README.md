@@ -489,7 +489,8 @@ transaction.
 
 ## Update Current User
 
-Only the user represented by the active session can update their profile. The endpoint does not accept a user ID or email:
+Only the user represented by the active session can update their profile. The
+endpoint does not accept a user ID or email:
 
 ```http
 PATCH /account
@@ -498,11 +499,18 @@ Content-Type: application/json
 
 ```json
 {
-  "name": "Alex Morgan"
+  "name": "Alex Morgan",
+  "startingNetWorth": "22450.50"
 }
 ```
 
-The name is trimmed and must contain between 1 and 100 characters, using the same validation as registration. Empty names, missing names, unknown fields, and attempts to include `email` return `400 Bad Request`. A successful update returns `200 OK` with `Profile updated successfully.` and the updated public user object.
+Either field can be sent independently, or both can be updated together. At
+least one is required. The name is trimmed and must contain between 1 and 100
+characters, using the same validation as registration. `startingNetWorth`
+shares the setup range and decimal validation and replaces only the timeless
+profile baseline. Empty bodies, invalid values, unknown fields, and attempts to
+include `email` return `400 Bad Request`. A successful update returns `200 OK`
+with `Profile updated successfully.` and the updated public user object.
 
 ## Change Password
 

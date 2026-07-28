@@ -22,6 +22,11 @@ type UpdateProfileResponse = {
   user: SessionUser;
 };
 
+export type UpdateProfileInput = {
+  name?: string;
+  startingNetWorth?: string;
+};
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly retryAfter: string | null;
@@ -153,14 +158,14 @@ export async function deleteAccount(password: string) {
   }
 }
 
-export async function updateProfile(name: string) {
+export async function updateProfile(input: UpdateProfileInput) {
   const response = await fetch("/api/account", {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json"
     },
     credentials: "include",
-    body: JSON.stringify({ name })
+    body: JSON.stringify(input)
   });
 
   if (!response.ok) {

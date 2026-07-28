@@ -21,9 +21,17 @@ import {
 
 const updateProfileBodySchema = z
   .object({
-    name: userNameSchema,
+    name: userNameSchema.optional(),
+    startingNetWorth: startingNetWorthSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (profile) =>
+      profile.name !== undefined || profile.startingNetWorth !== undefined,
+    {
+      message: "Provide at least one profile field to update.",
+    },
+  );
 
 const deleteAccountBodySchema = z
   .object({
@@ -95,7 +103,15 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
             sessionVersion,
           },
           data: {
-            name: parsedBody.data.name,
+            ...(parsedBody.data.name !== undefined
+              ? { name: parsedBody.data.name }
+              : {}),
+            ...(parsedBody.data.startingNetWorth !== undefined
+              ? {
+                  startingNetWorthCents:
+                    parsedBody.data.startingNetWorth,
+                }
+              : {}),
           },
           select: authenticatedUserSelect,
         });

@@ -141,6 +141,15 @@ export function HomePage({
     setFinancialRefreshKey((current) => current + 1);
   }
 
+  function finishProfileUpdate(updatedUser: SessionUser) {
+    if (updatedUser.startingNetWorth !== user.startingNetWorth) {
+      clearStatisticsCache();
+      setFinancialRefreshKey((current) => current + 1);
+    }
+
+    onProfileUpdated(updatedUser);
+  }
+
   return (
     <main className="home-screen">
       <div
@@ -150,7 +159,7 @@ export function HomePage({
       >
         {ActiveSection({
           user,
-          onProfileUpdated,
+          onProfileUpdated: finishProfileUpdate,
           onLogout,
           onAccountDeleted,
           onSessionExpired,

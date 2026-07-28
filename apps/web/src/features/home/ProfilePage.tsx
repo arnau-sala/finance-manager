@@ -18,11 +18,17 @@ import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
+  isEditableStartingNetWorth,
+  parseStartingNetWorth,
+  STARTING_NET_WORTH_ERROR
+} from "../../money/starting-net-worth-validation";
+import {
   ApiRequestError,
   changePassword,
   deleteAccount,
   startGoogleAccountDeletion,
   updateProfile,
+  type UpdateProfileInput,
   type SessionUser
 } from "../auth/auth-api";
 import { validateAccountPassword } from "../auth/password-validation";
@@ -64,6 +70,15 @@ function formatStartingNetWorth(value: string | null) {
   });
 }
 
+function formatStartingNetWorthInput(value: string | null) {
+  if (value === null) {
+    return "0";
+  }
+
+  const amount = Number(value);
+  return Number.isFinite(amount) ? String(amount).replace(".", ",") : "0";
+}
+
 export function ProfilePage({
   user,
   onProfileUpdated,
@@ -88,6 +103,12 @@ export function ProfilePage({
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   const [profileName, setProfileName] = useState("");
+  const [profileStartingNetWorth, setProfileStartingNetWorth] = useState("");
+  const [hasProfileNameBlurred, setHasProfileNameBlurred] = useState(false);
+  const [
+    hasProfileStartingNetWorthBlurred,
+    setHasProfileStartingNetWorthBlurred
+  ] = useState(false);
   const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
   const [passwordDialogMode, setPasswordDialogMode] =
     useState<PasswordDialogMode | null>(null);
@@ -99,12 +120,31 @@ export function ProfilePage({
     null
   );
   const parsedProfileName = validateUserName(profileName);
-  const isProfileNameValid =
-    parsedProfileName.success && parsedProfileName.data !== user.name;
+  const isProfileNameInputValid = parsedProfileName.success;
+  const isProfileNameChanged =
+    parsedProfileName.success &&
+    parsedProfileName.data !== user.name;
   const profileNameValidationError =
-    profileName.length > 0 && !parsedProfileName.success
+    hasProfileNameBlurred && !parsedProfileName.success
       ? (parsedProfileName.error.issues[0]?.message ?? "Enter a valid name.")
       : null;
+  const parsedProfileStartingNetWorth = parseStartingNetWorth(
+    profileStartingNetWorth
+  );
+  const isProfileStartingNetWorthInputValid =
+    parsedProfileStartingNetWorth !== null;
+  const isProfileStartingNetWorthChanged =
+    parsedProfileStartingNetWorth !== null &&
+    Number(parsedProfileStartingNetWorth) !== Number(user.startingNetWorth ?? 0);
+  const profileStartingNetWorthValidationError =
+    hasProfileStartingNetWorthBlurred &&
+    parsedProfileStartingNetWorth === null
+      ? STARTING_NET_WORTH_ERROR
+      : null;
+  const canUpdateProfile =
+    isProfileNameInputValid &&
+    isProfileStartingNetWorthInputValid &&
+    (isProfileNameChanged || isProfileStartingNetWorthChanged);
   const arePasswordFieldsFilled =
     currentPassword.length > 0 &&
     newPassword.length > 0 &&
@@ -139,6 +179,9 @@ export function ProfilePage({
     if (isUpdatingProfile) return;
     setIsEditDialogOpen(false);
     setProfileName("");
+    setProfileStartingNetWorth("");
+    setHasProfileNameBlurred(false);
+    setHasProfileStartingNetWorthBlurred(false);
     setProfileUpdateError(null);
   }
 
@@ -146,18 +189,33 @@ export function ProfilePage({
     event?.preventDefault();
     if (isUpdatingProfile) return;
 
-    const parsedName = validateUserName(profileName);
-    if (!parsedName.success || parsedName.data === user.name) return;
+    if (!canUpdateProfile) return;
+
+    const input: UpdateProfileInput = {};
+
+    if (isProfileNameChanged && parsedProfileName.success) {
+      input.name = parsedProfileName.data;
+    }
+
+    if (
+      isProfileStartingNetWorthChanged &&
+      parsedProfileStartingNetWorth !== null
+    ) {
+      input.startingNetWorth = parsedProfileStartingNetWorth;
+    }
 
     setProfileUpdateError(null);
     setIsUpdatingProfile(true);
 
     try {
-      const updatedUser = await updateProfile(parsedName.data);
+      const updatedUser = await updateProfile(input);
       onProfileUpdated(updatedUser);
       setIsUpdatingProfile(false);
       setIsEditDialogOpen(false);
       setProfileName("");
+      setProfileStartingNetWorth("");
+      setHasProfileNameBlurred(false);
+      setHasProfileStartingNetWorthBlurred(false);
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 429) {
         setProfileUpdateError(
@@ -368,7 +426,12 @@ export function ProfilePage({
                 label="Edit profile"
                 icon={<PencilLine />}
                 onClick={() => {
-                  setProfileName("");
+                  setProfileName(user.name);
+                  setProfileStartingNetWorth(
+                    formatStartingNetWorthInput(user.startingNetWorth)
+                  );
+                  setHasProfileNameBlurred(false);
+                  setHasProfileStartingNetWorthBlurred(false);
                   setProfileUpdateError(null);
                   setIsEditDialogOpen(true);
                 }}
@@ -417,32 +480,71 @@ export function ProfilePage({
       <ConfirmDialog
         open={isEditDialogOpen}
         title="Edit profile"
-        description="Only your profile name can be changed."
+        description="Update your name, starting net worth, or both."
         confirmLabel="Continue"
         confirmingLabel="Saving..."
         initialFocus="dialog"
         icon={<PencilLine />}
         isConfirming={isUpdatingProfile}
-        confirmDisabled={!isProfileNameValid}
-        error={profileUpdateError ?? profileNameValidationError}
+        confirmDisabled={!canUpdateProfile}
+        error={
+          profileUpdateError ??
+          profileNameValidationError ??
+          profileStartingNetWorthValidationError
+        }
         onCancel={closeEditDialog}
         onConfirm={confirmProfileUpdate}
       >
-        <form className="confirm-dialog__form" onSubmit={confirmProfileUpdate}>
-          <label htmlFor="profile-name">Name</label>
-          <input
-            id="profile-name"
-            type="text"
-            autoComplete="name"
-            placeholder={user.name}
-            value={profileName}
-            aria-invalid={Boolean(profileNameValidationError)}
-            onChange={(event) => {
-              setProfileName(event.target.value);
-              setProfileUpdateError(null);
-            }}
-            disabled={isUpdatingProfile}
-          />
+        <form
+          className="confirm-dialog__form confirm-dialog__form--profile"
+          onSubmit={confirmProfileUpdate}
+        >
+          <div className="confirm-dialog__field">
+            <label htmlFor="profile-name">Name</label>
+            <input
+              id="profile-name"
+              type="text"
+              autoComplete="name"
+              value={profileName}
+              aria-invalid={Boolean(profileNameValidationError)}
+              onFocus={() => setHasProfileNameBlurred(false)}
+              onBlur={() => setHasProfileNameBlurred(true)}
+              onChange={(event) => {
+                setProfileName(event.target.value);
+                setProfileUpdateError(null);
+              }}
+              disabled={isUpdatingProfile}
+            />
+          </div>
+
+          <div className="confirm-dialog__field">
+            <label htmlFor="profile-starting-net-worth">
+              Starting net worth
+            </label>
+            <input
+              id="profile-starting-net-worth"
+              type="text"
+              inputMode="decimal"
+              enterKeyHint="done"
+              autoComplete="off"
+              maxLength={12}
+              value={profileStartingNetWorth}
+              aria-invalid={Boolean(
+                profileStartingNetWorthValidationError
+              )}
+              onFocus={() => setHasProfileStartingNetWorthBlurred(false)}
+              onBlur={() => setHasProfileStartingNetWorthBlurred(true)}
+              onChange={(event) => {
+                const nextValue = event.target.value;
+
+                if (isEditableStartingNetWorth(nextValue)) {
+                  setProfileStartingNetWorth(nextValue);
+                  setProfileUpdateError(null);
+                }
+              }}
+              disabled={isUpdatingProfile}
+            />
+          </div>
         </form>
       </ConfirmDialog>
 
