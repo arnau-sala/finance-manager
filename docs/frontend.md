@@ -399,6 +399,10 @@ UX notes:
   natural form order for previous/next keyboard navigation.
 - Categories are selected from a four-column icon grid backed by the same
   category catalog used on Home; no dropdown is used.
+- The composer keeps its confirmation action fixed near the bottom thumb area.
+  Shared field, spacing, and category-grid dimensions are compact enough for
+  the larger Expense catalog to fit without scrolling on normal mobile
+  viewports; an additional short-viewport layout preserves usable touch targets.
 - Date defaults to the phone's current calendar day. The native HTML date input
   allows Safari on iOS to provide Apple's system picker; transaction time is not
   part of the financial record.

@@ -138,6 +138,7 @@ export function TransactionComposer({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
+  const scrollArea = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
@@ -175,6 +176,7 @@ export function TransactionComposer({
       setInvalidFields({});
       setFormError(null);
       setIsSubmitting(false);
+      scrollArea.current?.scrollTo({ top: 0 });
     }
 
     if (!open && wasOpen.current) {
@@ -372,7 +374,10 @@ export function TransactionComposer({
         aria-busy={isSubmitting}
         onSubmit={handleSubmit}
       >
-        <div className="transaction-composer__scroll-area">
+        <div
+          ref={scrollArea}
+          className="transaction-composer__scroll-area"
+        >
           <div className="transaction-composer__content">
             <div className="transaction-composer__amount-section">
               <label className="sr-only" htmlFor="transaction-amount">
