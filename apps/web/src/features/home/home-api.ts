@@ -16,6 +16,7 @@ export type HomeOverview = {
     totalIncome: string;
     totalSpent: string;
     totalBalance: string;
+    currentNetWorth: string | null;
   };
   latestMoves: HomeMove[];
   activity: {

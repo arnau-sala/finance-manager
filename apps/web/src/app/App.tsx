@@ -18,6 +18,7 @@ import {
   HomePage,
   type GoogleAccountDeletionFeedback
 } from "../features/home/HomePage";
+import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPage";
 import { clearStatisticsCache } from "../features/statistics/statistics-api";
 import { clearTransactionsCache } from "../features/transactions/transaction-api";
 
@@ -252,6 +253,34 @@ export function App() {
 
   if (sessionStatus === "checking") {
     return <div className="app-loading-screen" aria-label="Loading" />;
+  }
+
+  if (
+    sessionStatus === "authenticated" &&
+    sessionUser &&
+    sessionUser.startingNetWorth === null
+  ) {
+    return (
+      <div className="session-flow">
+        <StartingNetWorthPage
+          onComplete={setSessionUser}
+          onSessionExpired={openSessionExpiredDialog}
+        />
+
+        <ConfirmDialog
+          open={isSessionExpired}
+          title="Session expired"
+          description="Your session has ended. Return to the main page to sign in again."
+          confirmLabel="Return to main"
+          icon={<TimerOff />}
+          initialFocus="confirm"
+          showCancel={false}
+          dismissible={false}
+          onCancel={() => undefined}
+          onConfirm={returnToAnonymousLanding}
+        />
+      </div>
+    );
   }
 
   if (sessionStatus === "authenticated" && sessionUser) {

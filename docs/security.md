@@ -148,6 +148,12 @@ Administrative user listing security decisions:
 
 `GET /auth/me` requires an active approved-user session and returns the shared public user fields plus `updatedAt`. The user ID is always derived from the encrypted session cookie rather than request input.
 
+`POST /account/onboarding/starting-net-worth` also derives the owner from the
+encrypted session and never accepts a user ID. The body is a strict `SET` or
+`SKIP` action, and signed money is range-checked before reaching PostgreSQL.
+`SET` replaces only the authenticated user's baseline, while `SKIP` stores
+zero; neither operation creates, edits, or deletes transactions.
+
 Transaction security decisions:
 
 - An active session and an existing `APPROVED` user are required.
@@ -182,5 +188,5 @@ Transaction security decisions:
 - Typed period category statistics only accept `income` or `expense` as the type segment.
 - `GET /statistics/overview` and `GET /statistics/charts` derive their owner only from the encrypted session, reject future periods, and never return `userId` or raw transaction rows.
 - Aggregate financial responses disable shared/browser HTTP storage with `Cache-Control: private, no-store`; the frontend keeps only short-lived owner-keyed in-memory entries and clears them when the session ends.
-- `GET /home` derives ownership from the authenticated session and returns only that user's balance, latest transactions, and current-month activity; it does not accept or expose `userId`.
+- `GET /home` derives ownership from the authenticated session and returns only that user's cash-flow balance, current net worth, latest transactions, and current-month activity; it does not accept or expose `userId`.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.

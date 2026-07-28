@@ -186,11 +186,14 @@ stays disabled for private financial responses. The former deterministic mock
 fixtures remain temporarily in the repository for comparison, but no active
 Statistics component imports or bundles them.
 
-Net Worth Evolution intentionally reports that an opening balance is required.
-Tracked income minus expenses is not presented as net worth. A later financial
-profile or auditable balance-adjustment model must store that missing source
-fact before the chart can expose real points.
+Starting net worth is stored on `User` only as nullable signed integer cents. A
+null value means the initial setup is pending; saving or skipping replaces it
+with a number, with Skip storing `0`. The value is timeless and editable:
+`services/net-worth-service.ts` adds the same baseline to accumulated
+transaction flow without filtering by an effective date. Month and Year return
+daily closing points; All returns month-end points. Period cash-flow statistics
+remain independent and are never inflated with the starting amount.
 
-`routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time balance, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
+`routes/home.ts` provides the authenticated Home overview through one browser request. It derives the owner from the secure session and runs the all-time cash-flow balance, current net worth, three-newest-transactions, and current-month activity reads in parallel. The monthly activity reuses the statistics service to return the transaction count and highest-value expense and income categories without exposing `userId`.
 
 `money/cents.ts` centralizes integer-cent formatting for API responses that expose money as decimal strings.

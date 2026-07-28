@@ -58,6 +58,23 @@ const streakSchema = z.object({
   endDate: dateSchema.nullable()
 });
 
+const netWorthSchema = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("OPENING_BALANCE_REQUIRED"),
+    points: z.array(z.never())
+  }),
+  z.object({
+    status: z.literal("READY"),
+    openingAmount: moneySchema,
+    points: z.array(
+      z.object({
+        date: dateSchema,
+        value: moneySchema
+      })
+    )
+  })
+]);
+
 const overviewResponseSchema = z.object({
   overview: z.object({
     period: periodSchema,
@@ -94,10 +111,7 @@ const overviewResponseSchema = z.object({
 const chartsResponseSchema = z.object({
   charts: z.object({
     period: periodSchema,
-    netWorth: z.object({
-      status: z.literal("OPENING_BALANCE_REQUIRED"),
-      points: z.array(z.never())
-    }),
+    netWorth: netWorthSchema,
     financialIntervals: z.array(
       z.object({
         key: z.string(),

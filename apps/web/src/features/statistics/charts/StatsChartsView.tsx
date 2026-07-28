@@ -29,6 +29,7 @@ export default function StatsChartsView({ charts }: StatsChartsViewProps) {
   return (
     <div className="stats-charts-page">
       <NetWorthEvolutionChart
+        mode={period.mode}
         periodStart={period.startDate}
         periodEnd={period.endDate}
         netWorth={charts.netWorth}

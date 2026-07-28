@@ -3,7 +3,12 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { deleteUserAccount } from "../account/delete-account.js";
-import { authenticatedUserSelect } from "../auth/authenticated-user.js";
+import { startingNetWorthSchema } from "../account/starting-net-worth.js";
+import {
+  authenticatedUserSelect,
+  getAuthenticatedUser,
+  toAuthenticatedUserResponse,
+} from "../auth/authenticated-user.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
@@ -42,6 +47,20 @@ const changePasswordBodySchema = z
       });
     }
   });
+
+const startingNetWorthBodySchema = z.discriminatedUnion("action", [
+  z
+    .object({
+      action: z.literal("SET"),
+      amount: startingNetWorthSchema,
+    })
+    .strict(),
+  z
+    .object({
+      action: z.literal("SKIP"),
+    })
+    .strict(),
+]);
 
 export const accountRoutes: FastifyPluginAsync = async (app) => {
   app.patch(
@@ -83,7 +102,67 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
         return reply.send({
           message: "Profile updated successfully.",
-          user,
+          user: toAuthenticatedUserResponse(user),
+        });
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2025"
+        ) {
+          request.session.delete();
+          return reply.code(401).send({ error: "Authentication required." });
+        }
+
+        throw error;
+      }
+    },
+  );
+
+  app.post(
+    "/account/onboarding/starting-net-worth",
+    { config: { rateLimit: accountWriteRateLimit } },
+    async (request, reply) => {
+      const user = await getAuthenticatedUser(request);
+
+      if (!user) {
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = startingNetWorthBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error:
+            "Starting net worth must be between -10,000,000 and 10,000,000.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const shouldSetNetWorth = parsedBody.data.action === "SET";
+      const startingNetWorthCents =
+        parsedBody.data.action === "SET" ? parsedBody.data.amount : 0;
+
+      try {
+        const updatedUser = await db.user.update({
+          where: {
+            id: user.id,
+            status: "APPROVED",
+            sessionVersion: user.sessionVersion,
+          },
+          data: {
+            startingNetWorthCents,
+          },
+          select: authenticatedUserSelect,
+        });
+
+        return reply.send({
+          message: shouldSetNetWorth
+            ? "Starting net worth saved successfully."
+            : "Starting net worth setup skipped.",
+          user: toAuthenticatedUserResponse(updatedUser),
         });
       } catch (error) {
         if (

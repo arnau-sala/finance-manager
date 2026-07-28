@@ -89,6 +89,8 @@ export function HomeOverviewPage({
 
   const isReady = loadingState === "ready" && overview !== null;
   const latestMoves = isReady ? overview.latestMoves : [];
+  const hasStartingNetWorth =
+    isReady && overview.balance.currentNetWorth !== null;
   const TopExpenseIcon = getCategoryIcon(
     isReady ? overview.activity.topExpenseCategory?.id : undefined,
     "EXPENSE"
@@ -114,11 +116,16 @@ export function HomeOverviewPage({
         <section className="home-balance" aria-labelledby="home-balance-title">
           <div className="home-balance__label">
             <Scale aria-hidden="true" />
-            <h2 id="home-balance-title">Current balance</h2>
+            <h2 id="home-balance-title">
+              {hasStartingNetWorth ? "Net worth" : "Tracked balance"}
+            </h2>
           </div>
           <p className="home-balance__amount">
             {isReady
-              ? formatEuroAmount(overview.balance.totalBalance)
+              ? formatEuroAmount(
+                  overview.balance.currentNetWorth ??
+                    overview.balance.totalBalance
+                )
               : "--"}
           </p>
         </section>

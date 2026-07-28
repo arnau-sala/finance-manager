@@ -345,19 +345,38 @@ Security UX:
 - After a successful response, show a simple confirmation screen with the normalized email, name, and submitted message, or `No message added` when it was left empty.
 - Use the visible back button to return to the unauthenticated entry screen. Horizontal edge swipes are intentionally disabled.
 
-### 5. Dashboard
+### 5. Starting Net Worth Setup
+
+Purpose: establish the user's real financial baseline before showing the
+authenticated app for the first time.
+
+The setup is a flat, full-screen step without the bottom navigation. It explains
+that net worth means what the user owns minus what they owe, accepts a signed
+amount with at most two decimals, and keeps the primary action close to the
+bottom of the content. `Skip for now` remains visible in the safe-area-aware
+top bar.
+
+Both save and skip call the same authenticated endpoint. Saving records the
+timeless amount; skipping records `0`. The central app shell checks whether
+`startingNetWorth` is null after password login, Google login, and session
+restoration, so no authentication path can bypass the initial screen
+accidentally. The value can be replaced later without changing transactions.
+Session expiration uses the existing non-dismissible dialog.
+
+### 6. Dashboard
 
 Purpose: first authenticated screen.
 
 MVP content:
 
 - Personal greeting and current date.
-- Current balance as the single headline figure.
+- Net worth as the single headline figure when a starting value exists;
+  otherwise an explicitly labelled tracked balance.
 - Primary action for recording a transaction.
 - Three latest transactions with a route toward the complete list.
 - A three-column monthly activity summary for transaction count, highest expense category, and highest income category.
 
-The Dashboard loads its real values through one authenticated `GET /api/home` request. The response contains the all-time balance, at most three latest transactions, and current-month activity, keeping the initial mobile view to one network round trip. Loading, empty, and error states preserve the same layout. The latest-moves region always reserves the height of three rows, so profiles with fewer transactions do not pull the content below it upward.
+The Dashboard loads its real values through one authenticated `GET /api/home` request. The response contains all-time cash flow, current net worth when available, at most three latest transactions, and current-month activity, keeping the initial mobile view to one network round trip. Loading, empty, and error states preserve the same layout. The latest-moves region always reserves the height of three rows, so profiles with fewer transactions do not pull the content below it upward.
 
 If the Home request reports an expired session, the authenticated interface is blocked by a non-dismissible alert dialog. Its only action clears local session state and returns to the unauthenticated main screen; backdrop clicks and the Escape key cannot close it.
 
@@ -369,7 +388,7 @@ The Home layout uses five intrinsic grid rows with a minimum gap. Available vert
 - Recent transactions.
 - Link to statistics.
 
-### 6. Create Transaction
+### 7. Create Transaction
 
 Purpose: fast mobile-first transaction entry.
 
@@ -421,7 +440,7 @@ UX notes:
   response so its balance, latest moves, and monthly activity update together.
   A `401` response opens the existing non-dismissible session-expired dialog.
 
-### 7. Transactions
+### 8. Transactions
 
 Purpose: browse historical records.
 
@@ -466,7 +485,7 @@ Final MVP content:
 - Transaction detail entry point.
 - Empty states.
 
-### 8. Transaction Detail And Edit
+### 9. Transaction Detail And Edit
 
 Purpose: view, update, or delete one transaction.
 
@@ -521,7 +540,7 @@ cancel only the confirmation. While the authenticated `DELETE` request is in
 progress, every confirmation control is disabled; success closes the detail and
 refreshes every financial view, while failures remain visible in the popover.
 
-### 9. Statistics
+### 10. Statistics
 
 Purpose: show simple financial insights.
 
@@ -601,9 +620,11 @@ authenticated `GET /statistics/charts` response. Shared financial intervals
 feed the combined Cash Flow chart, while one category-by-interval aggregation
 feeds both Category Breakdown and Category Timeline.
 
-`Net Worth Evolution` remains visibly unavailable until the data model stores
-an opening net worth and its effective date. The API reports
-`OPENING_BALANCE_REQUIRED` instead of drawing a misleading line from zero.
+`Net Worth Evolution` renders real owner-scoped points once starting net worth
+has been configured. Month and Year use daily closing values to preserve
+within-month movement; All uses month-end points to keep long histories
+bounded. Pending setup reports `OPENING_BALANCE_REQUIRED`; Skip stores a zero
+baseline and therefore produces a valid line from recorded transaction flow.
 
 `Cash Flow` combines the former Period Balance and Income vs Expenses charts
 and is shown in Year and All, while Month intentionally omits it. Every month or
@@ -628,7 +649,7 @@ The deterministic statistics fixture files remain in the repository as visual
 development references, but production components do not import or bundle
 them.
 
-### 10. Account
+### 11. Account
 
 Purpose: user profile and session controls.
 
@@ -650,7 +671,7 @@ The change-password modal requires the current password and two copies of the ne
 
 Logout keeps the confirmation dialog visible while the request is pending. Only after the API confirms that the session has ended does the private screen slide to the right, revealing the public access screen underneath. Failed and cancelled attempts do not trigger the transition.
 
-### 11. Admin
+### 12. Admin
 
 Purpose: operational review tools.
 

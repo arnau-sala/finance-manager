@@ -800,6 +800,310 @@ body.app-logout-transition .confirm-dialog-backdrop {
   margin-top: 0;
 }
 
+.starting-net-worth-screen {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  overscroll-behavior: none;
+  padding:
+    max(76px, calc(env(safe-area-inset-top) + 58px))
+    max(24px, env(safe-area-inset-right))
+    max(28px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  background: var(--color-surface);
+}
+
+.starting-net-worth-screen__topbar {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(20px, env(safe-area-inset-left));
+  right: max(20px, env(safe-area-inset-right));
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.starting-net-worth-screen__topbar > span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.starting-net-worth-screen__topbar button {
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.starting-net-worth-screen__topbar button:disabled {
+  cursor: default;
+  opacity: 0.68;
+}
+
+.starting-net-worth-screen__topbar button:focus-visible,
+.starting-net-worth-form__submit:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.starting-net-worth-panel {
+  width: min(100%, 400px);
+  display: grid;
+  justify-items: center;
+  gap: 28px;
+  text-align: center;
+}
+
+.starting-net-worth-panel__icon {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 50%;
+}
+
+.starting-net-worth-panel__icon svg {
+  width: 29px;
+  height: 29px;
+  stroke-width: 1.7;
+}
+
+.starting-net-worth-panel__heading {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.starting-net-worth-panel__heading > p:first-child {
+  margin: 0 0 2px;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.starting-net-worth-panel__heading h1 {
+  max-width: 330px;
+  margin: 0;
+  color: var(--color-text);
+  font-size: 29px;
+  line-height: 1.16;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+.starting-net-worth-panel__heading > p:last-child {
+  max-width: 340px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 300;
+}
+
+.starting-net-worth-form {
+  width: 100%;
+  display: grid;
+  justify-items: center;
+}
+
+.starting-net-worth-form > label {
+  margin-bottom: 10px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.starting-net-worth-form__amount {
+  width: 100%;
+  min-height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 18px;
+  border-block: 1px solid var(--color-border);
+  transition: border-color 160ms ease;
+}
+
+.starting-net-worth-form__amount:focus-within {
+  border-color: var(--color-primary);
+}
+
+.starting-net-worth-form__amount.is-invalid {
+  border-color: var(--color-danger);
+}
+
+.starting-net-worth-form__amount-value {
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 1ch;
+  max-width: none;
+  display: block;
+  color: var(--color-text);
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+
+.starting-net-worth-form__amount-measure {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: max-content;
+  padding: 0;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+  user-select: none;
+  font: inherit;
+  font-variant-numeric: inherit;
+  letter-spacing: 0;
+}
+
+.starting-net-worth-form__amount-value input {
+  min-width: 0;
+  font: inherit;
+  font-variant-numeric: inherit;
+  letter-spacing: 0;
+}
+
+.starting-net-worth-form__amount-value input {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  height: 70px;
+  padding: 0 12px;
+  color: var(--color-text);
+  background: transparent;
+  border: 0;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: right;
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.starting-net-worth-form__amount input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.52;
+}
+
+.starting-net-worth-form__amount-currency {
+  color: var(--color-text);
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.starting-net-worth-form__amount.is-compact
+  .starting-net-worth-form__amount-value,
+.starting-net-worth-form__amount.is-compact
+  .starting-net-worth-form__amount-currency {
+  font-size: 32px;
+}
+
+.starting-net-worth-form__amount.is-extra-compact
+  .starting-net-worth-form__amount-value,
+.starting-net-worth-form__amount.is-extra-compact
+  .starting-net-worth-form__amount-currency {
+  font-size: 28px;
+}
+
+.starting-net-worth-form__help {
+  min-height: 18px;
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.starting-net-worth-form__error {
+  min-height: 18px;
+  margin: 3px 0 0;
+  color: var(--color-danger);
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.starting-net-worth-form__submit {
+  width: 100%;
+  height: 56px;
+  margin-top: 15px;
+  padding: 0 24px;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.starting-net-worth-form__submit:active:not(:disabled) {
+  background: var(--color-primary-pressed);
+}
+
+.starting-net-worth-form__submit:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (max-height: 700px) {
+  .starting-net-worth-panel {
+    gap: 20px;
+  }
+
+  .starting-net-worth-panel__icon {
+    width: 58px;
+    height: 58px;
+  }
+
+  .starting-net-worth-panel__heading {
+    gap: 7px;
+  }
+
+  .starting-net-worth-panel__heading h1 {
+    font-size: 26px;
+  }
+
+  .starting-net-worth-form__amount {
+    min-height: 66px;
+  }
+
+  .starting-net-worth-form__amount-value input {
+    height: 62px;
+  }
+
+  .starting-net-worth-form__amount-value,
+  .starting-net-worth-form__amount-currency {
+    font-size: 34px;
+  }
+}
+
 .app-loading-screen,
 .home-screen {
   position: fixed;
@@ -1944,6 +2248,7 @@ button.transaction-row__content:focus-visible {
   font-weight: 400;
 }
 
+.stats-net-worth__chart,
 .stats-cash-flow__chart,
 .stats-weekday-spending__chart {
   width: 100%;

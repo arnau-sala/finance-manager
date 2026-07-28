@@ -173,5 +173,8 @@
   after financial writes or session termination.
 - Derive all displayed values from PostgreSQL transactions without sending raw
   transaction history to the browser.
-- Keep Net Worth Evolution unavailable until opening net worth and its effective
-  date can be stored as real source data.
+- Store starting net worth as one timeless, editable profile value in integer
+  cents.
+- Gate the first authenticated app entry behind a save-or-skip setup step.
+- Derive current net worth and Net Worth Evolution without treating the
+  starting amount as income.

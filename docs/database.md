@@ -95,6 +95,12 @@ Malformed submissions are rejected before database access and do not create even
 
 `User.sessionVersion` starts at `1` and increments after a password change. Authenticated cookies carry the matching version, allowing the API to reject sessions created before a credentials change without storing individual sessions in PostgreSQL.
 
+`User.startingNetWorthCents` stores the financial baseline as signed integer
+cents. It is the only persisted starting-net-worth field and has no associated
+date. A null value means the initial setup has not been handled; Skip stores
+`0`. The number is editable and remains profile source data, not a synthetic
+income transaction.
+
 `User.googleSubject` stores Google's stable account identifier for `GOOGLE` users. It is unique and is used together with the verified Google ID token so sign-in does not rely only on a changeable email address.
 
 New password registrations require a name and explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email store Google's verified profile name and receive provider `GOOGLE`, no password hash, and the verified Google subject.
@@ -121,13 +127,14 @@ Category responses place expenses first. Within each type, names are alphabetica
 
 The `(userId, occurredOn)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing orders equal dates by `createdAt` and filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
 
-Balances, percentages, chart points, medians, averages, and streaks are derived
-from `Transaction`; they are not persisted as duplicate state. Statistics
+Cash-flow balances, percentages, category chart points, medians, averages, and
+streaks are derived from `Transaction`; they are not persisted as duplicate
+state. Statistics
 queries aggregate by the authenticated owner and calendar period using the
 `(userId, occurredOn)` index. This keeps edits and deletions immediately
 consistent without maintaining summary tables.
 
-The schema does not yet store opening net worth. Consequently, net cash flow can
-be derived but real net worth cannot. An opening amount and effective date must
-be introduced as financial source data before Net Worth Evolution is enabled;
-it must not be represented as a fake income transaction.
+Current net worth and Net Worth Evolution combine the user's stored starting
+net worth with signed transaction flow accumulated through each requested
+point. Because the baseline is intentionally timeless, changing it shifts every
+derived net-worth value equally without changing transaction history.

@@ -4,6 +4,7 @@ import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import {
   formatDateOnly,
   getMonthDateOnlyRange,
+  getTodayDateOnly,
 } from "../dates/date-only.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
@@ -12,6 +13,7 @@ import {
   getUserBalance,
   getUserTransactionActivity
 } from "../services/statistics-service.js";
+import { getCurrentNetWorth } from "../services/net-worth-service.js";
 
 const latestMoveLimit = 3;
 
@@ -39,39 +41,45 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const period = getCurrentMonthRange();
-      const [balance, latestMoves, activity] = await Promise.all([
-        getUserBalance(userId),
-        db.transaction.findMany({
-          where: { userId },
-          orderBy: [
-            { occurredOn: "desc" },
-            { createdAt: "desc" },
-            { id: "desc" }
-          ],
-          take: latestMoveLimit,
-          select: {
-            id: true,
-            type: true,
-            amountCents: true,
-            description: true,
-            occurredOn: true,
-            category: {
-              select: {
-                id: true,
-                name: true,
-                type: true
+      const today = getTodayDateOnly();
+      const [balance, currentNetWorth, latestMoves, activity] =
+        await Promise.all([
+          getUserBalance(userId),
+          getCurrentNetWorth(userId, today),
+          db.transaction.findMany({
+            where: { userId },
+            orderBy: [
+              { occurredOn: "desc" },
+              { createdAt: "desc" },
+              { id: "desc" }
+            ],
+            take: latestMoveLimit,
+            select: {
+              id: true,
+              type: true,
+              amountCents: true,
+              description: true,
+              occurredOn: true,
+              category: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true
+                }
               }
             }
-          }
-        }),
-        getUserTransactionActivity(userId, {
-          from: period.from,
-          to: period.to
-        })
-      ]);
+          }),
+          getUserTransactionActivity(userId, {
+            from: period.from,
+            to: period.to
+          })
+        ]);
 
       return reply.send({
-        balance,
+        balance: {
+          ...balance,
+          currentNetWorth
+        },
         latestMoves: latestMoves.map((move) => ({
           id: move.id,
           type: move.type,

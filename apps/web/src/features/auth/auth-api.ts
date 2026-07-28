@@ -49,6 +49,7 @@ export type SessionUser = {
   authProvider: "PASSWORD" | "GOOGLE";
   role: "USER" | "ADMIN";
   status: "APPROVED" | "SUSPENDED";
+  startingNetWorth: string | null;
   createdAt: string;
   updatedAt: string | null;
 };

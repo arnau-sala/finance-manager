@@ -9,6 +9,7 @@ import {
   type ResolvedStatisticsPeriod,
   type StatisticsPeriodSelection
 } from "./statistics-period.js";
+import { getNetWorthSeries } from "./net-worth-service.js";
 
 type TransactionStartRow = {
   firstDate: string | null;
@@ -937,11 +938,13 @@ export async function getStatisticsCharts(
   today: string
 ) {
   const period = await resolveUserStatisticsPeriod(userId, selection, today);
-  const [monthlyTotals, categoryRows, weekdaySpending] = await Promise.all([
-    getMonthlyTotals(userId, period),
-    getCategoryIntervalTotals(userId, period),
-    getWeekdaySpending(userId, period)
-  ]);
+  const [monthlyTotals, categoryRows, weekdaySpending, netWorth] =
+    await Promise.all([
+      getMonthlyTotals(userId, period),
+      getCategoryIntervalTotals(userId, period),
+      getWeekdaySpending(userId, period),
+      getNetWorthSeries(userId, period)
+    ]);
   const yearlyTotals = getYearlyTotals(monthlyTotals);
   const categories = createChartCategories(categoryRows);
 
@@ -952,10 +955,7 @@ export async function getStatisticsCharts(
       startDate: period.from,
       endDate: period.endDate
     },
-    netWorth: {
-      status: "OPENING_BALANCE_REQUIRED" as const,
-      points: []
-    },
+    netWorth,
     financialIntervals: createFinancialIntervals(
       period,
       monthlyTotals,

@@ -1,6 +1,8 @@
+import type { Prisma } from "@prisma/client";
 import type { FastifyRequest } from "fastify";
 
 import { db } from "../db/client.js";
+import { centsToDecimal } from "../money/cents.js";
 
 export const publicUserSelect = {
   id: true,
@@ -14,8 +16,31 @@ export const publicUserSelect = {
 export const authenticatedUserSelect = {
   ...publicUserSelect,
   authProvider: true,
+  sessionVersion: true,
+  startingNetWorthCents: true,
   updatedAt: true
 } as const;
+
+type AuthenticatedUser = Prisma.UserGetPayload<{
+  select: typeof authenticatedUserSelect;
+}>;
+
+export function toAuthenticatedUserResponse(user: AuthenticatedUser) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    authProvider: user.authProvider,
+    role: user.role,
+    status: user.status,
+    startingNetWorth:
+      user.startingNetWorthCents === null
+        ? null
+        : centsToDecimal(user.startingNetWorthCents),
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt?.toISOString() ?? null
+  };
+}
 
 export async function getAuthenticatedUser(request: FastifyRequest) {
   const sessionUserId = request.session.get("userId");

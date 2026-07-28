@@ -6,7 +6,9 @@ Backend-first personal finance manager.
 
 The mobile-first authenticated experience now includes real Home, Moves, Profile,
 and Statistics screens. Statistics Overview and Charts use owner-scoped
-PostgreSQL aggregations rather than frontend fixtures.
+PostgreSQL aggregations rather than frontend fixtures. A one-time authenticated
+setup records the user's timeless starting net worth, or `0` when skipped,
+before the app opens.
 
 Implemented:
 
@@ -47,6 +49,7 @@ Authentication:
 - `GET /auth/google/request-context`
 - `POST /auth/logout`
 - `GET /auth/me`
+- `POST /account/onboarding/starting-net-worth`
 - `PATCH /account`
 - `PATCH /account/password`
 - `DELETE /account`
@@ -435,6 +438,7 @@ The endpoint returns the public information for the user represented by the curr
     "authProvider": "PASSWORD",
     "role": "USER",
     "status": "APPROVED",
+    "startingNetWorth": null,
     "createdAt": "2026-07-05T18:30:00.000Z",
     "updatedAt": null
   }
@@ -442,6 +446,46 @@ The endpoint returns the public information for the user represented by the curr
 ```
 
 `updatedAt` is `null` until the user is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
+
+## Set Starting Net Worth
+
+After the first authenticated entry, the web app blocks access to the main
+interface until this setup step is completed or skipped. The endpoint always
+derives the account from the encrypted session and accepts one of two strict
+actions.
+
+Save the amount:
+
+```http
+POST /account/onboarding/starting-net-worth
+Content-Type: application/json
+```
+
+```json
+{
+  "action": "SET",
+  "amount": "22450.00"
+}
+```
+
+The amount may be positive, zero, or negative, is limited to the range
+`-10,000,000` through `10,000,000`, and accepts at most two decimal places. The
+server records it in integer cents as a timeless profile value. It is not a
+transaction or a dated snapshot: current and historical net worth calculations
+add it to the relevant accumulated transaction flow.
+
+Skip and start calculations from zero:
+
+```json
+{
+  "action": "SKIP"
+}
+```
+
+Before the step is handled, `startingNetWorth` is `null`. Saving stores the
+provided amount; skipping stores `0`. The same endpoint can replace the value
+later, and sending `SKIP` resets it to zero without changing or deleting any
+transaction.
 
 ## Update Current User
 
@@ -698,9 +742,10 @@ and never collapse to `0%`; impacts of at least `1%` are rounded to whole
 percentages.
 
 `trackedBalance` is calculated from registered transactions ordered by
-transaction date, creation timestamp, and ID. Until opening net worth is
-implemented, it starts at zero and must not be interpreted as the user's full
-real-world wealth.
+transaction date, creation timestamp, and ID. It intentionally remains a
+transaction-ledger value that starts at zero, so it must not be interpreted as
+the user's full real-world wealth. Actual net worth is exposed separately and
+includes the configured starting value.
 
 All derived values are produced in the same database statement, so switching
 between Month, Year, and All in the interface requires no additional request. A
@@ -807,7 +852,8 @@ The endpoint provides the authenticated user's Home data in one response: the al
   "balance": {
     "totalIncome": "1500.00",
     "totalSpent": "420.50",
-    "totalBalance": "1079.50"
+    "totalBalance": "1079.50",
+    "currentNetWorth": "23529.50"
   },
   "latestMoves": [
     {
@@ -836,7 +882,12 @@ The endpoint provides the authenticated user's Home data in one response: the al
 }
 ```
 
-Users without transactions receive zero balance values, an empty `latestMoves` array, a transaction count of `0`, and null top categories.
+`totalBalance` remains tracked cash flow (`income - expenses`).
+`currentNetWorth` is the timeless starting net worth plus all transactions
+through today, or `null` while the initial setup is still pending. Users without
+transactions receive zero cash-flow values, their configured starting net
+worth, an empty `latestMoves` array, a transaction count of `0`, and null top
+categories.
 
 ## Get My Available Statistics Months
 
@@ -923,10 +974,12 @@ The combined Cash Flow chart renders income, expenses, and balance from that
 single financial series, while Category Breakdown and Category Timeline use one
 common category aggregation.
 
-Net Worth Evolution currently returns
-`status: "OPENING_BALANCE_REQUIRED"` and no points. A real net-worth series
-cannot be calculated until an opening balance and effective date are stored;
-the API never substitutes a fictitious zero balance.
+Net Worth Evolution returns daily closing points for Month and Year, and
+month-end points for All. Every point starts from the stored starting net worth
+and applies all transaction flow accumulated through that point. If setup is
+still pending, the API returns `status: "OPENING_BALANCE_REQUIRED"` and no
+points. Skipping stores a zero baseline, so the chart can still represent the
+user's complete recorded transaction history.
 
 Both aggregate endpoints derive ownership from the secure session, never accept
 `userId`, exclude dates after today, and send `Cache-Control: private, no-store`.
