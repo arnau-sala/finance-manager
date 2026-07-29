@@ -509,6 +509,26 @@ function getPeriodExtreme(
   );
 }
 
+function hasMultiplePeriodExtremeCandidates(
+  periods: readonly PeriodTotal[]
+) {
+  let candidateCount = 0;
+
+  for (const period of periods) {
+    if (period.incomeCents <= 0) {
+      continue;
+    }
+
+    candidateCount += 1;
+
+    if (candidateCount >= 2) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function getPeriodCollectionSummary(periods: readonly PeriodTotal[]) {
   const total = sumPeriodTotals(periods);
   const positivePeriods = periods.filter(
@@ -602,6 +622,12 @@ export async function getStatisticsOverview(
       getExpenseAggregate(userId, period)
     ]);
   const yearlyTotals = getYearlyTotals(monthlyTotals);
+  const hasMultipleMonthCandidates =
+    period.mode !== "MONTH" &&
+    hasMultiplePeriodExtremeCandidates(monthlyTotals);
+  const hasMultipleYearCandidates =
+    period.mode === "ALL" &&
+    hasMultiplePeriodExtremeCandidates(yearlyTotals);
   const totals = sumPeriodTotals(monthlyTotals);
   const balanceCents = totals.incomeCents - totals.expenseCents;
   const averagePeriod = getAveragePeriodCount(
@@ -657,19 +683,19 @@ export async function getStatisticsOverview(
       largestIncome: serializeMovement("INCOME"),
       largestExpense: serializeMovement("EXPENSE"),
       bestMonth:
-        period.mode === "MONTH"
-          ? null
-          : serializeExtreme(getPeriodExtreme(monthlyTotals, "BEST")),
+        hasMultipleMonthCandidates
+          ? serializeExtreme(getPeriodExtreme(monthlyTotals, "BEST"))
+          : null,
       worstMonth:
-        period.mode === "MONTH"
-          ? null
-          : serializeExtreme(getPeriodExtreme(monthlyTotals, "WORST")),
+        hasMultipleMonthCandidates
+          ? serializeExtreme(getPeriodExtreme(monthlyTotals, "WORST"))
+          : null,
       bestYear:
-        period.mode === "ALL"
+        hasMultipleYearCandidates
           ? serializeExtreme(getPeriodExtreme(yearlyTotals, "BEST"))
           : null,
       worstYear:
-        period.mode === "ALL"
+        hasMultipleYearCandidates
           ? serializeExtreme(getPeriodExtreme(yearlyTotals, "WORST"))
           : null,
       months:

@@ -373,7 +373,11 @@ function createInsightRows(overview: StatisticsOverview) {
     ]
   ];
 
-  if (period.mode !== "MONTH") {
+  if (
+    period.mode !== "MONTH" &&
+    insights.bestMonth &&
+    insights.worstMonth
+  ) {
     rows.push([
       createExtremeInsight(
         "best-month",
@@ -392,28 +396,30 @@ function createInsightRows(overview: StatisticsOverview) {
         "MONTH"
       )
     ]);
+  }
 
-    if (period.mode === "ALL") {
-      rows.push([
-        createExtremeInsight(
-          "best-year",
-          "Best year",
-          insights.bestYear,
-          Calendar,
-          "positive",
-          "YEAR"
-        ),
-        createExtremeInsight(
-          "worst-year",
-          "Worst year",
-          insights.worstYear,
-          Calendar,
-          "negative",
-          "YEAR"
-        )
-      ]);
-    }
+  if (period.mode === "ALL" && insights.bestYear && insights.worstYear) {
+    rows.push([
+      createExtremeInsight(
+        "best-year",
+        "Best year",
+        insights.bestYear,
+        Calendar,
+        "positive",
+        "YEAR"
+      ),
+      createExtremeInsight(
+        "worst-year",
+        "Worst year",
+        insights.worstYear,
+        Calendar,
+        "negative",
+        "YEAR"
+      )
+    ]);
+  }
 
+  if (period.mode !== "MONTH") {
     if (insights.months) {
       rows.push([
         ...createCollectionInsights(

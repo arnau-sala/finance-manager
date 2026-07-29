@@ -564,6 +564,10 @@ default. Selecting any value switches the visible list to percentages;
 selecting one again restores the amount view. Summary amounts are displayed as
 whole euros while cents remain preserved in the API values.
 
+Best/Worst month and year insights are rendered only as complete comparison
+pairs. If the selected range has fewer than two periods with a calculable
+savings percentage, neither row in that pair is shown.
+
 When `GET /statistics/months` reports no recorded period, Stats replaces its
 period controls, view selector, Overview, and Charts content with one empty
 state while retaining the `Stats` page title. Its action opens the shared New

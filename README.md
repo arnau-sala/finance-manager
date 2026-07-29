@@ -941,6 +941,9 @@ rejected. The response is designed for the numeric Stats view and contains:
 - median expense, period average, and no-spend streaks. The current streak is
   returned only for the current month, current year, and All.
 
+Best/Worst month or year pairs are omitted when fewer than two comparable
+periods contain income, avoiding duplicate insights with no comparative value.
+
 All calculations use only transactions owned by the authenticated user. Empty
 periods return zero values and empty category collections. Money is calculated
 in integer cents and exposed as decimal strings. Representative response
