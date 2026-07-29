@@ -76,7 +76,9 @@ export function MovesActiveFilterTags({
             onClick={() => onFilterSelect("amount")}
           >
             <CircleEuroSign aria-hidden="true" />
-            <span>{amountSummary}</span>
+            <span className="moves-active-filter-tag__label">
+              {amountSummary}
+            </span>
           </button>
         ) : null}
 
@@ -88,7 +90,9 @@ export function MovesActiveFilterTags({
             onClick={() => onFilterSelect("date")}
           >
             <CalendarDays aria-hidden="true" />
-            <span>{dateSummary}</span>
+            <span className="moves-active-filter-tag__label">
+              {dateSummary}
+            </span>
           </button>
         ) : null}
 
