@@ -939,7 +939,10 @@ rejected. The response is designed for the numeric Stats view and contains:
 - largest movements, including the transaction previews used to open their
   authenticated detail sheets, and monthly/yearly insights where applicable;
 - median expense, period average, and no-spend streaks. The current streak is
-  returned only for the current month, current year, and All.
+  returned only for the current month, current year, and All. Both the current
+  and longest streak are historical, so they remain identical across those
+  three current-period views. Streak tracking begins with the first expense;
+  when no expense has ever been recorded, the UI omits the Expenses section.
 
 Best/Worst month or year pairs are omitted when fewer than two comparable
 periods contain income, avoiding duplicate insights with no comparative value.

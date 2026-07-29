@@ -21,7 +21,6 @@ import {
   PiggyBank,
   RefreshCw,
   Scale,
-  Trophy,
   type LucideIcon
 } from "lucide-react";
 
@@ -73,7 +72,7 @@ type ExpenseSectionItem = {
   detailLines?: readonly string[];
   value: string;
   icon: LucideIcon;
-  earnedTrophy?: boolean;
+  isRecord?: boolean;
 };
 
 type StatsInsight = {
@@ -196,76 +195,40 @@ function formatMovementDate(date: string) {
 function formatNoSpendStart(
   streak: StatisticsOverview["expenses"]["currentStreak"]
 ) {
-  if (
-    !streak ||
-    !streak.startDate ||
-    !streak.endDate ||
-    streak.days === 0
-  ) {
+  if (!streak?.endDate) {
     return "No active streak";
   }
 
-  const isCurrent = streak.endDate === getLocalDateKey();
-
-  if (isCurrent && streak.days === 1) {
-    return "Since today";
+  if (streak.days === 0) {
+    return "No streak";
   }
 
-  if (isCurrent && streak.days === 2) {
-    return "Since yesterday";
+  const end = toUtcDate(streak.endDate);
+  const referenceDate = streak.lastExpenseDate ?? streak.startDate;
+
+  if (!referenceDate) {
+    return "No active streak";
   }
 
-  const start = toUtcDate(streak.startDate);
+  const lastExpense = toUtcDate(referenceDate);
+  const elapsedDays = Math.round(
+    (end.getTime() - lastExpense.getTime()) / 86_400_000
+  );
 
-  if (isCurrent && streak.days <= 6) {
-    return `Since ${weekdayFormatter.format(start)}`;
+  if (streak.lastExpenseDate && elapsedDays === 1) {
+    return "Yesterday";
+  }
+
+  if (streak.lastExpenseDate && elapsedDays <= 6) {
+    return weekdayFormatter.format(lastExpense);
   }
 
   const formatter =
-    start.getUTCFullYear() === new Date().getFullYear()
+    lastExpense.getUTCFullYear() === end.getUTCFullYear()
       ? shortDateFormatter
       : fullDateFormatter;
 
-  return `Since ${formatter.format(start)}`;
-}
-
-function formatStreakPeriod(
-  streak: StatisticsOverview["expenses"]["longestStreak"],
-  includeYear: boolean
-) {
-  if (!streak.startDate || !streak.endDate || streak.days === 0) {
-    return "No streak in this period";
-  }
-
-  const start = toUtcDate(streak.startDate);
-  const end = toUtcDate(streak.endDate);
-  const startDay = start.getUTCDate();
-  const endDay = end.getUTCDate();
-  const startMonth = start.toLocaleString("en-GB", {
-    month: "short",
-    timeZone: "UTC"
-  });
-  const endMonth = end.toLocaleString("en-GB", {
-    month: "short",
-    timeZone: "UTC"
-  });
-  const startYear = start.getUTCFullYear();
-  const endYear = end.getUTCFullYear();
-
-  if (startYear === endYear && start.getUTCMonth() === end.getUTCMonth()) {
-    const range =
-      startDay === endDay
-        ? `${startDay} ${startMonth}`
-        : `${startDay}-${endDay} ${startMonth}`;
-    return includeYear ? `${range} ${startYear}` : range;
-  }
-
-  if (startYear === endYear) {
-    const range = `${startDay} ${startMonth} - ${endDay} ${endMonth}`;
-    return includeYear ? `${range} ${startYear}` : range;
-  }
-
-  return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+  return formatter.format(lastExpense);
 }
 
 function formatStreakPeriodLines(
@@ -276,7 +239,10 @@ function formatStreakPeriodLines(
   }
 
   const start = fullDateFormatter.format(toUtcDate(streak.startDate));
-  const end = fullDateFormatter.format(toUtcDate(streak.endDate));
+  const end =
+    streak.endDate === getLocalDateKey()
+      ? "Ongoing"
+      : fullDateFormatter.format(toUtcDate(streak.endDate));
 
   return start === end ? [start] : [start, end];
 }
@@ -478,7 +444,7 @@ function createInsightRows(overview: StatisticsOverview) {
 function createExpenseItems(
   overview: StatisticsOverview
 ): readonly ExpenseSectionItem[] {
-  const { expenses, period } = overview;
+  const { expenses } = overview;
   const unit = expenses.averagePeriodUnit.toLowerCase();
   const averageLabel =
     expenses.averagePeriodUnit === "DAY"
@@ -494,6 +460,10 @@ function createExpenseItems(
         : Calendars;
 
   const items: ExpenseSectionItem[] = [];
+
+  if (!expenses.hasExpenseHistory) {
+    return items;
+  }
 
   if (expenses.transactionCount > 0) {
     items.push({
@@ -527,21 +497,14 @@ function createExpenseItems(
       detail: formatNoSpendStart(expenses.currentStreak),
       value: formatDayCount(expenses.currentStreak.days),
       icon: PiggyBank,
-      earnedTrophy: expenses.isLongestCurrent
+      isRecord: expenses.isLongestCurrent
     });
   }
 
   items.push({
     id: "longest-no-spend-streak",
     label: "Longest streak",
-    detail:
-      period.mode === "ALL"
-        ? undefined
-        : formatStreakPeriod(expenses.longestStreak, false),
-    detailLines:
-      period.mode === "ALL"
-        ? formatStreakPeriodLines(expenses.longestStreak)
-        : undefined,
+    detailLines: formatStreakPeriodLines(expenses.longestStreak),
     value: formatDayCount(expenses.longestStreak.days),
     icon: Award
   });
@@ -690,19 +653,16 @@ function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
         hasStackedDetail ? " stats-expense-row--stacked-detail" : ""
       }`}
     >
-      <span className="stats-expense-row__icon" aria-hidden="true">
+      <span
+        className={`stats-expense-row__icon${
+          item.isRecord ? " stats-expense-row__icon--record" : ""
+        }`}
+        aria-hidden="true"
+      >
         <Icon />
       </span>
       <span className="stats-expense-row__details">
-        <strong>
-          {item.label}
-          {item.earnedTrophy ? (
-            <Trophy
-              className="stats-expense-row__trophy"
-              aria-label="Current streak is the longest"
-            />
-          ) : null}
-        </strong>
+        <strong>{item.label}</strong>
       </span>
       <span
         className={`stats-expense-row__detail${
@@ -860,21 +820,23 @@ function StatsOverviewContent({
         </ul>
       </section>
 
-      <section
-        className="stats-expenses"
-        aria-labelledby="stats-expenses-title"
-      >
-        <header className="stats-expenses__header">
-          <h2 id="stats-expenses-title">Expenses</h2>
-          <span>{formatOverviewPeriodLabel(overview.period)}</span>
-        </header>
+      {expenseItems.length > 0 ? (
+        <section
+          className="stats-expenses"
+          aria-labelledby="stats-expenses-title"
+        >
+          <header className="stats-expenses__header">
+            <h2 id="stats-expenses-title">Expenses</h2>
+            <span>{formatOverviewPeriodLabel(overview.period)}</span>
+          </header>
 
-        <ul className="stats-expenses__list">
-          {expenseItems.map((item) => (
-            <StatsExpenseItem item={item} key={item.id} />
-          ))}
-        </ul>
-      </section>
+          <ul className="stats-expenses__list">
+            {expenseItems.map((item) => (
+              <StatsExpenseItem item={item} key={item.id} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }

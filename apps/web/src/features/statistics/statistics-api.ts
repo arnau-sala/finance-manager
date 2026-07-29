@@ -67,6 +67,10 @@ const streakSchema = z.object({
   endDate: dateSchema.nullable()
 });
 
+const currentStreakSchema = streakSchema.extend({
+  lastExpenseDate: dateSchema.nullable()
+});
+
 const netWorthSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("OPENING_BALANCE_REQUIRED"),
@@ -105,12 +109,13 @@ const overviewResponseSchema = z.object({
       years: collectionSummarySchema
     }),
     expenses: z.object({
+      hasExpenseHistory: z.boolean(),
       transactionCount: z.number().int().nonnegative(),
       typicalAmount: moneySchema,
       averageAmount: moneySchema,
       averagePeriodCount: z.number().int().nonnegative(),
       averagePeriodUnit: z.enum(["DAY", "MONTH", "YEAR"]),
-      currentStreak: streakSchema.nullable(),
+      currentStreak: currentStreakSchema.nullable(),
       longestStreak: streakSchema,
       isLongestCurrent: z.boolean()
     })

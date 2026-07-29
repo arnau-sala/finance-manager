@@ -44,7 +44,11 @@ type TopMovementRow = {
 type ExpenseAggregateRow = {
   transactionCount: bigint | number;
   typicalAmountCents: bigint | number;
-  expenseDates: string[] | null;
+  hasExpenseHistory: boolean;
+  latestExpenseDate: string | null;
+  longestStreakDays: number;
+  longestStreakStartDate: string | null;
+  longestStreakEndDate: string | null;
 };
 
 type CategoryIntervalRow = CategoryTotalRow & {
@@ -77,6 +81,10 @@ type NoSpendStreak = {
   days: number;
   startDate: string | null;
   endDate: string | null;
+};
+
+type CurrentNoSpendStreak = NoSpendStreak & {
+  lastExpenseDate: string | null;
 };
 
 type TimelineInterval = {
@@ -342,10 +350,48 @@ async function getTopMovements(
 
 async function getExpenseAggregate(
   userId: string,
-  period: ResolvedStatisticsPeriod
+  period: ResolvedStatisticsPeriod,
+  today: string
 ) {
   const [aggregate] = await db.$queryRaw<ExpenseAggregateRow[]>(
     Prisma.sql`
+      WITH expense_days AS (
+        SELECT DISTINCT t."occurredOn"::date AS "expenseDate"
+        FROM "Transaction" t
+        WHERE t."userId" = ${userId}
+          AND t."type" = 'EXPENSE'::"TransactionType"
+          AND t."occurredOn" <= ${today}::date
+      ),
+      streak_boundaries AS (
+        SELECT "expenseDate" AS "boundaryDate"
+        FROM expense_days
+
+        UNION
+
+        SELECT (${today}::date + 1)
+        WHERE EXISTS (
+          SELECT 1
+          FROM expense_days
+        )
+      ),
+      streak_ranges AS (
+        SELECT
+          ("boundaryDate" + 1) AS "startDate",
+          (
+            LEAD("boundaryDate") OVER (ORDER BY "boundaryDate") - 1
+          ) AS "endDate"
+        FROM streak_boundaries
+      ),
+      longest_streak AS (
+        SELECT
+          "startDate",
+          "endDate",
+          ("endDate" - "startDate" + 1)::int AS "days"
+        FROM streak_ranges
+        WHERE "endDate" >= "startDate"
+        ORDER BY "days" DESC, "startDate" ASC
+        LIMIT 1
+      )
       SELECT
         COUNT(*) AS "transactionCount",
         COALESCE(
@@ -356,10 +402,26 @@ async function getExpenseAggregate(
           ),
           0
         )::bigint AS "typicalAmountCents",
-        ARRAY_AGG(
-          DISTINCT TO_CHAR(t."occurredOn", 'YYYY-MM-DD')
-          ORDER BY TO_CHAR(t."occurredOn", 'YYYY-MM-DD')
-        ) AS "expenseDates"
+        EXISTS (
+          SELECT 1
+          FROM expense_days
+        ) AS "hasExpenseHistory",
+        (
+          SELECT TO_CHAR(MAX("expenseDate"), 'YYYY-MM-DD')
+          FROM expense_days
+        ) AS "latestExpenseDate",
+        COALESCE(
+          (SELECT "days" FROM longest_streak),
+          0
+        )::int AS "longestStreakDays",
+        (
+          SELECT TO_CHAR("startDate", 'YYYY-MM-DD')
+          FROM longest_streak
+        ) AS "longestStreakStartDate",
+        (
+          SELECT TO_CHAR("endDate", 'YYYY-MM-DD')
+          FROM longest_streak
+        ) AS "longestStreakEndDate"
       FROM "Transaction" t
       WHERE t."userId" = ${userId}
         AND t."type" = 'EXPENSE'::"TransactionType"
@@ -370,7 +432,13 @@ async function getExpenseAggregate(
   return {
     transactionCount: Number(aggregate?.transactionCount ?? 0),
     typicalAmountCents: Number(aggregate?.typicalAmountCents ?? 0),
-    expenseDates: aggregate?.expenseDates ?? []
+    hasExpenseHistory: aggregate?.hasExpenseHistory ?? false,
+    latestExpenseDate: aggregate?.latestExpenseDate ?? null,
+    longestStreak: {
+      days: Number(aggregate?.longestStreakDays ?? 0),
+      startDate: aggregate?.longestStreakStartDate ?? null,
+      endDate: aggregate?.longestStreakEndDate ?? null
+    }
   };
 }
 
@@ -382,80 +450,25 @@ function dayNumberToDate(dayNumber: number) {
   return new Date(dayNumber * 86_400_000).toISOString().slice(0, 10);
 }
 
-function getNoSpendStreaks(
-  expenseDates: readonly string[],
-  from: string,
+function getCurrentNoSpendStreak(
+  latestExpenseDate: string | null,
   endDate: string,
   includeCurrent: boolean
 ) {
-  const expenseDays = new Set(expenseDates.map(dateToDayNumber));
-  const startDay = dateToDayNumber(from);
+  if (!includeCurrent || !latestExpenseDate) {
+    return null;
+  }
+
   const finalDay = dateToDayNumber(endDate);
-  let activeStart: number | null = null;
-  let longest: NoSpendStreak = {
-    days: 0,
-    startDate: null,
-    endDate: null
-  };
-
-  function finishStreak(streakEnd: number) {
-    if (activeStart === null) {
-      return;
-    }
-
-    const days = streakEnd - activeStart + 1;
-
-    if (days > longest.days) {
-      longest = {
-        days,
-        startDate: dayNumberToDate(activeStart),
-        endDate: dayNumberToDate(streakEnd)
-      };
-    }
-
-    activeStart = null;
-  }
-
-  for (let day = startDay; day <= finalDay; day += 1) {
-    if (expenseDays.has(day)) {
-      finishStreak(day - 1);
-    } else if (activeStart === null) {
-      activeStart = day;
-    }
-  }
-
-  finishStreak(finalDay);
-
-  let current: NoSpendStreak | null = null;
-
-  if (includeCurrent) {
-    let currentDays = 0;
-
-    for (
-      let day = finalDay;
-      day >= startDay && !expenseDays.has(day);
-      day -= 1
-    ) {
-      currentDays += 1;
-    }
-
-    current = {
-      days: currentDays,
-      startDate:
-        currentDays > 0
-          ? dayNumberToDate(finalDay - currentDays + 1)
-          : null,
-      endDate: currentDays > 0 ? endDate : null
-    };
-  }
+  const lastExpenseDay = dateToDayNumber(latestExpenseDate);
+  const currentStartDay = lastExpenseDay + 1;
+  const days = Math.max(0, finalDay - currentStartDay + 1);
 
   return {
-    current,
-    longest,
-    isLongestCurrent:
-      current !== null &&
-      current.days > 0 &&
-      current.days === longest.days
+    days,
+    startDate: days > 0 ? dayNumberToDate(currentStartDay) : null,
+    endDate,
+    lastExpenseDate: latestExpenseDate
   };
 }
 
@@ -614,12 +627,13 @@ export async function getStatisticsOverview(
   today: string
 ) {
   const period = await resolveUserStatisticsPeriod(userId, selection, today);
+  const includeCurrentStreak = period.endDate === today;
   const [monthlyTotals, categories, topMovements, expenseAggregate] =
     await Promise.all([
       getMonthlyTotals(userId, period),
       getCategoryTotals(userId, period),
       getTopMovements(userId, period),
-      getExpenseAggregate(userId, period)
+      getExpenseAggregate(userId, period, today)
     ]);
   const yearlyTotals = getYearlyTotals(monthlyTotals);
   const hasMultipleMonthCandidates =
@@ -635,12 +649,17 @@ export async function getStatisticsOverview(
     monthlyTotals,
     yearlyTotals
   );
-  const streaks = getNoSpendStreaks(
-    expenseAggregate.expenseDates,
-    period.from,
-    period.endDate,
-    period.endDate === today
+  const currentStreak = getCurrentNoSpendStreak(
+    expenseAggregate.latestExpenseDate,
+    today,
+    includeCurrentStreak
   );
+  const isLongestCurrent =
+    currentStreak !== null &&
+    currentStreak.days > 0 &&
+    currentStreak.days === expenseAggregate.longestStreak.days &&
+    currentStreak.startDate === expenseAggregate.longestStreak.startDate &&
+    currentStreak.endDate === expenseAggregate.longestStreak.endDate;
 
   function serializeMovement(type: TransactionType) {
     const movement = topMovements.find((candidate) => candidate.type === type);
@@ -708,6 +727,7 @@ export async function getStatisticsOverview(
           : null
     },
     expenses: {
+      hasExpenseHistory: expenseAggregate.hasExpenseHistory,
       transactionCount: expenseAggregate.transactionCount,
       typicalAmount: centsToDecimal(expenseAggregate.typicalAmountCents),
       averageAmount: centsToDecimal(
@@ -717,9 +737,9 @@ export async function getStatisticsOverview(
       ),
       averagePeriodCount: averagePeriod.count,
       averagePeriodUnit: averagePeriod.unit,
-      currentStreak: streaks.current,
-      longestStreak: streaks.longest,
-      isLongestCurrent: streaks.isLongestCurrent
+      currentStreak,
+      longestStreak: expenseAggregate.longestStreak,
+      isLongestCurrent
     }
   };
 }

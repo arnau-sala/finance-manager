@@ -3087,9 +3087,6 @@ button.transaction-row__content:focus-visible {
 }
 
 .stats-expenses__list {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto auto;
-  column-gap: 13px;
   margin: 0;
   padding: 0;
   border-top: 1px solid var(--color-border);
@@ -3098,10 +3095,11 @@ button.transaction-row__content:focus-visible {
 }
 
 .stats-expense-row {
-  grid-column: 1 / -1;
+  position: relative;
   min-height: 52px;
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  column-gap: 9px;
   align-items: center;
   padding: 7px 8px 7px 6px;
 }
@@ -3128,6 +3126,10 @@ button.transaction-row__content:focus-visible {
   stroke-width: 1.7;
 }
 
+.stats-expense-row__icon--record {
+  color: var(--color-warning);
+}
+
 .stats-expense-row__details {
   min-width: 0;
   display: flex;
@@ -3149,6 +3151,9 @@ button.transaction-row__content:focus-visible {
 }
 
 .stats-expense-row__detail {
+  position: absolute;
+  left: 60%;
+  max-width: 30%;
   overflow: hidden;
   color: var(--color-text-muted);
   font-size: 11px;
@@ -3157,6 +3162,7 @@ button.transaction-row__content:focus-visible {
   font-variant-numeric: tabular-nums;
   text-align: center;
   text-overflow: ellipsis;
+  transform: translateX(-50%);
   white-space: nowrap;
 }
 
@@ -3171,15 +3177,8 @@ button.transaction-row__content:focus-visible {
   display: block;
 }
 
-.stats-expense-row__trophy {
-  width: 13px;
-  height: 13px;
-  flex: 0 0 auto;
-  color: var(--color-warning);
-  stroke-width: 1.9;
-}
-
 .stats-expense-row__value {
+  margin-left: 4px;
   color: var(--color-danger);
   font-size: 16px;
   line-height: 20px;

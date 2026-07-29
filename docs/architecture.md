@@ -160,7 +160,18 @@ for balances, rankings, and period impact without downloading the full history.
 The current no-spend streak is calculated only when the requested period ends
 today: the current month, current year, or All. Historical month/year responses
 set `currentStreak` to `null`; their longest streak remains available because it
-describes the selected closed period.
+describes a global record rather than the selected closed period. The current
+streak is also global: current Month, Year, and All responses derive it from the
+same latest expense through today. `lastExpenseDate` identifies the expense
+immediately before that streak.
+
+Both streaks are intentionally independent of the selected period. A compact
+SQL gap query calculates their global boundaries from the caller's first
+non-future expense through today, so Month, Year, and All return the same
+historical state without loading the user's transaction history into the API.
+Income does not start expense-streak tracking. Overview exposes
+`hasExpenseHistory`; when it is false, both streaks are empty and the frontend
+omits the complete Expenses section.
 
 Charts executes three bounded aggregations in parallel: financial intervals,
 category-by-interval totals, and weekday expense totals. The financial series
