@@ -3088,6 +3088,10 @@ button.transaction-row__content:focus-visible {
   padding: 7px 8px 7px 6px;
 }
 
+.stats-expense-row--stacked-detail {
+  height: 52px;
+}
+
 .stats-expense-row + .stats-expense-row {
   border-top: 1px solid var(--color-border);
 }
@@ -3136,6 +3140,17 @@ button.transaction-row__content:focus-visible {
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.stats-expense-row__detail--stacked {
+  display: grid;
+  align-content: center;
+  line-height: 14px;
+  text-overflow: clip;
+}
+
+.stats-expense-row__detail--stacked > span {
+  display: block;
 }
 
 .stats-expense-row__trophy {

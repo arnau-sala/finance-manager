@@ -70,6 +70,7 @@ type ExpenseSectionItem = {
   id: string;
   label: string;
   detail?: string;
+  detailLines?: readonly string[];
   value: string;
   icon: LucideIcon;
   earnedTrophy?: boolean;
@@ -252,6 +253,19 @@ function formatStreakPeriod(
   }
 
   return `${startDay} ${startMonth} ${startYear} - ${endDay} ${endMonth} ${endYear}`;
+}
+
+function formatStreakPeriodLines(
+  streak: StatisticsOverview["expenses"]["longestStreak"]
+) {
+  if (!streak.startDate || !streak.endDate || streak.days === 0) {
+    return ["No streak in this period"];
+  }
+
+  const start = fullDateFormatter.format(toUtcDate(streak.startDate));
+  const end = fullDateFormatter.format(toUtcDate(streak.endDate));
+
+  return start === end ? [start] : [start, end];
 }
 
 function formatDayCount(days: number) {
@@ -507,10 +521,14 @@ function createExpenseItems(
   items.push({
     id: "longest-no-spend-streak",
     label: "Longest streak",
-    detail: formatStreakPeriod(
-      expenses.longestStreak,
+    detail:
       period.mode === "ALL"
-    ),
+        ? undefined
+        : formatStreakPeriod(expenses.longestStreak, false),
+    detailLines:
+      period.mode === "ALL"
+        ? formatStreakPeriodLines(expenses.longestStreak)
+        : undefined,
     value: formatDayCount(expenses.longestStreak.days),
     icon: Award
   });
@@ -651,9 +669,14 @@ function StatsInsightItem({
 
 function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
   const Icon = item.icon;
+  const hasStackedDetail = Boolean(item.detailLines);
 
   return (
-    <li className="stats-expense-row">
+    <li
+      className={`stats-expense-row${
+        hasStackedDetail ? " stats-expense-row--stacked-detail" : ""
+      }`}
+    >
       <span className="stats-expense-row__icon" aria-hidden="true">
         <Icon />
       </span>
@@ -668,7 +691,15 @@ function StatsExpenseItem({ item }: { item: ExpenseSectionItem }) {
           ) : null}
         </strong>
       </span>
-      <span className="stats-expense-row__detail">{item.detail ?? ""}</span>
+      <span
+        className={`stats-expense-row__detail${
+          hasStackedDetail ? " stats-expense-row__detail--stacked" : ""
+        }`}
+      >
+        {item.detailLines
+          ? item.detailLines.map((line) => <span key={line}>{line}</span>)
+          : (item.detail ?? "")}
+      </span>
       <strong className="stats-expense-row__value">{item.value}</strong>
     </li>
   );
