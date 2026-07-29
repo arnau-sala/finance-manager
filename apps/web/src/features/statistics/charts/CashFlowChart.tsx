@@ -231,6 +231,13 @@ function createChartOption(
       trigger: "axis",
       triggerOn: "click",
       alwaysShowContent: selectedIntervalIndex !== null,
+      className: `stats-cash-flow-tooltip${
+        selectedIntervalIndex !== null
+          ? " stats-cash-flow-tooltip--visible"
+          : ""
+      }`,
+      displayTransition: true,
+      transitionDuration: 0.42,
       confine: true,
       position: createCashFlowTooltipPosition(
         intervals.length,
@@ -238,10 +245,12 @@ function createChartOption(
         selectedIntervalIndex,
         tooltipPositionCache
       ),
-      backgroundColor: theme.surface,
-      borderColor: theme.border,
-      borderWidth: 1,
-      padding: [8, 10],
+      backgroundColor: "transparent",
+      borderColor: "transparent",
+      borderWidth: 0,
+      padding: 0,
+      shadowBlur: 0,
+      shadowColor: "transparent",
       textStyle: {
         color: theme.text,
         fontFamily: theme.fontFamily,
@@ -297,7 +306,9 @@ function createChartOption(
           );
         }
 
-        return rows.join("<br/>");
+        return `<div class="stats-cash-flow-tooltip__content">${rows.join(
+          "<br/>"
+        )}</div>`;
       }
     },
     xAxis: {

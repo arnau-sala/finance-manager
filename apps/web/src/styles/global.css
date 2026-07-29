@@ -2229,6 +2229,50 @@ button.transaction-row__content:focus-visible {
   opacity: 1;
 }
 
+.stats-cash-flow-tooltip {
+  transition:
+    opacity 420ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    visibility 420ms linear !important;
+}
+
+.stats-cash-flow-tooltip__content {
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  transform-origin: center;
+  transition:
+    opacity 420ms cubic-bezier(0.215, 0.61, 0.355, 1),
+    transform 420ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.stats-cash-flow-tooltip--visible .stats-cash-flow-tooltip__content {
+  animation: stats-cash-flow-tooltip-in 650ms
+    cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+.stats-cash-flow-tooltip:not(.stats-cash-flow-tooltip--visible)
+  .stats-cash-flow-tooltip__content,
+.stats-cash-flow-tooltip[style*="visibility: hidden"]
+  .stats-cash-flow-tooltip__content {
+  animation: none;
+  opacity: 0;
+  transform: translateY(4px) scale(0.96);
+}
+
+@keyframes stats-cash-flow-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .stats-chart-unavailable {
   min-height: 178px;
   display: grid;
@@ -5803,6 +5847,12 @@ button.transaction-row__content:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .stats-cash-flow-tooltip,
+  .stats-cash-flow-tooltip__content {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+
   .auth-flow-page {
     transition-duration: 1ms;
   }
