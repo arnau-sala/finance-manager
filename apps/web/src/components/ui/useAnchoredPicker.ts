@@ -23,13 +23,15 @@ type UseAnchoredPickerOptions = {
   anchorRef: RefObject<HTMLButtonElement | null>;
   onClose: () => void;
   positionKey?: string | number;
+  anchorGap?: number;
 };
 
 export function useAnchoredPicker({
   open,
   anchorRef,
   onClose,
-  positionKey
+  positionKey,
+  anchorGap = popoverGap
 }: UseAnchoredPickerOptions) {
   const [isClosing, setIsClosing] = useState(false);
   const [position, setPosition] = useState<PickerPopoverPosition | null>(null);
@@ -100,7 +102,7 @@ export function useAnchoredPicker({
       );
       const maximumTop = window.innerHeight - dialogHeight - viewportMargin;
       const top = Math.min(
-        Math.max(anchorRect.bottom + popoverGap, viewportMargin),
+        Math.max(anchorRect.bottom + anchorGap, viewportMargin),
         Math.max(viewportMargin, maximumTop)
       );
       const originX = Math.min(
@@ -123,14 +125,14 @@ export function useAnchoredPicker({
     updatePosition();
     window.addEventListener("resize", updatePosition);
     return () => window.removeEventListener("resize", updatePosition);
-  }, [anchorRef, open, positionKey]);
+  }, [anchorGap, anchorRef, open, positionKey]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
 
-    document.body.classList.add("stats-picker-open");
+    document.body.classList.add("anchored-picker-open");
 
     function closeWithEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -173,7 +175,7 @@ export function useAnchoredPicker({
 
     window.addEventListener("keydown", closeWithEscape);
     return () => {
-      document.body.classList.remove("stats-picker-open");
+      document.body.classList.remove("anchored-picker-open");
       window.removeEventListener("keydown", closeWithEscape);
     };
   }, [open, requestClose]);

@@ -1202,7 +1202,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
   display: none;
 }
 
-body.stats-picker-open .home-content--stats {
+body.anchored-picker-open .home-content--stats,
+body.anchored-picker-open .home-content--moves {
   overflow-y: hidden;
 }
 
@@ -1815,8 +1816,12 @@ button.transaction-row__content:focus-visible {
   background: var(--color-border);
 }
 
-.month-picker__header strong {
+.month-picker__header strong,
+.month-picker__header .date-picker__period {
+  margin: 0;
+  padding: 0;
   color: var(--color-text);
+  font-family: inherit;
   font-size: 17px;
   line-height: 1.3;
   font-weight: 600;
@@ -1937,6 +1942,132 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text-muted);
   opacity: 0.3;
   cursor: default;
+}
+
+.month-picker__header .date-picker__period {
+  width: auto;
+  max-width: calc(100% - 82px);
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.month-picker__header .date-picker__period:not(:disabled):active {
+  background: transparent;
+}
+
+.date-picker__period span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-picker__header .date-picker__period-disclosure {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  stroke-width: 1.8;
+}
+
+.date-picker__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  padding: 11px 16px 4px;
+  color: var(--color-text-muted);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.date-picker__weekdays span {
+  min-width: 0;
+  text-align: center;
+  font-size: 9px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.date-picker__day-grid {
+  flex: 0 0 100%;
+  height: 198px;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(5, 34px);
+  gap: 2px 0;
+  padding: 5px 16px 15px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.date-picker__day-grid.is-six-weeks {
+  grid-template-rows: repeat(6, 31px);
+  gap: 0;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.date-picker__day-grid > button,
+.date-picker__day-grid > span {
+  width: 34px;
+  height: 34px;
+  justify-self: center;
+}
+
+.date-picker__day-grid.is-six-weeks > button,
+.date-picker__day-grid.is-six-weeks > span {
+  width: 31px;
+  height: 31px;
+}
+
+.date-picker__day-grid > button {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 400;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.date-picker__day-grid > button:not(:disabled):not(.is-selected):active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.date-picker__day-grid > button.is-current:not(.is-selected) {
+  color: var(--color-primary);
+}
+
+.date-picker__day-grid > button.is-selected {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.date-picker__day-grid > button:disabled {
+  color: var(--color-text-muted);
+  opacity: 0.28;
+  cursor: default;
+}
+
+.date-picker__day-grid > button:focus-visible,
+.month-picker__header .date-picker__period:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .year-picker__content {
@@ -3534,10 +3665,6 @@ button.transaction-row__content:focus-visible {
   width: 100%;
 }
 
-.moves-filter-editor .transaction-composer__date-control {
-  height: var(--moves-filter-input-height);
-}
-
 .moves-filter-field-row {
   min-width: 0;
   display: grid;
@@ -3644,6 +3771,38 @@ button.transaction-row__content:focus-visible {
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   -webkit-appearance: none;
+}
+
+.moves-date-filter-field__control {
+  width: 100%;
+  min-width: 0;
+  height: var(--moves-filter-input-height);
+  display: grid;
+  place-items: center;
+  padding: 0 10px;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  appearance: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-date-filter-field__control.is-selected {
+  color: var(--color-text);
+}
+
+.moves-date-filter-field__control:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .moves-filter-field input:focus {

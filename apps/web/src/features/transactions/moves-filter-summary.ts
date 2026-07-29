@@ -9,7 +9,7 @@ function formatAmountValue(value: string) {
   return `${value.replace(".", ",")}\u20ac`;
 }
 
-function formatDateValue(value: string) {
+export function formatFilterDateValue(value: string) {
   const date = parseLocalDateOnly(value);
 
   if (!date) {
@@ -67,7 +67,9 @@ export function getAmountFilterSummary(filters: MovesFilters) {
 
 export function getDateFilterSummary(filters: MovesFilters) {
   if (filters.dateMode === "EXACT") {
-    return filters.exactDate ? formatDateValue(filters.exactDate) : null;
+    return filters.exactDate
+      ? formatFilterDateValue(filters.exactDate)
+      : null;
   }
 
   const currentYear = new Date().getFullYear();

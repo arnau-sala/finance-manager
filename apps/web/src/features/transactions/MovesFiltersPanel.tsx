@@ -32,8 +32,8 @@ import {
   getCategoryFilterSummary,
   getDateFilterSummary
 } from "./moves-filter-summary";
+import { MovesDateFilterField } from "./MovesDateFilterField";
 import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
-import { TransactionDateField } from "./TransactionDateField";
 import { TransactionTypeSwitch } from "./TransactionTypeSwitch";
 
 export type MovesFilterEditor = "amount" | "date" | "categories";
@@ -41,6 +41,7 @@ export type MovesFilterEditor = "amount" | "date" | "categories";
 type MovesFiltersPanelProps = {
   id: string;
   appliedFilters: MovesFilters;
+  minimumDate: string;
   initialEditor?: MovesFilterEditor | null;
   onApply: (filters: MovesFilters) => void;
   onClear: () => void;
@@ -56,6 +57,7 @@ const EMPTY_MOVES_FILTERS = createEmptyMovesFilters();
 export function MovesFiltersPanel({
   id,
   appliedFilters,
+  minimumDate,
   initialEditor = null,
   onApply,
   onClear
@@ -305,30 +307,32 @@ export function MovesFiltersPanel({
             onChange={setDateMode}
           />
           {dateMode === "EXACT" ? (
-            <TransactionDateField
+            <MovesDateFilterField
               id="moves-filter-exact-date"
               label="Exact date"
               value={exactDate}
-              max={today}
+              minimumDate={minimumDate}
+              maximumDate={today}
               onChange={setExactDate}
               onClear={() => setExactDate("")}
             />
           ) : (
             <div className="moves-filter-field-row">
-              <TransactionDateField
+              <MovesDateFilterField
                 id="moves-filter-start-date"
                 label="From"
                 value={startDate}
-                max={today}
+                minimumDate={minimumDate}
+                maximumDate={today}
                 onChange={updateStartDate}
                 onClear={() => setStartDate("")}
               />
-              <TransactionDateField
+              <MovesDateFilterField
                 id="moves-filter-end-date"
                 label="Until"
                 value={endDate}
-                min={startDate || undefined}
-                max={today}
+                minimumDate={startDate || minimumDate}
+                maximumDate={today}
                 onChange={updateEndDate}
                 onClear={() => setEndDate("")}
               />

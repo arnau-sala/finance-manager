@@ -223,6 +223,7 @@ Base components to create early:
 - `PasswordField`
 - `Select`
 - `SegmentedControl`
+- `CalendarDatePicker`
 - `TransactionRow`
 - `AmountText`
 - `EmptyState`
@@ -462,6 +463,11 @@ Current behavior:
 - Dynamic result count, clear-search action, and an empty search state.
 - Combined filtering by exact amount or amount range, exact date or date range,
   one or more categories, and transaction type.
+- Exact and range date filters use the shared anchored calendar instead of the
+  browser's native date dialog. Its Monday-first day view supports arrows and
+  horizontal paging between months; selecting the header opens the matching
+  year grid, where choosing a month returns to its days. Dates before the
+  account's oldest transaction and after today are disabled.
 - Filters use a draft state and update results only through `Apply filters`;
   `Clear all` resets the results immediately.
 - The filter panel can be hidden without clearing applied filters and restores

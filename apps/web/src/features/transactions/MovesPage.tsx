@@ -8,7 +8,10 @@ import {
 } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
-import { parseLocalDateOnly } from "../../dates/date-only";
+import {
+  getTodayDateOnly,
+  parseLocalDateOnly
+} from "../../dates/date-only";
 import { MovesActiveFilterTags } from "./MovesActiveFilterTags";
 import { TransactionRow } from "./TransactionRow";
 import {
@@ -103,6 +106,17 @@ export function MovesPage({
   const loadMoreSentinel = useRef<HTMLDivElement>(null);
   const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
   const activeFilterCount = countActiveMovesFilters(appliedFilters);
+  const minimumTransactionDate = useMemo(
+    () =>
+      transactions.reduce<string | null>(
+        (minimumDate, transaction) =>
+          minimumDate === null || transaction.date < minimumDate
+            ? transaction.date
+            : minimumDate,
+        null
+      ) ?? getTodayDateOnly(),
+    [transactions]
+  );
   const filteredTransactions = useMemo(() => {
     const categoryIds = new Set(getActiveCategoryIds(appliedFilters));
     const exactAmountCents = parseAmountCents(appliedFilters.exactAmount);
@@ -387,6 +401,7 @@ export function MovesPage({
           <MovesFiltersPanel
             id={FILTER_PANEL_ID}
             appliedFilters={appliedFilters}
+            minimumDate={minimumTransactionDate}
             initialEditor={initialFilterEditor}
             onApply={applyFilters}
             onClear={clearFilters}
