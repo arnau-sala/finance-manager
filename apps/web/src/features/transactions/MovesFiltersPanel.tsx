@@ -33,6 +33,7 @@ import {
   getDateFilterSummary
 } from "./moves-filter-summary";
 import { MovesDateFilterField } from "./MovesDateFilterField";
+import { MovesDateRangeFilter } from "./MovesDateRangeFilter";
 import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
 import { TransactionTypeSwitch } from "./TransactionTypeSwitch";
 
@@ -127,20 +128,9 @@ export function MovesFiltersPanel({
     }
   }
 
-  function updateStartDate(value: string) {
-    setStartDate(value);
-
-    if (endDate && value > endDate) {
-      setEndDate(value);
-    }
-  }
-
-  function updateEndDate(value: string) {
-    setEndDate(value);
-
-    if (startDate && value < startDate) {
-      setStartDate(value);
-    }
+  function updateDateRange(nextStartDate: string, nextEndDate: string) {
+    setStartDate(nextStartDate);
+    setEndDate(nextEndDate);
   }
 
   function toggleCategory(categoryId: string) {
@@ -318,23 +308,12 @@ export function MovesFiltersPanel({
             />
           ) : (
             <div className="moves-filter-field-row">
-              <MovesDateFilterField
-                id="moves-filter-start-date"
-                label="From"
-                value={startDate}
+              <MovesDateRangeFilter
+                startDate={startDate}
+                endDate={endDate}
                 minimumDate={minimumDate}
                 maximumDate={today}
-                onChange={updateStartDate}
-                onClear={() => setStartDate("")}
-              />
-              <MovesDateFilterField
-                id="moves-filter-end-date"
-                label="Until"
-                value={endDate}
-                minimumDate={startDate || minimumDate}
-                maximumDate={today}
-                onChange={updateEndDate}
-                onClear={() => setEndDate("")}
+                onChange={updateDateRange}
               />
             </div>
           )}

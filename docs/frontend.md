@@ -468,6 +468,11 @@ Current behavior:
   horizontal paging between months; selecting the header opens the matching
   year grid, where choosing a month returns to its days. Dates before the
   account's oldest transaction and after today are disabled.
+- Range mode shares one calendar between `Start date` and `End date`. Starting
+  from `Start date` keeps the picker open after the first date and closes it
+  once the end is selected; starting from `End date` replaces that boundary.
+  Partial ranges survive outside-click dismissal, while complete ranges show
+  both endpoints and a continuous soft-green interval.
 - Filters use a draft state and update results only through `Apply filters`;
   `Clear all` resets the results immediately.
 - The filter panel can be hidden without clearing applied filters and restores

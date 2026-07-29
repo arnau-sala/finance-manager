@@ -91,11 +91,11 @@ export function getDateFilterSummary(filters: MovesFilters) {
   }
 
   if (filters.startDate) {
-    return `From ${formatRangeDate(filters.startDate)}`;
+    return `Start ${formatRangeDate(filters.startDate)}`;
   }
 
   return filters.endDate
-    ? `Until ${formatRangeDate(filters.endDate)}`
+    ? `End ${formatRangeDate(filters.endDate)}`
     : null;
 }
 

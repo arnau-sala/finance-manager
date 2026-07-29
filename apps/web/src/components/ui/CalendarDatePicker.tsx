@@ -53,9 +53,12 @@ type CalendarDatePickerProps = {
   open: boolean;
   anchorRef: RefObject<HTMLButtonElement | null>;
   value: string;
+  initialDate?: string;
+  rangeStart?: string;
+  rangeEnd?: string;
   minimumDate: string;
   maximumDate: string;
-  onSelect: (date: string) => void;
+  onSelect: (date: string) => boolean | void;
   onClose: () => void;
 };
 
@@ -144,6 +147,9 @@ export function CalendarDatePicker({
   open,
   anchorRef,
   value,
+  initialDate = value,
+  rangeStart = "",
+  rangeEnd = "",
   minimumDate,
   maximumDate,
   onSelect,
@@ -161,7 +167,7 @@ export function CalendarDatePicker({
     maximumParts.monthIndex
   );
   const initialMonthIndex = getInitialMonthIndex(
-    value,
+    initialDate,
     minimumMonthIndex,
     maximumMonthIndex
   );
@@ -194,6 +200,10 @@ export function CalendarDatePicker({
   );
   const today = getTodayDateOnly();
   const currentMonth = today.slice(0, 7);
+  const hasCompleteRange =
+    rangeStart.length > 0 &&
+    rangeEnd.length > 0 &&
+    rangeStart < rangeEnd;
   const visibleMonth = getMonthParts(visibleMonthIndex);
   const {
     dialogRef,
@@ -212,7 +222,7 @@ export function CalendarDatePicker({
   useLayoutEffect(() => {
     if (open && !wasOpenRef.current) {
       const nextMonthIndex = getInitialMonthIndex(
-        value,
+        initialDate,
         minimumMonthIndex,
         maximumMonthIndex
       );
@@ -224,7 +234,12 @@ export function CalendarDatePicker({
     }
 
     wasOpenRef.current = open;
-  }, [maximumMonthIndex, minimumMonthIndex, open, value]);
+  }, [
+    initialDate,
+    maximumMonthIndex,
+    minimumMonthIndex,
+    open
+  ]);
 
   useLayoutEffect(() => {
     if (!open || view !== "days") {
@@ -525,9 +540,20 @@ export function CalendarDatePicker({
                         const disabled =
                           date < minimumDate || date > maximumDate;
                         const selected = date === value;
+                        const rangeBoundary =
+                          date === rangeStart || date === rangeEnd;
+                        const inRange =
+                          hasCompleteRange &&
+                          date > rangeStart &&
+                          date < rangeEnd;
                         const current = date === today;
                         const className = [
                           selected ? "is-selected" : "",
+                          date === rangeStart ? "is-range-start" : "",
+                          date === rangeEnd ? "is-range-end" : "",
+                          rangeBoundary ? "is-range-boundary" : "",
+                          hasCompleteRange ? "has-complete-range" : "",
+                          inRange ? "is-in-range" : "",
                           current ? "is-current" : ""
                         ]
                           .filter(Boolean)
@@ -545,18 +571,23 @@ export function CalendarDatePicker({
                                 : -1
                             }
                             className={className || undefined}
-                            aria-selected={selected}
+                            aria-selected={
+                              selected || rangeBoundary || inRange
+                            }
                             aria-current={current ? "date" : undefined}
                             onClick={() => {
                               if (monthIndex !== visibleMonthIndex) {
                                 return;
                               }
 
-                              onSelect(date);
-                              requestClose();
+                              const shouldClose = onSelect(date);
+
+                              if (shouldClose !== false) {
+                                requestClose();
+                              }
                             }}
                           >
-                            {day}
+                            <span>{day}</span>
                           </button>
                         );
                       })}
