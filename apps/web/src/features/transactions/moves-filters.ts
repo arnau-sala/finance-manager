@@ -32,15 +32,22 @@ export function createEmptyMovesFilters(): MovesFilters {
 }
 
 export function getActiveCategoryIds(filters: MovesFilters) {
-  if (filters.type === "ALL") {
-    return filters.selectedCategoryIds;
-  }
-
-  return filters.selectedCategoryIds.filter(
-    (categoryId) =>
-      transactionCategories.find((category) => category.id === categoryId)
-        ?.type === filters.type
+  const availableCategoryIds = transactionCategories
+    .filter(
+      (category) =>
+        filters.type === "ALL" || category.type === filters.type
+    )
+    .map((category) => category.id);
+  const availableCategoryIdSet = new Set(availableCategoryIds);
+  const selectedCategoryIdSet = new Set(filters.selectedCategoryIds);
+  const selectedVisibleCategoryIds = filters.selectedCategoryIds.filter(
+    (categoryId) => availableCategoryIdSet.has(categoryId)
   );
+  const areAllVisibleCategoriesSelected = availableCategoryIds.every(
+    (categoryId) => selectedCategoryIdSet.has(categoryId)
+  );
+
+  return areAllVisibleCategoriesSelected ? [] : selectedVisibleCategoryIds;
 }
 
 export function countActiveMovesFilters(filters: MovesFilters) {

@@ -9,8 +9,12 @@ import {
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { parseLocalDateOnly } from "../../dates/date-only";
+import { MovesActiveFilterTags } from "./MovesActiveFilterTags";
 import { TransactionRow } from "./TransactionRow";
-import { MovesFiltersPanel } from "./MovesFiltersPanel";
+import {
+  MovesFiltersPanel,
+  type MovesFilterEditor
+} from "./MovesFiltersPanel";
 import {
   countActiveMovesFilters,
   createEmptyMovesFilters,
@@ -87,6 +91,8 @@ export function MovesPage({
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
     () => countActiveMovesFilters(initialFilters) > 0
   );
+  const [initialFilterEditor, setInitialFilterEditor] =
+    useState<MovesFilterEditor | null>(null);
   const [appliedFilters, setAppliedFilters] = useState<MovesFilters>(
     () => ({
       ...initialFilters,
@@ -225,11 +231,27 @@ export function MovesPage({
   function applyFilters(filters: MovesFilters) {
     setAppliedFilters(filters);
     setVisibleCount(PAGE_SIZE);
+    setIsFilterPanelOpen(false);
+    setInitialFilterEditor(null);
+    scrollContainer.current?.scrollTo({ top: 0 });
+  }
+
+  function clearFilters() {
+    setAppliedFilters(createEmptyMovesFilters());
+    setVisibleCount(PAGE_SIZE);
     scrollContainer.current?.scrollTo({ top: 0 });
   }
 
   function toggleFilterPanel() {
+    setInitialFilterEditor(null);
     setIsFilterPanelOpen((current) => !current);
+  }
+
+  function openFilterEditor(
+    filter: "type" | "amount" | "date" | "categories"
+  ) {
+    setInitialFilterEditor(filter === "type" ? null : filter);
+    setIsFilterPanelOpen(true);
   }
 
   useEffect(() => {
@@ -365,7 +387,16 @@ export function MovesPage({
           <MovesFiltersPanel
             id={FILTER_PANEL_ID}
             appliedFilters={appliedFilters}
+            initialEditor={initialFilterEditor}
             onApply={applyFilters}
+            onClear={clearFilters}
+          />
+        ) : null}
+
+        {!isFilterPanelOpen && activeFilterCount > 0 ? (
+          <MovesActiveFilterTags
+            filters={appliedFilters}
+            onFilterSelect={openFilterEditor}
           />
         ) : null}
 

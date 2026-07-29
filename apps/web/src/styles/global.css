@@ -3215,25 +3215,25 @@ button.transaction-row__content:focus-visible {
   top: 0;
   z-index: 3;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 48px;
+  grid-template-columns: minmax(0, 1fr) 42px;
   gap: 10px;
   margin-top: 14px;
-  padding: 11px 7px 11px 0;
+  padding: 11px 0;
   background: var(--color-surface);
 }
 
 .moves-search {
   min-width: 0;
-  height: 48px;
+  height: 42px;
   display: grid;
   grid-template-columns: 19px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 0 12px;
-  color: var(--color-text);
+  color: var(--color-text-muted);
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 14px;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -3257,7 +3257,7 @@ button.transaction-row__content:focus-visible {
   background: transparent;
   border: 0;
   outline: 0;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.3;
   font-weight: 400;
   user-select: text;
@@ -3268,7 +3268,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-search input::placeholder {
-  color: var(--color-text);
+  color: var(--color-text-muted);
   opacity: 1;
 }
 
@@ -3299,15 +3299,15 @@ button.transaction-row__content:focus-visible {
 
 .moves-filter-button {
   position: relative;
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   padding: 0;
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: visible;
   cursor: pointer;
   touch-action: manipulation;
@@ -3336,7 +3336,7 @@ button.transaction-row__content:focus-visible {
   position: absolute;
   z-index: 1;
   top: -5px;
-  right: -5px;
+  right: 0;
   min-width: 18px;
   height: 18px;
   display: grid;
@@ -3360,6 +3360,7 @@ button.transaction-row__content:focus-visible {
 
 .moves-filter-panel {
   --moves-filter-control-height: 46px;
+  --moves-filter-input-height: 40px;
   --moves-filter-heading-font-size: 14px;
   --moves-filter-shortcut-title-font-size: 12px;
   --moves-filter-field-title-font-size: 11px;
@@ -3367,7 +3368,7 @@ button.transaction-row__content:focus-visible {
   --moves-filter-title-font-weight: 400;
   position: sticky;
   z-index: 2;
-  top: 70px;
+  top: 64px;
   display: grid;
   gap: 9px;
   margin-bottom: 8px;
@@ -3415,10 +3416,16 @@ button.transaction-row__content:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.moves-filter-shortcuts > button.is-active {
+.moves-filter-shortcuts > button.is-applied {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border-color: var(--color-primary-border);
+}
+
+.moves-filter-shortcuts > button.is-expanded {
   color: var(--color-primary);
   background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
+  border-color: var(--color-primary);
 }
 
 .moves-filter-shortcut__icon,
@@ -3528,7 +3535,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-filter-editor .transaction-composer__date-control {
-  height: var(--moves-filter-control-height);
+  height: var(--moves-filter-input-height);
 }
 
 .moves-filter-field-row {
@@ -3548,6 +3555,7 @@ button.transaction-row__content:focus-visible {
 .moves-filter-editor .transaction-composer__field > span,
 .moves-filter-editor .moves-filter-field__heading > label,
 .moves-filter-editor .moves-filter-field__heading > span,
+.moves-filter-editor .transaction-category-picker__heading > span,
 .moves-filter-editor .transaction-category-picker legend {
   min-height: 14px;
   margin: 0 0 6px;
@@ -3556,6 +3564,30 @@ button.transaction-row__content:focus-visible {
   font-size: var(--moves-filter-field-title-font-size);
   line-height: var(--moves-filter-title-line-height);
   font-weight: var(--moves-filter-title-font-weight);
+}
+
+.moves-filter-editor .transaction-category-picker__heading {
+  min-width: 0;
+  min-height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.moves-filter-editor .transaction-category-picker__heading > span {
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+.moves-filter-editor .moves-filter-category-clear-slot {
+  min-width: 28px;
+  min-height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .moves-filter-editor .moves-filter-field > span {
@@ -3599,7 +3631,7 @@ button.transaction-row__content:focus-visible {
 .moves-filter-field input {
   width: 100%;
   min-width: 0;
-  height: var(--moves-filter-control-height);
+  height: var(--moves-filter-input-height);
   padding: 0 10px;
   color: var(--color-text);
   background: var(--color-surface);
@@ -3697,6 +3729,108 @@ button.transaction-row__content:focus-visible {
   border-color: var(--color-border);
   cursor: default;
   opacity: 0.72;
+}
+
+.moves-active-filters {
+  min-width: 0;
+  margin: 3px 0 8px;
+}
+
+.moves-active-filters__tags {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.moves-active-filter-tag {
+  min-width: 0;
+  min-height: 25px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 400;
+  white-space: nowrap;
+  appearance: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-active-filter-tag > svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
+  stroke-width: 1.8;
+}
+
+.moves-active-filter-tag--type {
+  width: 25px;
+  padding-inline: 4px;
+  justify-content: center;
+}
+
+.moves-active-filter-tag--expense > svg {
+  color: var(--color-danger);
+}
+
+.moves-active-filter-tag--income > svg {
+  color: var(--color-success);
+}
+
+.moves-active-filter-tag--categories {
+  max-width: 100%;
+  gap: 6px;
+}
+
+.moves-active-filter-tag__separator {
+  align-self: stretch;
+  width: 1px;
+  background: var(--color-primary-border);
+}
+
+.moves-active-filter-tag__category-icons {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.moves-active-filter-tag__category-icon,
+.moves-active-filter-tag__category-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.moves-active-filter-tag__category-icon {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+.moves-active-filter-tag__category-icon svg {
+  stroke-width: 1.8;
+}
+
+.moves-active-filter-tag__category-icon--expense {
+  color: var(--color-danger);
+}
+
+.moves-active-filter-tag__category-icon--income {
+  color: var(--color-success);
+}
+
+.moves-active-filter-tag:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
 }
 
 .moves-transaction-list {

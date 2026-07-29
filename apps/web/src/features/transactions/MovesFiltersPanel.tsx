@@ -13,7 +13,7 @@ import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
 } from "../../components/ui/SlidingSegmentedControl";
-import { getTodayDateOnly, parseLocalDateOnly } from "../../dates/date-only";
+import { getTodayDateOnly } from "../../dates/date-only";
 import {
   transactionCategories,
   type TransactionType
@@ -27,16 +27,23 @@ import {
   type MovesFilterValueMode,
   type MovesTypeFilter
 } from "./moves-filters";
+import {
+  getAmountFilterSummary,
+  getCategoryFilterSummary,
+  getDateFilterSummary
+} from "./moves-filter-summary";
 import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
 import { TransactionDateField } from "./TransactionDateField";
 import { TransactionTypeSwitch } from "./TransactionTypeSwitch";
 
-type FilterEditor = "amount" | "date" | "categories";
+export type MovesFilterEditor = "amount" | "date" | "categories";
 
 type MovesFiltersPanelProps = {
   id: string;
   appliedFilters: MovesFilters;
+  initialEditor?: MovesFilterEditor | null;
   onApply: (filters: MovesFilters) => void;
+  onClear: () => void;
 };
 
 const amountPattern = /^(?:\d+(?:[.,]\d{0,2})?)?$/;
@@ -46,53 +53,18 @@ const FILTER_MODE_OPTIONS: readonly SlidingSegmentOption<MovesFilterValueMode>[]
 ];
 const EMPTY_MOVES_FILTERS = createEmptyMovesFilters();
 
-function formatAmountValue(value: string) {
-  return `${value.replace(".", ",")}\u20ac`;
-}
-
-function formatDateValue(value: string) {
-  const date = parseLocalDateOnly(value);
-
-  if (!date) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric"
-  }).format(date);
-}
-
-function formatCompactDayMonth(value: string) {
-  const date = parseLocalDateOnly(value);
-
-  if (!date) {
-    return value;
-  }
-
-  return `${date.getDate()}/${date.getMonth() + 1}`;
-}
-
-function formatCompactMonthYear(value: string) {
-  const date = parseLocalDateOnly(value);
-
-  if (!date) {
-    return value;
-  }
-
-  return `${date.getMonth() + 1}/${String(date.getFullYear()).slice(-2)}'`;
-}
-
 export function MovesFiltersPanel({
   id,
   appliedFilters,
-  onApply
+  initialEditor = null,
+  onApply,
+  onClear
 }: MovesFiltersPanelProps) {
   const [typeFilter, setTypeFilter] = useState<MovesTypeFilter>(
     appliedFilters.type
   );
-  const [activeEditor, setActiveEditor] = useState<FilterEditor | null>(null);
+  const [activeEditor, setActiveEditor] =
+    useState<MovesFilterEditor | null>(initialEditor);
   const [amountMode, setAmountMode] = useState<MovesFilterValueMode>(
     appliedFilters.amountMode
   );
@@ -125,16 +97,6 @@ export function MovesFiltersPanel({
     selectedCategoryIds
   };
   const today = getTodayDateOnly();
-  const currentYear = Number(today.slice(0, 4));
-  const useMonthYearRangeFormat =
-    dateMode === "RANGE" &&
-    [startDate, endDate].some((value) => {
-      const date = parseLocalDateOnly(value);
-      return date !== null && date.getFullYear() !== currentYear;
-    });
-  const formatRangeDate = useMonthYearRangeFormat
-    ? formatCompactMonthYear
-    : formatCompactDayMonth;
   const hasAmountFilter =
     amountMode === "EXACT"
       ? exactAmount.length > 0
@@ -187,9 +149,19 @@ export function MovesFiltersPanel({
     );
   }
 
-  function clearFilters() {
-    const emptyFilters = createEmptyMovesFilters();
+  function clearCategoryType(categoryType: TransactionType) {
+    const categoryIds = new Set(
+      transactionCategories
+        .filter((category) => category.type === categoryType)
+        .map((category) => category.id)
+    );
 
+    setSelectedCategoryIds((current) =>
+      current.filter((categoryId) => !categoryIds.has(categoryId))
+    );
+  }
+
+  function clearFilters() {
     setTypeFilter("ALL");
     setActiveEditor(null);
     setAmountMode("RANGE");
@@ -201,7 +173,7 @@ export function MovesFiltersPanel({
     setStartDate("");
     setEndDate("");
     setSelectedCategoryIds([]);
-    onApply(emptyFilters);
+    onClear();
   }
 
   function applyFilters() {
@@ -212,31 +184,9 @@ export function MovesFiltersPanel({
     setActiveEditor(null);
   }
 
-  const amountSummary = hasAmountFilter
-    ? amountMode === "EXACT"
-      ? formatAmountValue(exactAmount)
-      : minimumAmount && maximumAmount
-        ? `${formatAmountValue(minimumAmount)} - ${formatAmountValue(maximumAmount)}`
-        : minimumAmount
-          ? `From ${formatAmountValue(minimumAmount)}`
-          : `Up to ${formatAmountValue(maximumAmount)}`
-    : "Any";
-  const dateSummary = hasDateFilter
-    ? dateMode === "EXACT"
-      ? formatDateValue(exactDate)
-      : startDate && endDate
-        ? `${formatRangeDate(startDate)} - ${formatRangeDate(endDate)}`
-        : startDate
-          ? `From ${formatRangeDate(startDate)}`
-          : `Until ${formatRangeDate(endDate)}`
-    : "Any";
-  const categorySummary = hasCategoryFilter
-    ? activeSelectedCategoryIds.length === 1
-      ? transactionCategories.find(
-          (category) => category.id === activeSelectedCategoryIds[0]
-        )?.name ?? "1 selected"
-      : `${activeSelectedCategoryIds.length} selected`
-    : "All";
+  const amountSummary = getAmountFilterSummary(draftFilters) ?? "Any";
+  const dateSummary = getDateFilterSummary(draftFilters) ?? "Any";
+  const categorySummary = getCategoryFilterSummary(draftFilters) ?? "All";
 
   return (
     <section
@@ -392,25 +342,42 @@ export function MovesFiltersPanel({
           className="moves-filter-editor moves-filter-editor--categories"
           aria-label="Category filter"
         >
-          {visibleCategoryTypes.map((categoryType) => (
-            <div
-              className={`moves-filter-category-section moves-filter-category-section--${categoryType.toLowerCase()}`}
-              key={categoryType}
-            >
-              <TransactionCategoryPicker
-                type={categoryType}
-                legend={
-                  typeFilter === "ALL"
-                    ? categoryType === "EXPENSE"
-                      ? "Expenses"
-                      : "Income"
-                    : "Categories"
-                }
-                selectedCategoryIds={selectedCategoryIds}
-                onCategorySelect={toggleCategory}
-              />
-            </div>
-          ))}
+          {visibleCategoryTypes.map((categoryType) => {
+            const hasSelectedCategories = selectedCategoryIds.some(
+              (categoryId) =>
+                transactionCategories.find(
+                  (category) => category.id === categoryId
+                )?.type === categoryType
+            );
+
+            return (
+              <div
+                className={`moves-filter-category-section moves-filter-category-section--${categoryType.toLowerCase()}`}
+                key={categoryType}
+              >
+                <TransactionCategoryPicker
+                  type={categoryType}
+                  legend={categoryType === "EXPENSE" ? "Expenses" : "Income"}
+                  selectedCategoryIds={selectedCategoryIds}
+                  onCategorySelect={toggleCategory}
+                  headerAction={
+                    <span className="moves-filter-category-clear-slot">
+                      {hasSelectedCategories ? (
+                        <button
+                          className="moves-filter-field__clear"
+                          type="button"
+                          aria-label={`Clear ${categoryType.toLowerCase()} categories`}
+                          onClick={() => clearCategoryType(categoryType)}
+                        >
+                          Clear
+                        </button>
+                      ) : null}
+                    </span>
+                  }
+                />
+              </div>
+            );
+          })}
         </div>
       ) : null}
 
@@ -440,7 +407,11 @@ function FilterShortcut({
   return (
     <button
       type="button"
-      className={active || expanded ? "is-active" : undefined}
+      className={
+        `${active ? "is-applied" : ""}${
+          expanded ? " is-expanded" : ""
+        }`.trim() || undefined
+      }
       aria-expanded={expanded}
       onClick={onClick}
     >

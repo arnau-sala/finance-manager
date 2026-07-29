@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import {
   transactionCategories,
   type TransactionType
@@ -11,6 +13,7 @@ type TransactionCategoryPickerProps = {
   disabled?: boolean;
   invalid?: boolean;
   describedBy?: string;
+  headerAction?: ReactNode;
 };
 
 export function TransactionCategoryPicker({
@@ -20,7 +23,8 @@ export function TransactionCategoryPicker({
   legend = "Category",
   disabled = false,
   invalid = false,
-  describedBy
+  describedBy,
+  headerAction
 }: TransactionCategoryPickerProps) {
   const categories = transactionCategories.filter(
     (category) => category.type === type
@@ -33,7 +37,17 @@ export function TransactionCategoryPicker({
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
     >
-      <legend>{legend}</legend>
+      {headerAction ? (
+        <>
+          <legend className="sr-only">{legend}</legend>
+          <div className="transaction-category-picker__heading">
+            <span>{legend}</span>
+            {headerAction}
+          </div>
+        </>
+      ) : (
+        <legend>{legend}</legend>
+      )}
       <div className="transaction-category-grid">
         {categories.map((category) => {
           const Icon = category.icon;
