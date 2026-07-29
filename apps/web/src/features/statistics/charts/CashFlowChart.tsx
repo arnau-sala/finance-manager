@@ -37,6 +37,13 @@ type CashFlowMetricPhases = Record<
   CashFlowMetricPhase
 >;
 
+type CashFlowTooltipPositionCache = {
+  intervalIndex: number;
+  chartWidth: number;
+  chartHeight: number;
+  position: [number, number];
+};
+
 const METRIC_TRANSITION_DURATION_MS = 420;
 const METRIC_HIDE_DELAY_MS = METRIC_TRANSITION_DURATION_MS + 40;
 
@@ -81,7 +88,11 @@ function getYearBarWidth(intervalCount: number) {
 
 function createCashFlowTooltipPosition(
   intervalCount: number,
-  barWidth: number
+  barWidth: number,
+  selectedIntervalIndex: number | null,
+  positionCache: {
+    current: CashFlowTooltipPositionCache | null;
+  }
 ) {
   return (
     point: number[],
@@ -107,6 +118,17 @@ function createCashFlowTooltipPosition(
       "dataIndex" in firstParam
         ? Number(firstParam.dataIndex)
         : -1;
+    const cachedPosition = positionCache.current;
+
+    if (
+      selectedIntervalIndex === dataIndex &&
+      cachedPosition?.intervalIndex === dataIndex &&
+      cachedPosition.chartWidth === chartWidth &&
+      cachedPosition.chartHeight === chartHeight
+    ) {
+      return cachedPosition.position;
+    }
+
     const plotRight = Math.max(
       estimatedPlotLeft,
       chartWidth - chartEdgeGap
@@ -149,7 +171,21 @@ function createCashFlowTooltipPosition(
       Math.max(minimumTop, (point[1] ?? 0) - tooltipHeight / 2)
     );
 
-    return [Math.max(chartEdgeGap, left), top];
+    const position: [number, number] = [
+      Math.max(chartEdgeGap, left),
+      top
+    ];
+
+    if (dataIndex >= 0) {
+      positionCache.current = {
+        intervalIndex: dataIndex,
+        chartWidth,
+        chartHeight,
+        position
+      };
+    }
+
+    return position;
   };
 }
 
@@ -158,7 +194,10 @@ function createChartOption(
   intervals: readonly FinancialInterval[],
   selectedIntervalIndex: number | null,
   metricPhases: CashFlowMetricPhases,
-  theme: StatisticsChartTheme
+  theme: StatisticsChartTheme,
+  tooltipPositionCache: {
+    current: CashFlowTooltipPositionCache | null;
+  }
 ): EChartsCoreOption {
   const barWidth =
     mode === "YEAR" ? getYearBarWidth(intervals.length) : 34;
@@ -195,7 +234,9 @@ function createChartOption(
       confine: true,
       position: createCashFlowTooltipPosition(
         intervals.length,
-        barWidth
+        barWidth,
+        selectedIntervalIndex,
+        tooltipPositionCache
       ),
       backgroundColor: theme.surface,
       borderColor: theme.border,
@@ -439,6 +480,8 @@ export default function CashFlowChart({
       balance: "visible"
     });
   const selectedIntervalIndexRef = useRef<number | null>(null);
+  const tooltipPositionCacheRef =
+    useRef<CashFlowTooltipPositionCache | null>(null);
   const metricExitTimersRef = useRef<
     Partial<Record<CashFlowMetric, number>>
   >({});
@@ -449,6 +492,7 @@ export default function CashFlowChart({
 
   useEffect(() => {
     selectedIntervalIndexRef.current = null;
+    tooltipPositionCacheRef.current = null;
     setSelectedIntervalIndex(null);
   }, [intervals, mode]);
 
@@ -473,6 +517,7 @@ export default function CashFlowChart({
       }
 
       selectedIntervalIndexRef.current = null;
+      tooltipPositionCacheRef.current = null;
       setSelectedIntervalIndex(null);
 
       const activeTimer = metricExitTimersRef.current[metric];
@@ -545,7 +590,8 @@ export default function CashFlowChart({
         intervals,
         selectedIntervalIndex,
         metricPhases,
-        getStatisticsChartTheme()
+        getStatisticsChartTheme(),
+        tooltipPositionCacheRef
       ),
     [mode, intervals, selectedIntervalIndex, metricPhases]
   );
