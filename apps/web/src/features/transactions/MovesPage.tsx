@@ -33,6 +33,7 @@ type MovesLoadingState = "loading" | "ready" | "error";
 type MovesPageProps = {
   userId: string;
   refreshKey: number;
+  initialFilters: MovesFilters;
   onNewTransaction: () => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
@@ -73,6 +74,7 @@ function getResultLabel(count: number, isSearching: boolean) {
 export function MovesPage({
   userId,
   refreshKey,
+  initialFilters,
   onNewTransaction,
   onTransactionSelect,
   onSessionExpired
@@ -82,9 +84,14 @@ export function MovesPage({
     useState<MovesLoadingState>("loading");
   const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
+    () => countActiveMovesFilters(initialFilters) > 0
+  );
   const [appliedFilters, setAppliedFilters] = useState<MovesFilters>(
-    createEmptyMovesFilters
+    () => ({
+      ...initialFilters,
+      selectedCategoryIds: [...initialFilters.selectedCategoryIds]
+    })
   );
   const scrollContainer = useRef<HTMLElement>(null);
   const loadMoreSentinel = useRef<HTMLDivElement>(null);

@@ -4,6 +4,10 @@ import type { SessionUser } from "../auth/auth-api";
 import { clearStatisticsCache } from "../statistics/statistics-api";
 import { StatsPage } from "../statistics/StatsPage";
 import { MovesPage } from "../transactions/MovesPage";
+import {
+  createEmptyMovesFilters,
+  type MovesFilters
+} from "../transactions/moves-filters";
 import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
@@ -31,9 +35,10 @@ type HomeSectionProps = {
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
   onNewTransaction: () => void;
-  onNavigateToMoves: () => void;
+  onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   financialRefreshKey: number;
+  movesInitialFilters: MovesFilters;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
@@ -51,7 +56,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       user={user}
       onSessionExpired={onSessionExpired}
       onNewTransaction={onNewTransaction}
-      onSeeAllMoves={onNavigateToMoves}
+      onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
       refreshKey={financialRefreshKey}
     />
@@ -61,11 +66,13 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onNewTransaction,
     onTransactionSelect,
-    financialRefreshKey
+    financialRefreshKey,
+    movesInitialFilters
   }) => (
     <MovesPage
       userId={user.id}
       refreshKey={financialRefreshKey}
+      initialFilters={movesInitialFilters}
       onNewTransaction={onNewTransaction}
       onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
@@ -128,6 +135,9 @@ export function HomePage({
   const [financialRefreshKey, setFinancialRefreshKey] = useState(0);
   const [transactionDetailRefreshKey, setTransactionDetailRefreshKey] =
     useState(0);
+  const [movesInitialFilters, setMovesInitialFilters] = useState<MovesFilters>(
+    createEmptyMovesFilters
+  );
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
     isTransactionComposerOpen || selectedTransaction !== null;
@@ -152,6 +162,23 @@ export function HomePage({
     onProfileUpdated(updatedUser);
   }
 
+  function navigateToMoves(filters = createEmptyMovesFilters()) {
+    setMovesInitialFilters(filters);
+    setActiveSection("moves");
+  }
+
+  function changeSection(section: HomeSectionId) {
+    if (section === activeSection) {
+      return;
+    }
+
+    if (section === "moves") {
+      setMovesInitialFilters(createEmptyMovesFilters());
+    }
+
+    setActiveSection(section);
+  }
+
   return (
     <main className="home-screen">
       <div
@@ -166,16 +193,17 @@ export function HomePage({
           onAccountDeleted,
           onSessionExpired,
           onNewTransaction: openNewTransaction,
-          onNavigateToMoves: () => setActiveSection("moves"),
+          onNavigateToMoves: navigateToMoves,
           onTransactionSelect: setSelectedTransaction,
           financialRefreshKey,
+          movesInitialFilters,
           googleAccountDeletionFeedback,
           onGoogleAccountDeletionFeedbackHandled
         })}
 
         <HomeFooterNav
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={changeSection}
         />
       </div>
 

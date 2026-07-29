@@ -6,6 +6,7 @@ import {
   Scale
 } from "lucide-react";
 
+import { getTodayDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import type { SessionUser } from "../auth/auth-api";
 import type { TransactionPreview } from "../transactions/transaction-api";
@@ -16,12 +17,17 @@ import {
   type HomeOverview
 } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
+import {
+  createEmptyMovesFilters,
+  type MovesFilters,
+  type MovesTypeFilter
+} from "../transactions/moves-filters";
 
 type HomeOverviewPageProps = {
   user: SessionUser;
   onSessionExpired: () => void;
   onNewTransaction: () => void;
-  onSeeAllMoves: () => void;
+  onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   refreshKey: number;
 };
@@ -52,11 +58,29 @@ function formatMoveCount(count: number) {
   return `${count} ${count === 1 ? "move" : "moves"}`;
 }
 
+function createCurrentMonthFilters(
+  month: number,
+  year: number,
+  type: MovesTypeFilter = "ALL",
+  categoryId?: string
+): MovesFilters {
+  const filters = createEmptyMovesFilters();
+  const paddedMonth = String(month).padStart(2, "0");
+
+  return {
+    ...filters,
+    type,
+    startDate: `${year}-${paddedMonth}-01`,
+    endDate: getTodayDateOnly(),
+    selectedCategoryIds: categoryId ? [categoryId] : []
+  };
+}
+
 export function HomeOverviewPage({
   user,
   onSessionExpired,
   onNewTransaction,
-  onSeeAllMoves,
+  onNavigateToMoves,
   onTransactionSelect,
   refreshKey
 }: HomeOverviewPageProps) {
@@ -148,7 +172,7 @@ export function HomeOverviewPage({
         >
           <div className="home-section-heading">
             <h2 id="home-recent-moves-title">Latest moves</h2>
-            <button type="button" onClick={onSeeAllMoves}>
+            <button type="button" onClick={() => onNavigateToMoves()}>
               See all
               <ChevronRight aria-hidden="true" />
             </button>
@@ -201,7 +225,23 @@ export function HomeOverviewPage({
             <span>This month</span>
           </div>
           <div className="home-activity__items">
-            <div className="home-activity__item">
+            <button
+              className="home-activity__item"
+              type="button"
+              disabled={!isReady}
+              onClick={() => {
+                if (!isReady) {
+                  return;
+                }
+
+                onNavigateToMoves(
+                  createCurrentMonthFilters(
+                    overview.activity.month,
+                    overview.activity.year
+                  )
+                );
+              }}
+            >
               <CalendarDays aria-hidden="true" />
               <span>
                 <small>Transactions</small>
@@ -211,8 +251,26 @@ export function HomeOverviewPage({
                     : "--"}
                 </strong>
               </span>
-            </div>
-            <div className="home-activity__item home-activity__item--expense">
+            </button>
+            <button
+              className="home-activity__item home-activity__item--expense"
+              type="button"
+              disabled={!isReady || !overview.activity.topExpenseCategory}
+              onClick={() => {
+                if (!isReady || !overview.activity.topExpenseCategory) {
+                  return;
+                }
+
+                onNavigateToMoves(
+                  createCurrentMonthFilters(
+                    overview.activity.month,
+                    overview.activity.year,
+                    "EXPENSE",
+                    overview.activity.topExpenseCategory.id
+                  )
+                );
+              }}
+            >
               <TopExpenseIcon aria-hidden="true" />
               <span>
                 <small>Top expense</small>
@@ -223,8 +281,26 @@ export function HomeOverviewPage({
                     : "--"}
                 </strong>
               </span>
-            </div>
-            <div className="home-activity__item home-activity__item--income">
+            </button>
+            <button
+              className="home-activity__item home-activity__item--income"
+              type="button"
+              disabled={!isReady || !overview.activity.topIncomeCategory}
+              onClick={() => {
+                if (!isReady || !overview.activity.topIncomeCategory) {
+                  return;
+                }
+
+                onNavigateToMoves(
+                  createCurrentMonthFilters(
+                    overview.activity.month,
+                    overview.activity.year,
+                    "INCOME",
+                    overview.activity.topIncomeCategory.id
+                  )
+                );
+              }}
+            >
               <TopIncomeIcon aria-hidden="true" />
               <span>
                 <small>Top income</small>
@@ -234,7 +310,7 @@ export function HomeOverviewPage({
                     : "--"}
                 </strong>
               </span>
-            </div>
+            </button>
           </div>
         </section>
       </div>

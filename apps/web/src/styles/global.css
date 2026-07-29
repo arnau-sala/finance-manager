@@ -3798,6 +3798,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .home-activity__item {
+  width: 100%;
   min-width: 0;
   min-height: 64px;
   display: grid;
@@ -3805,6 +3806,25 @@ button.transaction-row__content:focus-visible {
   align-items: center;
   gap: 5px;
   padding: 9px 7px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.home-activity__item:disabled {
+  cursor: default;
+}
+
+.home-activity__item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
 .home-activity__item + .home-activity__item {
