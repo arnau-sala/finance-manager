@@ -152,6 +152,19 @@ function formatMonthKey(month: string) {
   return `${monthName?.slice(0, 3) ?? month} ${year}`;
 }
 
+function formatOverviewPeriodLabel(
+  period: StatisticsOverview["period"]
+) {
+  if (period.mode === "MONTH") {
+    const [year, monthNumber] = period.key.split("-");
+    const monthName = monthNames[Number(monthNumber) - 1];
+
+    return `${monthName ?? period.key} ${year}`;
+  }
+
+  return period.mode === "YEAR" ? period.key : "All";
+}
+
 function getMonthParts(month: string) {
   const [year = "", monthNumber = "1"] = month.split("-");
   return {
@@ -467,12 +480,6 @@ function createExpenseItems(
 ): readonly ExpenseSectionItem[] {
   const { expenses, period } = overview;
   const unit = expenses.averagePeriodUnit.toLowerCase();
-  const averageLabel =
-    expenses.averagePeriodUnit === "DAY"
-      ? "Daily Avg. expense"
-      : expenses.averagePeriodUnit === "MONTH"
-        ? "Monthly Avg. expense"
-        : "Yearly Avg. expense";
   const averageIcon =
     expenses.averagePeriodUnit === "DAY"
       ? CalendarDays
@@ -496,7 +503,7 @@ function createExpenseItems(
     });
     items.push({
       id: "average-expense",
-      label: averageLabel,
+      label: "Average expense",
       detail: `${expenses.averagePeriodCount} ${unit}${
         expenses.averagePeriodCount === 1 ? "" : "s"
       }`,
@@ -851,7 +858,10 @@ function StatsOverviewContent({
         className="stats-expenses"
         aria-labelledby="stats-expenses-title"
       >
-        <h2 id="stats-expenses-title">Expenses</h2>
+        <header className="stats-expenses__header">
+          <h2 id="stats-expenses-title">Expenses</h2>
+          <span>{formatOverviewPeriodLabel(overview.period)}</span>
+        </header>
 
         <ul className="stats-expenses__list">
           {expenseItems.map((item) => (
