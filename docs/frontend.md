@@ -555,8 +555,10 @@ MVP content:
 The numeric view consumes the authenticated `GET /statistics/overview`
 endpoint. One response provides the money summary, category totals, insights,
 and expense behavior required by the complete view. Month, Year, and All use
-the same response contract, and no raw transactions or `userId` values reach
-the browser. Money is kept in one group containing net balance, income,
+the same response contract. Only the compact previews for the largest income
+and expense reach the view so those two insights can open the shared
+transaction-detail sheet; no transaction history or `userId` values are
+included. Money is kept in one group containing net balance, income,
 expenses, and the percentage of income saved. Category values show amounts by
 default. Selecting any value switches the visible list to percentages;
 selecting one again restores the amount view. Summary amounts are displayed as

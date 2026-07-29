@@ -37,6 +37,7 @@ import {
   type TransactionType
 } from "../transactions/category-catalog";
 import { FirstTransactionEmptyState } from "../transactions/FirstTransactionEmptyState";
+import type { TransactionPreview } from "../transactions/transaction-api";
 import {
   getStatisticsAvailability,
   getStatisticsCharts,
@@ -56,6 +57,7 @@ type StatsPageProps = {
   userId: string;
   refreshKey: number;
   onNewTransaction: () => void;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
 
@@ -81,6 +83,7 @@ type StatsInsight = {
   icon: LucideIcon;
   tone?: InsightTone;
   sideValue?: string;
+  transaction?: TransactionPreview;
 };
 
 const monthNames = [
@@ -341,7 +344,13 @@ function createInsightRows(overview: StatisticsOverview) {
           ? formatInsightAmount(insights.largestIncome.amount)
           : formatInsightAmount(0),
         icon: ArrowUpRight,
-        tone: "positive"
+        tone: "positive",
+        transaction: insights.largestIncome
+          ? {
+              ...insights.largestIncome,
+              amount: insights.largestIncome.amount.toFixed(2)
+            }
+          : undefined
       },
       {
         id: "top-expense",
@@ -353,7 +362,13 @@ function createInsightRows(overview: StatisticsOverview) {
           ? formatInsightAmount(insights.largestExpense.amount)
           : formatInsightAmount(0),
         icon: ArrowDownRight,
-        tone: "negative"
+        tone: "negative",
+        transaction: insights.largestExpense
+          ? {
+              ...insights.largestExpense,
+              amount: insights.largestExpense.amount.toFixed(2)
+            }
+          : undefined
       }
     ]
   ];
@@ -588,17 +603,34 @@ function StatsCategoryList({
   );
 }
 
-function StatsInsightItem({ insight }: { insight: StatsInsight }) {
+function StatsInsightItem({
+  insight,
+  onTransactionSelect
+}: {
+  insight: StatsInsight;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
+}) {
   const Icon = insight.icon;
   const value = insight.sideValue ?? insight.value;
   const detail = insight.sideValue ? insight.value : (insight.detail ?? "");
+  const transaction = insight.transaction;
 
   return (
     <li
       className={`stats-insight-row stats-insight-row--${
         insight.tone ?? "neutral"
+      }${
+        transaction ? " stats-insight-row--interactive" : ""
       }`}
     >
+      {transaction ? (
+        <button
+          type="button"
+          className="stats-insight-row__action"
+          aria-label={`Open ${insight.label.toLowerCase()} transaction`}
+          onClick={() => onTransactionSelect(transaction)}
+        />
+      ) : null}
       <span className="stats-insight-row__icon" aria-hidden="true">
         <Icon />
       </span>
@@ -661,13 +693,15 @@ function StatsOverviewContent({
   categoryType,
   onCategoryTypeChange,
   categoryValueMode,
-  onToggleCategoryValueMode
+  onToggleCategoryValueMode,
+  onTransactionSelect
 }: {
   overview: StatisticsOverview;
   categoryType: TransactionType;
   onCategoryTypeChange: (type: TransactionType) => void;
   categoryValueMode: CategoryValueMode;
   onToggleCategoryValueMode: () => void;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
 }) {
   const { money } = overview;
   const categories = overview.categories.filter(
@@ -767,7 +801,11 @@ function StatsOverviewContent({
 
         <ul className="stats-insights__list">
           {insightRows.flat().map((insight) => (
-            <StatsInsightItem insight={insight} key={insight.id} />
+            <StatsInsightItem
+              insight={insight}
+              key={insight.id}
+              onTransactionSelect={onTransactionSelect}
+            />
           ))}
         </ul>
       </section>
@@ -792,6 +830,7 @@ export function StatsPage({
   userId,
   refreshKey,
   onNewTransaction,
+  onTransactionSelect,
   onSessionExpired
 }: StatsPageProps) {
   const currentMonthKey = getLocalDateKey().slice(0, 7);
@@ -1177,6 +1216,7 @@ export function StatsPage({
                 onCategoryTypeChange={setCategoryType}
                 categoryValueMode={categoryValueMode}
                 onToggleCategoryValueMode={toggleCategoryValueMode}
+                onTransactionSelect={onTransactionSelect}
               />
             ) : overviewState === "error" ? (
               <StatisticsLoadState

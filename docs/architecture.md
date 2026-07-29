@@ -152,6 +152,11 @@ summaries, averages, and no-spend streaks in integer cents. Empty calendar
 intervals are filled with zero values so chart continuity and positive-period
 denominators remain deterministic.
 
+The largest income and expense records retain their transaction IDs and compact
+previews in the Overview response. Selecting either insight opens the shared
+transaction sheet, which then uses the owner-scoped transaction detail endpoint
+for balances, rankings, and period impact without downloading the full history.
+
 The current no-spend streak is calculated only when the requested period ends
 today: the current month, current year, or All. Historical month/year responses
 set `currentStreak` to `null`; their longest streak remains available because it

@@ -190,7 +190,7 @@ Transaction security decisions:
 - `GET /statistics/categories` and `GET /statistics/categories/type/:type` aggregate only the caller's own transactions.
 - Period-filtered category statistics apply the same owner-only rule and never accept `userId` from the request.
 - Typed period category statistics only accept `income` or `expense` as the type segment.
-- `GET /statistics/overview` and `GET /statistics/charts` derive their owner only from the encrypted session, reject future periods, and never return `userId` or raw transaction rows.
+- `GET /statistics/overview` and `GET /statistics/charts` derive their owner only from the encrypted session, reject future periods, and never return `userId`. Overview returns compact previews only for the caller's largest income and expense so the authenticated detail flow can open those transactions; it does not expose transaction history.
 - Aggregate financial responses disable shared/browser HTTP storage with `Cache-Control: private, no-store`; the frontend keeps only short-lived owner-keyed in-memory entries and clears them when the session ends.
 - `GET /home` derives ownership from the authenticated session and returns only that user's cash-flow balance, current net worth, latest transactions, and current-month activity; it does not accept or expose `userId`.
 - Future reads and mutations must always filter transactions by the authenticated `userId`.

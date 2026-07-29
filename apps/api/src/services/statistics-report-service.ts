@@ -31,8 +31,13 @@ type CategoryTotalRow = {
 };
 
 type TopMovementRow = {
+  id: string;
   type: TransactionType;
+  categoryId: string;
+  categoryName: string;
+  categoryType: TransactionType;
   amountCents: number;
+  description: string;
   date: string;
 };
 
@@ -299,13 +304,23 @@ async function getTopMovements(
   return db.$queryRaw<TopMovementRow[]>(
     Prisma.sql`
       SELECT
+        ranked."id",
         ranked."type",
+        ranked."categoryId",
+        ranked."categoryName",
+        ranked."categoryType",
         ranked."amountCents",
+        ranked."description",
         ranked."date"
       FROM (
         SELECT
+          t."id",
           t."type",
+          t."categoryId",
+          c."name" AS "categoryName",
+          c."type" AS "categoryType",
           t."amountCents",
+          t."description",
           TO_CHAR(t."occurredOn", 'YYYY-MM-DD') AS "date",
           ROW_NUMBER() OVER (
             PARTITION BY t."type"
@@ -313,9 +328,10 @@ async function getTopMovements(
               t."amountCents" DESC,
               t."occurredOn" DESC,
               t."createdAt" DESC,
-              t."id" DESC
+            t."id" DESC
           ) AS "position"
         FROM "Transaction" t
+        INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
           ${getPeriodFilter(period)}
       ) ranked
@@ -605,7 +621,16 @@ export async function getStatisticsOverview(
 
     return movement
       ? {
+          id: movement.id,
+          type: movement.type,
+          categoryId: movement.categoryId,
+          category: {
+            id: movement.categoryId,
+            name: movement.categoryName,
+            type: movement.categoryType
+          },
           amount: centsToDecimal(movement.amountCents),
+          description: movement.description,
           date: movement.date
         }
       : null;

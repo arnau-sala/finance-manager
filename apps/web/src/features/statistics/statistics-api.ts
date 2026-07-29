@@ -29,7 +29,16 @@ const categorySchema = z.object({
 
 const movementSchema = z
   .object({
+    id: z.string(),
+    type: transactionTypeSchema,
+    categoryId: z.string(),
+    category: z.object({
+      id: z.string(),
+      name: z.string(),
+      type: transactionTypeSchema
+    }),
     amount: moneySchema,
+    description: z.string(),
     date: dateSchema
   })
   .nullable();

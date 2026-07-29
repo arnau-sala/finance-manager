@@ -75,12 +75,14 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onSessionExpired,
     onNewTransaction,
+    onTransactionSelect,
     financialRefreshKey
   }) => (
     <StatsPage
       userId={user.id}
       refreshKey={financialRefreshKey}
       onNewTransaction={onNewTransaction}
+      onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
     />
   ),
