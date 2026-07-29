@@ -480,6 +480,12 @@ function createExpenseItems(
 ): readonly ExpenseSectionItem[] {
   const { expenses, period } = overview;
   const unit = expenses.averagePeriodUnit.toLowerCase();
+  const averageLabel =
+    expenses.averagePeriodUnit === "DAY"
+      ? "Avg. day expense"
+      : expenses.averagePeriodUnit === "MONTH"
+        ? "Avg. month expense"
+        : "Avg. year expense";
   const averageIcon =
     expenses.averagePeriodUnit === "DAY"
       ? CalendarDays
@@ -503,7 +509,7 @@ function createExpenseItems(
     });
     items.push({
       id: "average-expense",
-      label: "Average expense",
+      label: averageLabel,
       detail: `${expenses.averagePeriodCount} ${unit}${
         expenses.averagePeriodCount === 1 ? "" : "s"
       }`,
