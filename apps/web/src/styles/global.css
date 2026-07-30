@@ -1104,12 +1104,50 @@ body.app-logout-transition .confirm-dialog-backdrop {
   }
 }
 
-.app-loading-screen,
+.app-splash,
 .home-screen {
   position: fixed;
   inset: 0;
   overflow: hidden;
   background: var(--color-surface);
+}
+
+.app-splash {
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(28px, calc(env(safe-area-inset-bottom) + 20px))
+    max(24px, env(safe-area-inset-left));
+  color: var(--color-text);
+}
+
+.app-splash__center {
+  display: grid;
+  justify-items: center;
+}
+
+.app-splash__logo {
+  display: block;
+  width: min(152px, 40vw);
+  height: auto;
+}
+
+.app-splash__brand {
+  position: absolute;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(28px, calc(env(safe-area-inset-bottom) + 20px));
+  left: max(24px, env(safe-area-inset-left));
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 400;
+  text-align: center;
+  letter-spacing: 0;
 }
 
 .home-main-layer {

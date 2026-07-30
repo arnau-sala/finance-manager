@@ -5,6 +5,7 @@ import { lockAppHorizontalNavigation } from "./app-navigation-guard";
 import { observeAppDataLifecycle } from "../cache/app-data-lifecycle";
 import { clearAuthenticatedData } from "../cache/financial-cache";
 import { prefetchScheduler } from "../cache/prefetch-scheduler";
+import { AppSplashScreen } from "../components/brand/AppSplashScreen";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
 import type { AccessRequestInput } from "../features/access-request/access-request-validation";
@@ -263,7 +264,7 @@ export function App() {
   }
 
   if (sessionStatus === "checking") {
-    return <div className="app-loading-screen" aria-label="Loading" />;
+    return <AppSplashScreen />;
   }
 
   if (

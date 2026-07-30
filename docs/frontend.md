@@ -98,6 +98,10 @@ App icon:
 Viewport and safe-area rules:
 
 - Use `viewport-fit=cover` so iOS home-screen mode exposes safe-area insets correctly.
+- The initial app shell renders a small inline splash before JavaScript starts,
+  then reuses the same visual component while the session is checked. It uses
+  the Retina-ready `512x512` app icon, respects safe areas and reduced-motion
+  preferences, and never delays the destination screen artificially.
 - The mobile app is portrait-first. The web manifest declares `orientation: portrait`, and touch devices in landscape show `Landscape mode coming soon`.
 - Static screens, such as login and register, should fill exactly one viewport and avoid accidental body scroll.
 - Screens with real lists or long forms can scroll, but the scroll should belong to the screen content intentionally.
