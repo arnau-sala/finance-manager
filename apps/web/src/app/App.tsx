@@ -56,6 +56,8 @@ export function App() {
   const [startupTransitionState, setStartupTransitionState] =
     useState<StartupTransitionState>("covered");
   const [isBrandIconReady, setIsBrandIconReady] = useState(false);
+  const [isLandingTypographyReady, setIsLandingTypographyReady] =
+    useState(false);
   const [isInitialHomeReady, setIsInitialHomeReady] = useState(false);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
@@ -180,6 +182,27 @@ export function App() {
 
   useEffect(() => lockAppHorizontalNavigation(), []);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    Promise.all([
+      document.fonts.load('300 30px "Inter"', "Money, made clear."),
+      document.fonts.load(
+        '300 15px "Inter"',
+        "A simpler way to track your finances"
+      ),
+      document.fonts.load('400 16px "Inter"', "Finance Manager")
+    ]).finally(() => {
+      if (isMounted) {
+        setIsLandingTypographyReady(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   useEffect(
     () =>
       observeAppDataLifecycle(() => {
@@ -200,7 +223,9 @@ export function App() {
   );
 
   const isStartupDestinationReady =
-    (sessionStatus === "anonymous" && isBrandIconReady) ||
+    (sessionStatus === "anonymous" &&
+      isBrandIconReady &&
+      isLandingTypographyReady) ||
     (sessionStatus === "authenticated" &&
       sessionUser !== null &&
       (sessionUser.startingNetWorth === null ||

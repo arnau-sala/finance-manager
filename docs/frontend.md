@@ -106,8 +106,9 @@ Viewport and safe-area rules:
   preferences, and never delays the destination screen artificially. For an
   authenticated launch, the static splash remains until the Home overview
   settles, then exits through a short blur crossfade over the rendered screen.
-  An anonymous launch waits for the preloaded brand icon to report ready before
-  revealing the landing screen, so its layout never appears before its logo.
+  An anonymous launch waits for both the preloaded brand icon and the Inter
+  weights used by the landing page before revealing it. This prevents missing
+  artwork and late font swaps from moving the static entry layout.
 - The mobile app is portrait-first. The web manifest declares `orientation: portrait`, and touch devices in landscape show `Landscape mode coming soon`.
 - Static screens, such as login and register, should fill exactly one viewport and avoid accidental body scroll.
 - Screens with real lists or long forms can scroll, but the scroll should belong to the screen content intentionally.
