@@ -50,6 +50,11 @@ import {
   type StatisticsPeriodRequest
 } from "./statistics-api";
 import type { CategoryBreakdownItem } from "./statistics-categories";
+import {
+  StatsChartsSkeleton,
+  StatsInitialSkeleton,
+  StatsOverviewSkeleton
+} from "./StatsSkeletons";
 
 const loadStatsChartsView = () => import("./charts/StatsChartsView");
 const StatsChartsView = lazy(loadStatsChartsView);
@@ -1024,24 +1029,31 @@ export function StatsPage({
     }
   }
 
-  if (availabilityState !== "ready" || !availability) {
+  if (availabilityState === "loading") {
+    return (
+      <section
+        className="home-content home-content--stats"
+        aria-labelledby="stats-page-title"
+      >
+        <StatsInitialSkeleton />
+      </section>
+    );
+  }
+
+  if (availabilityState === "error" || !availability) {
     return (
       <section
         className="home-content home-content--stats"
         aria-label="Statistics"
       >
         <div className="stats-account-empty">
-          {availabilityState === "error" ? (
-            <StatisticsLoadState
-              message="Your statistics could not be loaded."
-              retry={() => {
-                prefetchScheduler.prioritizeUserRequest();
-                void availabilityQuery.refetch();
-              }}
-            />
-          ) : (
-            <StatisticsLoadState message="Loading statistics..." />
-          )}
+          <StatisticsLoadState
+            message="Your statistics could not be loaded."
+            retry={() => {
+              prefetchScheduler.prioritizeUserRequest();
+              void availabilityQuery.refetch();
+            }}
+          />
         </div>
       </section>
     );
@@ -1213,7 +1225,7 @@ export function StatsPage({
                 }}
               />
             ) : (
-              <StatisticsLoadState message="Loading statistics..." />
+              <StatsOverviewSkeleton />
             )}
           </div>
 
@@ -1226,7 +1238,7 @@ export function StatsPage({
             {hasOpenedCharts ? (
               <Suspense
                 fallback={
-                  <StatisticsLoadState message="Loading charts..." />
+                  <StatsChartsSkeleton mode={mode} />
                 }
               >
                 {chartsState === "ready" && charts ? (
@@ -1240,7 +1252,7 @@ export function StatsPage({
                     }}
                   />
                 ) : (
-                  <StatisticsLoadState message="Loading charts..." />
+                  <StatsChartsSkeleton mode={mode} />
                 )}
               </Suspense>
             ) : null}

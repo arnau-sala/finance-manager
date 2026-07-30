@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { parseLocalDateOnly } from "../../dates/date-only";
@@ -226,6 +227,52 @@ function getContext(
   }
 
   return detail.contexts.all;
+}
+
+function TransactionContextSkeleton() {
+  return (
+    <dl
+      className="transaction-detail-context__rows transaction-detail-context__rows--skeleton"
+      aria-label="Loading transaction context"
+      aria-busy="true"
+    >
+      {Array.from({ length: 3 }, (_, index) => (
+        <div key={index}>
+          <dt>
+            <SkeletonBlock width={index === 2 ? 82 : 96} height={13} />
+            <SkeletonBlock width={index === 2 ? 150 : 186} height={11} />
+          </dt>
+          <dd>
+            <SkeletonBlock width={42} height={18} />
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function TransactionBalanceValue({
+  value,
+  unavailable
+}: {
+  value: number | string | undefined;
+  unavailable: boolean;
+}) {
+  if (value !== undefined) {
+    return formatEuroAmount(value);
+  }
+
+  if (unavailable) {
+    return "Unavailable";
+  }
+
+  return (
+    <SkeletonBlock
+      className="transaction-detail-skeleton__balance"
+      width={84}
+      height={18}
+    />
+  );
 }
 
 export function TransactionDetailSheet({
@@ -930,22 +977,20 @@ export function TransactionDetailSheet({
                     <span>
                       <small>Before</small>
                       <strong>
-                        {matchingDetail
-                          ? formatEuroAmount(
-                              matchingDetail.trackedBalance.before
-                            )
-                          : "--"}
+                        <TransactionBalanceValue
+                          value={matchingDetail?.trackedBalance.before}
+                          unavailable={Boolean(matchingError)}
+                        />
                       </strong>
                     </span>
                     <ArrowRight aria-hidden="true" />
                     <span>
                       <small>After</small>
                       <strong>
-                        {matchingDetail
-                          ? formatEuroAmount(
-                              matchingDetail.trackedBalance.after
-                            )
-                          : "--"}
+                        <TransactionBalanceValue
+                          value={matchingDetail?.trackedBalance.after}
+                          unavailable={Boolean(matchingError)}
+                        />
                       </strong>
                     </span>
                   </div>
@@ -978,33 +1023,29 @@ export function TransactionDetailSheet({
                     >
                       {matchingError}
                     </p>
+                  ) : !context ? (
+                    <TransactionContextSkeleton />
                   ) : (
                     <dl className="transaction-detail-context__rows">
                       <div>
                         <dt>
                           Category rank
                           <span>
-                            {context
-                              ? `Among ${context.categoryRank.total} ${displayedTransaction.category.name.toLowerCase()} transactions`
-                              : "Loading category position"}
+                            Among {context.categoryRank.total}{" "}
+                            {displayedTransaction.category.name.toLowerCase()}{" "}
+                            transactions
                           </span>
                         </dt>
-                        <dd>
-                          {context ? `#${context.categoryRank.position}` : "--"}
-                        </dd>
+                        <dd>#{context.categoryRank.position}</dd>
                       </div>
                       <div>
                         <dt>
                           {typeLabel} rank
                           <span>
-                            {context
-                              ? `Among ${context.typeRank.total} ${typeRankCollection}`
-                              : `Loading ${typeRankCollection} position`}
+                            Among {context.typeRank.total} {typeRankCollection}
                           </span>
                         </dt>
-                        <dd>
-                          {context ? `#${context.typeRank.position}` : "--"}
-                        </dd>
+                        <dd>#{context.typeRank.position}</dd>
                       </div>
                       <div>
                         <dt>
@@ -1015,11 +1056,9 @@ export function TransactionDetailSheet({
                           </span>
                         </dt>
                         <dd>
-                          {context
-                            ? formatPeriodImpact(
-                                context.periodImpactPercentage
-                              )
-                            : "--"}
+                          {formatPeriodImpact(
+                            context.periodImpactPercentage
+                          )}
                         </dd>
                       </div>
                     </dl>

@@ -7,6 +7,7 @@ import {
   Scale
 } from "lucide-react";
 
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import { scheduleHomePrefetches } from "../../cache/financial-prefetch";
@@ -75,6 +76,88 @@ function createCurrentMonthFilters(
   };
 }
 
+function HomeOverviewSkeleton() {
+  return (
+    <section
+      className="home-content home-content--overview"
+      aria-label="Home overview"
+    >
+      <div
+        className="home-overview home-overview--skeleton"
+        role="status"
+        aria-busy="true"
+      >
+        <span className="sr-only">Loading your financial overview</span>
+
+        <header className="home-overview__header">
+          <SkeletonBlock width={118} height={14} />
+          <SkeletonBlock width="68%" height={31} radius={6} />
+        </header>
+
+        <section className="home-balance" aria-hidden="true">
+          <div className="home-balance__label">
+            <SkeletonBlock width={17} height={17} radius="50%" />
+            <SkeletonBlock width={76} height={14} />
+          </div>
+          <SkeletonBlock
+            className="home-overview-skeleton__balance"
+            width={164}
+            height={39}
+            radius={6}
+          />
+        </section>
+
+        <SkeletonBlock
+          className="home-overview-skeleton__new-transaction"
+          width="100%"
+          height={52}
+          radius={8}
+        />
+
+        <section className="home-recent-moves" aria-hidden="true">
+          <div className="home-section-heading">
+            <SkeletonBlock width={102} height={18} />
+            <SkeletonBlock width={52} height={14} />
+          </div>
+
+          <ul className="home-move-list">
+            {Array.from({ length: 3 }, (_, index) => (
+              <li className="transaction-row" key={index}>
+                <div className="transaction-row__content">
+                  <SkeletonBlock width={36} height={36} radius="50%" />
+                  <span className="home-overview-skeleton__move-details">
+                    <SkeletonBlock width="72%" height={14} />
+                    <SkeletonBlock width="52%" height={11} />
+                  </span>
+                  <SkeletonBlock width={58} height={14} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="home-activity" aria-hidden="true">
+          <div className="home-activity__heading">
+            <SkeletonBlock width={64} height={18} />
+            <SkeletonBlock width={58} height={12} />
+          </div>
+          <div className="home-activity__items">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div className="home-overview-skeleton__activity-item" key={index}>
+                <SkeletonBlock width={20} height={20} radius={4} />
+                <span>
+                  <SkeletonBlock width="70%" height={9} />
+                  <SkeletonBlock width="84%" height={11} />
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 export function HomeOverviewPage({
   user,
   onSessionExpired,
@@ -124,6 +207,10 @@ export function HomeOverviewPage({
     isReady ? overview.activity.topIncomeCategory?.id : undefined,
     "INCOME"
   );
+
+  if (loadingState === "loading") {
+    return <HomeOverviewSkeleton />;
+  }
 
   return (
     <section
@@ -179,7 +266,7 @@ export function HomeOverviewPage({
             </button>
           </div>
 
-          <ul className="home-move-list" aria-busy={loadingState === "loading"}>
+          <ul className="home-move-list">
             {latestMoves.map((move) => {
               return (
                 <TransactionRow
@@ -204,11 +291,6 @@ export function HomeOverviewPage({
                 />
               );
             })}
-            {loadingState === "loading" ? (
-              <li className="home-move-list__status" role="status">
-                Loading movements...
-              </li>
-            ) : null}
             {loadingState === "error" ? (
               <li className="home-move-list__status" role="status">
                 Unable to load movements.

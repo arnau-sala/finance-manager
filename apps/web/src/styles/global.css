@@ -59,6 +59,30 @@ button {
   border: 0;
 }
 
+.skeleton-block {
+  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+  contain: paint;
+}
+
+.skeleton-block::after {
+  content: "";
+  position: absolute;
+  top: -25%;
+  bottom: -25%;
+  left: -46%;
+  width: 34%;
+  background: rgba(255, 255, 255, 0.72);
+  filter: blur(8px);
+  animation: skeleton-shimmer 1350ms ease-in-out infinite;
+  will-change: transform;
+}
+
 .session-flow,
 .session-flow__destination,
 .session-flow__source {
@@ -1336,6 +1360,40 @@ body.anchored-picker-open .home-content--moves {
   letter-spacing: 0;
 }
 
+.home-overview-skeleton__balance {
+  margin-top: 8px;
+}
+
+.home-overview-skeleton__new-transaction {
+  align-self: center;
+}
+
+.home-overview-skeleton__move-details {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.home-overview-skeleton__activity-item {
+  min-width: 0;
+  min-height: 64px;
+  display: grid;
+  grid-template-columns: 21px minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+  padding: 9px 7px;
+}
+
+.home-overview-skeleton__activity-item + .home-overview-skeleton__activity-item {
+  border-left: 1px solid var(--color-border);
+}
+
+.home-overview-skeleton__activity-item > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
 .home-new-transaction {
   width: 100%;
   height: 52px;
@@ -2316,6 +2374,62 @@ button.transaction-row__content:focus-visible {
   gap: var(--stats-section-gap);
 }
 
+.stats-sections--skeleton > section > .skeleton-block:first-child {
+  margin-bottom: 7px;
+}
+
+.stats-money__content--skeleton .stats-money__balance {
+  gap: 8px;
+}
+
+.stats-money__content--skeleton .stats-money__breakdown > div {
+  gap: 8px;
+}
+
+.stats-skeleton__segmented-control {
+  margin-bottom: 8px;
+}
+
+.stats-skeleton-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.stats-skeleton-rows > li {
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 48px 58px;
+  align-items: center;
+  column-gap: 13px;
+  padding: 7px 8px 7px 6px;
+}
+
+.stats-skeleton-rows--compact > li {
+  grid-template-columns: 20px minmax(0, 1fr) 58px;
+  column-gap: 9px;
+}
+
+.stats-skeleton-rows > li + li {
+  border-top: 1px solid var(--color-border);
+}
+
+.stats-initial-skeleton__period {
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  align-items: center;
+  justify-items: center;
+  gap: 8px;
+}
+
+.stats-initial-skeleton__content {
+  margin-top: calc(var(--stats-section-gap) - var(--stats-page-gap));
+}
+
 .stats-view-stage {
   position: relative;
   left: 50%;
@@ -2403,6 +2517,10 @@ button.transaction-row__content:focus-visible {
   display: grid;
   gap: var(--stats-section-gap);
   margin: 0 auto;
+}
+
+.stats-charts-page--skeleton .stats-chart-section {
+  min-width: 0;
 }
 
 .stats-chart-section {
@@ -3016,6 +3134,20 @@ button.transaction-row__content:focus-visible {
   place-items: center;
   color: var(--color-text-muted);
   font-size: 12px;
+}
+
+.moves-page--skeleton .moves-toolbar {
+  position: static;
+}
+
+.moves-results-skeleton__count {
+  margin-bottom: 4px;
+}
+
+.transaction-row-skeleton__details {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
 }
 
 .stats-money > h2,
@@ -4811,6 +4943,16 @@ button.transaction-row__content:focus-visible {
   white-space: nowrap;
 }
 
+.transaction-detail-skeleton__balance {
+  margin-left: auto;
+}
+
+.transaction-balance-flow > span:first-child
+  .transaction-detail-skeleton__balance {
+  margin-right: auto;
+  margin-left: 0;
+}
+
 .transaction-balance-flow > svg {
   width: 18px;
   height: 18px;
@@ -4901,6 +5043,15 @@ button.transaction-row__content:focus-visible {
   font-weight: 400;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.transaction-detail-context__rows--skeleton dt {
+  gap: 6px;
+}
+
+.transaction-detail-context__rows--skeleton dd {
+  display: grid;
+  justify-items: end;
 }
 
 .transaction-composer {
@@ -5978,6 +6129,16 @@ button.transaction-row__content:focus-visible {
   }
 }
 
+@keyframes skeleton-shimmer {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(430%);
+  }
+}
+
 .home-footer-nav {
   --footer-active-color: var(--color-primary);
   position: absolute;
@@ -6430,6 +6591,10 @@ button.transaction-row__content:focus-visible {
   .app-splash--exiting,
   .app-startup-content--revealing {
     animation-duration: 1ms;
+  }
+
+  .skeleton-block::after {
+    display: none;
   }
 
   .transaction-composer,

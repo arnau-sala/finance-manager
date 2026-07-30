@@ -234,10 +234,42 @@ Base components to create early:
 - `AmountText`
 - `EmptyState`
 - `ErrorMessage`
+- `SkeletonBlock`
 - `LoadingState`
 - `Sheet` or mobile modal
 
 Controls should use familiar icons where helpful. Use `lucide-react` when icons are introduced.
+
+## Loading Feedback
+
+Read-only server data uses a shared local `SkeletonBlock` component instead of
+loading text, blank values, or page-level spinners. Its neutral surface and
+left-to-right shimmer preserve the expected layout while React Query resolves
+the request; it does not start requests or add artificial delay.
+
+Current behavior:
+
+- Home replaces the complete overview with a matching skeleton until its first
+  response settles.
+- Transactions skeletonize the initial screen and each new search or filter
+  result, then append row skeletons while another infinite-scroll page is
+  fetched.
+- Statistics skeletonize availability, the complete overview, and the chart
+  collection as coherent groups.
+- Transaction details render the preview data immediately and skeletonize only
+  the balance and contextual ranking that require the detail request.
+- Mutation controls keep explicit progress labels such as `Saving...` because
+  they communicate an action already requested by the user, not incoming page
+  content.
+- Errors and empty states remain explicit and are never represented as loading.
+- Reduced-motion preferences disable the moving shimmer while preserving the
+  skeleton shapes.
+
+A build-time DOM snapshot library such as Boneyard was evaluated but is not used
+for the MVP. Protected, stateful screens would require browser fixtures and
+regeneration after each layout change. The local primitive has no runtime
+dependency, works with the existing design tokens, and lets each feature define
+only the geometry it actually owns.
 
 ## Navigation
 

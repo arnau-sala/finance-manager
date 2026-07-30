@@ -1,5 +1,6 @@
 import {
   Fragment,
+  type RefObject,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -12,6 +13,7 @@ import {
 } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import {
   cancelTransactionDetailPrefetches,
   scheduleTransactionDetailPrefetches
@@ -99,6 +101,78 @@ function getResultLabel(count: number, isSearching: boolean) {
   return `${count} ${count === 1 ? "transaction" : "transactions"}`;
 }
 
+function TransactionRowSkeleton() {
+  return (
+    <li className="transaction-row transaction-row--skeleton" aria-hidden="true">
+      <div className="transaction-row__content">
+        <SkeletonBlock width={36} height={36} radius="50%" />
+        <span className="transaction-row-skeleton__details">
+          <SkeletonBlock width="72%" height={14} />
+          <SkeletonBlock width="54%" height={11} />
+        </span>
+        <SkeletonBlock width={62} height={14} />
+      </div>
+    </li>
+  );
+}
+
+function MovesPageSkeleton({
+  scrollContainer
+}: {
+  scrollContainer: RefObject<HTMLElement | null>;
+}) {
+  return (
+    <section
+      ref={scrollContainer}
+      className="home-content home-content--moves"
+      aria-labelledby="moves-page-title"
+    >
+      <div className="moves-page moves-page--skeleton" role="status" aria-busy="true">
+        <span className="sr-only">Loading transactions</span>
+
+        <header className="moves-page__header">
+          <h1 id="moves-page-title">Transactions</h1>
+          <SkeletonBlock width={82} height={12} />
+        </header>
+
+        <div className="moves-toolbar" aria-hidden="true">
+          <SkeletonBlock width="100%" height={42} radius={14} />
+          <SkeletonBlock width={42} height={42} radius={14} />
+        </div>
+
+        <ul className="moves-transaction-list" aria-hidden="true">
+          <li className="moves-month-divider">
+            <SkeletonBlock width={78} height={14} />
+          </li>
+          {Array.from({ length: 6 }, (_, index) => (
+            <TransactionRowSkeleton key={index} />
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function TransactionResultsSkeleton() {
+  return (
+    <div
+      className="moves-results-skeleton"
+      role="status"
+      aria-busy="true"
+    >
+      <span className="sr-only">Loading transaction results</span>
+      <ul className="moves-transaction-list" aria-hidden="true">
+        <li className="moves-month-divider">
+          <SkeletonBlock width={78} height={14} />
+        </li>
+        {Array.from({ length: 6 }, (_, index) => (
+          <TransactionRowSkeleton key={index} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function MovesPage({
   userId,
   initialState,
@@ -165,6 +239,13 @@ export function MovesPage({
   const normalizedQuery = debouncedSearchQuery
     .trim()
     .toLocaleLowerCase();
+  const normalizedSearchInput = searchQuery
+    .trim()
+    .toLocaleLowerCase();
+  const isSearchDebouncing = normalizedSearchInput !== normalizedQuery;
+  const isLoadingFilteredResults =
+    isSearchDebouncing ||
+    (transactionsQuery.isPlaceholderData && transactionsQuery.isFetching);
   const hasMore = transactionsQuery.hasNextPage;
 
   persistedState.current = {
@@ -305,19 +386,7 @@ export function MovesPage({
   ]);
 
   if (loadingState === "loading") {
-    return (
-      <section
-        ref={scrollContainer}
-        className="home-content home-content--moves"
-        aria-labelledby="moves-page-title"
-      >
-        <div className="moves-page">
-          <header className="moves-page__header">
-            <h1 id="moves-page-title">Transactions</h1>
-          </header>
-        </div>
-      </section>
-    );
+    return <MovesPageSkeleton scrollContainer={scrollContainer} />;
   }
 
   if (loadingState === "ready" && accountTransactionCount === 0) {
@@ -350,12 +419,20 @@ export function MovesPage({
       <div className="moves-page">
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
-          <p aria-live="polite">
-            {getResultLabel(
-              totalResults,
-              normalizedQuery.length > 0 || activeFilterCount > 0
-            )}
-          </p>
+          {isLoadingFilteredResults ? (
+            <SkeletonBlock
+              className="moves-results-skeleton__count"
+              width={82}
+              height={12}
+            />
+          ) : (
+            <p aria-live="polite">
+              {getResultLabel(
+                totalResults,
+                normalizedQuery.length > 0 || activeFilterCount > 0
+              )}
+            </p>
+          )}
         </header>
 
         <div className="moves-toolbar">
@@ -425,7 +502,9 @@ export function MovesPage({
           />
         ) : null}
 
-        {loadingState === "ready" && transactions.length > 0 ? (
+        {isLoadingFilteredResults ? (
+          <TransactionResultsSkeleton />
+        ) : loadingState === "ready" && transactions.length > 0 ? (
           <ul className="moves-transaction-list" aria-label="Transaction history">
             {transactions.map((transaction, index) => {
               const previousTransaction = transactions[index - 1];
@@ -455,6 +534,11 @@ export function MovesPage({
                 </Fragment>
               );
             })}
+            {transactionsQuery.isFetchingNextPage
+              ? Array.from({ length: 3 }, (_, index) => (
+                  <TransactionRowSkeleton key={`loading-${index}`} />
+                ))
+              : null}
           </ul>
         ) : loadingState === "error" ? (
           <div className="moves-empty-state" role="alert">
