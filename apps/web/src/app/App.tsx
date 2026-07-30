@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import { TimerOff } from "lucide-react";
 
 import { lockAppHorizontalNavigation } from "./app-navigation-guard";
@@ -26,6 +32,7 @@ import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPag
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
 type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
+type StartupTransitionState = "covered" | "exiting" | "complete";
 
 export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
@@ -46,6 +53,9 @@ export function App() {
     useState(false);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const [dataSessionVersion, setDataSessionVersion] = useState(0);
+  const [startupTransitionState, setStartupTransitionState] =
+    useState<StartupTransitionState>("covered");
+  const [isInitialHomeReady, setIsInitialHomeReady] = useState(false);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
   const logoutTransitionActiveRef = useRef(false);
@@ -53,6 +63,9 @@ export function App() {
   const openSessionExpiredDialog = useCallback(() => {
     prefetchScheduler.clear();
     setIsSessionExpired(true);
+  }, []);
+  const markInitialHomeReady = useCallback(() => {
+    setIsInitialHomeReady(true);
   }, []);
 
   if (initialGoogleAuthRef.current === undefined) {
@@ -182,6 +195,45 @@ export function App() {
     []
   );
 
+  const isStartupDestinationReady =
+    sessionStatus === "anonymous" ||
+    (sessionStatus === "authenticated" &&
+      sessionUser !== null &&
+      (sessionUser.startingNetWorth === null ||
+        googleAccountDeletionFeedback !== null ||
+        isInitialHomeReady));
+
+  useEffect(() => {
+    if (
+      startupTransitionState !== "covered" ||
+      !isStartupDestinationReady
+    ) {
+      return;
+    }
+
+    const animationFrame = window.requestAnimationFrame(() => {
+      setStartupTransitionState("exiting");
+    });
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [isStartupDestinationReady, startupTransitionState]);
+
+  useEffect(() => {
+    if (startupTransitionState !== "exiting") {
+      return;
+    }
+
+    const fallbackTimer = window.setTimeout(() => {
+      setStartupTransitionState("complete");
+    }, 500);
+
+    return () => {
+      window.clearTimeout(fallbackTimer);
+    };
+  }, [startupTransitionState]);
+
   function openLogin(email: string) {
     setLandingError(null);
     setLoginEmail(email);
@@ -263,6 +315,33 @@ export function App() {
     setSessionStatus("anonymous");
   }
 
+  function renderWithStartupTransition(content: ReactNode) {
+    const isTransitionActive = startupTransitionState !== "complete";
+
+    return (
+      <>
+        <div
+          className={`app-startup-content${
+            startupTransitionState === "exiting"
+              ? " app-startup-content--revealing"
+              : ""
+          }`}
+          aria-hidden={isTransitionActive}
+          inert={isTransitionActive}
+        >
+          {content}
+        </div>
+
+        {isTransitionActive ? (
+          <AppSplashScreen
+            exiting={startupTransitionState === "exiting"}
+            onExitComplete={() => setStartupTransitionState("complete")}
+          />
+        ) : null}
+      </>
+    );
+  }
+
   if (sessionStatus === "checking") {
     return <AppSplashScreen />;
   }
@@ -272,7 +351,7 @@ export function App() {
     sessionUser &&
     sessionUser.startingNetWorth === null
   ) {
-    return (
+    return renderWithStartupTransition(
       <div className="session-flow">
         <StartingNetWorthPage
           onComplete={setSessionUser}
@@ -296,7 +375,7 @@ export function App() {
   }
 
   if (sessionStatus === "authenticated" && sessionUser) {
-    return (
+    return renderWithStartupTransition(
       <div
         className={`session-flow${
           isLogoutTransitionActive ? " session-flow--logging-out" : ""
@@ -334,6 +413,7 @@ export function App() {
             onLogout={handleLogout}
             onAccountDeleted={returnToAnonymousLanding}
             onSessionExpired={openSessionExpiredDialog}
+            onInitialContentReady={markInitialHomeReady}
             googleAccountDeletionFeedback={googleAccountDeletionFeedback}
             onGoogleAccountDeletionFeedbackHandled={() =>
               setGoogleAccountDeletionFeedback(null)
@@ -357,7 +437,7 @@ export function App() {
     );
   }
 
-  return (
+  return renderWithStartupTransition(
     <div className={`auth-flow auth-flow--${activeScreen}`}>
       <div
         className="auth-flow-page auth-flow-page--landing"

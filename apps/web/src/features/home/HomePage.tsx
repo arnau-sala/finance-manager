@@ -1,4 +1,4 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import {
   invalidateAfterStartingNetWorthWrite,
@@ -32,6 +32,7 @@ type HomePageProps = {
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
+  onInitialContentReady: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
@@ -42,6 +43,7 @@ type HomeSectionProps = {
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
+  onInitialContentReady: () => void;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
@@ -55,6 +57,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   home: ({
     user,
     onSessionExpired,
+    onInitialContentReady,
     onNewTransaction,
     onNavigateToMoves,
     onTransactionSelect
@@ -62,6 +65,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     <HomeOverviewPage
       user={user}
       onSessionExpired={onSessionExpired}
+      onInitialContentReady={onInitialContentReady}
       onNewTransaction={onNewTransaction}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
@@ -124,6 +128,7 @@ export function HomePage({
   onLogout,
   onAccountDeleted,
   onSessionExpired,
+  onInitialContentReady,
   googleAccountDeletionFeedback,
   onGoogleAccountDeletionFeedbackHandled
 }: HomePageProps) {
@@ -142,6 +147,12 @@ export function HomePage({
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
     isTransactionComposerOpen || selectedTransaction !== null;
+
+  useEffect(() => {
+    if (activeSection !== "home") {
+      onInitialContentReady();
+    }
+  }, [activeSection, onInitialContentReady]);
 
   function openNewTransaction() {
     prefetchScheduler.prioritizeUserRequest();
@@ -195,6 +206,7 @@ export function HomePage({
           onLogout,
           onAccountDeleted,
           onSessionExpired,
+          onInitialContentReady,
           onNewTransaction: openNewTransaction,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,

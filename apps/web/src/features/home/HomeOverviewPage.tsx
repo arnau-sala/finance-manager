@@ -27,6 +27,7 @@ import {
 type HomeOverviewPageProps = {
   user: SessionUser;
   onSessionExpired: () => void;
+  onInitialContentReady: () => void;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
@@ -77,6 +78,7 @@ function createCurrentMonthFilters(
 export function HomeOverviewPage({
   user,
   onSessionExpired,
+  onInitialContentReady,
   onNewTransaction,
   onNavigateToMoves,
   onTransactionSelect
@@ -92,6 +94,12 @@ export function HomeOverviewPage({
       onSessionExpired();
     }
   }, [onSessionExpired, overviewQuery.error]);
+
+  useEffect(() => {
+    if (!overviewQuery.isPending) {
+      onInitialContentReady();
+    }
+  }, [onInitialContentReady, overviewQuery.isPending]);
 
   useEffect(() => {
     if (overview) {
