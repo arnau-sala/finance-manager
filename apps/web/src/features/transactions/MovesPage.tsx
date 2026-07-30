@@ -72,7 +72,7 @@ export function createInitialMovesPageState(
       selectedCategoryIds: [...filters.selectedCategoryIds]
     },
     scrollTop: 0,
-    isFilterPanelOpen: countActiveMovesFilters(filters) > 0
+    isFilterPanelOpen: false
   };
 }
 
