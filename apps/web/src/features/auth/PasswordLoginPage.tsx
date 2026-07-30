@@ -105,8 +105,11 @@ export function PasswordLoginPage({
         <header className="auth-header auth-login-header">
           <div className="auth-logo auth-logo--login" aria-hidden="true">
             <img
-              src="/icons/app-icon.png"
+              src="/icons/app-icon-512.png"
+              width={512}
+              height={512}
               alt=""
+              decoding="sync"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
               }}

@@ -67,8 +67,12 @@ export function AuthLandingPage({
           <div className="auth-identity">
             <div className="auth-logo" aria-hidden="true">
               <img
-                src="/icons/app-icon.png"
+                src="/icons/app-icon-512.png"
+                width={512}
+                height={512}
                 alt=""
+                decoding="sync"
+                fetchPriority="high"
                 onError={(event) => {
                   event.currentTarget.style.display = "none";
                 }}

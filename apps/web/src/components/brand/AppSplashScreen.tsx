@@ -1,11 +1,13 @@
 type AppSplashScreenProps = {
   exiting?: boolean;
   onExitComplete?: () => void;
+  onLogoReady?: () => void;
 };
 
 export function AppSplashScreen({
   exiting = false,
-  onExitComplete
+  onExitComplete,
+  onLogoReady
 }: AppSplashScreenProps) {
   return (
     <main
@@ -25,8 +27,13 @@ export function AppSplashScreen({
         <img
           className="app-splash__logo"
           src="/icons/app-icon-512.png"
+          width={512}
+          height={512}
           alt=""
+          decoding="sync"
           fetchPriority="high"
+          onLoad={onLogoReady}
+          onError={onLogoReady}
         />
       </div>
 

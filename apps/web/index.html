@@ -18,12 +18,18 @@
       href="/apple-touch-icon.png?v=20260711"
     />
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png" />
-    <link rel="icon" type="image/png" href="/icons/app-icon.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="512x512"
+      href="/icons/app-icon-512.png"
+    />
     <link
       rel="preload"
       href="/icons/app-icon-512.png"
       as="image"
       type="image/png"
+      fetchpriority="high"
     />
     <title>Finance Manager</title>
     <style>
@@ -109,7 +115,10 @@
           <img
             class="app-splash__logo"
             src="/icons/app-icon-512.png"
+            width="512"
+            height="512"
             alt=""
+            decoding="sync"
             fetchpriority="high"
           />
         </div>

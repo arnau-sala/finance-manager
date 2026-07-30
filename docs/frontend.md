@@ -86,7 +86,9 @@ App icon:
 - Use a square PNG, ideally `1024x1024px` or larger.
 - Avoid transparency if possible because mobile platforms can render transparent app icons inconsistently.
 - Keep the symbol centered with enough internal padding so it works when masked by Android or rounded by iOS.
-- The source file is used directly in the login screen.
+- Runtime brand screens use the optimized `512x512px` variant, which is
+  preloaded in `index.html`; the larger source remains available only for
+  generating future icon variants.
 - iOS home-screen installs use `apps/web/public/apple-touch-icon.png`, a `180x180px` PNG without transparency, served from `/apple-touch-icon.png`.
 - PWA manifest icons use generated `192x192px` and `512x512px` PNG files without transparency.
 - Browser tabs use a generated `32x32px` favicon PNG.
@@ -104,6 +106,8 @@ Viewport and safe-area rules:
   preferences, and never delays the destination screen artificially. For an
   authenticated launch, the static splash remains until the Home overview
   settles, then exits through a short blur crossfade over the rendered screen.
+  An anonymous launch waits for the preloaded brand icon to report ready before
+  revealing the landing screen, so its layout never appears before its logo.
 - The mobile app is portrait-first. The web manifest declares `orientation: portrait`, and touch devices in landscape show `Landscape mode coming soon`.
 - Static screens, such as login and register, should fill exactly one viewport and avoid accidental body scroll.
 - Screens with real lists or long forms can scroll, but the scroll should belong to the screen content intentionally.

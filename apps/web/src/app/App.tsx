@@ -55,6 +55,7 @@ export function App() {
   const [dataSessionVersion, setDataSessionVersion] = useState(0);
   const [startupTransitionState, setStartupTransitionState] =
     useState<StartupTransitionState>("covered");
+  const [isBrandIconReady, setIsBrandIconReady] = useState(false);
   const [isInitialHomeReady, setIsInitialHomeReady] = useState(false);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
@@ -66,6 +67,9 @@ export function App() {
   }, []);
   const markInitialHomeReady = useCallback(() => {
     setIsInitialHomeReady(true);
+  }, []);
+  const markBrandIconReady = useCallback(() => {
+    setIsBrandIconReady(true);
   }, []);
 
   if (initialGoogleAuthRef.current === undefined) {
@@ -196,7 +200,7 @@ export function App() {
   );
 
   const isStartupDestinationReady =
-    sessionStatus === "anonymous" ||
+    (sessionStatus === "anonymous" && isBrandIconReady) ||
     (sessionStatus === "authenticated" &&
       sessionUser !== null &&
       (sessionUser.startingNetWorth === null ||
@@ -336,6 +340,7 @@ export function App() {
           <AppSplashScreen
             exiting={startupTransitionState === "exiting"}
             onExitComplete={() => setStartupTransitionState("complete")}
+            onLogoReady={markBrandIconReady}
           />
         ) : null}
       </>
@@ -343,7 +348,7 @@ export function App() {
   }
 
   if (sessionStatus === "checking") {
-    return <AppSplashScreen />;
+    return <AppSplashScreen onLogoReady={markBrandIconReady} />;
   }
 
   if (

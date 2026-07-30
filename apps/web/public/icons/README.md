@@ -18,12 +18,11 @@ Generated icon assets:
 
 - `../apple-touch-icon.png`: `180x180px`, no transparency, used by iOS home-screen installs.
 - `app-icon-192.png`: `192x192px`, no transparency, used by the PWA manifest.
-- `app-icon-512.png`: `512x512px`, no transparency, used by the PWA manifest.
+- `app-icon-512.png`: `512x512px`, no transparency, used by the PWA
+  manifest and runtime brand screens.
 - `favicon-32.png`: `32x32px`, used by browser tabs.
 
 The iOS icon intentionally lives one level up, directly inside `public/`, so it is served from `/apple-touch-icon.png`.
 
-The source file is used by:
-
-- The login entry screen logo
-- Future icon regeneration
+The larger source file is reserved for future icon regeneration. Runtime
+screens use the preloaded `app-icon-512.png` variant.
