@@ -115,16 +115,26 @@ fields as deterministic tie-breakers. Derived values are intentionally not
 stored because backdated edits and deletions would invalidate later balances
 and ranks.
 
-The Moves client stores a completed paginated history and transaction-detail
-responses in the shared expiring memory-cache utility for 30 seconds, keyed by
-authenticated `userId`. Empty histories are cached as valid results. Successful
-financial writes invalidate both transaction caches through their frontend
-integration. Creation, editing, and deletion also invalidate the Statistics caches and
-increment the shared financial refresh key so Home, Moves, and Stats request
-fresh derived data. Editing increments a detail refresh key after the successful
-`PATCH`, causing its owner-scoped balance and rankings to be recalculated before
-the editor reveals the underlying detail sheet. Session termination clears
-caches before another user can authenticate.
+The frontend uses one owner-keyed TanStack Query cache for Home, transaction
+pages, transaction details, Statistics Overview, Statistics Charts, and period
+availability. Successful data remains fresh for five minutes and is rendered
+immediately while stale entries revalidate in the background. Inactive
+financial queries can remain in memory for up to 30 minutes; detail entries use
+a shorter 10-minute retention window. No private response is persisted to
+browser storage.
+
+Moves requests filtered pages of 20 from PostgreSQL instead of downloading the
+complete history. Search, type, category, amount, and date filters are applied
+before pagination. The first page includes the matching total plus compact
+account metadata; later pages avoid repeating the metadata query. Financial
+writes retain at most the first cached list page before revalidation, preventing
+an infinite query with a long scroll history from refetching dozens of pages.
+
+A foreground-aware scheduler performs at most one speculative request at a
+time and starts it only during browser idle time. Navigation, filter changes,
+infinite scroll, ticket opening, and financial writes interrupt the active
+prefetch and pause the queue, so user-requested work receives network priority.
+Queued ticket prefetches are discarded when the Moves query changes.
 
 Transaction sharing is a frontend-only capability. The detail sheet formats
 the already loaded transaction and invokes Web Share synchronously from the
@@ -193,14 +203,19 @@ Frontend charts use Apache ECharts through the tree-shakeable `echarts/core`
 entry and a local React lifecycle adapter in `components/charts`. The SVG
 renderer and only the currently required chart modules are registered. The
 complete Charts view is a lazy-loaded frontend chunk, keeping the chart engine
-out of the initial authenticated application bundle. Overview data is requested
-only while Overview is active; chart data is requested only while Charts is
-active. Successful report responses use a 30-second in-memory cache by user and
-period, while period availability uses 60 seconds. Financial writes invalidate
-all three caches, and session termination clears them. Browser HTTP caching
-stays disabled for private financial responses. The former deterministic mock
-fixtures remain temporarily in the repository for comparison, but no active
-Statistics component imports or bundles them.
+out of the initial authenticated application bundle. Entering Stats schedules
+that chunk and selected-period chart data in the idle queue. Current-year,
+previous-month, and All reports are then prefetched in descending likelihood,
+with All Charts last because it is the heaviest speculative read. Navigating
+through arbitrary periods does not recursively prefetch their charts.
+
+Financial writes invalidate Home, transaction, detail, and Statistics query
+families by key. Logout, account deletion, and session expiration clear the
+complete authenticated cache. When the installed web app is hidden, new
+prefetches pause. Returning within three minutes resumes the existing cache;
+after three minutes the cache and queue are discarded and authenticated Home
+starts from a clean read. Browser HTTP caching remains disabled for private
+financial responses.
 
 Starting net worth is stored on `User` only as nullable signed integer cents. A
 null value means the initial setup is pending; saving or skipping replaces it

@@ -163,7 +163,8 @@ Transaction security decisions:
 - An active session and an existing `APPROVED` user are required.
 - `userId` is read from the encrypted session and is never accepted from the request body.
 - Transaction listing always filters by the session `userId`; the `ADMIN` role has no bypass.
-- Transaction lists are paginated with a default limit of 100 and maximum limit of 200.
+- Transaction lists are paginated. The main Moves feed defaults to 20 records,
+  category-only reads default to 100, and both enforce a maximum of 200.
 - Transaction detail retrieval filters by both ID and session `userId`.
 - Missing and foreign-owned transaction details return the same `404` response.
 - Balance and ranking aggregates in transaction detail are restricted to that
@@ -182,7 +183,8 @@ Transaction security decisions:
   ownership identifiers, tracked balances, ranks, or an authenticated URL.
 - Category-filtered transaction reads filter by category ID and authenticated `userId`.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
-- The Moves and transaction-detail in-memory caches are keyed by authenticated `userId`, expire after 30 seconds, and are cleared after transaction creation, editing, deletion, or session termination.
+- All financial query keys include the authenticated `userId`; no private cache is persisted outside memory. Transaction and starting-net-worth writes invalidate the relevant owner-scoped query families, while logout, account deletion, and session expiration clear the full authenticated cache.
+- New speculative reads pause while the installed web app is hidden. Returning after three minutes discards cached financial data and pending prefetches before Home is loaded again.
 - Statistics endpoints must filter transactions by the authenticated `userId`.
 - `GET /statistics/balance` returns only the caller's own totals, including for administrators.
 - `GET /statistics/balance/:month/:year` and `GET /statistics/balance/:month` apply the same owner-only rule to monthly totals.

@@ -51,3 +51,19 @@ export async function getHomeOverview(signal?: AbortSignal) {
 
   return (await response.json()) as HomeOverview;
 }
+
+export function homeOverviewQueryOptions(userId: string) {
+  return queryOptions({
+    queryKey: financialQueryKeys.home(userId),
+    queryFn: ({ signal }) => getHomeOverview(signal),
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
+}
+import { queryOptions } from "@tanstack/react-query";
+
+import { financialQueryKeys } from "../../cache/financial-query-keys";
+import {
+  FINANCIAL_DATA_GC_TIME_MS,
+  FINANCIAL_DATA_STALE_TIME_MS
+} from "../../cache/query-client";

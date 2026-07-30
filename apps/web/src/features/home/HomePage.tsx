@@ -1,9 +1,17 @@
 import { type ReactNode, useState } from "react";
 
+import {
+  invalidateAfterStartingNetWorthWrite,
+  invalidateAfterTransactionWrite
+} from "../../cache/financial-cache";
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import type { SessionUser } from "../auth/auth-api";
-import { clearStatisticsCache } from "../statistics/statistics-api";
 import { StatsPage } from "../statistics/StatsPage";
-import { MovesPage } from "../transactions/MovesPage";
+import {
+  createInitialMovesPageState,
+  MovesPage,
+  type MovesPageState
+} from "../transactions/MovesPage";
 import {
   createEmptyMovesFilters,
   type MovesFilters
@@ -37,8 +45,8 @@ type HomeSectionProps = {
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
-  financialRefreshKey: number;
-  movesInitialFilters: MovesFilters;
+  movesViewState: MovesPageState;
+  onMovesViewStateChange: (state: MovesPageState) => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
 };
@@ -49,8 +57,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onNewTransaction,
     onNavigateToMoves,
-    onTransactionSelect,
-    financialRefreshKey
+    onTransactionSelect
   }) => (
     <HomeOverviewPage
       user={user}
@@ -58,7 +65,6 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onNewTransaction={onNewTransaction}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
-      refreshKey={financialRefreshKey}
     />
   ),
   moves: ({
@@ -66,13 +72,13 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onNewTransaction,
     onTransactionSelect,
-    financialRefreshKey,
-    movesInitialFilters
+    movesViewState,
+    onMovesViewStateChange
   }) => (
     <MovesPage
       userId={user.id}
-      refreshKey={financialRefreshKey}
-      initialFilters={movesInitialFilters}
+      initialState={movesViewState}
+      onStateChange={onMovesViewStateChange}
       onNewTransaction={onNewTransaction}
       onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
@@ -82,12 +88,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onSessionExpired,
     onNewTransaction,
-    onTransactionSelect,
-    financialRefreshKey
+    onTransactionSelect
   }) => (
     <StatsPage
       userId={user.id}
-      refreshKey={financialRefreshKey}
       onNewTransaction={onNewTransaction}
       onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
@@ -132,38 +136,35 @@ export function HomePage({
     useState<TransactionPreview | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
     useState<TransactionPreview | null>(null);
-  const [financialRefreshKey, setFinancialRefreshKey] = useState(0);
-  const [transactionDetailRefreshKey, setTransactionDetailRefreshKey] =
-    useState(0);
-  const [movesInitialFilters, setMovesInitialFilters] = useState<MovesFilters>(
-    createEmptyMovesFilters
+  const [movesViewState, setMovesViewState] = useState<MovesPageState>(
+    createInitialMovesPageState
   );
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
     isTransactionComposerOpen || selectedTransaction !== null;
 
   function openNewTransaction() {
+    prefetchScheduler.prioritizeUserRequest();
     setTransactionBeingEdited(null);
     setIsTransactionComposerOpen(true);
   }
 
   function finishFinancialWrite() {
-    clearStatisticsCache();
     setIsTransactionComposerOpen(false);
-    setFinancialRefreshKey((current) => current + 1);
+    void invalidateAfterTransactionWrite(user.id);
   }
 
   function finishProfileUpdate(updatedUser: SessionUser) {
     if (updatedUser.startingNetWorth !== user.startingNetWorth) {
-      clearStatisticsCache();
-      setFinancialRefreshKey((current) => current + 1);
+      void invalidateAfterStartingNetWorthWrite(user.id);
     }
 
     onProfileUpdated(updatedUser);
   }
 
   function navigateToMoves(filters = createEmptyMovesFilters()) {
-    setMovesInitialFilters(filters);
+    prefetchScheduler.prioritizeUserRequest();
+    setMovesViewState(createInitialMovesPageState(filters));
     setActiveSection("moves");
   }
 
@@ -172,11 +173,13 @@ export function HomePage({
       return;
     }
 
-    if (section === "moves") {
-      setMovesInitialFilters(createEmptyMovesFilters());
-    }
-
+    prefetchScheduler.prioritizeUserRequest();
     setActiveSection(section);
+  }
+
+  function openTransaction(transaction: TransactionPreview) {
+    prefetchScheduler.prioritizeUserRequest();
+    setSelectedTransaction(transaction);
   }
 
   return (
@@ -194,9 +197,9 @@ export function HomePage({
           onSessionExpired,
           onNewTransaction: openNewTransaction,
           onNavigateToMoves: navigateToMoves,
-          onTransactionSelect: setSelectedTransaction,
-          financialRefreshKey,
-          movesInitialFilters,
+          onTransactionSelect: openTransaction,
+          movesViewState,
+          onMovesViewStateChange: setMovesViewState,
           googleAccountDeletionFeedback,
           onGoogleAccountDeletionFeedbackHandled
         })}
@@ -212,25 +215,20 @@ export function HomePage({
         transaction={transactionBeingEdited}
         onClose={() => setIsTransactionComposerOpen(false)}
         onCreated={finishFinancialWrite}
-        onUpdated={() => {
-          finishFinancialWrite();
-          setTransactionDetailRefreshKey((current) => current + 1);
-        }}
+        onUpdated={finishFinancialWrite}
         onSessionExpired={onSessionExpired}
       />
 
       <TransactionDetailSheet
         ownerId={user.id}
         transaction={selectedTransaction}
-        refreshKey={transactionDetailRefreshKey}
         suspended={
           isTransactionComposerOpen && transactionBeingEdited !== null
         }
         onClose={() => setSelectedTransaction(null)}
         onDeleted={() => {
-          clearStatisticsCache();
           setSelectedTransaction(null);
-          setFinancialRefreshKey((current) => current + 1);
+          void invalidateAfterTransactionWrite(user.id);
         }}
         onEdit={(transaction) => {
           setTransactionBeingEdited(transaction);

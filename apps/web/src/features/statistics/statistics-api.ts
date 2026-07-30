@@ -1,6 +1,15 @@
+import { queryOptions } from "@tanstack/react-query";
 import { z } from "zod";
 
-import { ExpiringMemoryCache } from "../../cache/expiring-memory-cache";
+import {
+  financialQueryKeys,
+  type StatisticsPeriodCacheKey
+} from "../../cache/financial-query-keys";
+import {
+  FINANCIAL_DATA_GC_TIME_MS,
+  FINANCIAL_DATA_STALE_TIME_MS,
+  STATISTICS_AVAILABILITY_STALE_TIME_MS
+} from "../../cache/query-client";
 
 const moneySchema = z
   .string()
@@ -203,18 +212,6 @@ export class StatisticsApiError extends Error {
   }
 }
 
-const REPORT_CACHE_TTL_MS = 30_000;
-const AVAILABILITY_CACHE_TTL_MS = 60_000;
-const overviewCache = new ExpiringMemoryCache<StatisticsOverview>(
-  REPORT_CACHE_TTL_MS
-);
-const chartsCache = new ExpiringMemoryCache<StatisticsCharts>(
-  REPORT_CACHE_TTL_MS
-);
-const availabilityCache = new ExpiringMemoryCache<StatisticsAvailability>(
-  AVAILABILITY_CACHE_TTL_MS
-);
-
 function getPeriodQuery(period: StatisticsPeriodRequest) {
   const query = new URLSearchParams({
     period: period.mode.toLowerCase()
@@ -227,6 +224,20 @@ function getPeriodQuery(period: StatisticsPeriodRequest) {
   }
 
   return query.toString();
+}
+
+function getPeriodCacheKey(
+  period: StatisticsPeriodRequest
+): StatisticsPeriodCacheKey {
+  if (period.mode === "MONTH") {
+    return { mode: "MONTH", month: period.month };
+  }
+
+  if (period.mode === "YEAR") {
+    return { mode: "YEAR", year: period.year };
+  }
+
+  return { mode: "ALL" };
 }
 
 async function getJson(
@@ -258,73 +269,83 @@ async function getJson(
 }
 
 export async function getStatisticsAvailability(
-  ownerId: string,
+  _ownerId: string,
   signal?: AbortSignal
 ) {
-  const cached = availabilityCache.get(ownerId);
-
-  if (cached !== null) {
-    return cached;
-  }
-
   const rawResponse = await getJson(
     "/api/statistics/months",
     signal,
     "Unable to load available statistics periods."
   );
-  const availability = availabilityResponseSchema.parse(rawResponse);
-  availabilityCache.set(ownerId, availability);
-  return availability;
+  return availabilityResponseSchema.parse(rawResponse);
 }
 
 export async function getStatisticsOverview(
-  ownerId: string,
+  _ownerId: string,
   period: StatisticsPeriodRequest,
   signal?: AbortSignal
 ) {
   const periodQuery = getPeriodQuery(period);
-  const cacheKey = `${ownerId}:${periodQuery}`;
-  const cached = overviewCache.get(cacheKey);
-
-  if (cached !== null) {
-    return cached;
-  }
-
   const rawResponse = await getJson(
     `/api/statistics/overview?${periodQuery}`,
     signal,
     "Unable to load your statistics."
   );
-  const overview = overviewResponseSchema.parse(rawResponse).overview;
-  overviewCache.set(cacheKey, overview);
-  return overview;
+  return overviewResponseSchema.parse(rawResponse).overview;
 }
 
 export async function getStatisticsCharts(
-  ownerId: string,
+  _ownerId: string,
   period: StatisticsPeriodRequest,
   signal?: AbortSignal
 ) {
   const periodQuery = getPeriodQuery(period);
-  const cacheKey = `${ownerId}:${periodQuery}`;
-  const cached = chartsCache.get(cacheKey);
-
-  if (cached !== null) {
-    return cached;
-  }
-
   const rawResponse = await getJson(
     `/api/statistics/charts?${periodQuery}`,
     signal,
     "Unable to load your charts."
   );
-  const charts = chartsResponseSchema.parse(rawResponse).charts;
-  chartsCache.set(cacheKey, charts);
-  return charts;
+  return chartsResponseSchema.parse(rawResponse).charts;
 }
 
-export function clearStatisticsCache() {
-  availabilityCache.clear();
-  overviewCache.clear();
-  chartsCache.clear();
+export function statisticsAvailabilityQueryOptions(ownerId: string) {
+  return queryOptions({
+    queryKey: financialQueryKeys.statisticsAvailability(ownerId),
+    queryFn: ({ signal }) =>
+      getStatisticsAvailability(ownerId, signal),
+    staleTime: STATISTICS_AVAILABILITY_STALE_TIME_MS,
+    gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
+}
+
+export function statisticsOverviewQueryOptions(
+  ownerId: string,
+  period: StatisticsPeriodRequest
+) {
+  return queryOptions({
+    queryKey: financialQueryKeys.statisticsOverview(
+      ownerId,
+      getPeriodCacheKey(period)
+    ),
+    queryFn: ({ signal }) =>
+      getStatisticsOverview(ownerId, period, signal),
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
+}
+
+export function statisticsChartsQueryOptions(
+  ownerId: string,
+  period: StatisticsPeriodRequest
+) {
+  return queryOptions({
+    queryKey: financialQueryKeys.statisticsChart(
+      ownerId,
+      getPeriodCacheKey(period)
+    ),
+    queryFn: ({ signal }) =>
+      getStatisticsCharts(ownerId, period, signal),
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
 }

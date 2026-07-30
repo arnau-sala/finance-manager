@@ -1,4 +1,21 @@
-import { ExpiringMemoryCache } from "../../cache/expiring-memory-cache";
+import {
+  infiniteQueryOptions,
+  queryOptions
+} from "@tanstack/react-query";
+
+import {
+  financialQueryKeys,
+  type TransactionListCacheKey
+} from "../../cache/financial-query-keys";
+import {
+  FINANCIAL_DATA_GC_TIME_MS,
+  FINANCIAL_DATA_STALE_TIME_MS,
+  TRANSACTION_DETAIL_GC_TIME_MS
+} from "../../cache/query-client";
+import {
+  getActiveCategoryIds,
+  type MovesFilters
+} from "./moves-filters";
 import type { CreateTransactionInput } from "./transaction-validation";
 
 type TransactionApiIssue = {
@@ -54,22 +71,23 @@ export type TransactionDetail = {
   };
 };
 
-type TransactionsPage = {
+export type TransactionsPage = {
   transactions: TransactionListItem[];
   pagination: {
     limit: number;
     offset: number;
     nextOffset: number | null;
+    total: number;
   };
+  metadata: {
+    accountTransactionCount: number;
+    minimumDate: string | null;
+  } | null;
 };
 
-const TRANSACTIONS_CACHE_TTL_MS = 30_000;
-const transactionsCache = new ExpiringMemoryCache<TransactionListItem[]>(
-  TRANSACTIONS_CACHE_TTL_MS
-);
-const transactionDetailsCache = new ExpiringMemoryCache<TransactionDetail>(
-  TRANSACTIONS_CACHE_TTL_MS
-);
+export const TRANSACTIONS_PAGE_SIZE = 20;
+export const TRANSACTION_DETAILS_PREFETCH_GROUP =
+  "transaction-details";
 
 export class TransactionApiError extends Error {
   readonly status: number;
@@ -87,6 +105,55 @@ export class TransactionApiError extends Error {
   }
 }
 
+function parseAmountCents(value: string) {
+  const amount = Number(value.trim().replace(",", "."));
+
+  if (!Number.isFinite(amount)) {
+    return null;
+  }
+
+  return Math.round(amount * 100);
+}
+
+export function createTransactionListRequest(
+  search: string,
+  filters: MovesFilters
+): TransactionListCacheKey {
+  const exactAmountCents =
+    filters.amountMode === "EXACT" && filters.exactAmount
+      ? parseAmountCents(filters.exactAmount)
+      : null;
+  const minimumAmountCents =
+    filters.amountMode === "RANGE" && filters.minimumAmount
+      ? parseAmountCents(filters.minimumAmount)
+      : null;
+  const maximumAmountCents =
+    filters.amountMode === "RANGE" && filters.maximumAmount
+      ? parseAmountCents(filters.maximumAmount)
+      : null;
+
+  return {
+    search: search.trim().toLocaleLowerCase(),
+    type: filters.type,
+    categoryIds: [...getActiveCategoryIds(filters)].sort(),
+    exactAmountCents,
+    minimumAmountCents,
+    maximumAmountCents,
+    exactDate:
+      filters.dateMode === "EXACT" && filters.exactDate
+        ? filters.exactDate
+        : null,
+    startDate:
+      filters.dateMode === "RANGE" && filters.startDate
+        ? filters.startDate
+        : null,
+    endDate:
+      filters.dateMode === "RANGE" && filters.endDate
+        ? filters.endDate
+        : null
+  };
+}
+
 async function createTransactionApiError(
   response: Response,
   fallback = "Unable to add the transaction. Please try again."
@@ -96,7 +163,7 @@ async function createTransactionApiError(
   try {
     body = (await response.json()) as TransactionApiErrorBody;
   } catch {
-    // The status-specific fallback below remains safe when no JSON body exists.
+    // The status-specific fallback remains safe without a JSON body.
   }
 
   if (response.status === 429) {
@@ -115,69 +182,138 @@ async function createTransactionApiError(
   return new TransactionApiError(message, response.status, body.issues);
 }
 
-export async function getTransactions(
-  ownerId: string,
+function addOptionalQueryValue(
+  query: URLSearchParams,
+  key: string,
+  value: string | number | null
+) {
+  if (value !== null && value !== "") {
+    query.set(key, String(value));
+  }
+}
+
+function createTransactionsQuery(
+  request: TransactionListCacheKey,
+  offset: number
+) {
+  const query = new URLSearchParams({
+    limit: String(TRANSACTIONS_PAGE_SIZE),
+    offset: String(offset)
+  });
+
+  addOptionalQueryValue(query, "search", request.search);
+  addOptionalQueryValue(
+    query,
+    "type",
+    request.type === "ALL" ? null : request.type
+  );
+  addOptionalQueryValue(
+    query,
+    "categories",
+    request.categoryIds.length > 0
+      ? request.categoryIds.join(",")
+      : null
+  );
+  addOptionalQueryValue(
+    query,
+    "exactAmountCents",
+    request.exactAmountCents
+  );
+  addOptionalQueryValue(
+    query,
+    "minimumAmountCents",
+    request.minimumAmountCents
+  );
+  addOptionalQueryValue(
+    query,
+    "maximumAmountCents",
+    request.maximumAmountCents
+  );
+  addOptionalQueryValue(query, "exactDate", request.exactDate);
+  addOptionalQueryValue(query, "startDate", request.startDate);
+  addOptionalQueryValue(query, "endDate", request.endDate);
+
+  return query;
+}
+
+async function getTransactionsPage(
+  request: TransactionListCacheKey,
+  offset: number,
   signal?: AbortSignal
 ) {
-  const cached = transactionsCache.get(ownerId);
+  let response: Response;
 
-  if (cached !== null) {
-    return cached;
-  }
-
-  const transactions: TransactionListItem[] = [];
-  let offset = 0;
-
-  while (true) {
-    let response: Response;
-
-    try {
-      response = await fetch(`/api/transactions?limit=200&offset=${offset}`, {
+  try {
+    response = await fetch(
+      `/api/transactions?${createTransactionsQuery(request, offset)}`,
+      {
         method: "GET",
         credentials: "include",
         signal
-      });
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        throw error;
       }
-
-      throw new TransactionApiError(
-        "Unable to connect. Check your connection and try again.",
-        0
-      );
+    );
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
     }
 
-    if (!response.ok) {
-      throw await createTransactionApiError(
-        response,
-        "Unable to load transactions. Please try again."
-      );
-    }
-
-    const page = (await response.json()) as TransactionsPage;
-
-    if (
-      !Array.isArray(page.transactions) ||
-      !page.pagination ||
-      page.pagination.offset !== offset
-    ) {
-      throw new TransactionApiError("Invalid transactions response.", 500);
-    }
-
-    transactions.push(...page.transactions);
-
-    if (page.pagination.nextOffset === null) {
-      transactionsCache.set(ownerId, transactions);
-      return transactions;
-    }
-
-    if (page.pagination.nextOffset <= offset) {
-      throw new TransactionApiError("Invalid transactions pagination.", 500);
-    }
-
-    offset = page.pagination.nextOffset;
+    throw new TransactionApiError(
+      "Unable to connect. Check your connection and try again.",
+      0
+    );
   }
+
+  if (!response.ok) {
+    throw await createTransactionApiError(
+      response,
+      "Unable to load transactions. Please try again."
+    );
+  }
+
+  const page = (await response.json()) as TransactionsPage;
+
+  if (
+    !Array.isArray(page.transactions) ||
+    !page.pagination ||
+    page.pagination.offset !== offset ||
+    (offset === 0 && !page.metadata)
+  ) {
+    throw new TransactionApiError("Invalid transactions response.", 500);
+  }
+
+  return page;
+}
+
+export function transactionsQueryOptions(
+  ownerId: string,
+  request: TransactionListCacheKey
+) {
+  return infiniteQueryOptions({
+    queryKey: financialQueryKeys.transactionList(ownerId, request),
+    queryFn: ({ pageParam, signal }) =>
+      getTransactionsPage(request, pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.nextOffset ?? undefined,
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
+}
+
+export function transactionDetailQueryOptions(
+  ownerId: string,
+  transactionId: string
+) {
+  return queryOptions({
+    queryKey: financialQueryKeys.transactionDetail(
+      ownerId,
+      transactionId
+    ),
+    queryFn: ({ signal }) =>
+      getTransactionDetail(ownerId, transactionId, signal),
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: TRANSACTION_DETAIL_GC_TIME_MS
+  });
 }
 
 export async function createTransaction(input: CreateTransactionInput) {
@@ -202,9 +338,6 @@ export async function createTransaction(input: CreateTransactionInput) {
   if (!response.ok) {
     throw await createTransactionApiError(response);
   }
-
-  transactionsCache.clear();
-  transactionDetailsCache.clear();
 }
 
 export async function updateTransaction(
@@ -238,9 +371,6 @@ export async function updateTransaction(
       "Unable to update the transaction. Please try again."
     );
   }
-
-  transactionsCache.clear();
-  transactionDetailsCache.clear();
 }
 
 export async function deleteTransaction(transactionId: string) {
@@ -267,23 +397,13 @@ export async function deleteTransaction(transactionId: string) {
       "Unable to delete the transaction. Please try again."
     );
   }
-
-  transactionsCache.clear();
-  transactionDetailsCache.clear();
 }
 
 export async function getTransactionDetail(
-  ownerId: string,
+  _ownerId: string,
   transactionId: string,
   signal?: AbortSignal
 ) {
-  const cacheKey = `${ownerId}:${transactionId}`;
-  const cached = transactionDetailsCache.get(cacheKey);
-
-  if (cached !== null) {
-    return cached;
-  }
-
   let response: Response;
 
   try {
@@ -328,11 +448,5 @@ export async function getTransactionDetail(
     );
   }
 
-  transactionDetailsCache.set(cacheKey, detail);
   return detail;
-}
-
-export function clearTransactionsCache() {
-  transactionsCache.clear();
-  transactionDetailsCache.clear();
 }

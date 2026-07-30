@@ -16,6 +16,7 @@ import {
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
   isEditableStartingNetWorth,
@@ -166,6 +167,7 @@ export function ProfilePage({
 
     setLogoutError(null);
     setIsLoggingOut(true);
+    prefetchScheduler.prioritizeUserRequest();
 
     try {
       await onLogout();
@@ -206,6 +208,7 @@ export function ProfilePage({
 
     setProfileUpdateError(null);
     setIsUpdatingProfile(true);
+    prefetchScheduler.prioritizeUserRequest();
 
     try {
       const updatedUser = await updateProfile(input);
@@ -278,6 +281,7 @@ export function ProfilePage({
 
     setPasswordChangeError(null);
     setIsChangingPassword(true);
+    prefetchScheduler.prioritizeUserRequest();
 
     try {
       await changePassword({
@@ -324,6 +328,7 @@ export function ProfilePage({
 
     if (user.authProvider === "GOOGLE") {
       setIsDeletingAccount(true);
+      prefetchScheduler.prioritizeUserRequest();
 
       try {
         const authorizationUrl = await startGoogleAccountDeletion();
@@ -345,6 +350,7 @@ export function ProfilePage({
 
     setDeleteError(null);
     setIsDeletingAccount(true);
+    prefetchScheduler.prioritizeUserRequest();
 
     try {
       await deleteAccount(parsedPassword.data);

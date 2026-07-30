@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
   ChevronRight,
@@ -8,13 +9,13 @@ import {
 
 import { getTodayDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
+import { scheduleHomePrefetches } from "../../cache/financial-prefetch";
 import type { SessionUser } from "../auth/auth-api";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import { TransactionRow } from "../transactions/TransactionRow";
 import {
-  getHomeOverview,
+  homeOverviewQueryOptions,
   HomeApiError,
-  type HomeOverview
 } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
 import {
@@ -29,10 +30,7 @@ type HomeOverviewPageProps = {
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
-  refreshKey: number;
 };
-
-type LoadingState = "loading" | "ready" | "error";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -81,36 +79,31 @@ export function HomeOverviewPage({
   onSessionExpired,
   onNewTransaction,
   onNavigateToMoves,
-  onTransactionSelect,
-  refreshKey
+  onTransactionSelect
 }: HomeOverviewPageProps) {
-  const [overview, setOverview] = useState<HomeOverview | null>(null);
-  const [loadingState, setLoadingState] =
-    useState<LoadingState>("loading");
+  const overviewQuery = useQuery(homeOverviewQueryOptions(user.id));
+  const overview = overviewQuery.data ?? null;
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (
+      overviewQuery.error instanceof HomeApiError &&
+      overviewQuery.error.status === 401
+    ) {
+      onSessionExpired();
+    }
+  }, [onSessionExpired, overviewQuery.error]);
 
-    getHomeOverview(controller.signal)
-      .then((homeOverview) => {
-        setOverview(homeOverview);
-        setLoadingState("ready");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
+  useEffect(() => {
+    if (overview) {
+      scheduleHomePrefetches(user.id);
+    }
+  }, [overview, user.id]);
 
-        setLoadingState("error");
-
-        if (error instanceof HomeApiError && error.status === 401) {
-          onSessionExpired();
-        }
-      });
-
-    return () => controller.abort();
-  }, [onSessionExpired, refreshKey]);
-
+  const loadingState = overviewQuery.isPending
+    ? "loading"
+    : overviewQuery.isError
+      ? "error"
+      : "ready";
   const isReady = loadingState === "ready" && overview !== null;
   const latestMoves = isReady ? overview.latestMoves : [];
   const hasStartingNetWorth =

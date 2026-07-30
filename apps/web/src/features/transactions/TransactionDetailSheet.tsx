@@ -7,6 +7,7 @@ import {
   useRef,
   useState
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Ellipsis,
@@ -18,12 +19,13 @@ import {
 import { createPortal } from "react-dom";
 
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import { getCategoryIcon } from "./category-catalog";
 import {
   deleteTransaction,
-  getTransactionDetail,
+  transactionDetailQueryOptions,
   TransactionApiError,
   type TransactionDetail,
   type TransactionDetailContext,
@@ -34,7 +36,6 @@ import { shareTransaction } from "./transaction-share";
 type TransactionDetailSheetProps = {
   ownerId: string;
   transaction: TransactionPreview | null;
-  refreshKey: number;
   suspended: boolean;
   onClose: () => void;
   onDeleted: () => void;
@@ -230,7 +231,6 @@ function getContext(
 export function TransactionDetailSheet({
   ownerId,
   transaction,
-  refreshKey,
   suspended,
   onClose,
   onDeleted,
@@ -256,7 +256,6 @@ export function TransactionDetailSheet({
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [actionsRendered, setActionsRendered] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
@@ -269,10 +268,12 @@ export function TransactionDetailSheet({
     kind: "success" | "error";
     message: string;
   } | null>(null);
-  const [detailError, setDetailError] = useState<{
-    transactionId: string;
-    message: string;
-  } | null>(null);
+  const transactionId = transaction?.id ?? "";
+  const detailQuery = useQuery({
+    ...transactionDetailQueryOptions(ownerId, transactionId),
+    enabled: transaction !== null
+  });
+  const detail = detailQuery.data ?? null;
 
   if (transaction) {
     renderedTransactionRef.current = transaction;
@@ -282,8 +283,10 @@ export function TransactionDetailSheet({
   const matchingDetail =
     detail && detail.transaction.id === renderedTransaction?.id ? detail : null;
   const matchingError =
-    detailError && detailError.transactionId === renderedTransaction?.id
-      ? detailError.message
+    detailQuery.isError && transactionId === renderedTransaction?.id
+      ? detailQuery.error instanceof Error
+        ? detailQuery.error.message
+        : "Unable to load the transaction details."
       : null;
   const displayedTransaction =
     matchingDetail?.transaction ?? renderedTransaction;
@@ -466,39 +469,13 @@ export function TransactionDetailSheet({
   }, [actionsOpen, actionsRendered]);
 
   useEffect(() => {
-    if (!transaction) {
-      return;
+    if (
+      detailQuery.error instanceof TransactionApiError &&
+      detailQuery.error.status === 401
+    ) {
+      onSessionExpired();
     }
-
-    const controller = new AbortController();
-    setDetail(null);
-    setDetailError(null);
-
-    getTransactionDetail(ownerId, transaction.id, controller.signal)
-      .then((loadedDetail) => {
-        setDetail(loadedDetail);
-      })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-
-        if (error instanceof TransactionApiError && error.status === 401) {
-          onSessionExpired();
-          return;
-        }
-
-        setDetailError({
-          transactionId: transaction.id,
-          message:
-            error instanceof Error
-              ? error.message
-              : "Unable to load the transaction details."
-        });
-      });
-
-    return () => controller.abort();
-  }, [onSessionExpired, ownerId, refreshKey, transaction?.id]);
+  }, [detailQuery.error, onSessionExpired]);
 
   function startDrag(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.pointerType === "mouse" && event.button !== 0) {
@@ -621,6 +598,7 @@ export function TransactionDetailSheet({
 
     setDeleteError(null);
     setIsDeleting(true);
+    prefetchScheduler.prioritizeUserRequest();
 
     try {
       await deleteTransaction(displayedTransaction.id);

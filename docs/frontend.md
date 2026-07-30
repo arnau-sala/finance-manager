@@ -446,20 +446,22 @@ UX notes:
 Purpose: browse historical records.
 
 The `Moves` footer item loads the current user's records from
-`GET /transactions`. API pages are requested in batches of 200 until
-`nextOffset` is `null`, ensuring that search and filters operate over the full
-history. It uses the shared transaction-row component also used by Home, so
-icon, category, date, amount formatting, and income/expense colors remain
-consistent. Completed histories, including empty ones, are cached in memory for
-30 seconds under the authenticated `userId`. Returning to Moves during that
-window avoids repeating its paginated reads. Successful transaction creation
-and session termination clear the cache.
+`GET /transactions`. The first 20 records are normally prefetched after Home
+finishes, and further pages are requested only when the list approaches its
+end. Search and applied filters are sent to the API, so pagination remains
+correct for histories with hundreds or thousands of records. It uses the
+shared transaction-row component also used by Home, keeping icon, category,
+date, amount formatting, and income/expense colors consistent.
+Search text, applied filters, filter-panel visibility, and scroll position are
+kept by the authenticated screen container while the user moves between footer
+sections.
 
 Current behavior:
 
-- Case-insensitive search against the transaction description only.
-- Local automatic presentation in batches of 12. An `IntersectionObserver`
-  rooted in the Moves scroll area reveals the next batch near the list end.
+- Debounced, case-insensitive server search against the transaction description
+  only.
+- Automatic server pagination in batches of 20. An `IntersectionObserver`
+  rooted in the Moves scroll area requests the next page near the list end.
 - Dynamic result count, clear-search action, and an empty search state.
 - Combined filtering by exact amount or amount range, exact date or date range,
   one or more categories, and transaction type.
@@ -482,8 +484,8 @@ Current behavior:
 When the account has no transactions, Moves retains the `Transactions` title
 but hides its result count, search, filters, and history. It uses the same first
 transaction empty state and shared New Transaction composer as Stats. After a
-successful creation, the shared financial refresh key reloads Moves while
-keeping it as the active section.
+successful creation, the owner-scoped financial queries are invalidated while
+Moves remains the active section.
 
 While its transaction request is loading, Moves renders only the
 `Transactions` title. The result count, search field, filter control, and list
@@ -513,8 +515,10 @@ opened it.
 
 The sheet opens immediately with the real summary already held by Home or
 Moves, then completes its derived values through one authenticated
-`GET /transactions/:id` request. The response is cached in memory for 30
-seconds per user and transaction. It presents the category, type, title, signed
+`GET /transactions/:id` request. Moves speculatively loads no more than five
+likely details for its current query, starting with the first three visible
+records. Successful detail responses remain in the owner-keyed query cache for
+up to 10 minutes. It presents the category, type, title, signed
 amount, full date, tracked balance before and after the movement, and a local
 Month/Year/All context selector for category rank, type rank, and period impact.
 All three contexts arrive together, so changing the selector performs no
@@ -540,9 +544,9 @@ repeats the creation validations and sends only changed fields through
 `PATCH /transactions/:id`.
 
 Closing the editor without saving reveals the unchanged detail. A successful
-save clears transaction and Statistics caches, refreshes Home, Moves, and Stats,
-and reloads the selected transaction's derived balance, ranks, and period impact
-before the composer finishes leaving the screen.
+save invalidates the affected owner-keyed query families, preserves currently
+visible data during background revalidation, and recalculates the selected
+transaction's derived balance, ranks, and period impact.
 
 Delete opens a compact confirmation popover directly below the trash action.
 It identifies the transaction, states that the operation cannot be undone, and
@@ -582,9 +586,8 @@ savings percentage, neither row in that pair is shown.
 When `GET /statistics/months` reports no recorded period, Stats replaces its
 period controls, view selector, Overview, and Charts content with one empty
 state while retaining the `Stats` page title. Its action opens the shared New
-Transaction composer. A successful first transaction clears the statistics
-caches, refreshes the availability and Overview reads, closes the composer, and
-leaves Stats as the active section.
+Transaction composer. A successful first transaction invalidates Statistics
+and Home, closes the composer, and leaves Stats as the active section.
 
 In Month mode, the visible month and year open the custom month picker. Enabled
 months come from the authenticated `GET /statistics/months` endpoint. Future
@@ -622,13 +625,21 @@ current streak when it is also the longest.
 
 Stats has separate Overview and Charts views under the same period controls.
 Changing views moves only the content below the selected period, while the
-header and date controls remain fixed. The chart engine is loaded through a
-dynamic import the first time Charts is opened, so ECharts is excluded from the
-initial application bundle. The charts response is also requested only when
-that view is active. Overview and Charts results use a short 30-second
-in-memory cache by authenticated account and period. Period availability uses
-60 seconds. Transaction changes, logout, account deletion, and session
-expiration invalidate those caches.
+header and date controls remain fixed. ECharts stays outside the initial
+authenticated bundle, but entering Stats schedules its dynamic import during
+idle time. Current-month Charts, current-year Overview, previous-month
+Overview, current-year Charts, All Overview, and finally All Charts are
+prefetched sequentially. Arbitrary period navigation remains foreground-only
+and does not fan out into speculative chart requests.
+
+All financial screens share TanStack Query's in-memory cache. Data is fresh for
+five minutes and can remain inactive for 30 minutes, so revisiting a screen
+renders cached content immediately and revalidates stale data without replacing
+it with a loading screen. Period availability is fresh for 15 minutes. Hiding
+the installed web app pauses new prefetches; returning after three minutes
+clears private cached data and restarts at Home. Transaction changes, starting
+net worth changes, logout, account deletion, and session expiration use
+targeted invalidation or full authenticated-cache removal as appropriate.
 
 The shared `components/charts/EChart.tsx` adapter initializes one modular
 ECharts instance, uses the SVG renderer, responds to container resizing, and

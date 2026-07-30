@@ -625,14 +625,29 @@ The endpoint returns only transactions owned by the current session user, includ
     }
   ],
   "pagination": {
-    "limit": 100,
+    "limit": 20,
     "offset": 0,
-    "nextOffset": null
+    "nextOffset": null,
+    "total": 1
+  },
+  "metadata": {
+    "accountTransactionCount": 1,
+    "minimumDate": "2026-07-05"
   }
 }
 ```
 
-Supports `limit` and `offset`. Default `limit` is `100`; maximum is `200`. Use `nextOffset` as the next `offset` value; `null` means there are no more results. A user without transactions receives an empty `transactions` array. A request without a valid session returns `401 Unauthorized`.
+Supports `limit` and `offset`; the default page size is `20` and the maximum is
+`200`. `nextOffset` is the next page position, `total` is the number of matching
+records, and `null` means there are no more results. First-page responses also
+include the account's unfiltered transaction count and oldest transaction date;
+later pages return `metadata: null`.
+
+The same request can combine `search`, `type`, comma-separated `categories`,
+`exactAmountCents` or an amount-cent range, and `exactDate` or a
+`startDate`/`endDate` range. Filtering is owner-scoped and performed in
+PostgreSQL before pagination. A user without transactions receives an empty
+array, and a request without a valid session returns `401 Unauthorized`.
 
 ## List My Transactions By Category
 
@@ -842,8 +857,9 @@ The available fields and validation rules are the same as for transaction creati
 
 The authenticated interface opens the shared transaction composer from the
 detail sheet, prefilled with the current values. It sends only changed fields,
-then invalidates transaction and statistics caches and reloads the detail
-aggregates before revealing the sheet again.
+then invalidates the owner-scoped Home, transaction, detail, and Statistics
+queries. Visible cached data remains in place while the derived aggregates
+revalidate.
 
 ## Get Home Overview
 

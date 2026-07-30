@@ -6,6 +6,7 @@ import {
   useRef,
   useState
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -25,6 +26,8 @@ import {
 } from "lucide-react";
 
 import { MonthPicker } from "../../components/ui/MonthPicker";
+import { scheduleStatisticsPrefetches } from "../../cache/financial-prefetch";
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
@@ -38,23 +41,21 @@ import {
 import { FirstTransactionEmptyState } from "../transactions/FirstTransactionEmptyState";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import {
-  getStatisticsAvailability,
-  getStatisticsCharts,
-  getStatisticsOverview,
+  statisticsAvailabilityQueryOptions,
+  statisticsChartsQueryOptions,
+  statisticsOverviewQueryOptions,
   StatisticsApiError,
-  type StatisticsAvailability,
-  type StatisticsCharts,
   type StatisticsOverview,
   type StatisticsPeriodMode,
   type StatisticsPeriodRequest
 } from "./statistics-api";
 import type { CategoryBreakdownItem } from "./statistics-categories";
 
-const StatsChartsView = lazy(() => import("./charts/StatsChartsView"));
+const loadStatsChartsView = () => import("./charts/StatsChartsView");
+const StatsChartsView = lazy(loadStatsChartsView);
 
 type StatsPageProps = {
   userId: string;
-  refreshKey: number;
   onNewTransaction: () => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
@@ -843,7 +844,6 @@ function StatsOverviewContent({
 
 export function StatsPage({
   userId,
-  refreshKey,
   onNewTransaction,
   onTransactionSelect,
   onSessionExpired
@@ -863,19 +863,6 @@ export function StatsPage({
     useState<TransactionType>("INCOME");
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
-  const [availability, setAvailability] =
-    useState<StatisticsAvailability | null>(null);
-  const [availabilityState, setAvailabilityState] =
-    useState<LoadingState>("loading");
-  const [overview, setOverview] = useState<StatisticsOverview | null>(null);
-  const [charts, setCharts] = useState<StatisticsCharts | null>(null);
-  const [overviewState, setOverviewState] =
-    useState<LoadingState>("loading");
-  const [chartsState, setChartsState] =
-    useState<LoadingState>("loading");
-  const [overviewRetryKey, setOverviewRetryKey] = useState(0);
-  const [chartsRetryKey, setChartsRetryKey] = useState(0);
-  const [availabilityRetryKey, setAvailabilityRetryKey] = useState(0);
 
   const periodRequest = useMemo<StatisticsPeriodRequest>(
     () =>
@@ -886,6 +873,35 @@ export function StatsPage({
           : { mode },
     [mode, selectedMonthKey, selectedYear]
   );
+  const availabilityQuery = useQuery(
+    statisticsAvailabilityQueryOptions(userId)
+  );
+  const overviewQuery = useQuery({
+    ...statisticsOverviewQueryOptions(userId, periodRequest),
+    enabled: viewMode === "OVERVIEW"
+  });
+  const chartsQuery = useQuery({
+    ...statisticsChartsQueryOptions(userId, periodRequest),
+    enabled: viewMode === "CHARTS"
+  });
+  const availability = availabilityQuery.data ?? null;
+  const overview = overviewQuery.data ?? null;
+  const charts = chartsQuery.data ?? null;
+  const availabilityState: LoadingState = availability
+    ? "ready"
+    : availabilityQuery.isError
+      ? "error"
+      : "loading";
+  const overviewState: LoadingState = overview
+    ? "ready"
+    : overviewQuery.isError
+      ? "error"
+      : "loading";
+  const chartsState: LoadingState = charts
+    ? "ready"
+    : chartsQuery.isError
+      ? "error"
+      : "loading";
   const availableMonths = availability?.availableMonths ?? [];
   const monthNavigationKeys = useMemo(
     () => [...new Set([...availableMonths, currentMonthKey])].sort(),
@@ -918,105 +934,28 @@ export function StatsPage({
   )} - ${formatMonthKey(currentMonthKey)}`;
 
   useEffect(() => {
-    const controller = new AbortController();
-    setAvailability(null);
-    setAvailabilityState("loading");
-
-    getStatisticsAvailability(userId, controller.signal)
-      .then((nextAvailability) => {
-        setAvailability(nextAvailability);
-        setAvailabilityState("ready");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setAvailabilityState("error");
-
-        if (error instanceof StatisticsApiError && error.status === 401) {
-          onSessionExpired();
-        }
-      });
-
-    return () => controller.abort();
+    scheduleStatisticsPrefetches(userId, loadStatsChartsView);
   }, [
-    availabilityRetryKey,
-    onSessionExpired,
-    refreshKey,
+    availabilityQuery.dataUpdatedAt,
+    chartsQuery.dataUpdatedAt,
+    overviewQuery.dataUpdatedAt,
     userId
   ]);
 
   useEffect(() => {
-    if (viewMode !== "OVERVIEW") {
-      return;
+    const error =
+      availabilityQuery.error ??
+      overviewQuery.error ??
+      chartsQuery.error;
+
+    if (error instanceof StatisticsApiError && error.status === 401) {
+      onSessionExpired();
     }
-
-    const controller = new AbortController();
-    setOverview(null);
-    setOverviewState("loading");
-
-    getStatisticsOverview(userId, periodRequest, controller.signal)
-      .then((nextOverview) => {
-        setOverview(nextOverview);
-        setOverviewState("ready");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setOverviewState("error");
-
-        if (error instanceof StatisticsApiError && error.status === 401) {
-          onSessionExpired();
-        }
-      });
-
-    return () => controller.abort();
   }, [
+    availabilityQuery.error,
+    chartsQuery.error,
     onSessionExpired,
-    overviewRetryKey,
-    periodRequest,
-    refreshKey,
-    userId,
-    viewMode
-  ]);
-
-  useEffect(() => {
-    if (viewMode !== "CHARTS") {
-      return;
-    }
-
-    const controller = new AbortController();
-    setCharts(null);
-    setChartsState("loading");
-
-    getStatisticsCharts(userId, periodRequest, controller.signal)
-      .then((nextCharts) => {
-        setCharts(nextCharts);
-        setChartsState("ready");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        setChartsState("error");
-
-        if (error instanceof StatisticsApiError && error.status === 401) {
-          onSessionExpired();
-        }
-      });
-
-    return () => controller.abort();
-  }, [
-    chartsRetryKey,
-    onSessionExpired,
-    periodRequest,
-    refreshKey,
-    userId,
-    viewMode
+    overviewQuery.error
   ]);
 
   function changePeriod(nextIndex: number) {
@@ -1028,6 +967,7 @@ export function StatsPage({
       const nextMonth = monthNavigationKeys[nextIndex];
 
       if (nextMonth) {
+        prefetchScheduler.prioritizeUserRequest();
         setSelectedMonthKey(nextMonth);
       }
       return;
@@ -1036,6 +976,7 @@ export function StatsPage({
     const nextYear = yearNavigationValues[nextIndex];
 
     if (nextYear !== undefined) {
+      prefetchScheduler.prioritizeUserRequest();
       setSelectedYear(nextYear);
     }
   }
@@ -1047,11 +988,40 @@ export function StatsPage({
   }
 
   function changeViewMode(nextView: StatsViewMode) {
+    if (nextView === viewMode) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+
     if (nextView === "CHARTS") {
       setHasOpenedCharts(true);
     }
 
     setViewMode(nextView);
+  }
+
+  function changePeriodMode(nextMode: StatisticsPeriodMode) {
+    if (nextMode === mode) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+    setMode(nextMode);
+  }
+
+  function selectMonth(nextMonth: string) {
+    if (nextMonth !== selectedMonthKey) {
+      prefetchScheduler.prioritizeUserRequest();
+      setSelectedMonthKey(nextMonth);
+    }
+  }
+
+  function selectYear(nextYear: number) {
+    if (nextYear !== selectedYear) {
+      prefetchScheduler.prioritizeUserRequest();
+      setSelectedYear(nextYear);
+    }
   }
 
   if (availabilityState !== "ready" || !availability) {
@@ -1064,9 +1034,10 @@ export function StatsPage({
           {availabilityState === "error" ? (
             <StatisticsLoadState
               message="Your statistics could not be loaded."
-              retry={() =>
-                setAvailabilityRetryKey((current) => current + 1)
-              }
+              retry={() => {
+                prefetchScheduler.prioritizeUserRequest();
+                void availabilityQuery.refetch();
+              }}
             />
           ) : (
             <StatisticsLoadState message="Loading statistics..." />
@@ -1121,7 +1092,7 @@ export function StatsPage({
           className="stats-period-mode"
           value={mode}
           options={periodOptions}
-          onChange={setMode}
+          onChange={changePeriodMode}
           label="Statistics period"
           compact
         />
@@ -1201,7 +1172,7 @@ export function StatsPage({
           availableMonths={availableMonths}
           minimumMonth={availability?.minimumMonth ?? currentMonthKey}
           maximumMonth={availability?.maximumMonth ?? currentMonthKey}
-          onSelect={setSelectedMonthKey}
+          onSelect={selectMonth}
           onClose={() => setIsMonthPickerOpen(false)}
         />
 
@@ -1212,7 +1183,7 @@ export function StatsPage({
           availableYears={availableYears}
           minimumYear={availableYears[0] ?? currentYear}
           maximumYear={currentYear}
-          onSelect={setSelectedYear}
+          onSelect={selectYear}
           onClose={() => setIsYearPickerOpen(false)}
         />
 
@@ -1236,9 +1207,10 @@ export function StatsPage({
             ) : overviewState === "error" ? (
               <StatisticsLoadState
                 message="Your statistics could not be loaded."
-                retry={() =>
-                  setOverviewRetryKey((current) => current + 1)
-                }
+                retry={() => {
+                  prefetchScheduler.prioritizeUserRequest();
+                  void overviewQuery.refetch();
+                }}
               />
             ) : (
               <StatisticsLoadState message="Loading statistics..." />
@@ -1262,9 +1234,10 @@ export function StatsPage({
                 ) : chartsState === "error" ? (
                   <StatisticsLoadState
                     message="Your charts could not be loaded."
-                    retry={() =>
-                      setChartsRetryKey((current) => current + 1)
-                    }
+                    retry={() => {
+                      prefetchScheduler.prioritizeUserRequest();
+                      void chartsQuery.refetch();
+                    }}
                   />
                 ) : (
                   <StatisticsLoadState message="Loading charts..." />

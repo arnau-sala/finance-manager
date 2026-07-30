@@ -7,6 +7,7 @@ import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
 import {
+  formatDateOnly,
   getTodayDateOnly,
   parseDateOnly,
 } from "../dates/date-only.js";
@@ -35,6 +36,7 @@ type TransactionWithCategoryRow = {
   createdAt: Date;
   categoryName: string;
   categoryType: TransactionType;
+  totalCount?: bigint;
 };
 
 const transactionsPaginationQuerySchema = getPaginationQuerySchema({
@@ -43,7 +45,83 @@ const transactionsPaginationQuerySchema = getPaginationQuerySchema({
 });
 
 const MAX_AMOUNT_CENTS = 2_147_483_647n;
+const MAX_AMOUNT_CENTS_NUMBER = Number(MAX_AMOUNT_CENTS);
 const DECIMAL_AMOUNT_PATTERN = /^\d+(?:\.\d{1,2})?$/;
+
+const optionalSearchQuerySchema = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : value),
+  z.string().trim().min(1).max(50).optional(),
+);
+const optionalTypeQuerySchema = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : value),
+  z.enum(["INCOME", "EXPENSE"]).optional(),
+);
+const optionalCategoryIdsQuerySchema = z.preprocess(
+  (value) => {
+    if (value === "" || value === undefined) {
+      return undefined;
+    }
+
+    return typeof value === "string"
+      ? [...new Set(value.split(",").map((item) => item.trim()))]
+      : value;
+  },
+  z.array(z.string().min(1)).min(1).max(20).optional(),
+);
+const optionalAmountCentsQuerySchema = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : value),
+  z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_AMOUNT_CENTS_NUMBER)
+    .optional(),
+);
+const optionalDateQuerySchema = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : value),
+  z.iso.date().optional(),
+);
+
+const transactionListQuerySchema = getPaginationQuerySchema({
+  defaultLimit: 20,
+  maxLimit: 200,
+})
+  .extend({
+    search: optionalSearchQuerySchema,
+    type: optionalTypeQuerySchema,
+    categories: optionalCategoryIdsQuerySchema,
+    exactAmountCents: optionalAmountCentsQuerySchema,
+    minimumAmountCents: optionalAmountCentsQuerySchema,
+    maximumAmountCents: optionalAmountCentsQuerySchema,
+    exactDate: optionalDateQuerySchema,
+    startDate: optionalDateQuerySchema,
+    endDate: optionalDateQuerySchema,
+  })
+  .superRefine((query, context) => {
+    if (
+      query.minimumAmountCents !== undefined &&
+      query.maximumAmountCents !== undefined &&
+      query.minimumAmountCents > query.maximumAmountCents
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["maximumAmountCents"],
+        message: "Maximum amount must not be lower than minimum amount.",
+      });
+    }
+
+    if (
+      query.startDate !== undefined &&
+      query.endDate !== undefined &&
+      query.startDate > query.endDate
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["endDate"],
+        message: "End date must not be earlier than start date.",
+      });
+    }
+  });
 
 function decimalToCents(amount: string) {
   const [wholePart, decimalPart = ""] = amount.split(".");
@@ -136,6 +214,69 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
   };
 }
 
+function getTransactionListWhere(
+  userId: string,
+  query: z.infer<typeof transactionListQuerySchema>,
+) {
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`t."userId" = ${userId}`,
+  ];
+
+  if (query.search !== undefined) {
+    conditions.push(
+      Prisma.sql`POSITION(LOWER(${query.search}) IN LOWER(t."description")) > 0`,
+    );
+  }
+
+  if (query.type !== undefined) {
+    conditions.push(Prisma.sql`t."type" = ${query.type}::"TransactionType"`);
+  }
+
+  if (query.categories !== undefined) {
+    conditions.push(
+      Prisma.sql`t."categoryId" IN (${Prisma.join(query.categories)})`,
+    );
+  }
+
+  if (query.exactAmountCents !== undefined) {
+    conditions.push(
+      Prisma.sql`t."amountCents" = ${query.exactAmountCents}`,
+    );
+  } else {
+    if (query.minimumAmountCents !== undefined) {
+      conditions.push(
+        Prisma.sql`t."amountCents" >= ${query.minimumAmountCents}`,
+      );
+    }
+
+    if (query.maximumAmountCents !== undefined) {
+      conditions.push(
+        Prisma.sql`t."amountCents" <= ${query.maximumAmountCents}`,
+      );
+    }
+  }
+
+  if (query.exactDate !== undefined) {
+    conditions.push(
+      Prisma.sql`t."occurredOn" = ${query.exactDate}::date`,
+    );
+  } else {
+    if (query.startDate !== undefined) {
+      conditions.push(
+        Prisma.sql`t."occurredOn" >= ${query.startDate}::date`,
+      );
+    }
+
+    if (query.endDate !== undefined) {
+      conditions.push(
+        Prisma.sql`t."occurredOn" <= ${query.endDate}::date`,
+      );
+    }
+  }
+
+  return Prisma.join(conditions, " AND ");
+}
+
 export const transactionRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/transactions",
@@ -147,47 +288,78 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Authentication required." });
       }
 
-      const parsedQuery = transactionsPaginationQuerySchema.safeParse(
+      const parsedQuery = transactionListQuerySchema.safeParse(
         request.query,
       );
 
       if (!parsedQuery.success) {
-        return reply.code(400).send({ error: "Invalid pagination query." });
+        return reply.code(400).send({
+          error: "Invalid transaction filters.",
+          issues: parsedQuery.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
       }
 
-      const { limit, offset } = parsedQuery.data;
-      const transactions = await db.$queryRaw<TransactionWithCategoryRow[]>(
-        Prisma.sql`
-        SELECT
-          t."id" AS "id",
-          t."userId" AS "userId",
-          t."type" AS "type",
-          t."categoryId" AS "categoryId",
-          t."amountCents" AS "amountCents",
-          t."description" AS "description",
-          t."occurredOn" AS "occurredOn",
-          t."createdAt" AS "createdAt",
-          c."name" AS "categoryName",
-          c."type" AS "categoryType"
-        FROM "Transaction" t
-        INNER JOIN "Category" c ON c."id" = t."categoryId"
-        WHERE t."userId" = ${userId}
-        ORDER BY t."occurredOn" DESC, t."createdAt" DESC, t."id" DESC
-        LIMIT ${limit + 1}
-        OFFSET ${offset}
-      `,
-      );
-      const paginatedTransactions = getPaginatedResponse(
-        transactions,
-        limit,
-        offset,
-      );
+      const query = parsedQuery.data;
+      const { limit, offset } = query;
+      const where = getTransactionListWhere(userId, query);
+      const [transactions, accountMetadata] = await Promise.all([
+        db.$queryRaw<TransactionWithCategoryRow[]>(
+          Prisma.sql`
+            SELECT
+              t."id" AS "id",
+              t."userId" AS "userId",
+              t."type" AS "type",
+              t."categoryId" AS "categoryId",
+              t."amountCents" AS "amountCents",
+              t."description" AS "description",
+              t."occurredOn" AS "occurredOn",
+              t."createdAt" AS "createdAt",
+              c."name" AS "categoryName",
+              c."type" AS "categoryType",
+              COUNT(*) OVER()::bigint AS "totalCount"
+            FROM "Transaction" t
+            INNER JOIN "Category" c ON c."id" = t."categoryId"
+            WHERE ${where}
+            ORDER BY t."occurredOn" DESC, t."createdAt" DESC, t."id" DESC
+            LIMIT ${limit}
+            OFFSET ${offset}
+          `,
+        ),
+        offset === 0
+          ? db.transaction.aggregate({
+              where: { userId },
+              _count: { _all: true },
+              _min: { occurredOn: true },
+            })
+          : Promise.resolve(null),
+      ]);
+      const total = Number(transactions[0]?.totalCount ?? 0n);
+      const nextOffset =
+        offset + transactions.length < total
+          ? offset + transactions.length
+          : null;
 
       return reply.send({
-        transactions: paginatedTransactions.items
+        transactions: transactions
           .map(toTransactionWithCategory)
           .map(toTransactionResponse),
-        pagination: paginatedTransactions.pagination,
+        pagination: {
+          limit,
+          offset,
+          nextOffset,
+          total,
+        },
+        metadata: accountMetadata
+          ? {
+              accountTransactionCount: accountMetadata._count._all,
+              minimumDate: accountMetadata._min.occurredOn
+                ? formatDateOnly(accountMetadata._min.occurredOn)
+                : null,
+            }
+          : null,
       });
     },
   );

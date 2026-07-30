@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { TimerOff } from "lucide-react";
 
 import { lockAppHorizontalNavigation } from "./app-navigation-guard";
+import { observeAppDataLifecycle } from "../cache/app-data-lifecycle";
+import { clearAuthenticatedData } from "../cache/financial-cache";
+import { prefetchScheduler } from "../cache/prefetch-scheduler";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
 import type { AccessRequestInput } from "../features/access-request/access-request-validation";
@@ -19,8 +22,6 @@ import {
   type GoogleAccountDeletionFeedback
 } from "../features/home/HomePage";
 import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPage";
-import { clearStatisticsCache } from "../features/statistics/statistics-api";
-import { clearTransactionsCache } from "../features/transactions/transaction-api";
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
 type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
@@ -43,11 +44,13 @@ export function App() {
   const [isLogoutTransitionActive, setIsLogoutTransitionActive] =
     useState(false);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const [dataSessionVersion, setDataSessionVersion] = useState(0);
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
   const logoutTransitionActiveRef = useRef(false);
   const logoutTransitionTimerRef = useRef<number | null>(null);
   const openSessionExpiredDialog = useCallback(() => {
+    prefetchScheduler.clear();
     setIsSessionExpired(true);
   }, []);
 
@@ -160,6 +163,14 @@ export function App() {
   useEffect(() => lockAppHorizontalNavigation(), []);
 
   useEffect(
+    () =>
+      observeAppDataLifecycle(() => {
+        setDataSessionVersion((version) => version + 1);
+      }),
+    []
+  );
+
+  useEffect(
     () => () => {
       if (logoutTransitionTimerRef.current !== null) {
         window.clearTimeout(logoutTransitionTimerRef.current);
@@ -203,6 +214,7 @@ export function App() {
       throw new Error("Unable to load your account.");
     }
 
+    clearAuthenticatedData();
     setSessionUser(user);
     setSessionStatus("authenticated");
   }
@@ -236,8 +248,7 @@ export function App() {
   }
 
   function returnToAnonymousLanding() {
-    clearStatisticsCache();
-    clearTransactionsCache();
+    clearAuthenticatedData();
     setIsSessionExpired(false);
     setSessionUser(null);
     setLoginEmail("");
@@ -316,6 +327,7 @@ export function App() {
           }}
         >
           <HomePage
+            key={`${sessionUser.id}:${dataSessionVersion}`}
             user={sessionUser}
             onProfileUpdated={setSessionUser}
             onLogout={handleLogout}

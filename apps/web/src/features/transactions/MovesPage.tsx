@@ -6,8 +6,17 @@ import {
   useRef,
   useState
 } from "react";
+import {
+  keepPreviousData,
+  useInfiniteQuery
+} from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+import {
+  cancelTransactionDetailPrefetches,
+  scheduleTransactionDetailPrefetches
+} from "../../cache/financial-prefetch";
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import {
   getTodayDateOnly,
   parseLocalDateOnly
@@ -21,40 +30,52 @@ import {
 import {
   countActiveMovesFilters,
   createEmptyMovesFilters,
-  getActiveCategoryIds,
   type MovesFilters
 } from "./moves-filters";
 import {
-  getTransactions,
+  createTransactionListRequest,
+  transactionsQueryOptions,
   TransactionApiError,
-  type TransactionPreview,
-  type TransactionListItem
+  type TransactionPreview
 } from "./transaction-api";
 import { FirstTransactionEmptyState } from "./FirstTransactionEmptyState";
 
-const PAGE_SIZE = 12;
 const FILTER_PANEL_ID = "moves-filter-panel";
 
 type MovesLoadingState = "loading" | "ready" | "error";
 
 type MovesPageProps = {
   userId: string;
-  refreshKey: number;
-  initialFilters: MovesFilters;
+  initialState: MovesPageState;
+  onStateChange: (state: MovesPageState) => void;
   onNewTransaction: () => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
 
-function getMonthKey(value: string) {
-  return value.slice(0, 7);
+export type MovesPageState = {
+  searchQuery: string;
+  filters: MovesFilters;
+  scrollTop: number;
+  isFilterPanelOpen: boolean;
+};
+
+export function createInitialMovesPageState(
+  filters = createEmptyMovesFilters()
+): MovesPageState {
+  return {
+    searchQuery: "",
+    filters: {
+      ...filters,
+      selectedCategoryIds: [...filters.selectedCategoryIds]
+    },
+    scrollTop: 0,
+    isFilterPanelOpen: countActiveMovesFilters(filters) > 0
+  };
 }
 
-function parseAmountCents(value: string | number) {
-  const amount =
-    typeof value === "number" ? value : Number(value.replace(",", "."));
-
-  return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+function getMonthKey(value: string) {
+  return value.slice(0, 7);
 }
 
 function formatMonthLabel(value: string) {
@@ -80,179 +101,162 @@ function getResultLabel(count: number, isSearching: boolean) {
 
 export function MovesPage({
   userId,
-  refreshKey,
-  initialFilters,
+  initialState,
+  onStateChange,
   onNewTransaction,
   onTransactionSelect,
   onSessionExpired
 }: MovesPageProps) {
-  const [transactions, setTransactions] = useState<TransactionListItem[]>([]);
-  const [loadingState, setLoadingState] =
-    useState<MovesLoadingState>("loading");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [searchQuery, setSearchQuery] = useState(
+    initialState.searchQuery
+  );
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(
+    initialState.searchQuery
+  );
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
-    () => countActiveMovesFilters(initialFilters) > 0
+    initialState.isFilterPanelOpen
   );
   const [initialFilterEditor, setInitialFilterEditor] =
     useState<MovesFilterEditor | null>(null);
   const [appliedFilters, setAppliedFilters] = useState<MovesFilters>(
     () => ({
-      ...initialFilters,
-      selectedCategoryIds: [...initialFilters.selectedCategoryIds]
+      ...initialState.filters,
+      selectedCategoryIds: [...initialState.filters.selectedCategoryIds]
     })
   );
   const scrollContainer = useRef<HTMLElement>(null);
   const loadMoreSentinel = useRef<HTMLDivElement>(null);
-  const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+  const persistedState = useRef(initialState);
   const activeFilterCount = countActiveMovesFilters(appliedFilters);
-  const minimumTransactionDate = useMemo(
+  const transactionRequest = useMemo(
     () =>
-      transactions.reduce<string | null>(
-        (minimumDate, transaction) =>
-          minimumDate === null || transaction.date < minimumDate
-            ? transaction.date
-            : minimumDate,
-        null
-      ) ?? getTodayDateOnly(),
-    [transactions]
+      createTransactionListRequest(
+        debouncedSearchQuery,
+        appliedFilters
+      ),
+    [appliedFilters, debouncedSearchQuery]
   );
-  const filteredTransactions = useMemo(() => {
-    const categoryIds = new Set(getActiveCategoryIds(appliedFilters));
-    const exactAmountCents = parseAmountCents(appliedFilters.exactAmount);
-    const minimumAmountCents = parseAmountCents(appliedFilters.minimumAmount);
-    const maximumAmountCents = parseAmountCents(appliedFilters.maximumAmount);
+  const transactionsQuery = useInfiniteQuery({
+    ...transactionsQueryOptions(userId, transactionRequest),
+    placeholderData: keepPreviousData
+  });
+  const transactions = useMemo(
+    () =>
+      transactionsQuery.data?.pages.flatMap(
+        (page) => page.transactions
+      ) ?? [],
+    [transactionsQuery.data]
+  );
+  const firstPage = transactionsQuery.data?.pages[0];
+  const lastPage =
+    transactionsQuery.data?.pages[
+      transactionsQuery.data.pages.length - 1
+    ];
+  const totalResults = firstPage?.pagination.total ?? 0;
+  const accountTransactionCount =
+    firstPage?.metadata?.accountTransactionCount ?? 0;
+  const minimumTransactionDate =
+    firstPage?.metadata?.minimumDate ?? getTodayDateOnly();
+  const loadingState: MovesLoadingState = transactionsQuery.isPending
+    ? "loading"
+    : transactionsQuery.isError
+      ? "error"
+      : "ready";
+  const normalizedQuery = debouncedSearchQuery
+    .trim()
+    .toLocaleLowerCase();
+  const hasMore = transactionsQuery.hasNextPage;
 
-    return transactions.filter((transaction) => {
-      if (
-        normalizedQuery &&
-        !transaction.description.toLocaleLowerCase().includes(normalizedQuery)
-      ) {
-        return false;
-      }
-
-      if (
-        appliedFilters.type !== "ALL" &&
-        transaction.type !== appliedFilters.type
-      ) {
-        return false;
-      }
-
-      if (categoryIds.size > 0 && !categoryIds.has(transaction.categoryId)) {
-        return false;
-      }
-
-      const transactionAmountCents = parseAmountCents(transaction.amount);
-
-      if (transactionAmountCents === null) {
-        return false;
-      }
-
-      if (
-        appliedFilters.amountMode === "EXACT" &&
-        appliedFilters.exactAmount.length > 0 &&
-        transactionAmountCents !== exactAmountCents
-      ) {
-        return false;
-      }
-
-      if (appliedFilters.amountMode === "RANGE") {
-        if (
-          appliedFilters.minimumAmount.length > 0 &&
-          minimumAmountCents !== null &&
-          transactionAmountCents < minimumAmountCents
-        ) {
-          return false;
-        }
-
-        if (
-          appliedFilters.maximumAmount.length > 0 &&
-          maximumAmountCents !== null &&
-          transactionAmountCents > maximumAmountCents
-        ) {
-          return false;
-        }
-      }
-
-      if (
-        appliedFilters.dateMode === "EXACT" &&
-        appliedFilters.exactDate &&
-        transaction.date !== appliedFilters.exactDate
-      ) {
-        return false;
-      }
-
-      if (appliedFilters.dateMode === "RANGE") {
-        if (
-          appliedFilters.startDate &&
-          transaction.date < appliedFilters.startDate
-        ) {
-          return false;
-        }
-
-        if (
-          appliedFilters.endDate &&
-          transaction.date > appliedFilters.endDate
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    });
-  }, [appliedFilters, normalizedQuery, transactions]);
-  const visibleTransactions = filteredTransactions.slice(0, visibleCount);
-  const hasMore = visibleTransactions.length < filteredTransactions.length;
+  persistedState.current = {
+    searchQuery,
+    filters: {
+      ...appliedFilters,
+      selectedCategoryIds: [...appliedFilters.selectedCategoryIds]
+    },
+    scrollTop: scrollContainer.current?.scrollTop ?? initialState.scrollTop,
+    isFilterPanelOpen
+  };
 
   useLayoutEffect(() => {
     const root = scrollContainer.current;
 
     if (root) {
-      root.scrollTop = 0;
+      root.scrollTop = initialState.scrollTop;
     }
-  }, []);
+  }, [initialState.scrollTop]);
+
+  useEffect(
+    () => () => {
+      onStateChange({
+        ...persistedState.current,
+        scrollTop:
+          scrollContainer.current?.scrollTop ??
+          persistedState.current.scrollTop
+      });
+    },
+    [onStateChange]
+  );
 
   useEffect(() => {
-    const controller = new AbortController();
-    setLoadingState("loading");
+    const timer = window.setTimeout(() => {
+      prefetchScheduler.prioritizeUserRequest();
+      setDebouncedSearchQuery(searchQuery);
+    }, 250);
 
-    getTransactions(userId, controller.signal)
-      .then((loadedTransactions) => {
-        setTransactions(loadedTransactions);
-        setLoadingState("ready");
-      })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
-        setLoadingState("error");
+  useEffect(() => {
+    if (
+      transactionsQuery.error instanceof TransactionApiError &&
+      transactionsQuery.error.status === 401
+    ) {
+      onSessionExpired();
+    }
+  }, [onSessionExpired, transactionsQuery.error]);
 
-        if (error instanceof TransactionApiError && error.status === 401) {
-          onSessionExpired();
-        }
-      });
+  useEffect(() => {
+    cancelTransactionDetailPrefetches();
 
-    return () => controller.abort();
-  }, [onSessionExpired, refreshKey, userId]);
+    return cancelTransactionDetailPrefetches;
+  }, [transactionRequest, userId]);
+
+  useEffect(() => {
+    if (!firstPage) {
+      return;
+    }
+
+    const detailCandidates = [
+      ...firstPage.transactions.slice(0, 3),
+      ...(lastPage === firstPage
+        ? []
+        : (lastPage?.transactions.slice(0, 2) ?? []))
+    ];
+    const transactionIds = [
+      ...new Set(detailCandidates.map((transaction) => transaction.id))
+    ].slice(0, 5);
+
+    scheduleTransactionDetailPrefetches(userId, transactionIds);
+  }, [firstPage, lastPage, userId]);
 
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
-    setVisibleCount(PAGE_SIZE);
     scrollContainer.current?.scrollTo({ top: 0 });
   }
 
   function applyFilters(filters: MovesFilters) {
+    prefetchScheduler.prioritizeUserRequest();
+    cancelTransactionDetailPrefetches();
     setAppliedFilters(filters);
-    setVisibleCount(PAGE_SIZE);
     setIsFilterPanelOpen(false);
     setInitialFilterEditor(null);
     scrollContainer.current?.scrollTo({ top: 0 });
   }
 
   function clearFilters() {
+    prefetchScheduler.prioritizeUserRequest();
+    cancelTransactionDetailPrefetches();
     setAppliedFilters(createEmptyMovesFilters());
-    setVisibleCount(PAGE_SIZE);
     scrollContainer.current?.scrollTo({ top: 0 });
   }
 
@@ -279,9 +283,10 @@ export function MovesPage({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          setVisibleCount((current) =>
-            Math.min(current + PAGE_SIZE, filteredTransactions.length)
-          );
+          if (!transactionsQuery.isFetching) {
+            prefetchScheduler.prioritizeUserRequest();
+            void transactionsQuery.fetchNextPage();
+          }
         }
       },
       {
@@ -292,7 +297,12 @@ export function MovesPage({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [filteredTransactions.length, hasMore, visibleCount]);
+  }, [
+    hasMore,
+    transactions.length,
+    transactionsQuery.fetchNextPage,
+    transactionsQuery.isFetching
+  ]);
 
   if (loadingState === "loading") {
     return (
@@ -310,7 +320,7 @@ export function MovesPage({
     );
   }
 
-  if (loadingState === "ready" && transactions.length === 0) {
+  if (loadingState === "ready" && accountTransactionCount === 0) {
     return (
       <section
         ref={scrollContainer}
@@ -342,7 +352,7 @@ export function MovesPage({
           <h1 id="moves-page-title">Transactions</h1>
           <p aria-live="polite">
             {getResultLabel(
-              filteredTransactions.length,
+              totalResults,
               normalizedQuery.length > 0 || activeFilterCount > 0
             )}
           </p>
@@ -415,10 +425,10 @@ export function MovesPage({
           />
         ) : null}
 
-        {loadingState === "ready" && visibleTransactions.length > 0 ? (
+        {loadingState === "ready" && transactions.length > 0 ? (
           <ul className="moves-transaction-list" aria-label="Transaction history">
-            {visibleTransactions.map((transaction, index) => {
-              const previousTransaction = visibleTransactions[index - 1];
+            {transactions.map((transaction, index) => {
+              const previousTransaction = transactions[index - 1];
               const startsNewMonth =
                 !previousTransaction ||
                 getMonthKey(previousTransaction.date) !==

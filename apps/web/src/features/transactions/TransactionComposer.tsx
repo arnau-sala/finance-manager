@@ -8,6 +8,7 @@ import {
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { type TransactionType } from "./category-catalog";
 import {
@@ -323,6 +324,7 @@ export function TransactionComposer({
     setInvalidFields({});
     setFormError(null);
     setIsSubmitting(true);
+    prefetchScheduler.prioritizeUserRequest();
 
     try {
       if (transaction) {
