@@ -11,7 +11,6 @@ import { lockAppHorizontalNavigation } from "./app-navigation-guard";
 import { observeAppDataLifecycle } from "../cache/app-data-lifecycle";
 import { clearAuthenticatedData } from "../cache/financial-cache";
 import { prefetchScheduler } from "../cache/prefetch-scheduler";
-import { AppSplashScreen } from "../components/brand/AppSplashScreen";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
 import type { AccessRequestInput } from "../features/access-request/access-request-validation";
@@ -32,7 +31,11 @@ import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPag
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
 type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
-type StartupTransitionState = "covered" | "exiting" | "complete";
+type StartupTransitionState =
+  | "covered"
+  | "exiting"
+  | "revealing"
+  | "complete";
 
 export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
@@ -55,7 +58,7 @@ export function App() {
   const [dataSessionVersion, setDataSessionVersion] = useState(0);
   const [startupTransitionState, setStartupTransitionState] =
     useState<StartupTransitionState>("covered");
-  const [isBrandIconReady, setIsBrandIconReady] = useState(false);
+  const [isLandingBrandIconReady, setIsLandingBrandIconReady] = useState(false);
   const [isLandingTypographyReady, setIsLandingTypographyReady] =
     useState(false);
   const [isInitialHomeReady, setIsInitialHomeReady] = useState(false);
@@ -69,9 +72,6 @@ export function App() {
   }, []);
   const markInitialHomeReady = useCallback(() => {
     setIsInitialHomeReady(true);
-  }, []);
-  const markBrandIconReady = useCallback(() => {
-    setIsBrandIconReady(true);
   }, []);
 
   if (initialGoogleAuthRef.current === undefined) {
@@ -183,6 +183,24 @@ export function App() {
   useEffect(() => lockAppHorizontalNavigation(), []);
 
   useEffect(() => {
+    const logo = new Image();
+    const markReady = () => setIsLandingBrandIconReady(true);
+
+    logo.addEventListener("load", markReady, { once: true });
+    logo.addEventListener("error", markReady, { once: true });
+    logo.src = "/icons/app-icon-512.png";
+
+    if (logo.complete) {
+      markReady();
+    }
+
+    return () => {
+      logo.removeEventListener("load", markReady);
+      logo.removeEventListener("error", markReady);
+    };
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
 
     Promise.all([
@@ -224,7 +242,7 @@ export function App() {
 
   const isStartupDestinationReady =
     (sessionStatus === "anonymous" &&
-      isBrandIconReady &&
+      isLandingBrandIconReady &&
       isLandingTypographyReady) ||
     (sessionStatus === "authenticated" &&
       sessionUser !== null &&
@@ -254,9 +272,47 @@ export function App() {
       return;
     }
 
+    const splash = document.getElementById("app-startup-splash");
+    let hasCompleted = false;
+    const completeSplashExit = () => {
+      if (hasCompleted) {
+        return;
+      }
+
+      hasCompleted = true;
+      splash?.remove();
+      setStartupTransitionState("revealing");
+    };
+    const handleAnimationEnd = (event: AnimationEvent) => {
+      if (
+        event.target === splash &&
+        event.animationName === "app-splash-exit"
+      ) {
+        completeSplashExit();
+      }
+    };
+
+    splash?.classList.add("app-splash--exiting");
+    splash?.addEventListener("animationend", handleAnimationEnd);
+
+    const fallbackTimer = window.setTimeout(() => {
+      completeSplashExit();
+    }, 350);
+
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      splash?.removeEventListener("animationend", handleAnimationEnd);
+    };
+  }, [startupTransitionState]);
+
+  useEffect(() => {
+    if (startupTransitionState !== "revealing") {
+      return;
+    }
+
     const fallbackTimer = window.setTimeout(() => {
       setStartupTransitionState("complete");
-    }, 500);
+    }, 300);
 
     return () => {
       window.clearTimeout(fallbackTimer);
@@ -348,32 +404,32 @@ export function App() {
     const isTransitionActive = startupTransitionState !== "complete";
 
     return (
-      <>
-        <div
-          className={`app-startup-content${
-            startupTransitionState === "exiting"
-              ? " app-startup-content--revealing"
+      <div
+        className={`app-startup-content${
+          startupTransitionState === "revealing"
+            ? " app-startup-content--revealing"
+            : startupTransitionState === "complete"
+              ? " app-startup-content--ready"
               : ""
-          }`}
-          aria-hidden={isTransitionActive}
-          inert={isTransitionActive}
-        >
-          {content}
-        </div>
-
-        {isTransitionActive ? (
-          <AppSplashScreen
-            exiting={startupTransitionState === "exiting"}
-            onExitComplete={() => setStartupTransitionState("complete")}
-            onLogoReady={markBrandIconReady}
-          />
-        ) : null}
-      </>
+        }`}
+        aria-hidden={isTransitionActive}
+        inert={isTransitionActive}
+        onAnimationEnd={(event) => {
+          if (
+            event.target === event.currentTarget &&
+            event.animationName === "app-startup-content-reveal"
+          ) {
+            setStartupTransitionState("complete");
+          }
+        }}
+      >
+        {content}
+      </div>
     );
   }
 
   if (sessionStatus === "checking") {
-    return <AppSplashScreen onLogoReady={markBrandIconReady} />;
+    return null;
   }
 
   if (

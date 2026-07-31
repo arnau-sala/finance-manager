@@ -93,8 +93,19 @@ App icon:
 - PWA manifest icons use generated `192x192px` and `512x512px` PNG files without transparency.
 - Browser tabs use a generated `32x32px` favicon PNG.
 - Icon URLs include a version query so replacing an icon can invalidate the aggressive iOS Web Clip cache.
-- For iPhone testing through VS Code port forwarding, only frontend port `5173` should be public. Ports `3001` and `5555` must remain private.
-- A private VS Code tunnel redirects iOS's unauthenticated icon request to GitHub sign-in, causing WebKit to generate a letter icon. Set port `5173` to `Port Visibility: Public` while testing installation.
+- Portrait iPhone launch screens live in `public/apple-startup` and are selected
+  through `apple-touch-startup-image` media queries, with the iPhone 15 image as
+  the generic fallback. These system-owned images use a white background and a
+  centered icon whose rendered size matches the first HTML frame for each DPR.
+  The following persistent HTML splash also contains only the icon. Before its
+  first paint, a critical inline script freezes the standalone viewport
+  compensation required to retain the native vertical position while WebKit
+  initializes. The pre-sized splash raster is embedded in the HTML so the first
+  web paint cannot precede its network request or decode. React controls the
+  exit of that same DOM element instead of replacing it with a second splash
+  component.
+- For iPhone testing through VS Code port forwarding, only the frontend port in use (`5173` for development or `5174` for production preview) should be public. Ports `3001` and `5555` must remain private.
+- A private VS Code tunnel redirects iOS's unauthenticated icon request to GitHub sign-in, causing WebKit to generate a letter icon. Set the active frontend port to `Port Visibility: Public` while testing installation.
 - Verify the public URL in a private Safari tab by opening `/apple-touch-icon.png`. It must return the PNG directly without a sign-in redirect, tunnel warning page, React fallback, or 404.
 
 Viewport and safe-area rules:
@@ -109,6 +120,14 @@ Viewport and safe-area rules:
   An anonymous launch waits for both the preloaded brand icon and the Inter
   weights used by the landing page before revealing it. This prevents missing
   artwork and late font swaps from moving the static entry layout.
+- The splash exits completely against the white app surface before the
+  destination is revealed. The two short blur phases are sequential, so the
+  splash logo and the destination logo are never composited together.
+- Visibility lifecycle events never reactivate the global splash. A live web
+  process therefore returns directly to its existing screen, including after a
+  short background interval. If iOS discards the process, its icon-only launch
+  surface hands off to the matching persistent HTML splash until the destination
+  is ready.
 - The mobile app is portrait-first. The web manifest declares `orientation: portrait`, and touch devices in landscape show `Landscape mode coming soon`.
 - Static screens, such as login and register, should fill exactly one viewport and avoid accidental body scroll.
 - Screens with real lists or long forms can scroll, but the scroll should belong to the screen content intentionally.
@@ -683,6 +702,10 @@ the installed web app pauses new prefetches; returning after three minutes
 clears private cached data and restarts at Home. Transaction changes, starting
 net worth changes, logout, account deletion, and session expiration use
 targeted invalidation or full authenticated-cache removal as appropriate.
+The three-minute threshold controls financial-data freshness only; it does not
+show the branded startup screen. That screen is reserved for full document
+loads and web-process reconstruction, whose timing is controlled by iOS rather
+than by an application timeout.
 
 The shared `components/charts/EChart.tsx` adapter initializes one modular
 ECharts instance, uses the SVG renderer, responds to container resizing, and
