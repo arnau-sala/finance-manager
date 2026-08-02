@@ -1056,7 +1056,7 @@ export function StatsPage({
       >
         <div className="stats-page stats-page--empty">
           <header className="stats-page__header">
-            <h1 id="stats-page-title">Stats</h1>
+            <h1 id="stats-page-title">Statistics</h1>
           </header>
 
           <FirstTransactionEmptyState
@@ -1075,7 +1075,7 @@ export function StatsPage({
     >
       <div className="stats-page">
         <header className="stats-page__header">
-          <h1 id="stats-page-title">Stats</h1>
+          <h1 id="stats-page-title">Statistics</h1>
 
           <SlidingSegmentedControl
             className="stats-view-toggle"
