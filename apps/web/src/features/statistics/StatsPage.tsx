@@ -741,7 +741,7 @@ function StatsOverviewContent({
             </span>
             <strong className={getValueTone(money.balance)}>
               {formatEuroAmount(money.balance, {
-                showSign: true,
+                showSign: money.balance !== 0,
                 fractionDigits: 0
               })}
             </strong>
