@@ -33,10 +33,12 @@ export function formatEuroAmount(
   value: number | string,
   { showSign = false, fractionDigits = 2 }: FormatEuroOptions = {}
 ) {
-  const amount = Number(value);
+  const normalizedValue =
+    typeof value === "string" ? value.trim() : value;
+  const amount = normalizedValue === "" ? Number.NaN : Number(normalizedValue);
 
   if (!Number.isFinite(amount)) {
-    return "--";
+    return "Amount unavailable";
   }
 
   const formatter =

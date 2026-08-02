@@ -1309,6 +1309,61 @@ body.anchored-picker-open .home-content--moves {
   padding: 2px 0 calc(80px + env(safe-area-inset-bottom));
 }
 
+.home-overview--error {
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.home-overview-error {
+  min-height: 280px;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  align-self: stretch;
+  gap: 7px;
+  padding: 30px 20px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.home-overview-error h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.home-overview-error p {
+  margin: 0 0 7px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 400;
+}
+
+.home-overview-error button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 13px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font: inherit;
+}
+
+.home-overview-error button svg {
+  width: 15px;
+  height: 15px;
+}
+
+.home-overview-error button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .home-overview__header > p {
   margin: 0 0 5px;
   color: var(--color-text-muted);

@@ -4,9 +4,11 @@ import {
   CalendarDays,
   ChevronRight,
   Plus,
+  RefreshCw,
   Scale
 } from "lucide-react";
 
+import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
@@ -195,22 +197,54 @@ export function HomeOverviewPage({
     : overviewQuery.isError
       ? "error"
       : "ready";
-  const isReady = loadingState === "ready" && overview !== null;
-  const latestMoves = isReady ? overview.latestMoves : [];
-  const hasStartingNetWorth =
-    isReady && overview.balance.currentNetWorth !== null;
-  const TopExpenseIcon = getCategoryIcon(
-    isReady ? overview.activity.topExpenseCategory?.id : undefined,
-    "EXPENSE"
-  );
-  const TopIncomeIcon = getCategoryIcon(
-    isReady ? overview.activity.topIncomeCategory?.id : undefined,
-    "INCOME"
-  );
 
   if (loadingState === "loading") {
     return <HomeOverviewSkeleton />;
   }
+
+  if (loadingState === "error" || !overview) {
+    return (
+      <section
+        className="home-content home-content--overview"
+        aria-labelledby="home-overview-title"
+      >
+        <div className="home-overview home-overview--error">
+          <header className="home-overview__header">
+            <p>{formatCurrentDate()}</p>
+            <h1 id="home-overview-title">
+              {getGreeting()}, {getFirstName(user.name)}
+            </h1>
+          </header>
+
+          <div className="home-overview-error" role="alert">
+            <h2>We couldn't load your overview.</h2>
+            <p>Check your connection and try again.</p>
+            <button
+              type="button"
+              onClick={() => {
+                prefetchScheduler.prioritizeUserRequest();
+                void overviewQuery.refetch();
+              }}
+            >
+              <RefreshCw aria-hidden="true" />
+              Try again
+            </button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const latestMoves = overview.latestMoves;
+  const hasStartingNetWorth = overview.balance.currentNetWorth !== null;
+  const TopExpenseIcon = getCategoryIcon(
+    overview.activity.topExpenseCategory?.id,
+    "EXPENSE"
+  );
+  const TopIncomeIcon = getCategoryIcon(
+    overview.activity.topIncomeCategory?.id,
+    "INCOME"
+  );
 
   return (
     <section
@@ -233,12 +267,9 @@ export function HomeOverviewPage({
             </h2>
           </div>
           <p className="home-balance__amount">
-            {isReady
-              ? formatEuroAmount(
-                  overview.balance.currentNetWorth ??
-                    overview.balance.totalBalance
-                )
-              : "--"}
+            {formatEuroAmount(
+              overview.balance.currentNetWorth ?? overview.balance.totalBalance
+            )}
           </p>
         </section>
 
@@ -291,12 +322,7 @@ export function HomeOverviewPage({
                 />
               );
             })}
-            {loadingState === "error" ? (
-              <li className="home-move-list__status" role="status">
-                Unable to load movements.
-              </li>
-            ) : null}
-            {isReady && latestMoves.length === 0 ? (
+            {latestMoves.length === 0 ? (
               <li className="home-move-list__status">No movements yet.</li>
             ) : null}
           </ul>
@@ -311,12 +337,7 @@ export function HomeOverviewPage({
             <button
               className="home-activity__item"
               type="button"
-              disabled={!isReady}
               onClick={() => {
-                if (!isReady) {
-                  return;
-                }
-
                 onNavigateToMoves(
                   createCurrentMonthFilters(
                     overview.activity.month,
@@ -329,18 +350,16 @@ export function HomeOverviewPage({
               <span>
                 <small>Transactions</small>
                 <strong>
-                  {isReady
-                    ? formatMoveCount(overview.activity.transactionCount)
-                    : "--"}
+                  {formatMoveCount(overview.activity.transactionCount)}
                 </strong>
               </span>
             </button>
             <button
               className="home-activity__item home-activity__item--expense"
               type="button"
-              disabled={!isReady || !overview.activity.topExpenseCategory}
+              disabled={!overview.activity.topExpenseCategory}
               onClick={() => {
-                if (!isReady || !overview.activity.topExpenseCategory) {
+                if (!overview.activity.topExpenseCategory) {
                   return;
                 }
 
@@ -358,19 +377,16 @@ export function HomeOverviewPage({
               <span>
                 <small>Top expense</small>
                 <strong>
-                  {isReady
-                    ? (overview.activity.topExpenseCategory?.name ??
-                      "No expenses")
-                    : "--"}
+                  {overview.activity.topExpenseCategory?.name ?? "No expenses"}
                 </strong>
               </span>
             </button>
             <button
               className="home-activity__item home-activity__item--income"
               type="button"
-              disabled={!isReady || !overview.activity.topIncomeCategory}
+              disabled={!overview.activity.topIncomeCategory}
               onClick={() => {
-                if (!isReady || !overview.activity.topIncomeCategory) {
+                if (!overview.activity.topIncomeCategory) {
                   return;
                 }
 
@@ -388,9 +404,7 @@ export function HomeOverviewPage({
               <span>
                 <small>Top income</small>
                 <strong>
-                  {isReady
-                    ? (overview.activity.topIncomeCategory?.name ?? "No income")
-                    : "--"}
+                  {overview.activity.topIncomeCategory?.name ?? "No income"}
                 </strong>
               </span>
             </button>

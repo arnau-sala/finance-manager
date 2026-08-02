@@ -260,22 +260,11 @@ function formatDayCount(days: number) {
 function createExtremeInsight(
   id: string,
   label: string,
-  extreme: StatisticsOverview["insights"]["bestMonth"],
+  extreme: NonNullable<StatisticsOverview["insights"]["bestMonth"]>,
   icon: LucideIcon,
   tone: Exclude<InsightTone, "neutral">,
   period: "MONTH" | "YEAR"
 ): StatsInsight {
-  if (!extreme) {
-    return {
-      id,
-      label,
-      value: "--",
-      sideValue: "--",
-      icon,
-      tone: "neutral"
-    };
-  }
-
   return {
     id,
     label,
@@ -320,7 +309,7 @@ function createCollectionInsights(
       label: averageLabel,
       value:
         summary.averageSavingsPercentage === null
-          ? "Saved --"
+          ? "No income"
           : `Saved ${summary.averageSavingsPercentage}%`,
       sideValue: formatInsightAmount(summary.averageBalance, true),
       icon: Scale,
@@ -756,7 +745,7 @@ function StatsOverviewContent({
                 }
               >
                 {money.savingsPercentage === null
-                  ? "--"
+                  ? "No income"
                   : `${money.savingsPercentage}%`}
               </strong>
             </p>

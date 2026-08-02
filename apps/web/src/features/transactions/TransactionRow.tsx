@@ -16,10 +16,13 @@ function formatTransactionAmount(
   amount: TransactionRowData["amount"],
   type: TransactionType
 ) {
-  const numericAmount = Number(amount);
+  const normalizedAmount =
+    typeof amount === "string" ? amount.trim() : amount;
+  const numericAmount =
+    normalizedAmount === "" ? Number.NaN : Number(normalizedAmount);
 
   if (!Number.isFinite(numericAmount)) {
-    return "--";
+    return "Amount unavailable";
   }
 
   const signedAmount =
