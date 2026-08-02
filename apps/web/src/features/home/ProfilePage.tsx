@@ -1,4 +1,10 @@
-import { type FormEvent, type ReactNode, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState
+} from "react";
 import {
   CalendarDays,
   ChevronRight,
@@ -88,6 +94,9 @@ export function ProfilePage({
   googleAccountDeletionFeedback,
   onGoogleAccountDeletionFeedbackHandled
 }: ProfilePageProps) {
+  const profileScrollRef = useRef<HTMLElement>(null);
+  const profileContentRef = useRef<HTMLDivElement>(null);
+  const [isProfileScrollable, setIsProfileScrollable] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
@@ -150,6 +159,68 @@ export function ProfilePage({
     currentPassword.length > 0 &&
     newPassword.length > 0 &&
     newPasswordConfirmation.length > 0;
+
+  useLayoutEffect(() => {
+    const scrollContainer = profileScrollRef.current;
+    const content = profileContentRef.current;
+
+    if (!scrollContainer || !content) {
+      return;
+    }
+
+    const footerHitShield = document.querySelector<HTMLElement>(
+      ".home-footer-nav__hit-shield"
+    );
+    let animationFrame = 0;
+    const updateOverflow = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        const containerBounds = scrollContainer.getBoundingClientRect();
+        const footerBoundary =
+          footerHitShield?.getBoundingClientRect().top ??
+          containerBounds.bottom;
+        const availableHeight = Math.max(
+          0,
+          Math.min(containerBounds.bottom, footerBoundary) -
+            containerBounds.top
+        );
+        const bottomScrollClearance = Number.parseFloat(
+          window.getComputedStyle(content).paddingBottom
+        );
+        const contentHeight =
+          scrollContainer.scrollHeight -
+          (Number.isFinite(bottomScrollClearance)
+            ? bottomScrollClearance
+            : 0);
+        const nextIsScrollable =
+          contentHeight > availableHeight + 1;
+
+        setIsProfileScrollable((current) =>
+          current === nextIsScrollable ? current : nextIsScrollable
+        );
+
+        if (!nextIsScrollable) {
+          scrollContainer.scrollTop = 0;
+        }
+      });
+    };
+
+    updateOverflow();
+
+    const resizeObserver = new ResizeObserver(updateOverflow);
+    resizeObserver.observe(scrollContainer);
+    resizeObserver.observe(content);
+    if (footerHitShield) {
+      resizeObserver.observe(footerHitShield);
+    }
+    window.addEventListener("resize", updateOverflow);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", updateOverflow);
+    };
+  }, []);
 
   function closeLogoutDialog() {
     if (isLoggingOut) {
@@ -376,8 +447,14 @@ export function ProfilePage({
 
   return (
     <>
-      <section className="home-content home-content--profile" aria-label="Profile">
-        <div className="profile-page">
+      <section
+        ref={profileScrollRef}
+        className={`home-content home-content--profile${
+          isProfileScrollable ? " is-scrollable" : ""
+        }`}
+        aria-label="Profile"
+      >
+        <div ref={profileContentRef} className="profile-page">
           <section className="profile-section" aria-labelledby="profile-details-title">
             <h2 id="profile-details-title">Account details</h2>
 
