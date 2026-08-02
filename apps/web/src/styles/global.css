@@ -1195,6 +1195,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .home-main-layer {
+  --home-footer-height: 52px;
+  --home-footer-bottom: max(8px, calc(env(safe-area-inset-bottom) - 4px));
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -6145,9 +6147,9 @@ button.transaction-row__content:focus-visible {
   position: absolute;
   z-index: 20;
   right: max(30px, env(safe-area-inset-right));
-  bottom: max(8px, calc(env(safe-area-inset-bottom) - 4px));
+  bottom: var(--home-footer-bottom);
   left: max(30px, env(safe-area-inset-left));
-  height: 52px;
+  height: var(--home-footer-height);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6166,6 +6168,18 @@ button.transaction-row__content:focus-visible {
   box-shadow: var(--shadow-navigation);
   backdrop-filter: blur(18px) saturate(120%);
   -webkit-backdrop-filter: blur(18px) saturate(120%);
+}
+
+.home-footer-nav__hit-shield {
+  position: absolute;
+  z-index: 19;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: calc(var(--home-footer-height) + var(--home-footer-bottom));
+  background: transparent;
+  pointer-events: auto;
+  touch-action: none;
 }
 
 .home-footer-nav__item {
