@@ -3208,10 +3208,7 @@ button.transaction-row__content:focus-visible {
   gap: 5px;
 }
 
-.stats-money > h2,
-.stats-categories > h2,
-.stats-insights > h2,
-.stats-expenses__header h2 {
+.stats-overview-section__header h2 {
   margin: 0 0 7px;
   color: var(--color-text);
   font-size: 17px;
@@ -3219,14 +3216,14 @@ button.transaction-row__content:focus-visible {
   font-weight: 400;
 }
 
-.stats-expenses__header {
+.stats-overview-section__header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
 }
 
-.stats-expenses__header > span {
+.stats-overview-section__header > span {
   flex: 0 0 auto;
   margin-bottom: 7px;
   color: var(--color-text-muted);

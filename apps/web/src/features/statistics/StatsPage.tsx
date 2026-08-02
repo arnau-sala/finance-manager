@@ -167,7 +167,16 @@ function formatOverviewPeriodLabel(
     return `${monthName ?? period.key} ${year}`;
   }
 
-  return period.mode === "YEAR" ? period.key : "All";
+  if (period.mode === "YEAR") {
+    return period.key;
+  }
+
+  const firstMonth = period.startDate.slice(0, 7);
+  const lastMonth = period.endDate.slice(0, 7);
+
+  return firstMonth === lastMonth
+    ? formatMonthKey(firstMonth)
+    : `${formatMonthKey(firstMonth)} - ${formatMonthKey(lastMonth)}`;
 }
 
 function getMonthParts(month: string) {
@@ -714,11 +723,15 @@ function StatsOverviewContent({
   );
   const insightRows = createInsightRows(overview);
   const expenseItems = createExpenseItems(overview);
+  const periodLabel = formatOverviewPeriodLabel(overview.period);
 
   return (
     <div className="stats-sections">
       <section className="stats-money" aria-labelledby="stats-money-title">
-        <h2 id="stats-money-title">Money</h2>
+        <header className="stats-overview-section__header">
+          <h2 id="stats-money-title">Money</h2>
+          <span>{periodLabel}</span>
+        </header>
 
         <div className="stats-money__content">
           <div className="stats-money__balance">
@@ -778,7 +791,10 @@ function StatsOverviewContent({
         className="stats-categories"
         aria-labelledby="stats-categories-title"
       >
-        <h2 id="stats-categories-title">Categories</h2>
+        <header className="stats-overview-section__header">
+          <h2 id="stats-categories-title">Categories</h2>
+          <span>{periodLabel}</span>
+        </header>
 
         <SlidingSegmentedControl
           className="stats-category-type"
@@ -802,7 +818,10 @@ function StatsOverviewContent({
         className="stats-insights"
         aria-labelledby="stats-insights-title"
       >
-        <h2 id="stats-insights-title">Insights</h2>
+        <header className="stats-overview-section__header">
+          <h2 id="stats-insights-title">Insights</h2>
+          <span>{periodLabel}</span>
+        </header>
 
         <ul className="stats-insights__list">
           {insightRows.flat().map((insight) => (
@@ -820,9 +839,9 @@ function StatsOverviewContent({
           className="stats-expenses"
           aria-labelledby="stats-expenses-title"
         >
-          <header className="stats-expenses__header">
+          <header className="stats-overview-section__header">
             <h2 id="stats-expenses-title">Expenses</h2>
-            <span>{formatOverviewPeriodLabel(overview.period)}</span>
+            <span>{periodLabel}</span>
           </header>
 
           <ul className="stats-expenses__list">
