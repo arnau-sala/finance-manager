@@ -4346,7 +4346,6 @@ button.transaction-row__content:focus-visible {
   padding: 0;
   list-style: none;
   border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .moves-month-divider {
