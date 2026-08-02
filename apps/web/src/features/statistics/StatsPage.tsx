@@ -1189,9 +1189,9 @@ export function StatsPage({
           open={isMonthPickerOpen}
           anchorRef={monthPickerAnchorRef}
           value={selectedMonthKey}
-          availableMonths={availableMonths}
+          availableMonths={monthNavigationKeys}
           minimumMonth={availability?.minimumMonth ?? currentMonthKey}
-          maximumMonth={availability?.maximumMonth ?? currentMonthKey}
+          maximumMonth={currentMonthKey}
           onSelect={selectMonth}
           onClose={() => setIsMonthPickerOpen(false)}
         />

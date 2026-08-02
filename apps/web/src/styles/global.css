@@ -2233,7 +2233,8 @@ button.transaction-row__content:focus-visible {
   border-color: var(--color-primary-border);
 }
 
-.date-picker__day-grid > button.is-current:not(.is-selected) {
+.date-picker__day-grid
+  > button.is-current:not(.is-selected):not(.is-range-boundary) {
   color: var(--color-primary);
 }
 
