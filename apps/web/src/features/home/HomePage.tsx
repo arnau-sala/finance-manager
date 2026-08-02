@@ -25,6 +25,11 @@ import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 
 export type GoogleAccountDeletionFeedback = "mismatch" | "failed" | "cancelled";
+export type GoogleAccountLinkFeedback =
+  | "success"
+  | "mismatch"
+  | "failed"
+  | "cancelled";
 
 type HomePageProps = {
   user: SessionUser;
@@ -35,6 +40,8 @@ type HomePageProps = {
   onInitialContentReady: () => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
+  googleAccountLinkFeedback: GoogleAccountLinkFeedback | null;
+  onGoogleAccountLinkFeedbackHandled: () => void;
 };
 
 type HomeSectionProps = {
@@ -51,6 +58,8 @@ type HomeSectionProps = {
   onMovesViewStateChange: (state: MovesPageState) => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
+  googleAccountLinkFeedback: GoogleAccountLinkFeedback | null;
+  onGoogleAccountLinkFeedbackHandled: () => void;
 };
 
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
@@ -107,7 +116,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onLogout,
     onAccountDeleted,
     googleAccountDeletionFeedback,
-    onGoogleAccountDeletionFeedbackHandled
+    onGoogleAccountDeletionFeedbackHandled,
+    googleAccountLinkFeedback,
+    onGoogleAccountLinkFeedbackHandled
   }) => (
     <ProfilePage
       user={user}
@@ -117,6 +128,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       googleAccountDeletionFeedback={googleAccountDeletionFeedback}
       onGoogleAccountDeletionFeedbackHandled={
         onGoogleAccountDeletionFeedbackHandled
+      }
+      googleAccountLinkFeedback={googleAccountLinkFeedback}
+      onGoogleAccountLinkFeedbackHandled={
+        onGoogleAccountLinkFeedbackHandled
       }
     />
   )
@@ -130,10 +145,14 @@ export function HomePage({
   onSessionExpired,
   onInitialContentReady,
   googleAccountDeletionFeedback,
-  onGoogleAccountDeletionFeedbackHandled
+  onGoogleAccountDeletionFeedbackHandled,
+  googleAccountLinkFeedback,
+  onGoogleAccountLinkFeedbackHandled
 }: HomePageProps) {
   const [activeSection, setActiveSection] = useState<HomeSectionId>(
-    googleAccountDeletionFeedback ? "profile" : "home"
+    googleAccountDeletionFeedback || googleAccountLinkFeedback
+      ? "profile"
+      : "home"
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
@@ -213,7 +232,9 @@ export function HomePage({
           movesViewState,
           onMovesViewStateChange: setMovesViewState,
           googleAccountDeletionFeedback,
-          onGoogleAccountDeletionFeedbackHandled
+          onGoogleAccountDeletionFeedbackHandled,
+          googleAccountLinkFeedback,
+          onGoogleAccountLinkFeedbackHandled
         })}
 
         <HomeFooterNav

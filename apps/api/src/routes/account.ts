@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   toAuthenticatedUserResponse,
 } from "../auth/authenticated-user.js";
+import { supportsPasswordAuthentication } from "../auth/auth-provider.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
@@ -237,7 +238,10 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Authentication required." });
       }
 
-      if (user.authProvider !== "PASSWORD" || !user.passwordHash) {
+      if (
+        !supportsPasswordAuthentication(user.authProvider) ||
+        !user.passwordHash
+      ) {
         return reply.code(400).send({
           error: "Password changes are unavailable for Google accounts.",
         });
@@ -266,7 +270,6 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
           where: {
             id: user.id,
             status: "APPROVED",
-            authProvider: "PASSWORD",
             sessionVersion: user.sessionVersion,
           },
           data: {
@@ -328,7 +331,10 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Authentication required." });
       }
 
-      if (user.authProvider !== "PASSWORD" || !user.passwordHash) {
+      if (
+        !supportsPasswordAuthentication(user.authProvider) ||
+        !user.passwordHash
+      ) {
         return reply.code(400).send({
           error: "Password confirmation is unavailable for Google accounts.",
         });

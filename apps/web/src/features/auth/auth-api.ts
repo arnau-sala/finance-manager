@@ -14,7 +14,7 @@ type ApiErrorResponse = {
   retryAfter?: string;
 };
 
-type GoogleAccountDeletionStartResponse = {
+type GoogleAuthorizationStartResponse = {
   authorizationUrl: string;
 };
 
@@ -51,7 +51,7 @@ export type SessionUser = {
   id: string;
   email: string;
   name: string;
-  authProvider: "PASSWORD" | "GOOGLE";
+  authProvider: "PASSWORD" | "GOOGLE" | "PASSWORD_AND_GOOGLE";
   role: "USER" | "ADMIN";
   status: "APPROVED" | "SUSPENDED";
   startingNetWorth: string | null;
@@ -204,10 +204,32 @@ export async function startGoogleAccountDeletion() {
     );
   }
 
-  const body = (await response.json()) as GoogleAccountDeletionStartResponse;
+  const body = (await response.json()) as GoogleAuthorizationStartResponse;
 
   if (!body.authorizationUrl) {
     throw new ApiRequestError("Unable to verify your Google account.", 500);
+  }
+
+  return body.authorizationUrl;
+}
+
+export async function startGoogleAccountLink() {
+  const response = await fetch("/api/account/google/link/start", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to link your Google account."
+    );
+  }
+
+  const body = (await response.json()) as GoogleAuthorizationStartResponse;
+
+  if (!body.authorizationUrl) {
+    throw new ApiRequestError("Unable to link your Google account.", 500);
   }
 
   return body.authorizationUrl;

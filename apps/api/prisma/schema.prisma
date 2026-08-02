@@ -20,6 +20,7 @@ enum UserStatus {
 enum AuthProvider {
   PASSWORD
   GOOGLE
+  PASSWORD_AND_GOOGLE
 }
 
 enum TransactionType {

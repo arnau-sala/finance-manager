@@ -45,7 +45,8 @@ Login security decisions:
 
 - Unknown emails, incorrect passwords, and suspended users return the same `401` response.
 - Unknown emails still run an Argon2id verification against a dummy hash to reduce timing differences.
-- Password login only accepts users whose `authProvider` is `PASSWORD`.
+- Password login only accepts users whose `authProvider` is `PASSWORD` or
+  `PASSWORD_AND_GOOGLE` and whose password hash exists.
 - Password hashes and user details are never returned by login.
 - Successful login regenerates the session and stores the user ID and current session version in the encrypted cookie.
 - Session cookies are encrypted, `HttpOnly`, `SameSite=Lax`, and limited to seven days.
@@ -77,7 +78,9 @@ Profile editing security decisions:
 
 Password change security decisions:
 
-- `PATCH /account/password` derives the account from the encrypted session and is unavailable to Google accounts.
+- `PATCH /account/password` derives the account from the encrypted session and
+  is available to password-only and password-and-Google accounts, but not
+  Google-only accounts.
 - The backend requires the current password, validates two matching new-password fields, and applies the same password policy as registration.
 - The new password must differ from the current password. Its Argon2id hash is calculated only after all validation and current-password verification succeeds.
 - A successful change increments `User.sessionVersion`, regenerates the current cookie with the new version, and invalidates every other session for that account.
@@ -89,9 +92,19 @@ Google sign-in security decisions:
 - The backend stores a random `state` value in the encrypted session and validates it on callback before exchanging the authorization code.
 - Google ID tokens are verified server-side with Google's official Node.js auth library and the configured client ID as audience.
 - The backend requires a verified Google email before using it.
-- Existing `GOOGLE` users can sign in only when Google's stable `sub` identifier matches the stored `googleSubject`.
+- Existing `GOOGLE` and `PASSWORD_AND_GOOGLE` users can sign in with Google only
+  when Google's stable `sub` identifier matches the stored `googleSubject`.
 - If an approved email has no user yet, Google sign-in creates a `GOOGLE` user with the verified profile name and without a password, then consumes the approval in the same transaction.
 - Password users are not silently converted to Google users.
+- `POST /account/google/link/start` requires an approved authenticated
+  password-only account and preserves its active session while Google presents
+  the account chooser.
+- Google linking has its own random, one-use OAuth `state`, separate from public
+  sign-in and account deletion. The callback requires the verified Google email
+  to equal the session email and rejects a `sub` already owned by another user.
+- Successful linking keeps the Argon2id password hash, stores `googleSubject`,
+  and changes the provider to `PASSWORD_AND_GOOGLE`; mismatch and failure paths
+  make no database changes.
 - Google identities that cannot log in directly are stored temporarily in the encrypted session and sent to a Google access-request form with a read-only verified email and an editable prefilled name.
 - `POST /access-requests/google` ignores email from the request body, reads it from the verified Google session context, validates the submitted name, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral persistence rules as the normal access-request endpoint.
 - Public Google access-request outcomes remain neutral: the frontend cannot distinguish registered, pending, approved, or newly created request states unless the result is an actual successful login for the Google account owner.
@@ -134,6 +147,7 @@ Current limits:
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
 | Profile editing | 30/15min | session/IP |
+| Google linking | 5/15min | session/IP |
 | Password changes | 5/15min | session/IP |
 | Account deletion | 5/15min | session/IP |
 | Access requests | 10/hour | IP + email |

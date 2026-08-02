@@ -3,6 +3,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
 import { publicUserSelect } from "../auth/authenticated-user.js";
+import { supportsPasswordAuthentication } from "../auth/auth-provider.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
@@ -163,7 +164,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       });
 
       const userCanUsePassword =
-        user?.authProvider === "PASSWORD" && Boolean(user.passwordHash);
+        user !== null &&
+        supportsPasswordAuthentication(user.authProvider) &&
+        Boolean(user.passwordHash);
       const passwordMatches = await verifyPassword(
         userCanUsePassword ? user.passwordHash! : dummyPasswordHash,
         password,

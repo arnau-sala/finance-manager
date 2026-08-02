@@ -52,6 +52,7 @@ Authentication:
 - `POST /account/onboarding/starting-net-worth`
 - `PATCH /account`
 - `PATCH /account/password`
+- `POST /account/google/link/start`
 - `DELETE /account`
 - `POST /account/google/delete/start`
 
@@ -338,6 +339,20 @@ GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 
 The Google Cloud OAuth client must include the exact `GOOGLE_REDIRECT_URI` as an authorized redirect URI.
 
+An authenticated password account can add Google as a second sign-in method:
+
+```http
+POST /account/google/link/start
+```
+
+The endpoint returns a Google authorization URL and preserves the active
+session. The shared callback accepts the link only when Google's verified email
+exactly matches the session account, the one-use link-specific OAuth `state` is
+valid, and the Google `sub` is not linked elsewhere. Success keeps the password
+hash, stores the Google subject, and changes `authProvider` to
+`PASSWORD_AND_GOOGLE`. Selecting another email returns to Profile without any
+database change and allows the user to retry with the required account email.
+
 ## Logout
 
 ```http
@@ -514,7 +529,8 @@ with `Profile updated successfully.` and the updated public user object.
 
 ## Change Password
 
-Only an authenticated `PASSWORD` account can change its password:
+Only an authenticated account with password access (`PASSWORD` or
+`PASSWORD_AND_GOOGLE`) can change its password:
 
 ```http
 PATCH /account/password
@@ -556,7 +572,7 @@ Content-Type: application/json
 }
 ```
 
-For `PASSWORD` accounts, an incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. Google accounts instead require fresh Google reauthentication, started from the browser with:
+For accounts with password access, including linked accounts, an incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. Google-only accounts instead require fresh Google reauthentication, started from the browser with:
 
 ```http
 POST /account/google/delete/start

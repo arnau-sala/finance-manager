@@ -89,9 +89,13 @@ Malformed submissions are rejected before database access and do not create even
 
 `ApprovedEmail` stores emails approved for registration. `approvedBy` stores the administrator user ID that authorized the email, without adding a relation field to `User`. A successful registration sets `usedAt` in the same transaction that creates the `User`, preventing one approval from being consumed twice.
 
-`User.authProvider` identifies whether the account signs in with `PASSWORD` or `GOOGLE`. MVP accounts use one provider only.
+`User.authProvider` records the available authentication methods:
+`PASSWORD`, `GOOGLE`, or `PASSWORD_AND_GOOGLE`. A linked account keeps both
+credentials and can use either sign-in flow.
 
-`User.passwordHash` stores an Argon2id hash, never the original password. It is required for `PASSWORD` users and null for `GOOGLE` users.
+`User.passwordHash` stores an Argon2id hash, never the original password. It is
+required for `PASSWORD` and `PASSWORD_AND_GOOGLE` users and null for
+Google-only users.
 
 `User.sessionVersion` starts at `1` and increments after a password change. Authenticated cookies carry the matching version, allowing the API to reject sessions created before a credentials change without storing individual sessions in PostgreSQL.
 
@@ -101,7 +105,9 @@ date. A null value means the initial setup has not been handled; Skip stores
 `0`. The number is editable and remains profile source data, not a synthetic
 income transaction.
 
-`User.googleSubject` stores Google's stable account identifier for `GOOGLE` users. It is unique and is used together with the verified Google ID token so sign-in does not rely only on a changeable email address.
+`User.googleSubject` stores Google's stable account identifier for `GOOGLE` and
+`PASSWORD_AND_GOOGLE` users. It is unique and is used with the verified Google
+ID token so sign-in does not rely only on a changeable email address.
 
 New password registrations require a name and explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email store Google's verified profile name and receive provider `GOOGLE`, no password hash, and the verified Google subject.
 

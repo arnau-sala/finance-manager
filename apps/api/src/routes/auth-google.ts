@@ -5,9 +5,11 @@ import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 
 import { deleteUserAccount } from "../account/delete-account.js";
+import { supportsGoogleAuthentication } from "../auth/auth-provider.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
+  accountLinkRateLimit,
   authGoogleRateLimit,
 } from "../security/rate-limit.js";
 
@@ -123,6 +125,15 @@ function getAccountDeletionRedirectUrl(
   return url.toString();
 }
 
+function getAccountLinkRedirectUrl(
+  config: Pick<GoogleOAuthConfig, "webAppUrl">,
+  result: string,
+) {
+  const url = new URL(config.webAppUrl);
+  url.searchParams.set("accountLink", result);
+  return url.toString();
+}
+
 function getAccessRequestContext(identity: GoogleIdentity) {
   return {
     email: identity.email,
@@ -163,7 +174,7 @@ async function handleGoogleIdentity(
 
     if (existingUser) {
       if (
-        existingUser.authProvider === "GOOGLE" &&
+        supportsGoogleAuthentication(existingUser.authProvider) &&
         existingUser.googleSubject === identity.googleSubject &&
         existingUser.status === "APPROVED"
       ) {
@@ -220,6 +231,69 @@ async function handleGoogleIdentity(
   });
 }
 
+type GoogleAccountLinkResult = "success" | "mismatch" | "failed";
+
+async function linkGoogleIdentityToUser(
+  identity: GoogleIdentity,
+  userId: string,
+  sessionVersion: number,
+): Promise<GoogleAccountLinkResult> {
+  return db.$transaction(async (transaction) => {
+    const user = await transaction.user.findUnique({
+      where: { id: userId, sessionVersion },
+      select: {
+        id: true,
+        email: true,
+        authProvider: true,
+        passwordHash: true,
+        googleSubject: true,
+        status: true,
+      },
+    });
+
+    if (!user || user.status !== "APPROVED") {
+      return "failed";
+    }
+
+    if (user.email !== identity.email) {
+      return "mismatch";
+    }
+
+    if (
+      user.authProvider !== "PASSWORD" ||
+      !user.passwordHash ||
+      user.googleSubject
+    ) {
+      return "failed";
+    }
+
+    const existingGoogleAccount = await transaction.user.findUnique({
+      where: { googleSubject: identity.googleSubject },
+      select: { id: true },
+    });
+
+    if (existingGoogleAccount && existingGoogleAccount.id !== user.id) {
+      return "failed";
+    }
+
+    const update = await transaction.user.updateMany({
+      where: {
+        id: user.id,
+        sessionVersion,
+        status: "APPROVED",
+        authProvider: "PASSWORD",
+        googleSubject: null,
+      },
+      data: {
+        authProvider: "PASSWORD_AND_GOOGLE",
+        googleSubject: identity.googleSubject,
+      },
+    });
+
+    return update.count === 1 ? "success" : "failed";
+  });
+}
+
 export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/auth/google/start",
@@ -244,6 +318,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("googleAccessRequestEmail", "");
       request.session.set("googleAccessRequestName", "");
       request.session.set("googleAccountDeletionState", "");
+      request.session.set("googleAccountLinkState", "");
       request.session.set("googleOAuthState", state);
 
       return reply.redirect(
@@ -296,7 +371,70 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const client = createGoogleClient(config);
 
       request.session.set("googleOAuthState", "");
+      request.session.set("googleAccountLinkState", "");
       request.session.set("googleAccountDeletionState", state);
+
+      return reply.send({
+        authorizationUrl: client.generateAuthUrl({
+          scope: ["openid", "email", "profile"],
+          state,
+          prompt: "select_account",
+        }),
+      });
+    },
+  );
+
+  app.post(
+    "/account/google/link/start",
+    { config: { rateLimit: accountLinkRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const config = getGoogleOAuthConfig();
+
+      if (!config) {
+        return reply.code(503).send({
+          error: "Google sign-in is not configured.",
+        });
+      }
+
+      const user = await db.user.findUnique({
+        where: { id: userId, sessionVersion },
+        select: {
+          authProvider: true,
+          passwordHash: true,
+          googleSubject: true,
+          status: true,
+        },
+      });
+
+      if (!user || user.status !== "APPROVED") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (
+        user.authProvider !== "PASSWORD" ||
+        !user.passwordHash ||
+        user.googleSubject
+      ) {
+        return reply.code(409).send({
+          error: "Google linking is unavailable for this account.",
+        });
+      }
+
+      const state = randomBytes(32).toString("hex");
+      const client = createGoogleClient(config);
+
+      request.session.set("googleOAuthState", "");
+      request.session.set("googleAccountDeletionState", "");
+      request.session.set("googleAccountLinkState", state);
 
       return reply.send({
         authorizationUrl: client.generateAuthUrl({
@@ -326,14 +464,21 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const parsedQuery = googleCallbackQuerySchema.safeParse(request.query);
       const failureRedirectUrl = getFrontendRedirectUrl(config, "failed");
       const deletionFailureUrl = getAccountDeletionRedirectUrl(config, "failed");
+      const linkFailureUrl = getAccountLinkRedirectUrl(config, "failed");
       const expectedDeletionState = request.session.get(
         "googleAccountDeletionState",
       );
+      const expectedLinkState = request.session.get("googleAccountLinkState");
 
       if (!parsedQuery.success) {
         if (expectedDeletionState) {
           request.session.set("googleAccountDeletionState", "");
           return reply.redirect(deletionFailureUrl);
+        }
+
+        if (expectedLinkState) {
+          request.session.set("googleAccountLinkState", "");
+          return reply.redirect(linkFailureUrl);
         }
 
         return reply.redirect(failureRedirectUrl);
@@ -346,6 +491,13 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
           request.session.set("googleAccountDeletionState", "");
           return reply.redirect(
             getAccountDeletionRedirectUrl(config, "cancelled"),
+          );
+        }
+
+        if (expectedLinkState) {
+          request.session.set("googleAccountLinkState", "");
+          return reply.redirect(
+            getAccountLinkRedirectUrl(config, "cancelled"),
           );
         }
 
@@ -420,6 +572,47 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
           );
         } catch {
           return reply.redirect(deletionFailureUrl);
+        }
+      }
+
+      if (expectedLinkState) {
+        request.session.set("googleAccountLinkState", "");
+
+        if (
+          !parsedQuery.data.code ||
+          !parsedQuery.data.state ||
+          parsedQuery.data.state !== expectedLinkState
+        ) {
+          return reply.redirect(linkFailureUrl);
+        }
+
+        try {
+          const client = createGoogleClient(config);
+          const identity = await getVerifiedGoogleIdentity(
+            client,
+            parsedQuery.data.code,
+            config.clientId,
+          );
+          const activeUserId = request.session.get("userId");
+          const activeSessionVersion = request.session.get("sessionVersion");
+
+          if (
+            !identity ||
+            !activeUserId ||
+            activeSessionVersion === undefined
+          ) {
+            return reply.redirect(linkFailureUrl);
+          }
+
+          const result = await linkGoogleIdentityToUser(
+            identity,
+            activeUserId,
+            activeSessionVersion,
+          );
+
+          return reply.redirect(getAccountLinkRedirectUrl(config, result));
+        } catch {
+          return reply.redirect(linkFailureUrl);
         }
       }
 

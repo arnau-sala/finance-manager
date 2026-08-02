@@ -33,6 +33,7 @@ import {
   ApiRequestError,
   changePassword,
   deleteAccount,
+  startGoogleAccountLink,
   startGoogleAccountDeletion,
   updateProfile,
   type UpdateProfileInput,
@@ -48,10 +49,18 @@ type ProfilePageProps = {
   onAccountDeleted: () => void;
   googleAccountDeletionFeedback: "mismatch" | "failed" | "cancelled" | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
+  googleAccountLinkFeedback:
+    | "success"
+    | "mismatch"
+    | "failed"
+    | "cancelled"
+    | null;
+  onGoogleAccountLinkFeedbackHandled: () => void;
 };
 
 type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
 type PasswordDialogMode = "form" | "success";
+type GoogleLinkDialogMode = "confirm" | "success" | "mismatch" | "failed";
 
 function formatCreationDate(value: string) {
   const date = new Date(value);
@@ -92,7 +101,9 @@ export function ProfilePage({
   onLogout,
   onAccountDeleted,
   googleAccountDeletionFeedback,
-  onGoogleAccountDeletionFeedbackHandled
+  onGoogleAccountDeletionFeedbackHandled,
+  googleAccountLinkFeedback,
+  onGoogleAccountLinkFeedbackHandled
 }: ProfilePageProps) {
   const profileScrollRef = useRef<HTMLElement>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
@@ -129,6 +140,14 @@ export function ProfilePage({
   const [passwordChangeError, setPasswordChangeError] = useState<string | null>(
     null
   );
+  const [googleLinkDialogMode, setGoogleLinkDialogMode] =
+    useState<GoogleLinkDialogMode | null>(
+      googleAccountLinkFeedback === "cancelled"
+        ? "confirm"
+        : googleAccountLinkFeedback
+    );
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
+  const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
   const parsedProfileName = validateUserName(profileName);
   const isProfileNameInputValid = parsedProfileName.success;
   const isProfileNameChanged =
@@ -445,6 +464,40 @@ export function ProfilePage({
     setIsDeletingAccount(false);
   }
 
+  function closeGoogleLinkDialog() {
+    if (isLinkingGoogle) return;
+    setGoogleLinkDialogMode(null);
+    setGoogleLinkError(null);
+    onGoogleAccountLinkFeedbackHandled();
+  }
+
+  async function confirmGoogleAccountLink() {
+    if (googleLinkDialogMode === "success") {
+      closeGoogleLinkDialog();
+      return;
+    }
+
+    if (isLinkingGoogle || user.authProvider !== "PASSWORD") {
+      return;
+    }
+
+    setGoogleLinkError(null);
+    setIsLinkingGoogle(true);
+    prefetchScheduler.prioritizeUserRequest();
+
+    try {
+      const authorizationUrl = await startGoogleAccountLink();
+      window.location.assign(authorizationUrl);
+    } catch (error) {
+      setGoogleLinkError(
+        error instanceof Error
+          ? error.message
+          : "Unable to link your Google account."
+      );
+      setIsLinkingGoogle(false);
+    }
+  }
+
   return (
     <>
       <section
@@ -519,17 +572,23 @@ export function ProfilePage({
                   setIsEditDialogOpen(true);
                 }}
               />
-              {user.authProvider === "PASSWORD" ? (
+              {user.authProvider !== "GOOGLE" ? (
                 <>
                   <ProfileActionButton
                     label="Change password"
                     icon={<KeyRound />}
                     onClick={openPasswordDialog}
                   />
-                  <ProfileActionButton
-                    label="Link Google account"
-                    icon={<GoogleIcon />}
-                  />
+                  {user.authProvider === "PASSWORD" ? (
+                    <ProfileActionButton
+                      label="Link Google account"
+                      icon={<GoogleIcon />}
+                      onClick={() => {
+                        setGoogleLinkError(null);
+                        setGoogleLinkDialogMode("confirm");
+                      }}
+                    />
+                  ) : null}
                 </>
               ) : null}
             </div>
@@ -711,6 +770,58 @@ export function ProfilePage({
       </ConfirmDialog>
 
       <ConfirmDialog
+        open={googleLinkDialogMode !== null}
+        title={
+          googleLinkDialogMode === "success"
+            ? "Google account linked"
+            : googleLinkDialogMode === "mismatch"
+              ? "Incorrect Google account"
+              : googleLinkDialogMode === "failed"
+                ? "Google account not linked"
+                : "Link Google account?"
+        }
+        description={
+          googleLinkDialogMode === "success"
+            ? "You can now sign in with your password or Google."
+            : googleLinkDialogMode === "mismatch"
+              ? `Nothing was linked. Choose ${user.email}, the email used by this account.`
+              : googleLinkDialogMode === "failed"
+                ? `We couldn't link Google. Try again and choose ${user.email}.`
+                : `Keep password access and add Google sign-in. Continue and choose ${user.email}.`
+        }
+        confirmLabel={
+          googleLinkDialogMode === "success"
+            ? "Done"
+            : googleLinkDialogMode === "confirm"
+              ? "Continue"
+              : "Try again"
+        }
+        confirmingLabel="Opening..."
+        initialFocus="dialog"
+        icon={
+          googleLinkDialogMode === "success" ? (
+            <CircleCheck />
+          ) : googleLinkDialogMode === "mismatch" ||
+            googleLinkDialogMode === "failed" ? (
+            <TriangleAlert />
+          ) : (
+            <GoogleIcon />
+          )
+        }
+        tone={
+          googleLinkDialogMode === "mismatch" ||
+          googleLinkDialogMode === "failed"
+            ? "warning"
+            : "default"
+        }
+        showCancel={googleLinkDialogMode !== "success"}
+        isConfirming={isLinkingGoogle}
+        error={googleLinkError}
+        onCancel={closeGoogleLinkDialog}
+        onConfirm={confirmGoogleAccountLink}
+      />
+
+      <ConfirmDialog
         open={isLogoutDialogOpen}
         title="Log out?"
         description="You'll need to sign in again."
@@ -772,14 +883,14 @@ export function ProfilePage({
         isConfirming={isDeletingAccount}
         confirmDisabled={
           deleteDialogMode === "confirm" &&
-          user.authProvider === "PASSWORD" &&
+          user.authProvider !== "GOOGLE" &&
           !deletePassword
         }
         error={deleteError}
         onCancel={closeDeleteDialog}
         onConfirm={confirmAccountDeletion}
       >
-        {user.authProvider === "PASSWORD" &&
+        {user.authProvider !== "GOOGLE" &&
         deleteDialogMode !== "rate-limited" ? (
           <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
             <label htmlFor="delete-account-password">Confirm your password</label>

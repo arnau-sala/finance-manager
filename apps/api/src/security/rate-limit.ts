@@ -76,6 +76,14 @@ export const accountWriteRateLimit = {
     getSessionOrIpKey(request, "account-write"),
 };
 
+export const accountLinkRateLimit = {
+  hook: "preHandler" as const,
+  max: 5,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "account-link"),
+};
+
 export const passwordChangeRateLimit = {
   hook: "preHandler" as const,
   max: 5,

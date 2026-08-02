@@ -9,6 +9,7 @@ declare module "@fastify/secure-session" {
     sessionVersion: number;
     googleOAuthState: string;
     googleAccountDeletionState: string;
+    googleAccountLinkState: string;
     googleAccessRequestEmail: string;
     googleAccessRequestName: string;
   }

@@ -755,6 +755,11 @@ MVP content:
 - Name and starting-net-worth editing through a focused modal; email remains
   read-only account data.
 - Password changes through a three-field modal for password accounts.
+- Password-only accounts can open a confirmation modal and add Google as a
+  second sign-in method. Google requires explicit account selection; success,
+  email mismatch, cancellation, and failure return directly to Profile with
+  focused feedback. The mismatch dialog identifies the required session email
+  and offers a retry.
 - Confirmed logout.
 - Irreversible account deletion confirmed by password or fresh Google account selection.
 
