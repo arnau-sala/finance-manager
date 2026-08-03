@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Eye, EyeOff, RefreshCw } from "lucide-react";
+import {
+  ChevronLeft,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  TriangleAlert
+} from "lucide-react";
 
 import {
   generateAccountPassword,
@@ -8,6 +14,7 @@ import {
   isAccountPasswordComplete,
   type PasswordCharacterStatus
 } from "./password-assistance";
+import { validateEmail } from "./email-validation";
 import { getAccountPasswordRequirements } from "./password-validation";
 import { startRegistration } from "./registration-api";
 import {
@@ -177,8 +184,10 @@ export function CreateAccountPage({
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const emailValidation = validateEmail(email);
   const passwordRequirements = getAccountPasswordRequirements(password);
   const passwordStrength = getPasswordStrength(password);
   const characterStatuses = getPasswordCharacterStatuses(
@@ -189,6 +198,11 @@ export function CreateAccountPage({
     password.length > 0 && password === passwordConfirmation;
   const passwordPairComplete =
     passwordsMatch && isAccountPasswordComplete(password);
+  const canSubmitRegistration =
+    emailValidation.success &&
+    name.trim().length > 0 &&
+    passwordPairComplete &&
+    isAccountPasswordComplete(passwordConfirmation);
 
   function clearPasswordErrors() {
     setInvalidFields((current) => ({
@@ -222,6 +236,25 @@ export function CreateAccountPage({
     if (formError) {
       setFormError(null);
     }
+  }
+
+  function validateEmailField() {
+    if (email.trim().length === 0) {
+      setInvalidFields((current) => ({ ...current, email: false }));
+      setEmailError(null);
+      return;
+    }
+
+    const result = validateEmail(email);
+
+    if (result.success) {
+      setInvalidFields((current) => ({ ...current, email: false }));
+      setEmailError(null);
+      return;
+    }
+
+    setInvalidFields((current) => ({ ...current, email: true }));
+    setEmailError("Email is not valid");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -325,9 +358,25 @@ export function CreateAccountPage({
           onSubmit={handleSubmit}
         >
           <div className="auth-form-field">
-            <span id="register-email-label">Email address</span>
+            <div className="auth-register-field-heading">
+              <span id="register-email-label">Email address</span>
+              <p
+                id="register-email-error"
+                className="auth-register-field-error"
+                role="alert"
+                aria-live="polite"
+              >
+                {emailError ? (
+                  <>
+                    <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                    <span>{emailError}</span>
+                  </>
+                ) : null}
+              </p>
+            </div>
             <input
               id="register-email"
+              className="auth-warning-input"
               aria-labelledby="register-email-label"
               name="email"
               type="email"
@@ -340,11 +389,19 @@ export function CreateAccountPage({
               value={email}
               maxLength={254}
               aria-invalid={invalidFields.email === true}
-              aria-describedby={formError ? "register-form-error" : undefined}
+              aria-describedby={
+                emailError
+                  ? "register-email-error"
+                  : formError
+                    ? "register-form-error"
+                    : undefined
+              }
               onChange={(event) => {
                 setEmail(event.target.value);
+                setEmailError(null);
                 clearFieldError("email");
               }}
+              onBlur={validateEmailField}
             />
           </div>
 
@@ -456,7 +513,7 @@ export function CreateAccountPage({
           <button
             className="auth-primary-button auth-register-submit"
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !canSubmitRegistration}
           >
             {isSubmitting ? "Sending code..." : "Continue"}
           </button>

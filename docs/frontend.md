@@ -387,7 +387,8 @@ Fields:
 UX notes:
 
 - Show password requirements clearly.
-- Validate all fields locally before calling `POST /auth/register`.
+- Validate all fields locally before calling `POST /auth/register`. Validate
+  email format on blur and keep submission disabled until it is valid.
 - Move to code verification after the neutral `202` response.
 - Do not reveal whether the email already has an account.
 - Keep passwords only in the registration component while the request is being

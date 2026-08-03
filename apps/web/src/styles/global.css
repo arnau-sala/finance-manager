@@ -551,6 +551,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .auth-form-field > span,
+.auth-register-field-heading > span,
 .auth-password-field-heading > span {
   padding-left: 20px;
   color: var(--color-text-muted);
@@ -606,7 +607,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   box-shadow: none;
 }
 
-.auth-form-field input[aria-invalid="true"],
+.auth-form-field input[aria-invalid="true"]:not(.auth-warning-input),
 .auth-form-field textarea[aria-invalid="true"] {
   border-color: var(--color-danger);
   box-shadow: 0 0 0 4px var(--color-danger-soft);
@@ -810,6 +811,31 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-register-form .auth-form-field input {
   height: 50px;
   font-size: 14px;
+}
+
+.auth-register-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-register-field-error {
+  max-width: calc(100% - 40px);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 20px 0 0;
+  color: var(--color-warning);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.auth-register-field-error svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
 }
 
 .auth-register-form .auth-input-with-action button {
