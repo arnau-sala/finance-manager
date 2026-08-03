@@ -46,6 +46,24 @@ type PasswordFieldProps = {
 const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
 
+function revealTrailingCaret(
+  input: HTMLInputElement,
+  afterReveal?: () => void
+) {
+  window.requestAnimationFrame(() => {
+    if (
+      document.activeElement !== input ||
+      input.selectionStart !== input.value.length ||
+      input.selectionEnd !== input.value.length
+    ) {
+      return;
+    }
+
+    input.scrollLeft = input.scrollWidth;
+    afterReveal?.();
+  });
+}
+
 function PasswordField({
   id,
   label,
@@ -69,6 +87,10 @@ function PasswordField({
     if (inputRef.current && characterFeedbackRef.current) {
       characterFeedbackRef.current.scrollLeft = inputRef.current.scrollLeft;
     }
+  }
+
+  function handleCaretVisibility(event: React.SyntheticEvent<HTMLInputElement>) {
+    revealTrailingCaret(event.currentTarget, syncCharacterFeedbackScroll);
   }
 
   useEffect(() => {
@@ -133,6 +155,8 @@ function PasswordField({
           aria-invalid={invalid}
           aria-describedby={describedBy}
           onChange={(event) => onChange(event.target.value)}
+          onFocus={handleCaretVisibility}
+          onClick={handleCaretVisibility}
           onScroll={syncCharacterFeedbackScroll}
         />
         {showCharacterFeedback ? (
@@ -379,7 +403,7 @@ export function CreateAccountPage({
               className="auth-warning-input"
               aria-labelledby="register-email-label"
               name="email"
-              type="email"
+              type="text"
               inputMode="email"
               autoComplete="email"
               autoCapitalize="none"
@@ -401,6 +425,8 @@ export function CreateAccountPage({
                 setEmailError(null);
                 clearFieldError("email");
               }}
+              onFocus={(event) => revealTrailingCaret(event.currentTarget)}
+              onClick={(event) => revealTrailingCaret(event.currentTarget)}
               onBlur={validateEmailField}
             />
           </div>
@@ -422,6 +448,8 @@ export function CreateAccountPage({
                 setName(event.target.value);
                 clearFieldError("name");
               }}
+              onFocus={(event) => revealTrailingCaret(event.currentTarget)}
+              onClick={(event) => revealTrailingCaret(event.currentTarget)}
             />
           </div>
 
