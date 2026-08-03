@@ -9,7 +9,7 @@ export function validateLoginPassword(password: string) {
   return loginPasswordSchema.safeParse(password);
 }
 
-const accountPasswordSchema = z
+export const accountPasswordSchema = z
   .string()
   .min(9, "Password must contain more than 8 characters.")
   .max(128, "Password must contain at most 128 characters.")

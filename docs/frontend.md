@@ -46,7 +46,6 @@ apps/web/
       layout/
     features/
       auth/
-      access-request/
       dashboard/
       transactions/
       statistics/
@@ -391,6 +390,11 @@ UX notes:
 - Validate all fields locally before calling `POST /auth/register`.
 - Move to code verification after the neutral `202` response.
 - Do not reveal whether the email already has an account.
+- Keep passwords only in the registration component while the request is being
+  prepared, then clear both password fields before opening verification.
+- Treat the API response identically for new and existing emails. The browser
+  receives no delivery flag and cannot infer whether Brevo was called from the
+  response status or body.
 
 ### 4. Email Verification
 
@@ -404,13 +408,15 @@ Security UX:
 
 - Keep the normalized email from the registration step in application state; do
   not ask the user to edit it on the code screen.
+- Render six visual cells over one numeric input so paste, keyboard navigation,
+  and iOS `one-time-code` AutoFill behave as a single field.
 - Submit through `POST /auth/register/verify` and enter onboarding immediately
   after the API creates the session.
 - Offer resend through `POST /auth/register/resend`, with a visible 60-second
   cooldown to match the backend rule.
 - Explain the 10-minute expiry and use one neutral invalid-or-expired message.
-- The existing access-request frontend is temporary and will be replaced by
-  these two screens in the next frontend implementation step.
+- Returning to the form keeps the non-sensitive email and name but requires the
+  password fields to be entered again.
 
 ### 5. Starting Net Worth Setup
 
@@ -812,21 +818,12 @@ Baseline requirements:
 - Text contrast must be checked against the light theme.
 - Do not rely on red/green alone for income/expense meaning.
 
-## Frontend Build Order
+## Frontend Delivery Status
 
-Recommended implementation order:
+The Vite/React shell, theme, authentication, verified password registration,
+onboarding, Home, transaction creation and management, Statistics, and Profile
+flows are implemented. Administrative screens remain outside the current mobile
+MVP frontend.
 
-1. Scaffold `apps/web` with Vite, React, and TypeScript.
-2. Add design tokens and app shell.
-3. Build login.
-4. Build register.
-5. Build email verification.
-6. Build dashboard.
-7. Build create transaction.
-8. Build transaction list.
-9. Build transaction detail/edit/delete.
-10. Build statistics.
-11. Build account.
-12. Build admin screens.
-
-Each screen should be polished enough before moving on: responsive layout, loading state, error state, empty state, and API integration where applicable.
+Each completed screen includes its relevant loading, error, empty, and API
+states rather than relying on static preview data.

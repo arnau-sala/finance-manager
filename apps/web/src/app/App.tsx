@@ -12,17 +12,15 @@ import { observeAppDataLifecycle } from "../cache/app-data-lifecycle";
 import { clearAuthenticatedData } from "../cache/financial-cache";
 import { prefetchScheduler } from "../cache/prefetch-scheduler";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
-import { AccessRequestConfirmationPage } from "../features/access-request/AccessRequestConfirmationPage";
-import type { AccessRequestInput } from "../features/access-request/access-request-validation";
-import { RequestAccessPage } from "../features/access-request/RequestAccessPage";
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
+import { CreateAccountPage } from "../features/auth/CreateAccountPage";
 import {
   getCurrentSession,
-  getGoogleAccessRequestContext,
   logout,
   type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
+import { RegistrationVerificationPage } from "../features/auth/RegistrationVerificationPage";
 import {
   HomePage,
   type GoogleAccountDeletionFeedback,
@@ -31,7 +29,7 @@ import {
 import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPage";
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
-type AuthScreen = "landing" | "login" | "access-request" | "access-request-success";
+type AuthScreen = "landing" | "login" | "register" | "verification";
 type StartupTransitionState =
   | "covered"
   | "exiting"
@@ -43,14 +41,14 @@ export function App() {
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [activeScreen, setActiveScreen] = useState<AuthScreen>("landing");
   const [loginEmail, setLoginEmail] = useState("");
-  const [submittedAccessRequest, setSubmittedAccessRequest] =
-    useState<AccessRequestInput | null>(null);
-  const [googleAccessRequest, setGoogleAccessRequest] =
-    useState<AccessRequestInput | null>(null);
+  const [registrationEmail, setRegistrationEmail] = useState<string | null>(
+    null
+  );
   const [landingError, setLandingError] = useState<string | null>(null);
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
-  const [accessRequestVersion, setAccessRequestVersion] = useState(0);
+  const [registerVersion, setRegisterVersion] = useState(0);
+  const [verificationVersion, setVerificationVersion] = useState(0);
   const [googleAccountDeletionFeedback, setGoogleAccountDeletionFeedback] =
     useState<GoogleAccountDeletionFeedback | null>(null);
   const [googleAccountLinkFeedback, setGoogleAccountLinkFeedback] =
@@ -98,8 +96,7 @@ export function App() {
 
   function returnToLanding() {
     setLoginEmail("");
-    setSubmittedAccessRequest(null);
-    setGoogleAccessRequest(null);
+    setRegistrationEmail(null);
     setLandingError(null);
     setLandingVersion((version) => version + 1);
     setActiveScreen("landing");
@@ -125,28 +122,6 @@ export function App() {
         "",
         `${url.pathname}${url.search}${url.hash}`
       );
-    }
-
-    if (googleAuth === "request-access") {
-      setSessionStatus("anonymous");
-
-      getGoogleAccessRequestContext()
-        .then((request) => {
-          if (isMounted) {
-            setGoogleAccessRequest(request);
-            setAccessRequestVersion((version) => version + 1);
-            setActiveScreen("access-request");
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            setLandingError("We couldn't continue with Google. Please try again.");
-          }
-        });
-
-      return () => {
-        isMounted = false;
-      };
     }
 
     getCurrentSession()
@@ -188,6 +163,12 @@ export function App() {
 
         if (googleAuth === "cancelled") {
           setLandingError("Google sign-in was cancelled.");
+        }
+
+        if (googleAuth === "password-required") {
+          setLandingError(
+            "Sign in with your password first, then link Google from Profile."
+          );
         }
       })
       .catch(() => {
@@ -348,18 +329,21 @@ export function App() {
     setActiveScreen("login");
   }
 
-  function openAccessRequest() {
+  function openRegistration() {
     setLandingError(null);
-    setGoogleAccessRequest(null);
-    setSubmittedAccessRequest(null);
-    setAccessRequestVersion((version) => version + 1);
-    setActiveScreen("access-request");
+    setRegistrationEmail(null);
+    setRegisterVersion((version) => version + 1);
+    setActiveScreen("register");
   }
 
-  function showAccessRequestConfirmation(request: AccessRequestInput) {
-    setGoogleAccessRequest(null);
-    setSubmittedAccessRequest(request);
-    setActiveScreen("access-request-success");
+  function showRegistrationVerification(email: string) {
+    setRegistrationEmail(email);
+    setVerificationVersion((version) => version + 1);
+    setActiveScreen("verification");
+  }
+
+  function returnToRegistration() {
+    setActiveScreen("register");
   }
 
   function continueWithGoogle() {
@@ -412,8 +396,7 @@ export function App() {
     setIsSessionExpired(false);
     setSessionUser(null);
     setLoginEmail("");
-    setSubmittedAccessRequest(null);
-    setGoogleAccessRequest(null);
+    setRegistrationEmail(null);
     setLandingError(null);
     setGoogleAccountDeletionFeedback(null);
     setGoogleAccountLinkFeedback(null);
@@ -498,7 +481,7 @@ export function App() {
           >
             <AuthLandingPage
               onEmailContinue={openLogin}
-              onRequestAccess={openAccessRequest}
+              onCreateAccount={openRegistration}
               onGoogleContinue={continueWithGoogle}
             />
           </div>
@@ -560,7 +543,7 @@ export function App() {
         <AuthLandingPage
           key={landingVersion}
           onEmailContinue={openLogin}
-          onRequestAccess={openAccessRequest}
+          onCreateAccount={openRegistration}
           onGoogleContinue={continueWithGoogle}
           externalError={landingError}
           onClearExternalError={() => setLandingError(null)}
@@ -581,28 +564,28 @@ export function App() {
       </div>
 
       <div
-        className="auth-flow-page auth-flow-page--access-request"
-        aria-hidden={activeScreen !== "access-request"}
-        inert={activeScreen !== "access-request"}
+        className="auth-flow-page auth-flow-page--register"
+        aria-hidden={activeScreen !== "register"}
+        inert={activeScreen !== "register"}
       >
-        <RequestAccessPage
-          key={`${accessRequestVersion}:${googleAccessRequest?.email ?? "standard"}`}
+        <CreateAccountPage
+          key={registerVersion}
           onBack={returnToLanding}
-          onRequestSubmitted={showAccessRequestConfirmation}
-          initialRequest={googleAccessRequest ?? undefined}
-          mode={googleAccessRequest ? "google" : "standard"}
+          onRegistrationStarted={showRegistrationVerification}
         />
       </div>
 
       <div
-        className="auth-flow-page auth-flow-page--access-request-success"
-        aria-hidden={activeScreen !== "access-request-success"}
-        inert={activeScreen !== "access-request-success"}
+        className="auth-flow-page auth-flow-page--verification"
+        aria-hidden={activeScreen !== "verification"}
+        inert={activeScreen !== "verification"}
       >
-        {submittedAccessRequest ? (
-          <AccessRequestConfirmationPage
-            request={submittedAccessRequest}
-            onReturnToStart={returnToLanding}
+        {registrationEmail ? (
+          <RegistrationVerificationPage
+            key={`${verificationVersion}:${registrationEmail}`}
+            email={registrationEmail}
+            onBack={returnToRegistration}
+            onVerified={handleLoginSuccess}
           />
         ) : null}
       </div>

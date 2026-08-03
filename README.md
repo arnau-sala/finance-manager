@@ -9,8 +9,9 @@ and Statistics screens. Statistics Overview and Charts use owner-scoped
 PostgreSQL aggregations rather than frontend fixtures. A one-time authenticated
 setup records the user's timeless starting net worth, or `0` when skipped,
 before the app opens. Password registration is now open to any valid email and
-uses a six-digit verification code delivered through Brevo; the frontend flow
-is the next implementation step.
+uses a six-digit verification code delivered through Brevo. The mobile frontend
+validates registration locally, presents a six-cell OTP input, supports the
+60-second resend cooldown, and enters onboarding after successful verification.
 
 Implemented:
 
@@ -18,7 +19,7 @@ Core:
 
 - `GET /health`
 - Initial Vite/React web app scaffold
-- Login/sign-up preview screen
+- Mobile login, password registration, and email verification flow
 - API rate limiting for public, authenticated, financial, and administrative routes
 - Origin checks for mutating browser requests
 - Security headers through Helmet

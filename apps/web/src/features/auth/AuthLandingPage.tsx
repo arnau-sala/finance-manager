@@ -6,7 +6,7 @@ import { validateEmail } from "./email-validation";
 
 type AuthLandingPageProps = {
   onEmailContinue: (email: string) => void;
-  onRequestAccess: () => void;
+  onCreateAccount: () => void;
   onGoogleContinue: () => void;
   externalError?: string | null;
   onClearExternalError?: () => void;
@@ -22,7 +22,7 @@ function isAutofilled(input: HTMLInputElement) {
 
 export function AuthLandingPage({
   onEmailContinue,
-  onRequestAccess,
+  onCreateAccount,
   onGoogleContinue,
   externalError = null,
   onClearExternalError
@@ -146,7 +146,7 @@ export function AuthLandingPage({
           </div>
 
           <div className="auth-options">
-            <button className="auth-option" type="button" onClick={onRequestAccess}>
+            <button className="auth-option" type="button" onClick={onCreateAccount}>
               <span className="auth-option-label">
                 <Mail aria-hidden="true" strokeWidth={1.8} />
                 Create an account

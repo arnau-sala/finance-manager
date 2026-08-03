@@ -39,14 +39,6 @@ export class ApiRequestError extends Error {
   }
 }
 
-type GoogleAccessRequestContext = {
-  request: {
-    email: string;
-    name: string;
-    message: string;
-  };
-};
-
 export type SessionUser = {
   id: string;
   email: string;
@@ -116,20 +108,6 @@ export async function getCurrentSession() {
 
   const body = (await response.json()) as CurrentSessionResponse;
   return body.user;
-}
-
-export async function getGoogleAccessRequestContext() {
-  const response = await fetch("/api/auth/google/request-context", {
-    method: "GET",
-    credentials: "include"
-  });
-
-  if (!response.ok) {
-    throw new Error("Google request context not found.");
-  }
-
-  const body = (await response.json()) as GoogleAccessRequestContext;
-  return body.request;
 }
 
 export async function logout() {
