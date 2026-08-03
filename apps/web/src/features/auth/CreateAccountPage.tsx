@@ -50,6 +50,7 @@ type PasswordFieldProps = {
   complete?: boolean;
   describedBy?: string;
   onGenerate?: () => void;
+  generating?: boolean;
   characterStatuses?: PasswordCharacterStatus[];
   copyAction?: FieldCopyAction;
   onAutofill?: () => void;
@@ -59,6 +60,8 @@ type PasswordFieldProps = {
 
 const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
+const generatedPasswordCharacterDelayMs = 11;
+const generatedPasswordFieldDelayMs = 24;
 
 function isBrowserAutofilled(input: HTMLInputElement) {
   try {
@@ -96,6 +99,7 @@ function PasswordField({
   complete = false,
   describedBy,
   onGenerate,
+  generating = false,
   characterStatuses = [],
   copyAction,
   onAutofill,
@@ -144,9 +148,12 @@ function PasswordField({
         <span id={`${id}-label`}>{label}</span>
         {onGenerate ? (
           <button
-            className="auth-password-generate"
+            className={`auth-password-generate${
+              generating ? " is-generating" : ""
+            }`}
             type="button"
             onClick={onGenerate}
+            aria-disabled={generating}
           >
             <RefreshCw aria-hidden="true" strokeWidth={1.8} />
             Generate
@@ -296,7 +303,9 @@ export function CreateAccountPage({
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
+  const passwordGenerationRunRef = useRef(0);
   const emailValidation = validateEmail(email);
   const passwordRequirements = getAccountPasswordRequirements(password);
   const passwordStrength = getPasswordStrength(password);
@@ -319,6 +328,8 @@ export function CreateAccountPage({
       if (copyFeedbackTimeoutRef.current !== null) {
         window.clearTimeout(copyFeedbackTimeoutRef.current);
       }
+
+      passwordGenerationRunRef.current += 1;
     };
   }, []);
 
@@ -386,19 +397,77 @@ export function CreateAccountPage({
     setFormError(null);
   }
 
-  function handleGeneratePassword() {
+  function waitForGeneratedPasswordStep(delay: number) {
+    return new Promise<void>((resolve) => {
+      window.setTimeout(resolve, delay);
+    });
+  }
+
+  function cancelGeneratedPasswordAnimation() {
+    if (!isGeneratingPassword) {
+      return;
+    }
+
+    passwordGenerationRunRef.current += 1;
+    setIsGeneratingPassword(false);
+  }
+
+  async function handleGeneratePassword() {
+    if (isGeneratingPassword) {
+      return;
+    }
+
     try {
       const generatedPassword = generateAccountPassword();
-      setPassword(generatedPassword);
-      setPasswordConfirmation(generatedPassword);
-      setCopyStateAfterValidation(
-        "passwordConfirmation",
-        generatedPassword,
-        isAccountPasswordComplete(generatedPassword)
-      );
+      const runId = passwordGenerationRunRef.current + 1;
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      const characterDelay = reduceMotion
+        ? 0
+        : generatedPasswordCharacterDelayMs;
+      const fieldDelay = reduceMotion ? 0 : generatedPasswordFieldDelayMs;
+
+      passwordGenerationRunRef.current = runId;
+      setIsGeneratingPassword(true);
+      setPassword("");
+      setPasswordConfirmation("");
+      resetCopyState("passwordConfirmation");
       setPasswordAutofillDetected(false);
       clearPasswordErrors();
+
+      for (let index = 1; index <= generatedPassword.length; index += 1) {
+        await waitForGeneratedPasswordStep(characterDelay);
+
+        if (passwordGenerationRunRef.current !== runId) {
+          return;
+        }
+
+        setPassword(generatedPassword.slice(0, index));
+      }
+
+      await waitForGeneratedPasswordStep(fieldDelay);
+
+      for (let index = 1; index <= generatedPassword.length; index += 1) {
+        await waitForGeneratedPasswordStep(characterDelay);
+
+        if (passwordGenerationRunRef.current !== runId) {
+          return;
+        }
+
+        setPasswordConfirmation(generatedPassword.slice(0, index));
+      }
+
+      if (passwordGenerationRunRef.current === runId) {
+        setCopyStateAfterValidation(
+          "passwordConfirmation",
+          generatedPassword,
+          isAccountPasswordComplete(generatedPassword)
+        );
+        setIsGeneratingPassword(false);
+      }
     } catch (error) {
+      setIsGeneratingPassword(false);
       setFormError(
         error instanceof Error
           ? error.message
@@ -659,9 +728,11 @@ export function CreateAccountPage({
                 : "register-password-requirements"
             }
             onGenerate={handleGeneratePassword}
+            generating={isGeneratingPassword}
             characterStatuses={characterStatuses.password}
             onAutofill={() => setPasswordAutofillDetected(true)}
             onChange={(value, autofilled) => {
+              cancelGeneratedPasswordAnimation();
               setPassword(value);
 
               if (autofilled) {
@@ -701,6 +772,7 @@ export function CreateAccountPage({
             onAutofill={() => setPasswordAutofillDetected(true)}
             onBlur={validatePasswordConfirmationField}
             onChange={(value, autofilled) => {
+              cancelGeneratedPasswordAnimation();
               setPasswordConfirmation(value);
 
               if (autofilled) {

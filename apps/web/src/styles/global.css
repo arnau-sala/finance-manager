@@ -672,6 +672,10 @@ body.app-logout-transition .confirm-dialog-backdrop {
   border-radius: 8px;
   cursor: pointer;
   touch-action: manipulation;
+  user-select: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
   font-size: 11px;
   font-weight: 400;
 }
@@ -688,8 +692,23 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .auth-password-generate:active {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  background: transparent;
+  transform: none;
+}
+
+@keyframes auth-password-generate-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-password-generate.is-generating svg {
+  animation: auth-password-generate-spin 280ms ease-out;
 }
 
 .auth-input-with-action {
