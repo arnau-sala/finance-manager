@@ -148,6 +148,7 @@ export function ProfilePage({
     );
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
+  const hasGoogleAccess = user.authProvider !== "PASSWORD";
   const parsedProfileName = validateUserName(profileName);
   const isProfileNameInputValid = parsedProfileName.success;
   const isProfileNameChanged =
@@ -522,7 +523,11 @@ export function ProfilePage({
                 </div>
               </div>
 
-              <div className="profile-detail">
+              <div
+                className={`profile-detail${
+                  hasGoogleAccess ? " profile-detail--with-provider" : ""
+                }`}
+              >
                 <span className="profile-detail__icon" aria-hidden="true">
                   <Mail />
                 </span>
@@ -530,6 +535,15 @@ export function ProfilePage({
                   <dt>Email</dt>
                   <dd>{user.email}</dd>
                 </div>
+                {hasGoogleAccess ? (
+                  <span
+                    className="profile-detail__provider"
+                    role="img"
+                    aria-label="Google account linked"
+                  >
+                    <GoogleIcon />
+                  </span>
+                ) : null}
               </div>
 
               <div className="profile-detail">

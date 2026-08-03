@@ -5796,6 +5796,11 @@ button.transaction-row__content:focus-visible {
   padding: 9px 1px;
 }
 
+.profile-detail--with-provider {
+  grid-template-columns: 38px minmax(0, 1fr) 20px;
+  padding-right: 9px;
+}
+
 .profile-detail + .profile-detail {
   border-top: 1px solid var(--color-border);
 }
@@ -5819,6 +5824,19 @@ button.transaction-row__content:focus-visible {
   width: 17px;
   height: 17px;
   stroke-width: 1.7;
+}
+
+.profile-detail__provider {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  align-self: center;
+}
+
+.profile-detail__provider svg {
+  width: 18px;
+  height: 18px;
 }
 
 .profile-detail dt {
