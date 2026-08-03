@@ -20,9 +20,8 @@ export async function sendRegistrationVerificationEmail(input: {
       <div style="background:#ffffff;border:1px solid #d9dee7;border-radius:8px;padding:32px;">
         <p style="margin:0 0 18px;font-size:20px;color:#0f766e;">Finance Manager</p>
         <h1 style="margin:0 0 12px;font-size:24px;font-weight:500;">Verify your email</h1>
-        <p style="margin:0 0 24px;color:#667085;line-height:1.5;">Enter this code to finish creating your account.</p>
-        <p style="margin:0 0 24px;font-size:32px;letter-spacing:8px;color:#111827;">${input.code}</p>
-        <p style="margin:0;color:#667085;font-size:14px;line-height:1.5;">The code expires in ${input.expiresInMinutes} minutes. If you did not request it, you can ignore this email.</p>
+        <p style="margin:0 0 24px;color:#667085;line-height:1.5;">Enter this code within ${input.expiresInMinutes} minutes to finish creating your account. If you did not request it, you can ignore this email.</p>
+        <p style="margin:0;font-size:32px;letter-spacing:8px;color:#111827;">${input.code}</p>
       </div>
     </div>
   </body>
