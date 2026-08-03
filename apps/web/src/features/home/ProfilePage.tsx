@@ -107,6 +107,7 @@ export function ProfilePage({
 }: ProfilePageProps) {
   const profileScrollRef = useRef<HTMLElement>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
+  const profileEmailRef = useRef<HTMLElement>(null);
   const [isProfileScrollable, setIsProfileScrollable] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -179,6 +180,73 @@ export function ProfilePage({
     currentPassword.length > 0 &&
     newPassword.length > 0 &&
     newPasswordConfirmation.length > 0;
+
+  useLayoutEffect(() => {
+    const email = profileEmailRef.current;
+
+    if (!email) {
+      return;
+    }
+
+    const minimumFontSize = 12;
+    let animationFrame = 0;
+    const fitEmail = () => {
+      window.cancelAnimationFrame(animationFrame);
+      animationFrame = window.requestAnimationFrame(() => {
+        email.classList.remove("is-wrapped");
+        email.style.removeProperty("font-size");
+
+        const availableWidth = email.clientWidth;
+        const maximumFontSize = Number.parseFloat(
+          window.getComputedStyle(email).fontSize
+        );
+
+        if (
+          availableWidth <= 0 ||
+          !Number.isFinite(maximumFontSize) ||
+          email.scrollWidth <= availableWidth
+        ) {
+          return;
+        }
+
+        email.style.fontSize = `${minimumFontSize}px`;
+
+        if (email.scrollWidth > availableWidth) {
+          email.classList.add("is-wrapped");
+          return;
+        }
+
+        let smallestFit = minimumFontSize;
+        let largestOverflow = maximumFontSize;
+
+        for (let iteration = 0; iteration < 8; iteration += 1) {
+          const candidate = (smallestFit + largestOverflow) / 2;
+          email.style.fontSize = `${candidate}px`;
+
+          if (email.scrollWidth <= availableWidth) {
+            smallestFit = candidate;
+          } else {
+            largestOverflow = candidate;
+          }
+        }
+
+        email.style.fontSize = `${smallestFit}px`;
+      });
+    };
+
+    fitEmail();
+
+    const resizeObserver = new ResizeObserver(fitEmail);
+    if (email.parentElement) {
+      resizeObserver.observe(email.parentElement);
+    }
+    void document.fonts.ready.then(fitEmail);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+      resizeObserver.disconnect();
+    };
+  }, [user.email, hasGoogleAccess]);
 
   useLayoutEffect(() => {
     const scrollContainer = profileScrollRef.current;
@@ -524,7 +592,7 @@ export function ProfilePage({
               </div>
 
               <div
-                className={`profile-detail${
+                className={`profile-detail profile-detail--email${
                   hasGoogleAccess ? " profile-detail--with-provider" : ""
                 }`}
               >
@@ -533,7 +601,9 @@ export function ProfilePage({
                 </span>
                 <div>
                   <dt>Email</dt>
-                  <dd>{user.email}</dd>
+                  <dd ref={profileEmailRef} className="profile-detail__email">
+                    {user.email}
+                  </dd>
                 </div>
                 {hasGoogleAccess ? (
                   <span

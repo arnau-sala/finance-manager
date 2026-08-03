@@ -5801,6 +5801,11 @@ button.transaction-row__content:focus-visible {
   padding-right: 9px;
 }
 
+.profile-detail--email {
+  height: auto;
+  min-height: 65px;
+}
+
 .profile-detail + .profile-detail {
   border-top: 1px solid var(--color-border);
 }
@@ -5856,6 +5861,17 @@ button.transaction-row__content:focus-visible {
   font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.profile-detail dd.profile-detail__email {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+.profile-detail dd.profile-detail__email.is-wrapped {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .profile-action-list {
