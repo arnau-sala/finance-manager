@@ -399,6 +399,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-back-button:focus-visible,
 .auth-input-with-action button:focus-visible,
 .auth-primary-button:focus-visible,
+.auth-password-generate:focus-visible,
 .auth-verification-resend:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
@@ -549,7 +550,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 8px;
 }
 
-.auth-form-field > span {
+.auth-form-field > span,
+.auth-password-field-heading > span {
   padding-left: 20px;
   color: var(--color-text-muted);
   font-size: 13px;
@@ -623,6 +625,58 @@ body.app-logout-transition .confirm-dialog-backdrop {
   -webkit-text-security: none;
 }
 
+.auth-password-input.has-character-feedback {
+  color: transparent;
+  caret-color: var(--color-text);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono",
+    monospace;
+  font-variant-ligatures: none;
+  letter-spacing: calc(12px - 1ch);
+  -webkit-text-fill-color: transparent;
+  -webkit-text-security: none;
+}
+
+.auth-password-field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.auth-password-generate {
+  position: relative;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: -7px 10px -7px 0;
+  padding: 0 8px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.auth-password-generate::before {
+  content: "";
+  position: absolute;
+  inset: -7px 0;
+}
+
+.auth-password-generate svg {
+  width: 13px;
+  height: 13px;
+}
+
+.auth-password-generate:active {
+  color: var(--color-primary-pressed);
+  background: var(--color-primary-soft);
+}
+
 .auth-input-with-action {
   position: relative;
 }
@@ -656,6 +710,40 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-input-with-action button svg {
   width: 21px;
   height: 21px;
+}
+
+.auth-password-character-feedback {
+  position: absolute;
+  inset: 0 64px 0 20px;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+  scrollbar-width: none;
+}
+
+.auth-password-character-feedback__track {
+  height: 100%;
+  display: grid;
+  align-items: center;
+}
+
+.auth-password-character-feedback__track > span {
+  width: 5px;
+  height: 5px;
+  justify-self: center;
+  background: var(--color-text);
+  border-radius: 50%;
+  transition: background-color 160ms ease;
+}
+
+.auth-password-character-feedback__track > span.is-mismatch {
+  background: var(--color-danger);
+}
+
+.auth-password-field.is-complete .auth-input-with-action input {
+  background: var(--color-surface);
+  border-color: var(--color-success);
+  box-shadow: 0 0 0 3px var(--color-success-soft);
 }
 
 .auth-primary-button {
@@ -719,13 +807,112 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 10px;
 }
 
-.auth-register-requirements,
 .auth-verification-expiry {
   margin: -2px 20px 0;
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 400;
   line-height: 1.4;
+}
+
+.auth-password-assistance {
+  display: grid;
+  gap: 6px;
+  margin-top: -3px;
+  padding: 0 20px;
+}
+
+.auth-password-strength {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-password-strength__track {
+  height: 4px;
+  overflow: hidden;
+  background: var(--color-surface-muted);
+  border-radius: 999px;
+}
+
+.auth-password-strength__track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition:
+    width 220ms ease,
+    background-color 180ms ease;
+}
+
+.auth-password-strength__label {
+  min-width: 58px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 400;
+  text-align: right;
+  transition: color 180ms ease;
+}
+
+.auth-password-strength__track > span.is-very-weak,
+.auth-password-strength__track > span.is-weak {
+  background: var(--color-danger);
+}
+
+.auth-password-strength__label.is-very-weak,
+.auth-password-strength__label.is-weak {
+  color: var(--color-danger);
+}
+
+.auth-password-strength__track > span.is-medium {
+  background: var(--color-warning);
+}
+
+.auth-password-strength__label.is-medium {
+  color: var(--color-warning);
+}
+
+.auth-password-strength__track > span.is-strong {
+  background: var(--color-primary-accent);
+}
+
+.auth-password-strength__label.is-strong {
+  color: var(--color-primary);
+}
+
+.auth-password-strength__track > span.is-very-strong {
+  background: var(--color-success);
+}
+
+.auth-password-strength__label.is-very-strong {
+  color: var(--color-success);
+}
+
+.auth-password-requirements {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.auth-password-requirements > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: color 180ms ease;
+}
+
+.auth-password-requirements > span + span::before {
+  content: "\00b7";
+  color: var(--color-border);
+}
+
+.auth-password-requirements > span.is-met {
+  color: var(--color-success);
 }
 
 .auth-register-error {
@@ -6754,8 +6941,13 @@ button.transaction-row__content:focus-visible {
     top: 3px;
   }
 
-  .auth-register-requirements {
-    font-size: 10px;
+  .auth-password-assistance {
+    gap: 4px;
+  }
+
+  .auth-password-requirements,
+  .auth-password-strength__label {
+    font-size: 9px;
   }
 
   .auth-register-submit {

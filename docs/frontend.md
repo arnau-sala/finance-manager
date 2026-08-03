@@ -392,6 +392,14 @@ UX notes:
 - Do not reveal whether the email already has an account.
 - Keep passwords only in the registration component while the request is being
   prepared, then clear both password fields before opening verification.
+- Show requirement completion and a compact strength meter beneath the first
+  password. The optional generator uses Web Crypto, guarantees every backend
+  requirement, and fills both password fields with a 14-character value.
+- Keep the native password inputs active for cursor, editing, and visibility
+  behavior. While masked, both fields use the same thin dots; compared
+  positions remain black when they match and turn red only when they differ.
+  Both input borders turn green only when the password is valid and the
+  complete values match.
 - Treat the API response identically for new and existing emails. The browser
   receives no delivery flag and cannot infer whether Brevo was called from the
   response status or body.
