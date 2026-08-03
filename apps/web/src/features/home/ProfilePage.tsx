@@ -692,7 +692,7 @@ export function ProfilePage({
           </section>
 
           <section className="profile-section" aria-labelledby="profile-actions-title">
-            <h2 id="profile-actions-title">Account</h2>
+            <h2 id="profile-actions-title">Actions</h2>
 
             <div className="profile-action-list">
               <ProfileActionButton
