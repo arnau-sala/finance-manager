@@ -4,26 +4,8 @@ export async function deleteUserAccount(
   transaction: Prisma.TransactionClient,
   user: { id: string; email: string },
 ) {
-  await transaction.accessRequest.deleteMany({
+  await transaction.pendingRegistration.deleteMany({
     where: { email: user.email },
-  });
-
-  await transaction.accessRequestEvent.deleteMany({
-    where: { email: user.email },
-  });
-
-  await transaction.approvedEmail.deleteMany({
-    where: { email: user.email },
-  });
-
-  await transaction.accessRequestEvent.updateMany({
-    where: { adminId: user.id },
-    data: { adminId: null },
-  });
-
-  await transaction.approvedEmail.updateMany({
-    where: { approvedBy: user.id },
-    data: { approvedBy: null },
   });
 
   const deletion = await transaction.user.deleteMany({

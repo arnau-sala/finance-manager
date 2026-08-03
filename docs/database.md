@@ -34,9 +34,14 @@ WEB_APP_URL=http://localhost:5173
 GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
+BREVO_API_KEY=<brevo-api-key>
+BREVO_SENDER_EMAIL=<verified-brevo-sender-email>
+BREVO_SENDER_NAME=Finance Manager
+EMAIL_VERIFICATION_SECRET=<64-character-hex-secret>
 ```
 
 Replace the PostgreSQL user, password, host, port, or database name with your local setup.
+The complete non-secret template is available at `apps/api/.env.example`.
 
 ## Commands
 
@@ -66,28 +71,26 @@ npm run db:deploy
 
 ## Current Models
 
-`User` stores registered users, their required display name, role/status, and authentication provider. Names are limited to 100 characters and cannot be null.
+`User` stores registered users, their required display name, role/status, and
+authentication provider. Names are limited to 100 characters and cannot be
+null. `emailVerifiedAt` records when ownership of the address was established.
+The migration backfills existing accounts with their creation timestamp so
+they remain usable; new password users receive the code verification time and
+new Google users receive their creation time because Google has already
+verified the address.
 
-`AccessRequest` is the current pending queue. Its email is unique; email and name must be non-empty, while an omitted message is persisted as an empty string. Approval and denial both remove the row.
+`PendingRegistration` is temporary state for password registration. Its email
+is unique and normalized. Each row stores the required name, Argon2id password
+hash, HMAC-SHA256 verification-code hash, number of failed attempts, expiry,
+last delivery time, and maintenance timestamps. It never stores a plaintext
+password or verification code.
 
-`AccessRequestEvent` is the permanent structured history. New pending requests create an `ACCESS_REQUEST_CREATED` event with actor `VISITOR`. Valid-looking submissions that are not added to the queue create an `ACCESS_REQUEST_DISCARDED` event with actor `SYSTEM` and one of these reasons:
-
-- `EMAIL_ALREADY_REGISTERED`
-- `ACCESS_REQUEST_ALREADY_EXISTS`
-
-Created events store the pending request ID in `accessRequestId`. This field is intentionally not a foreign key: it is a permanent historical reference that remains available after approval or denial deletes the pending row.
-
-Approval events use `ACCESS_REQUEST_APPROVED` and actor `ADMIN`. They copy the pending request's ID, email, name, and message, store the approving administrator ID in `adminId`, and leave `discardReason` and `denialReason` null.
-
-Denial events use `ACCESS_REQUEST_DENIED` and actor `ADMIN`. They copy the same request fields, including its ID, store the denying administrator ID in `adminId`, and require a free-text `denialReason`, while `discardReason` remains null.
-
-Automatic `ACCESS_REQUEST_DISCARDED` events always leave `accessRequestId` null, including duplicate submissions. They describe an input discarded by the system rather than a lifecycle action on the pending request.
-
-PostgreSQL enforces this distinction: discarded events must have a null reference, while creation, approval, and denial events must have a non-null `accessRequestId`. Historical lifecycle events erased by the previous foreign-key behavior use their creation event ID as a stable reference when the original value was no longer recoverable.
-
-Malformed submissions are rejected before database access and do not create events.
-
-`ApprovedEmail` stores emails approved for registration. `approvedBy` stores the administrator user ID that authorized the email, without adding a relation field to `User`. A successful registration sets `usedAt` in the same transaction that creates the `User`, preventing one approval from being consumed twice.
+The row is created or replaced only when the email is not registered and its
+60-second resend cooldown has passed. A code is valid for 10 minutes and can be
+tried five times. Successful verification atomically deletes the pending row
+and creates `User`; stale pending rows older than 24 hours are removed
+opportunistically during later registration requests. Account deletion also
+removes a pending row with the same normalized email.
 
 `User.authProvider` records the available authentication methods:
 `PASSWORD`, `GOOGLE`, or `PASSWORD_AND_GOOGLE`. A linked account keeps both
@@ -109,13 +112,16 @@ income transaction.
 `PASSWORD_AND_GOOGLE` users. It is unique and is used with the verified Google
 ID token so sign-in does not rely only on a changeable email address.
 
-New password registrations require a name and explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. Google users created from an approved email store Google's verified profile name and receive provider `GOOGLE`, no password hash, and the verified Google subject.
+New password registrations require a verified code and a name, then explicitly
+receive role `USER`, status `APPROVED`, and provider `PASSWORD`. New Google
+identities store Google's verified profile name and receive provider `GOOGLE`,
+no password hash, and the verified Google subject.
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
-Deleting a user removes records containing that account's email from `AccessRequest`, `AccessRequestEvent`, and `ApprovedEmail`. Administrative references made by that user are anonymized by setting `AccessRequestEvent.adminId` and `ApprovedEmail.approvedBy` to null, preserving records that belong to other people without retaining the deleted user's ID.
-
-`AccessRequestEvent.adminId` is a nullable historical reference stored directly in the log, without adding a relation field to `User`. Approval and denial events populate it from the verified administrator session; visitor and system events leave it null.
+Deleting a user removes its transactions through `ON DELETE CASCADE` and
+explicitly removes any matching `PendingRegistration` in the same database
+transaction.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 

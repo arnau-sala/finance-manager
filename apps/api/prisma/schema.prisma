@@ -28,24 +28,6 @@ enum TransactionType {
   EXPENSE
 }
 
-enum AccessRequestEventType {
-  ACCESS_REQUEST_CREATED
-  ACCESS_REQUEST_DISCARDED
-  ACCESS_REQUEST_APPROVED
-  ACCESS_REQUEST_DENIED
-}
-
-enum AccessRequestDiscardReason {
-  EMAIL_ALREADY_REGISTERED
-  ACCESS_REQUEST_ALREADY_EXISTS
-}
-
-enum AccessRequestEventActorType {
-  VISITOR
-  SYSTEM
-  ADMIN
-}
-
 model User {
   id                    String       @id @default(cuid())
   email                 String       @unique
@@ -57,42 +39,26 @@ model User {
   status                UserStatus   @default(APPROVED)
   sessionVersion        Int          @default(1)
   startingNetWorthCents Int?
+  emailVerifiedAt       DateTime     @default(now())
   createdAt             DateTime     @default(now())
   updatedAt             DateTime?    @updatedAt
 
   transactions Transaction[]
 }
 
-model AccessRequest {
-  id        String   @id @default(cuid())
-  timestamp DateTime @default(now())
-  email     String   @unique
-  name      String
-  message   String
-}
+model PendingRegistration {
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String   @db.VarChar(100)
+  passwordHash         String
+  verificationCodeHash String   @db.Char(64)
+  verificationAttempts Int      @default(0)
+  expiresAt            DateTime
+  lastSentAt           DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-model AccessRequestEvent {
-  id              String                      @id @default(cuid())
-  timestamp       DateTime                    @default(now())
-  type            AccessRequestEventType
-  actorType       AccessRequestEventActorType
-  accessRequestId String?
-  email           String
-  name            String
-  message         String
-  adminId         String?
-  discardReason   AccessRequestDiscardReason?
-  denialReason    String?
-
-  @@index([accessRequestId])
-}
-
-model ApprovedEmail {
-  id         String    @id @default(cuid())
-  email      String    @unique
-  approvedAt DateTime  @default(now())
-  approvedBy String?
-  usedAt     DateTime?
+  @@index([updatedAt])
 }
 
 model Category {

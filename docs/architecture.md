@@ -1,14 +1,10 @@
 # Architecture
 
-## Phase 4 Foundation
+## Current Backend
 
-The repository starts as a small monorepo with a single implemented app:
-
-```text
-apps/api
-```
-
-The API owns all backend behavior. The frontend and shared packages can be added later when they are useful.
+The repository is a small monorepo with a Fastify API and a Vite/React web app.
+The API owns authentication, email verification, authorization, persistence,
+and financial calculations.
 
 Current request flow:
 
@@ -31,11 +27,13 @@ apps/api
     auth
       authenticated-user.ts
       password.ts
+      registration.ts
       session.ts
+    email
+      brevo.ts
+      registration-verification.ts
     routes
       admin-users.ts
-      admin-access-requests.ts
-      access-requests.ts
       auth-google.ts
       auth.ts
       categories.ts
@@ -53,44 +51,65 @@ apps/api
 
 Prisma dependencies and database scripts live in the root package so the generated client and migration commands are managed once for the monorepo.
 
-The database models cover authentication, access-control foundations, and basic financial records:
+The active database models cover authentication and financial records:
 
 - `User`
-- `AccessRequest`
-- `AccessRequestEvent`
-- `ApprovedEmail`
+- `PendingRegistration`
 - `Category`
 - `Transaction`
 
-Accounts remain deferred until their first behavior is implemented.
-
-Public access requests are handled by a focused Fastify route module. The route validates and normalizes input before querying Prisma, while `app.ts` remains responsible only for assembling the API.
-
-The public flow makes one internal database decision:
+Password registration is split into code issuance and code verification:
 
 ```text
-valid input -> registered email -> discarded event
-            -> existing/approved request -> discarded event
-            -> new email -> pending access request + created event
+POST /auth/register
+  -> validate and normalize input
+  -> reject internally if the user exists or resend cooldown is active
+  -> hash password and verification code
+  -> save PendingRegistration
+  -> send the code through Brevo
+
+POST /auth/register/verify
+  -> validate the email and six-digit code
+  -> compare the HMAC hashes in constant time
+  -> atomically consume PendingRegistration and create User
+  -> start the secure session
 ```
 
-Every branch performs its database write on the server and produces the same public `202` response. There is no internal HTTP request for a browser to observe.
+`routes/auth.ts` owns the HTTP contracts, while `auth/registration.ts` owns the
+registration state machine. Password hashing remains isolated in
+`auth/password.ts` so registration, login, password changes, and account
+deletion share the same Argon2id implementation.
 
-`AccessRequest` represents current state, while `AccessRequestEvent` preserves the history of valid access-related activity. Approval and denial both append administrative events to this history.
+`PendingRegistration` has one row per normalized email. It stores the required
+name, Argon2id password hash, HMAC-SHA256 verification-code hash, failed-attempt
+count, expiry, and last-send timestamp. The plaintext password and code are
+never stored. Codes expire after 10 minutes, sending has a 60-second persistent
+cooldown, verification permits five failed attempts, and stale rows are removed
+opportunistically after 24 hours.
 
-Administrative decisions are atomic. Approval records the approved email and event before completing the transaction; denial records its mandatory reason and event. Both remove the pending request in the same transaction.
+The Brevo adapter lives in `email/brevo.ts` and uses the provider's
+transactional-email HTTP API with an eight-second timeout. Network delivery is
+intentionally outside the database transaction. If Brevo rejects or cannot
+complete the request, the service restores the previous pending row or removes
+the newly created one, avoiding a valid-looking registration with no delivered
+code. The API key and sender identity exist only in backend environment
+variables.
 
-`AccessRequestEvent.accessRequestId` is an immutable historical reference rather than a foreign-key relation. Creation, approval, and denial events require it, allowing administrative decisions to retain the original request ID after the pending row is deleted. Automatic system discards always leave it null.
-
-Administrative access-request routes and user-management routes share `auth/require-administrator.ts`. Each administrative module registers it as a plugin-scoped `preHandler`, so every route verifies an active approved user and the `ADMIN` role before executing its handler.
-
-Registration lives in `routes/auth.ts`, requires the user's name, and keeps password hashing isolated in `auth/password.ts` so login can reuse the same Argon2id implementation. Creating the user and consuming the approved email happen atomically in one Prisma transaction.
+Code issuance returns one neutral `202` body for existing users, cooldowns, and
+new registrations. Verification atomically claims the pending row before
+creating the user, so concurrent submissions cannot consume the same code
+twice. Successful verification records `emailVerifiedAt` and immediately starts
+the user's encrypted session.
 
 Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
 
-Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side OAuth 2.0 / OpenID Connect flow, validates the callback `state`, verifies the Google ID token, and then either starts a session for an existing Google user, creates a Google user with its verified profile name from an unused approved email, or stores the verified email/name in the encrypted session so the frontend can open a prefilled Google access-request form.
-
-`POST /access-requests/google` lives beside the normal access-request endpoint. It accepts only the optional user message, reads the verified Google email/name from the session, appends the internal Google source marker to the stored message, and then reuses the same pending-request/event-log persistence path.
+Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side
+OAuth 2.0 / OpenID Connect flow, validates callback `state`, verifies the Google
+ID token, and requires a verified email. A new Google identity creates its
+`GOOGLE` user directly because the identity provider has already verified the
+address. Existing Google-capable users require the stable Google subject to
+match. A password-only email collision never links implicitly; the owner must
+authenticate normally and use the separate account-linking flow.
 
 `auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores `userId` and the current `sessionVersion`; authenticated user resolution requires both to match PostgreSQL. Sessions last up to seven days, and logout deletes the current cookie.
 

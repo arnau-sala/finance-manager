@@ -10,35 +10,29 @@
 
 - Add Prisma.
 - Configure PostgreSQL through `DATABASE_URL`.
-- Create the initial schema for `User`, `AccessRequest`, and `ApprovedEmail`.
+- Create the initial authentication and access-control schema.
 - Add the first migration.
 - Add a shared database client module.
 
-## Phase 3: Public Access Requests
+## Phases 3-4: Access Review (Retired)
 
-- Add `POST /access-requests`.
-- Validate and normalize public input.
-- Avoid duplicate pending requests.
-- Keep responses neutral to avoid exposing account or approval state.
-
-## Phase 4: Administrative Review Foundation
-
-- Require access-request email and name while keeping the administrator message optional.
-- Separate the pending queue from the permanent structured event log.
-- Add pending-request list and detail endpoints.
-- Add event list and detail endpoints for local administrative review.
-- Allow a pending request to be approved through the local administrative endpoint.
-- Allow a pending request to be denied with a mandatory reason.
-- Keep the public result independent from the internal database decision.
+- The original MVP used public access requests, an administrative approval
+  queue, and a permanent review event log.
+- This flow was removed when registration became open with email ownership
+  verification. Its routes and active models no longer exist.
 
 ## Phase 5A: Registration
 
 - Add `POST /auth/register`.
-- Require an unused approved email.
 - Require and persist the user's name.
 - Hash passwords with Argon2id.
-- Create users as `USER` and `APPROVED`.
-- Mark the approved email as used atomically.
+- Deliver a six-digit ownership code through Brevo.
+- Keep unverified data in `PendingRegistration` with expiry, resend cooldown,
+  and attempt limits.
+- Add `POST /auth/register/resend` and `POST /auth/register/verify`.
+- Atomically consume the verified pending registration and create the user as
+  `USER` and `APPROVED`.
+- Start a secure session immediately after successful verification.
 
 ## Phase 5B: Login Verification
 

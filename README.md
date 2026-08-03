@@ -8,7 +8,9 @@ The mobile-first authenticated experience now includes real Home, Moves, Profile
 and Statistics screens. Statistics Overview and Charts use owner-scoped
 PostgreSQL aggregations rather than frontend fixtures. A one-time authenticated
 setup records the user's timeless starting net worth, or `0` when skipped,
-before the app opens.
+before the app opens. Password registration is now open to any valid email and
+uses a six-digit verification code delivered through Brevo; the frontend flow
+is the next implementation step.
 
 Implemented:
 
@@ -21,32 +23,18 @@ Core:
 - Origin checks for mutating browser requests
 - Security headers through Helmet
 - Pagination limits for growing list endpoints
-- Prisma schema for `User`, `AccessRequest`, and `ApprovedEmail`
+- Prisma schema for `User`, `PendingRegistration`, `Category`, and `Transaction`
 - Initial SQL migration
 - Shared Prisma client module for the API
-
-Access requests:
-
-- `POST /access-requests` with input validation and neutral responses
-- `POST /access-requests/google` for verified Google access-request submissions
-- Permanent access-request event log
-
-Admin access requests:
-
-- `GET /admin/access-requests`
-- `GET /admin/access-requests/:id`
-- `GET /admin/access-request-events`
-- `GET /admin/access-request-events/:id`
-- `POST /admin/access-requests/:id/approve`
-- `POST /admin/access-requests/:id/deny`
 
 Authentication:
 
 - `POST /auth/register`
+- `POST /auth/register/resend`
+- `POST /auth/register/verify`
 - `POST /auth/login`
 - `GET /auth/google/start`
 - `GET /auth/google/callback`
-- `GET /auth/google/request-context`
 - `POST /auth/logout`
 - `GET /auth/me`
 - `POST /account/onboarding/starting-net-worth`
@@ -135,116 +123,12 @@ The frontend listens on `http://localhost:5173` by default.
 Mutating browser requests must come from an allowed origin. Local development allows common localhost origins by default. In production, configure `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
 
 Frontend product, design, and architecture decisions are tracked in `docs/frontend.md`.
-
-## Request Access
-
-```http
-POST /access-requests
-Content-Type: application/json
-```
-
-Example body:
-
-```json
-{
-  "email": "person@example.com",
-  "name": "Person",
-  "message": "I would like to try the app."
-}
-```
-
-A valid request returns HTTP `202 Accepted`:
-
-```json
-{
-  "message": "Access request received."
-}
-```
-
-`email` and `name` are required. `message` is optional and is stored as an empty string when omitted. A syntactically valid submission always receives the same response, including when its email already has a request, is approved, or is registered.
-
-## Review Pending Requests
-
-Every endpoint in this section requires an active session for a user with role `ADMIN`.
-
-List pending requests:
-
-```http
-GET /admin/access-requests
-```
-
-Supports `limit` and `offset`. Default `limit` is `50`; maximum is `100`.
-
-Get one pending request:
-
-```http
-GET /admin/access-requests/:id
-```
-
-List access-request events:
-
-```http
-GET /admin/access-request-events
-```
-
-Supports `limit` and `offset`. Default `limit` is `100`; maximum is `200`.
-
-Get one access-request event:
-
-```http
-GET /admin/access-request-events/:id
-```
-
-Creation, approval, and denial events keep the original `accessRequestId` as a permanent historical reference. Automatic `ACCESS_REQUEST_DISCARDED` events never receive a request ID.
-
-Approve a pending request:
-
-```http
-POST /admin/access-requests/:id/approve
-```
-
-This endpoint must be called with the `POST` method; opening the URL in a browser sends `GET` and will not approve the request. In Postman, select `POST` and `Body -> none`.
-
-Expected response:
-
-```json
-{
-  "message": "Access request approved."
-}
-```
-
-Approval creates or updates `ApprovedEmail` with the approving admin's session user ID in `approvedBy`, records an `ACCESS_REQUEST_APPROVED` event with the same admin ID in `adminId`, and removes the request from the pending queue. It does not require a body. An unknown request ID returns `404 Not Found`.
-
-Deny a pending request:
-
-```http
-POST /admin/access-requests/:id/deny
-Content-Type: application/json
-```
-
-```json
-{
-  "reason": "Reason for denying this request."
-}
-```
-
-The reason is required, trimmed, and limited to 1000 characters. Denial records an `ACCESS_REQUEST_DENIED` event with the denying admin's session user ID in `adminId` and removes the request from the pending queue without creating an `ApprovedEmail`.
-
-Expected response:
-
-```json
-{
-  "message": "Access request denied."
-}
-```
-
-Timestamps use ISO 8601, for example `2026-06-28T12:30:00.000Z`.
-
-Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden`.
+Brevo setup and the complete verification test flow are documented in
+[`docs/email-verification.md`](docs/email-verification.md).
 
 ## Register
 
-Only an unused email from `ApprovedEmail` can register:
+Start password registration:
 
 ```http
 POST /auth/register
@@ -253,16 +137,81 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "approved@example.com",
+  "email": "person@example.com",
   "name": "Alex Morgan",
   "password": "SecurePass1!",
   "passwordConfirmation": "SecurePass1!"
 }
 ```
 
-`name` is required, trimmed, and limited to 100 characters. The two passwords must match exactly. The password must contain between 9 and 128 characters, including at least one uppercase letter, one digit, and one special character. Successful registration returns `201 Created` with the new user's public fields. It consumes the approval by setting `ApprovedEmail.usedAt`.
+`name` is required, trimmed, and limited to 100 characters. The two passwords
+must match exactly. The password must contain between 9 and 128 characters,
+including at least one uppercase letter, one digit, and one special character.
 
-Non-approved, already-used, and already-registered emails receive the same `403 Forbidden` response. Registration does not create a login session yet.
+A valid request returns `202 Accepted`:
+
+```json
+{
+  "message": "If registration can continue, a verification code has been sent."
+}
+```
+
+This response is deliberately identical when the email already belongs to an
+account or a code is still in its resend cooldown. No `User` is created yet.
+For a new registration, the API stores the normalized email, name, Argon2id
+password hash, and HMAC-protected code in `PendingRegistration`, then asks
+Brevo to deliver the code. The six-digit code expires after 10 minutes.
+
+Resend a code after the 60-second cooldown:
+
+```http
+POST /auth/register/resend
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "person@example.com"
+}
+```
+
+The resend endpoint returns the same neutral `202` response whether or not a
+pending registration exists.
+
+Finish registration:
+
+```http
+POST /auth/register/verify
+Content-Type: application/json
+```
+
+```json
+{
+  "email": "person@example.com",
+  "code": "123456"
+}
+```
+
+A correct, unexpired code atomically consumes the pending registration,
+creates the `PASSWORD` user, marks the email as verified, and starts a secure
+session. It returns `201 Created` with `Account created successfully.` and the
+new user's public fields. A wrong or expired code returns the same `400`
+response; after five failed attempts a new code must be requested.
+
+Configure Brevo and the code-signing secret in `apps/api/.env` using
+[`apps/api/.env.example`](apps/api/.env.example) as the template. These values
+must exist only on the API server:
+
+```env
+BREVO_API_KEY=<brevo-api-key>
+BREVO_SENDER_EMAIL=<verified-brevo-sender-email>
+BREVO_SENDER_NAME=Finance Manager
+EMAIL_VERIFICATION_SECRET=<64-character-hex-secret>
+```
+
+If Brevo or its configuration is unavailable, code issuance returns `503` and
+the database change is rolled back so an undelivered code cannot block the
+next attempt.
 
 ## Login
 
@@ -302,31 +251,17 @@ The backend redirects the user to Google using OAuth 2.0 / OpenID Connect. Googl
 GET /auth/google/callback
 ```
 
-The backend verifies the Google ID token with the configured client ID before trusting the email. If an approved Google account already exists, the callback creates the normal secure session and redirects back to the frontend.
+The backend verifies the Google ID token with the configured client ID before
+trusting the email. An existing `GOOGLE` or `PASSWORD_AND_GOOGLE` account starts
+the normal secure session only when Google's stable subject matches. If no user
+has that email, the callback creates a verified `GOOGLE` user immediately and
+starts its session; no approval or email-code step is needed because Google has
+already verified ownership of the address.
 
-If the Google email is approved but no user exists yet, the backend creates a `GOOGLE` user with Google's verified profile name and without a password, consumes the approval, starts a session, and redirects back to the frontend.
-
-If the Google identity cannot be logged in directly, the callback stores the verified Google email and profile name in the encrypted session and redirects to a Google access-request form. The frontend reads that temporary context through:
-
-```http
-GET /auth/google/request-context
-```
-
-The Google access-request form keeps the verified email read-only, prefills an editable name, and accepts an optional message:
-
-```http
-POST /access-requests/google
-Content-Type: application/json
-```
-
-```json
-{
-  "name": "Alex Morgan",
-  "message": "Optional note for the administrator."
-}
-```
-
-The backend reads the verified email from the session, validates the submitted name, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral access-request persistence rules as `POST /access-requests`.
+If the email belongs to a password-only account, public Google sign-in does not
+silently link it. The frontend receives `googleAuth=password-required`; the
+owner must sign in with their password and use the authenticated linking flow.
+Other identity conflicts fail without changing the database.
 
 Local Google configuration requires these values in `apps/api/.env`:
 
@@ -588,7 +523,9 @@ A successful deletion returns the password endpoint response below or redirects 
 }
 ```
 
-Deletion is atomic and permanent. It removes the user, all owned transactions, pending access requests, access-request events, and approved-email records associated with the account email. If the deleted user performed administrative reviews, their ID is removed from other users' historical records without deleting those records. The current session is deleted after the database transaction succeeds.
+Deletion is atomic and permanent. It removes the user, all owned transactions,
+and any matching pending registration. The current session is deleted after
+the database transaction succeeds.
 
 ## List Categories
 

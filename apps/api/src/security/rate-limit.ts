@@ -46,10 +46,18 @@ export const authLoginRateLimit = {
 
 export const authRegisterRateLimit = {
   hook: "preHandler" as const,
-  max: 8,
+  max: 20,
+  timeWindow: "1 hour",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-register:${request.ip}`,
+};
+
+export const authRegistrationVerifyRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) =>
-    `auth-register:${request.ip}:${getBodyEmail(request)}`,
+    `auth-register-verify:${request.ip}:${getBodyEmail(request)}`,
 };
 
 export const authLogoutRateLimit = {
@@ -97,14 +105,6 @@ export const authGoogleRateLimit = {
   max: 30,
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) => `auth-google:${request.ip}`,
-};
-
-export const accessRequestRateLimit = {
-  hook: "preHandler" as const,
-  max: 10,
-  timeWindow: "1 hour",
-  keyGenerator: (request: FastifyRequest) =>
-    `access-request:${request.ip}:${getBodyEmail(request)}`,
 };
 
 export const financialReadRateLimit = {

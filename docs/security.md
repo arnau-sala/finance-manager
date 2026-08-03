@@ -1,33 +1,23 @@
 # Security
 
-## Phase 4 Foundation
+## Current Foundation
 
-The project now persists public access requests and exposes local administrative read endpoints.
+The project supports open account creation only after ownership of the email is
+verified through Brevo, plus Google sign-in for identities verified by Google.
 
 Security decisions already in place:
 
 - The backend is the only place where future sensitive logic should run.
 - `CONTEXT.md` and `apps/api/.env` are ignored by Git.
 - Real credentials, production database URLs, and secrets must not be committed.
-- User emails are unique in the `User` and `ApprovedEmail` tables.
+- User emails are unique in `User` and pending emails are unique in
+  `PendingRegistration`.
 
 Every private financial table must include an owner field such as `userId`.
 
-The public access-request endpoint:
-
-- Validates the entire request body and rejects unknown fields.
-- Normalizes email addresses by trimming whitespace and converting them to lowercase.
-- Limits names to 100 characters and messages to 1000 characters.
-- Requires non-empty email and name fields; the optional message is still limited to 1000 characters.
-- Returns the same status and body for every syntactically valid submission.
-- Uses a database constraint to prevent duplicate pending requests during concurrent calls.
-- Stores every valid access-request outcome in a structured server-side event log without exposing the event or discard reason publicly.
-
-A sender can always inspect their own HTTP request and submitted fields in browser developer tools. What remains private is the server-side decision and database destination: no second HTTP request is made, and the response does not identify whether the email is registered, approved, pending, or new.
-
-Every `/admin/*` route uses the shared `requireAdministrator` pre-handler. Missing or invalid sessions receive `401`, while authenticated non-administrators receive `403`. Approval and denial events store `adminId` from the verified session rather than client input. Denial reasons are administrative data and are not exposed through public responses.
-
-Administrative access-request lists are paginated. Pending requests default to 50 items with a maximum of 100. The permanent event log defaults to 100 items with a maximum of 200.
+Every `/admin/*` route uses the shared `requireAdministrator` pre-handler.
+Missing or invalid sessions receive `401`, while authenticated
+non-administrators receive `403`.
 
 Registration security decisions:
 
@@ -35,10 +25,17 @@ Registration security decisions:
 - Names are required, trimmed, and limited to 100 characters.
 - Registration requires matching `password` and `passwordConfirmation` fields.
 - Passwords must contain between 9 and 128 characters, with at least one uppercase letter, one digit, and one special character.
-- Passwords are hashed with Argon2id and are never returned by the API.
-- Password hashing happens only after the email is confirmed as approved and unused.
-- User creation and approval consumption share one transaction.
-- Non-approved, used, and registered emails return the same public error.
+- Passwords are hashed with Argon2id only after user-existence and resend-cooldown checks, and are never returned by the API.
+- The six-digit verification code is generated with Node's cryptographic random-number generator and is stored only as an email-bound HMAC-SHA256 hash.
+- The HMAC secret is a separate 32-byte backend secret represented as 64 hexadecimal characters.
+- Codes expire after 10 minutes, permit five failed verification attempts, and can be resent only after a persistent 60-second cooldown.
+- Code comparison uses `timingSafeEqual`.
+- A syntactically valid registration or resend returns the same `202` body for a new email, an existing user, a missing pending row, or an active cooldown.
+- A `User` does not exist until a correct code atomically consumes its `PendingRegistration`; concurrent verification cannot consume one code twice.
+- Successful verification stores `emailVerifiedAt`, starts the secure session, and exposes only public user fields.
+- Brevo credentials and the verification HMAC secret are backend-only environment variables and must never enter frontend bundles or Git.
+- Brevo requests have an eight-second timeout. Failed delivery restores or removes the pending row so an undelivered code does not leave misleading active state.
+- Pending rows older than 24 hours are removed opportunistically and contain neither plaintext passwords nor plaintext codes.
 - Successful responses expose only the user ID, email, name, role, status, and creation timestamp.
 
 Login security decisions:
@@ -58,7 +55,7 @@ Account deletion security decisions:
 - `DELETE /account` derives the target account only from the encrypted session and never accepts a user ID.
 - Password-capable accounts must provide their current password when that verification method is selected; an incorrect value returns the explicit `Incorrect password.` error because the caller is already authenticated as that account.
 - User deletion and all related database cleanup run in one transaction.
-- Owned transactions, pending requests, request events, and approval records are deleted. Administrative IDs on records belonging to other users are set to null instead of deleting those users' history.
+- Owned transactions and any matching pending registration are deleted.
 - The current session is deleted after success. Sessions on other devices can no longer resolve the deleted user and therefore lose access.
 - Google-only accounts require a fresh account selection through Google. Hybrid accounts may choose either fresh Google verification or their current password.
 - The Google deletion flow uses a random, one-use OAuth `state` separate from normal sign-in and preserves the active session until verification finishes.
@@ -94,7 +91,9 @@ Google sign-in security decisions:
 - The backend requires a verified Google email before using it.
 - Existing `GOOGLE` and `PASSWORD_AND_GOOGLE` users can sign in with Google only
   when Google's stable `sub` identifier matches the stored `googleSubject`.
-- If an approved email has no user yet, Google sign-in creates a `GOOGLE` user with the verified profile name and without a password, then consumes the approval in the same transaction.
+- If the verified Google email has no user yet, Google sign-in creates a
+  `GOOGLE` user with the verified profile name, verification timestamp, stable
+  Google subject, and no password.
 - Password users are not silently converted to Google users.
 - `POST /account/google/link/start` requires an approved authenticated
   password-only account and preserves its active session while Google presents
@@ -105,9 +104,9 @@ Google sign-in security decisions:
 - Successful linking keeps the Argon2id password hash, stores `googleSubject`,
   and changes the provider to `PASSWORD_AND_GOOGLE`; mismatch and failure paths
   make no database changes.
-- Google identities that cannot log in directly are stored temporarily in the encrypted session and sent to a Google access-request form with a read-only verified email and an editable prefilled name.
-- `POST /access-requests/google` ignores email from the request body, reads it from the verified Google session context, validates the submitted name, appends `Requested access using Google sign-in.` to the stored message, and then applies the same neutral persistence rules as the normal access-request endpoint.
-- Public Google access-request outcomes remain neutral: the frontend cannot distinguish registered, pending, approved, or newly created request states unless the result is an actual successful login for the Google account owner.
+- A public Google attempt for an existing password-only email returns to the
+  frontend with `password-required`; linking is allowed only after normal
+  authentication through the dedicated one-use linking flow.
 
 Origin protection decisions:
 
@@ -129,8 +128,10 @@ Rate limiting decisions:
 
 - A global IP-based limit protects the full API from broad request floods.
 - Login is limited by IP and normalized email, allowing normal human mistakes while slowing repeated attempts against the same account from the same source.
-- Registration is limited by IP and normalized email because password hashing is intentionally expensive.
-- Public access requests are limited by IP and normalized email to reduce spam while preserving neutral public responses.
+- Registration and resend are limited by IP to protect password hashing and the
+  outbound Brevo quota without creating a per-email enumeration signal.
+- Verification is limited by IP and normalized email in addition to the
+  persistent code-attempt limit.
 - Authenticated financial reads are limited by session user when available, falling back to IP for unauthenticated requests.
 - Financial writes have a stricter session/IP limit than reads.
 - Administrative routes share an admin-specific session/IP limit in addition to requiring an approved administrator.
@@ -143,14 +144,14 @@ Current limits:
 | :---: | :---: | :---: |
 | Global API | 300/min | IP |
 | Login | 20/15min | IP + email |
-| Register | 8/15min | IP + email |
+| Register/email | 20/hour | IP |
+| Verify registration | 10/15min | IP + email |
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
 | Profile editing | 30/15min | session/IP |
 | Google linking | 5/15min | session/IP |
 | Password changes | 5/15min | session/IP |
 | Account deletion | 5/15min | session/IP |
-| Access requests | 10/hour | IP + email |
 | Financial reads | 180/min | session/IP |
 | Financial writes | 60/min | session/IP |
 | Admin routes | 120/min | session/IP |

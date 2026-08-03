@@ -348,23 +348,24 @@ The bottom navigation is a floating translucent surface with a subtle border, bl
 
 ### 2. Login
 
-Purpose: authenticate an approved user.
+Purpose: authenticate an existing user.
 
 The unauthenticated entry screen combines the available access paths in one
 static, mobile-first layout:
 
 - Email entry starts the normal login flow; password entry belongs to the next screen.
-- Create an account leads to the access-request flow.
-- Continue with Google starts the backend OAuth flow. A successful Google account session enters the app; a non-approved account opens a Google access-request form with verified email/name prefilled.
+- Create an account will lead to the open password-registration flow.
+- Continue with Google starts the backend OAuth flow. An existing Google account
+  enters the app, while a new Google identity creates its verified account and
+  enters immediately.
 - The initial logo and slogan are placeholders until the product identity is finalized.
 - The entry screen uses a flat white canvas, without a card around the main content.
 - Controls do not use hover animations or desktop-specific sizing; they remain touch-first.
 - The screen must not scroll, zoom, or overscroll when all content fits in the viewport.
 
-Fields:
+Fields across the two login steps:
 
 - Email.
-- Name.
 - Password.
 
 States:
@@ -375,38 +376,41 @@ States:
 
 ### 3. Register
 
-Purpose: create an account from an approved email.
+Purpose: create a password account with verified email ownership.
 
 Fields:
 
 - Email.
+- Name.
 - Password.
 - Password confirmation.
 
 UX notes:
 
 - Show password requirements clearly.
-- Do not reveal whether an email is approved beyond the API response.
+- Validate all fields locally before calling `POST /auth/register`.
+- Move to code verification after the neutral `202` response.
+- Do not reveal whether the email already has an account.
 
-### 4. Request Access
+### 4. Email Verification
 
-Purpose: public access request form.
+Purpose: finish password registration with the code delivered by Brevo.
 
 Fields:
 
-- Email.
-- Name.
-- Message (optional note for the administrator).
+- Six-digit verification code.
 
 Security UX:
 
-- Validate the email, required name, and field lengths locally before calling the API.
-- Submit only from the explicit `Submit request` button.
-- Always show a neutral success message for syntactically valid requests.
-- Google access requests show a slightly different form: email and name come from the verified Google identity and are prefilled. The email remains read-only, while the user can edit the display name and add an optional administrator message before submitting.
-- Google access requests also use neutral copy and do not reveal whether the email is registered, pending, approved, or newly requested.
-- After a successful response, show a simple confirmation screen with the normalized email, name, and submitted message, or `No message added` when it was left empty.
-- Use the visible back button to return to the unauthenticated entry screen. Horizontal edge swipes are intentionally disabled.
+- Keep the normalized email from the registration step in application state; do
+  not ask the user to edit it on the code screen.
+- Submit through `POST /auth/register/verify` and enter onboarding immediately
+  after the API creates the session.
+- Offer resend through `POST /auth/register/resend`, with a visible 60-second
+  cooldown to match the backend rule.
+- Explain the 10-minute expiry and use one neutral invalid-or-expired message.
+- The existing access-request frontend is temporary and will be replaced by
+  these two screens in the next frontend implementation step.
 
 ### 5. Starting Net Worth Setup
 
@@ -783,10 +787,6 @@ Purpose: operational review tools.
 
 MVP content:
 
-- Pending access requests.
-- Request detail.
-- Approve/deny.
-- Access request event log.
 - Users list.
 
 Admin UI should feel functional and denser than the consumer finance screens.
@@ -797,7 +797,7 @@ Admin UI should feel functional and denser than the consumer finance screens.
 - Browser requests must include credentials.
 - Mutating requests must come from an allowed origin.
 - Handle `401` by sending the user to login.
-- Handle `403` with a permissions message or neutral registration/access text depending on context.
+- Handle `403` with a permissions message.
 - Handle `429` with a retry message.
 - Paginated endpoints expose `pagination.nextOffset`; use it for loading the next page.
 
@@ -820,7 +820,7 @@ Recommended implementation order:
 2. Add design tokens and app shell.
 3. Build login.
 4. Build register.
-5. Build request access.
+5. Build email verification.
 6. Build dashboard.
 7. Build create transaction.
 8. Build transaction list.

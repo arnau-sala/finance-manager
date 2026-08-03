@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 
+import { Prisma } from "@prisma/client";
 import type { FastifyPluginAsync } from "fastify";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
@@ -34,14 +35,10 @@ type GoogleIdentity = {
   googleSubject: string;
 };
 
-type GoogleAccessRequestContext = {
-  email: string;
-  name: string;
-};
-
 type GoogleAuthResult =
   | { type: "login"; userId: string; sessionVersion: number }
-  | { type: "request-access"; request: GoogleAccessRequestContext };
+  | { type: "password-required" }
+  | { type: "failed" };
 
 function getGoogleOAuthConfig(): GoogleOAuthConfig | null {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -134,101 +131,102 @@ function getAccountLinkRedirectUrl(
   return url.toString();
 }
 
-function getAccessRequestContext(identity: GoogleIdentity) {
-  return {
-    email: identity.email,
-    name: identity.name,
-  };
-}
-
 async function handleGoogleIdentity(
   identity: GoogleIdentity,
 ): Promise<GoogleAuthResult> {
-  const requestContext = getAccessRequestContext(identity);
+  try {
+    return await db.$transaction(async (transaction) => {
+      const [userByGoogleSubject, userByEmail] = await Promise.all([
+        transaction.user.findUnique({
+          where: { googleSubject: identity.googleSubject },
+          select: {
+            id: true,
+            authProvider: true,
+            googleSubject: true,
+            status: true,
+            sessionVersion: true,
+          },
+        }),
+        transaction.user.findUnique({
+          where: { email: identity.email },
+          select: {
+            id: true,
+            authProvider: true,
+            googleSubject: true,
+            status: true,
+            sessionVersion: true,
+          },
+        }),
+      ]);
 
-  return db.$transaction(async (transaction) => {
-    const [userByGoogleSubject, userByEmail] = await Promise.all([
-      transaction.user.findUnique({
-        where: { googleSubject: identity.googleSubject },
-        select: {
-          id: true,
-          authProvider: true,
-          googleSubject: true,
-          status: true,
-          sessionVersion: true,
-        },
-      }),
-      transaction.user.findUnique({
-        where: { email: identity.email },
-        select: {
-          id: true,
-          authProvider: true,
-          googleSubject: true,
-          status: true,
-          sessionVersion: true,
-        },
-      }),
-    ]);
+      if (userByGoogleSubject) {
+        if (
+          supportsGoogleAuthentication(userByGoogleSubject.authProvider) &&
+          userByGoogleSubject.status === "APPROVED"
+        ) {
+          return {
+            type: "login",
+            userId: userByGoogleSubject.id,
+            sessionVersion: userByGoogleSubject.sessionVersion,
+          };
+        }
 
-    const existingUser = userByGoogleSubject ?? userByEmail;
-
-    if (existingUser) {
-      if (
-        supportsGoogleAuthentication(existingUser.authProvider) &&
-        existingUser.googleSubject === identity.googleSubject &&
-        existingUser.status === "APPROVED"
-      ) {
-        return {
-          type: "login",
-          userId: existingUser.id,
-          sessionVersion: existingUser.sessionVersion,
-        };
+        return { type: "failed" };
       }
 
-      return { type: "request-access", request: requestContext };
+      if (userByEmail) {
+        if (
+          supportsGoogleAuthentication(userByEmail.authProvider) &&
+          userByEmail.googleSubject === identity.googleSubject &&
+          userByEmail.status === "APPROVED"
+        ) {
+          return {
+            type: "login",
+            userId: userByEmail.id,
+            sessionVersion: userByEmail.sessionVersion,
+          };
+        }
+
+        return userByEmail.authProvider === "PASSWORD"
+          ? { type: "password-required" }
+          : { type: "failed" };
+      }
+
+      await transaction.pendingRegistration.deleteMany({
+        where: { email: identity.email },
+      });
+
+      const user = await transaction.user.create({
+        data: {
+          email: identity.email,
+          name: identity.name,
+          passwordHash: null,
+          authProvider: "GOOGLE",
+          googleSubject: identity.googleSubject,
+          role: "USER",
+          status: "APPROVED",
+          emailVerifiedAt: new Date(),
+          updatedAt: null,
+        },
+        select: { id: true, sessionVersion: true },
+      });
+
+      return {
+        type: "login",
+        userId: user.id,
+        sessionVersion: user.sessionVersion,
+      };
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { type: "failed" };
     }
 
-    const approvedEmail = await transaction.approvedEmail.findUnique({
-      where: { email: identity.email },
-      select: { id: true, usedAt: true },
-    });
-
-    if (!approvedEmail || approvedEmail.usedAt) {
-      return { type: "request-access", request: requestContext };
-    }
-
-    const approvalClaim = await transaction.approvedEmail.updateMany({
-      where: {
-        id: approvedEmail.id,
-        usedAt: null,
-      },
-      data: { usedAt: new Date() },
-    });
-
-    if (approvalClaim.count !== 1) {
-      return { type: "request-access", request: requestContext };
-    }
-
-    const user = await transaction.user.create({
-      data: {
-        email: identity.email,
-        name: identity.name,
-        passwordHash: null,
-        authProvider: "GOOGLE",
-        googleSubject: identity.googleSubject,
-        role: "USER",
-        status: "APPROVED",
-        updatedAt: null,
-      },
-      select: { id: true, sessionVersion: true },
-    });
-
-    return {
-      type: "login",
-      userId: user.id,
-      sessionVersion: user.sessionVersion,
-    };
-  });
+    throw error;
+  }
 }
 
 type GoogleAccountLinkResult = "success" | "mismatch" | "failed";
@@ -315,8 +313,6 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       request.session.set("userId", "");
       request.session.set("sessionVersion", 0);
-      request.session.set("googleAccessRequestEmail", "");
-      request.session.set("googleAccessRequestName", "");
       request.session.set("googleAccountDeletionState", "");
       request.session.set("googleAccountLinkState", "");
       request.session.set("googleOAuthState", state);
@@ -650,33 +646,12 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         return reply.redirect(getFrontendRedirectUrl(config, "login-success"));
       }
 
-      request.session.set("userId", "");
-      request.session.set("sessionVersion", 0);
-      request.session.set("googleAccessRequestEmail", result.request.email);
-      request.session.set("googleAccessRequestName", result.request.name);
-
-      return reply.redirect(getFrontendRedirectUrl(config, "request-access"));
-    },
-  );
-
-  app.get(
-    "/auth/google/request-context",
-    { config: { rateLimit: authGoogleRateLimit } },
-    async (request, reply) => {
-      const email = request.session.get("googleAccessRequestEmail");
-      const name = request.session.get("googleAccessRequestName");
-
-      if (!email || !name) {
-        return reply.code(404).send({ error: "Google request context not found." });
-      }
-
-      return reply.send({
-        request: {
-          email,
-          name,
-          message: "",
-        },
-      });
+      return reply.redirect(
+        getFrontendRedirectUrl(
+          config,
+          result.type === "password-required" ? "password-required" : "failed",
+        ),
+      );
     },
   );
 };
