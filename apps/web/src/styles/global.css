@@ -5831,17 +5831,97 @@ button.transaction-row__content:focus-visible {
   stroke-width: 1.7;
 }
 
-.profile-detail__provider {
+.profile-detail__provider-anchor {
+  position: relative;
   width: 20px;
   height: 20px;
   display: grid;
   place-items: center;
   align-self: center;
+  overflow: visible;
+}
+
+.profile-detail__provider {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .profile-detail__provider svg {
   width: 18px;
   height: 18px;
+}
+
+.profile-detail__provider:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+.profile-google-info {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 11px);
+  right: -8px;
+  width: min(226px, calc(100vw - 42px));
+  padding: 11px 12px;
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  transform-origin: calc(100% - 12px) top;
+  animation: profile-google-info-in 150ms ease-out;
+}
+
+.profile-google-info::before {
+  position: absolute;
+  top: -6px;
+  right: 11px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--color-primary-border);
+  border-left: 1px solid var(--color-primary-border);
+  background: var(--color-surface);
+  content: "";
+  transform: rotate(45deg);
+}
+
+.profile-google-info strong {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.profile-google-info p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+@keyframes profile-google-info-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .profile-detail dt {

@@ -1,6 +1,7 @@
 import {
   type FormEvent,
   type ReactNode,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState
@@ -108,6 +109,7 @@ export function ProfilePage({
   const profileScrollRef = useRef<HTMLElement>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
   const profileEmailRef = useRef<HTMLElement>(null);
+  const googleInfoRef = useRef<HTMLDivElement>(null);
   const [isProfileScrollable, setIsProfileScrollable] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -149,6 +151,7 @@ export function ProfilePage({
     );
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
+  const [isGoogleInfoOpen, setIsGoogleInfoOpen] = useState(false);
   const hasGoogleAccess = user.authProvider !== "PASSWORD";
   const parsedProfileName = validateUserName(profileName);
   const isProfileNameInputValid = parsedProfileName.success;
@@ -180,6 +183,32 @@ export function ProfilePage({
     currentPassword.length > 0 &&
     newPassword.length > 0 &&
     newPasswordConfirmation.length > 0;
+
+  useEffect(() => {
+    if (!isGoogleInfoOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!googleInfoRef.current?.contains(event.target as Node)) {
+        setIsGoogleInfoOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsGoogleInfoOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isGoogleInfoOpen]);
 
   useLayoutEffect(() => {
     const email = profileEmailRef.current;
@@ -606,13 +635,37 @@ export function ProfilePage({
                   </dd>
                 </div>
                 {hasGoogleAccess ? (
-                  <span
-                    className="profile-detail__provider"
-                    role="img"
-                    aria-label="Google account linked"
-                  >
-                    <GoogleIcon />
-                  </span>
+                  <div ref={googleInfoRef} className="profile-detail__provider-anchor">
+                    <button
+                      type="button"
+                      className="profile-detail__provider"
+                      aria-label="View Google sign-in details"
+                      aria-expanded={isGoogleInfoOpen}
+                      aria-controls="profile-google-info"
+                      onClick={() => setIsGoogleInfoOpen((isOpen) => !isOpen)}
+                    >
+                      <GoogleIcon />
+                    </button>
+
+                    {isGoogleInfoOpen ? (
+                      <div
+                        id="profile-google-info"
+                        className="profile-google-info"
+                        role="note"
+                      >
+                        <strong>
+                          {user.authProvider === "PASSWORD_AND_GOOGLE"
+                            ? "Google linked"
+                            : "Google sign-in"}
+                        </strong>
+                        <p>
+                          {user.authProvider === "PASSWORD_AND_GOOGLE"
+                            ? `Sign in with Google as ${user.email}, or keep using your email and password.`
+                            : `This account signs in with Google as ${user.email} and does not use a password.`}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
 
