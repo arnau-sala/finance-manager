@@ -403,6 +403,7 @@ export function MovesPage({
 
           <FirstTransactionEmptyState
             headingId="moves-empty-title"
+            description="Add your first transaction to start building your history."
             onNewTransaction={onNewTransaction}
           />
         </div>

@@ -1,21 +1,21 @@
-import { ChevronRight, Plus, ReceiptText } from "lucide-react";
+import { ChevronRight, Plus, ReceiptEuro } from "lucide-react";
 
 type FirstTransactionEmptyStateProps = {
   headingId: string;
+  description: string;
   onNewTransaction: () => void;
 };
 
 export function FirstTransactionEmptyState({
   headingId,
+  description,
   onNewTransaction
 }: FirstTransactionEmptyStateProps) {
   return (
     <div className="first-transaction-empty">
-      <ReceiptText aria-hidden="true" />
+      <ReceiptEuro aria-hidden="true" />
       <h2 id={headingId}>No transactions yet</h2>
-      <p>
-        Add your first transaction to start seeing your financial information.
-      </p>
+      <p>{description}</p>
       <button
         className="home-new-transaction first-transaction-empty__action"
         type="button"
