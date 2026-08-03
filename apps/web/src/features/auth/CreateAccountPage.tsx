@@ -78,18 +78,6 @@ function PasswordField({
 
   function toggleVisibility() {
     setIsVisible((current) => !current);
-
-    window.requestAnimationFrame(() => {
-      const input = inputRef.current;
-
-      if (!input) {
-        return;
-      }
-
-      input.focus({ preventScroll: true });
-      input.setSelectionRange(value.length, value.length);
-      window.requestAnimationFrame(syncCharacterFeedbackScroll);
-    });
   }
 
   return (
