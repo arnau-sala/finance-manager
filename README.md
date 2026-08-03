@@ -572,13 +572,13 @@ Content-Type: application/json
 }
 ```
 
-For accounts with password access, including linked accounts, an incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. Google-only accounts instead require fresh Google reauthentication, started from the browser with:
+For accounts with password access, including linked accounts, an incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. Google-only accounts require fresh Google reauthentication, while linked accounts can choose it instead of password confirmation. The browser flow starts with:
 
 ```http
 POST /account/google/delete/start
 ```
 
-The backend preserves the active session while Google presents its account chooser. The shared Google callback deletes the account only when Google's verified email and stable `sub` identifier both match the currently authenticated user. Selecting another Google account returns to the profile without deleting data and allows the user to retry with the session email.
+The backend preserves the active session while Google presents its account chooser. The shared Google callback deletes a `GOOGLE` or `PASSWORD_AND_GOOGLE` account only when Google's verified email and stable `sub` identifier both match the currently authenticated user. Selecting another Google account returns to the profile without deleting data and allows the user to retry with the session email.
 
 A successful deletion returns the password endpoint response below or redirects the Google flow to the public app screen:
 

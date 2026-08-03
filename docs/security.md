@@ -56,13 +56,13 @@ Login security decisions:
 Account deletion security decisions:
 
 - `DELETE /account` derives the target account only from the encrypted session and never accepts a user ID.
-- Password accounts must provide their current password; an incorrect value returns the explicit `Incorrect password.` error because the caller is already authenticated as that account.
+- Password-capable accounts must provide their current password when that verification method is selected; an incorrect value returns the explicit `Incorrect password.` error because the caller is already authenticated as that account.
 - User deletion and all related database cleanup run in one transaction.
 - Owned transactions, pending requests, request events, and approval records are deleted. Administrative IDs on records belonging to other users are set to null instead of deleting those users' history.
 - The current session is deleted after success. Sessions on other devices can no longer resolve the deleted user and therefore lose access.
-- Google accounts require a fresh account selection through Google before deletion.
+- Google-only accounts require a fresh account selection through Google. Hybrid accounts may choose either fresh Google verification or their current password.
 - The Google deletion flow uses a random, one-use OAuth `state` separate from normal sign-in and preserves the active session until verification finishes.
-- Deletion requires both Google's verified email and stable `sub` identifier to match the active `GOOGLE` user. A different account produces a retryable mismatch and no database writes.
+- Google deletion requires both Google's verified email and stable `sub` identifier to match the active `GOOGLE` or `PASSWORD_AND_GOOGLE` user. A different account produces a retryable mismatch and no database writes.
 - Password and Google deletion reuse one atomic cleanup service so both remove the same account-owned data.
 
 Profile editing security decisions:

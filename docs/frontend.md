@@ -761,7 +761,7 @@ MVP content:
   focused feedback. The mismatch dialog identifies the required session email
   and offers a retry.
 - Confirmed logout.
-- Irreversible account deletion confirmed by password or fresh Google account selection.
+- Irreversible account deletion confirmed by password or fresh Google account selection. Hybrid accounts choose either method in a compact, click-only selector; Google is selected by default.
 
 Google deletion returns to the profile with a warning dialog when the selected account does not match the active session. The dialog identifies the required session email without exposing it in the OAuth redirect URL.
 

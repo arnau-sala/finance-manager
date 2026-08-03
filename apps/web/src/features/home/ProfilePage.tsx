@@ -23,6 +23,7 @@ import {
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
@@ -60,8 +61,14 @@ type ProfilePageProps = {
 };
 
 type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
+type DeleteVerificationMethod = "google" | "password";
 type PasswordDialogMode = "form" | "success";
 type GoogleLinkDialogMode = "confirm" | "success" | "mismatch" | "failed";
+
+const deleteVerificationOptions = [
+  { value: "google", label: "Google" },
+  { value: "password", label: "Password" }
+] as const;
 
 function formatCreationDate(value: string) {
   const date = new Date(value);
@@ -122,6 +129,10 @@ export function ProfilePage({
     );
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
+  const [deleteVerificationMethod, setDeleteVerificationMethod] =
+    useState<DeleteVerificationMethod>(
+      user.authProvider === "PASSWORD" ? "password" : "google"
+    );
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteRetryAfter, setDeleteRetryAfter] = useState("15 minutes");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -153,6 +164,10 @@ export function ProfilePage({
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
   const [isGoogleInfoOpen, setIsGoogleInfoOpen] = useState(false);
   const hasGoogleAccess = user.authProvider !== "PASSWORD";
+  const deletesWithGoogle =
+    user.authProvider === "GOOGLE" ||
+    (user.authProvider === "PASSWORD_AND_GOOGLE" &&
+      deleteVerificationMethod === "google");
   const parsedProfileName = validateUserName(profileName);
   const isProfileNameInputValid = parsedProfileName.success;
   const isProfileNameChanged =
@@ -514,7 +529,7 @@ export function ProfilePage({
       return;
     }
 
-    if (user.authProvider === "GOOGLE") {
+    if (deletesWithGoogle) {
       setIsDeletingAccount(true);
       prefetchScheduler.prioritizeUserRequest();
 
@@ -749,6 +764,9 @@ export function ProfilePage({
               onClick={() => {
                 setDeleteError(null);
                 setDeletePassword("");
+                setDeleteVerificationMethod(
+                  user.authProvider === "PASSWORD" ? "password" : "google"
+                );
                 setDeleteDialogMode("confirm");
               }}
             />
@@ -988,21 +1006,23 @@ export function ProfilePage({
               ? `Too many deletion attempts. Try again in ${deleteRetryAfter}.`
             : deleteDialogMode === "failed"
               ? `Nothing was deleted. We couldn't verify ${user.email}. Try again.`
-              : user.authProvider === "GOOGLE"
-                ? "Permanently delete your account and all its data. Continue to verify with Google.\nThis cannot be undone."
-                : "Permanently delete your account and all its data.\nThis cannot be undone."
+              : user.authProvider === "PASSWORD_AND_GOOGLE"
+                ? "Permanently delete your account. Choose how to verify your identity.\nThis cannot be undone."
+                : user.authProvider === "GOOGLE"
+                  ? "Permanently delete your account. Continue to verify with Google.\nThis cannot be undone."
+                  : "Permanently delete your account.\nThis cannot be undone."
         }
         confirmLabel={
           deleteDialogMode === "rate-limited"
             ? "Got it"
-            : user.authProvider === "GOOGLE"
+            : deletesWithGoogle
             ? deleteDialogMode === "confirm"
               ? "Continue"
               : "Try again"
             : "Delete account"
         }
         confirmingLabel={
-          user.authProvider === "GOOGLE" ? "Opening..." : "Deleting..."
+          deletesWithGoogle ? "Opening..." : "Deleting..."
         }
         initialFocus="dialog"
         icon={
@@ -1020,15 +1040,33 @@ export function ProfilePage({
         isConfirming={isDeletingAccount}
         confirmDisabled={
           deleteDialogMode === "confirm" &&
-          user.authProvider !== "GOOGLE" &&
+          !deletesWithGoogle &&
           !deletePassword
         }
         error={deleteError}
         onCancel={closeDeleteDialog}
         onConfirm={confirmAccountDeletion}
       >
-        {user.authProvider !== "GOOGLE" &&
-        deleteDialogMode !== "rate-limited" ? (
+        {user.authProvider === "PASSWORD_AND_GOOGLE" &&
+        deleteDialogMode === "confirm" ? (
+          <SlidingSegmentedControl
+            className="confirm-dialog__verification-method"
+            value={deleteVerificationMethod}
+            options={deleteVerificationOptions}
+            label="Account deletion verification method"
+            tone="expense"
+            compact
+            allowDrag={false}
+            disabled={isDeletingAccount}
+            onChange={(method) => {
+              setDeleteVerificationMethod(method);
+              setDeletePassword("");
+              setDeleteError(null);
+            }}
+          />
+        ) : null}
+
+        {!deletesWithGoogle && deleteDialogMode === "confirm" ? (
           <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
             <label htmlFor="delete-account-password">Confirm your password</label>
             <input

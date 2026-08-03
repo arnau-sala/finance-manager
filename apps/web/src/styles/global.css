@@ -6142,6 +6142,10 @@ button.transaction-row__content:focus-visible {
   text-align: left;
 }
 
+.confirm-dialog__verification-method {
+  margin-top: 18px;
+}
+
 .confirm-dialog__form--password,
 .confirm-dialog__form--profile {
   gap: 14px;

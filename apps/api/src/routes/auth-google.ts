@@ -361,7 +361,10 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Authentication required." });
       }
 
-      if (user.authProvider !== "GOOGLE" || !user.googleSubject) {
+      if (
+        !supportsGoogleAuthentication(user.authProvider) ||
+        !user.googleSubject
+      ) {
         return reply.code(400).send({
           error: "Google reauthentication is unavailable for this account.",
         });
@@ -550,7 +553,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
             if (
               !user ||
-              user.authProvider !== "GOOGLE" ||
+              !supportsGoogleAuthentication(user.authProvider) ||
               user.googleSubject !== identity.googleSubject ||
               user.email !== identity.email
             ) {
