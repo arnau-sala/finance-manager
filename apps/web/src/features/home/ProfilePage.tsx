@@ -15,7 +15,7 @@ import {
   Landmark,
   LogOut,
   Mail,
-  PencilLine,
+  Pencil,
   TriangleAlert,
   Trash2,
   UserRound
@@ -697,7 +697,7 @@ export function ProfilePage({
             <div className="profile-action-list">
               <ProfileActionButton
                 label="Edit profile"
-                icon={<PencilLine />}
+                icon={<Pencil />}
                 onClick={() => {
                   setProfileName(user.name);
                   setProfileStartingNetWorth(
@@ -759,11 +759,11 @@ export function ProfilePage({
       <ConfirmDialog
         open={isEditDialogOpen}
         title="Edit profile"
-        description="Update your name, starting net worth, or both."
+        description="Update your name or starting net worth."
         confirmLabel="Continue"
         confirmingLabel="Saving..."
         initialFocus="dialog"
-        icon={<PencilLine />}
+        icon={<Pencil />}
         isConfirming={isUpdatingProfile}
         confirmDisabled={!canUpdateProfile}
         error={
