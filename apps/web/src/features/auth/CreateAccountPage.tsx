@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  Check,
   ChevronLeft,
+  Copy,
   Eye,
   EyeOff,
   RefreshCw,
@@ -21,6 +23,7 @@ import {
   type RegistrationField,
   validateRegistration
 } from "./registration-validation";
+import { validateUserName } from "./user-name-validation";
 
 type CreateAccountPageProps = {
   onBack: () => void;
@@ -28,6 +31,14 @@ type CreateAccountPageProps = {
 };
 
 type InvalidFields = Partial<Record<RegistrationField, boolean>>;
+type CopyableField = "email" | "name" | "passwordConfirmation";
+type CopyReadyFields = Partial<Record<CopyableField, boolean>>;
+
+type FieldCopyAction = {
+  copied: boolean;
+  label: string;
+  onCopy: () => void;
+};
 
 type PasswordFieldProps = {
   id: string;
@@ -40,11 +51,22 @@ type PasswordFieldProps = {
   describedBy?: string;
   onGenerate?: () => void;
   characterStatuses?: PasswordCharacterStatus[];
-  onChange: (value: string) => void;
+  copyAction?: FieldCopyAction;
+  onAutofill?: () => void;
+  onBlur?: () => void;
+  onChange: (value: string, autofilled: boolean) => void;
 };
 
 const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
+
+function isBrowserAutofilled(input: HTMLInputElement) {
+  try {
+    return input.matches(":-webkit-autofill");
+  } catch {
+    return false;
+  }
+}
 
 function revealTrailingCaret(
   input: HTMLInputElement,
@@ -75,6 +97,9 @@ function PasswordField({
   describedBy,
   onGenerate,
   characterStatuses = [],
+  copyAction,
+  onAutofill,
+  onBlur,
   onChange
 }: PasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -126,6 +151,8 @@ function PasswordField({
             <RefreshCw aria-hidden="true" strokeWidth={1.8} />
             Generate
           </button>
+        ) : copyAction ? (
+          <FieldCopyButton {...copyAction} />
         ) : null}
       </div>
       <div
@@ -154,10 +181,23 @@ function PasswordField({
           maxLength={128}
           aria-invalid={invalid}
           aria-describedby={describedBy}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => {
+            const autofilled = isBrowserAutofilled(event.currentTarget);
+            onChange(event.target.value, autofilled);
+
+            if (autofilled) {
+              onAutofill?.();
+            }
+          }}
+          onAnimationStart={(event) => {
+            if (event.animationName === "auth-password-autofill-detected") {
+              window.requestAnimationFrame(() => onAutofill?.());
+            }
+          }}
           onFocus={handleCaretVisibility}
           onClick={handleCaretVisibility}
           onScroll={syncCharacterFeedbackScroll}
+          onBlur={onBlur}
         />
         {showCharacterFeedback ? (
           <div
@@ -179,6 +219,7 @@ function PasswordField({
           </div>
         ) : null}
         <button
+          className="auth-password-visibility"
           type="button"
           onClick={toggleVisibility}
           aria-label={
@@ -199,6 +240,46 @@ function PasswordField({
   );
 }
 
+function FieldCopyButton({ copied, label, onCopy }: FieldCopyAction) {
+  return (
+    <button
+      className={`auth-field-copy-action${copied ? " is-copied" : ""}`}
+      type="button"
+      aria-label={copied ? `${label} copied` : `Copy ${label}`}
+      title={copied ? "Copied" : `Copy ${label}`}
+      onPointerDown={(event) => event.preventDefault()}
+      onClick={onCopy}
+    >
+      <span className="auth-field-copy-action__icons" aria-hidden="true">
+        <Copy className="auth-field-copy-action__copy" strokeWidth={1.8} />
+        <Check className="auth-field-copy-action__check" strokeWidth={1.8} />
+      </span>
+    </button>
+  );
+}
+
+async function copyTextToClipboard(value: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = value;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.append(textArea);
+  textArea.select();
+
+  const copied = document.execCommand("copy");
+  textArea.remove();
+
+  if (!copied) {
+    throw new Error("Clipboard access is unavailable.");
+  }
+}
+
 export function CreateAccountPage({
   onBack,
   onRegistrationStarted
@@ -208,9 +289,14 @@ export function CreateAccountPage({
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
+  const [copyReadyFields, setCopyReadyFields] = useState<CopyReadyFields>({});
+  const [copiedField, setCopiedField] = useState<CopyableField | null>(null);
+  const [passwordAutofillDetected, setPasswordAutofillDetected] =
+    useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const emailValidation = validateEmail(email);
   const passwordRequirements = getAccountPasswordRequirements(password);
   const passwordStrength = getPasswordStrength(password);
@@ -228,6 +314,69 @@ export function CreateAccountPage({
     passwordPairComplete &&
     isAccountPasswordComplete(passwordConfirmation);
 
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!passwordAutofillDetected || !passwordPairComplete) {
+      return;
+    }
+
+    setCopyStateAfterValidation(
+      "passwordConfirmation",
+      passwordConfirmation,
+      isAccountPasswordComplete(passwordConfirmation)
+    );
+    setPasswordAutofillDetected(false);
+  }, [
+    password,
+    passwordAutofillDetected,
+    passwordConfirmation,
+    passwordPairComplete
+  ]);
+
+  function resetCopyState(field: CopyableField) {
+    setCopyReadyFields((current) => ({ ...current, [field]: false }));
+
+    if (copiedField === field) {
+      setCopiedField(null);
+    }
+  }
+
+  function setCopyStateAfterValidation(
+    field: CopyableField,
+    value: string,
+    valid: boolean
+  ) {
+    setCopyReadyFields((current) => ({
+      ...current,
+      [field]: value.length > 1 && valid
+    }));
+  }
+
+  async function handleCopyField(field: CopyableField, value: string) {
+    try {
+      await copyTextToClipboard(value);
+      setCopiedField(field);
+
+      if (copyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+
+      copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+        setCopiedField((current) => (current === field ? null : current));
+        copyFeedbackTimeoutRef.current = null;
+      }, 1400);
+    } catch {
+      setFormError("Unable to copy this field. Please try again.");
+    }
+  }
+
   function clearPasswordErrors() {
     setInvalidFields((current) => ({
       ...current,
@@ -242,6 +391,12 @@ export function CreateAccountPage({
       const generatedPassword = generateAccountPassword();
       setPassword(generatedPassword);
       setPasswordConfirmation(generatedPassword);
+      setCopyStateAfterValidation(
+        "passwordConfirmation",
+        generatedPassword,
+        isAccountPasswordComplete(generatedPassword)
+      );
+      setPasswordAutofillDetected(false);
       clearPasswordErrors();
     } catch (error) {
       setFormError(
@@ -266,6 +421,7 @@ export function CreateAccountPage({
     if (email.trim().length === 0) {
       setInvalidFields((current) => ({ ...current, email: false }));
       setEmailError(null);
+      setCopyStateAfterValidation("email", email, false);
       return;
     }
 
@@ -274,11 +430,29 @@ export function CreateAccountPage({
     if (result.success) {
       setInvalidFields((current) => ({ ...current, email: false }));
       setEmailError(null);
+      setCopyStateAfterValidation("email", email, true);
       return;
     }
 
     setInvalidFields((current) => ({ ...current, email: true }));
     setEmailError("Email is not valid");
+    setCopyStateAfterValidation("email", email, false);
+  }
+
+  function validateNameField() {
+    setCopyStateAfterValidation(
+      "name",
+      name,
+      validateUserName(name).success
+    );
+  }
+
+  function validatePasswordConfirmationField() {
+    setCopyStateAfterValidation(
+      "passwordConfirmation",
+      passwordConfirmation,
+      passwordPairComplete && isAccountPasswordComplete(passwordConfirmation)
+    );
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -384,19 +558,25 @@ export function CreateAccountPage({
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
               <span id="register-email-label">Email address</span>
-              <p
-                id="register-email-error"
-                className="auth-register-field-error"
-                role="alert"
-                aria-live="polite"
-              >
-                {emailError ? (
+              {emailError ? (
+                <p
+                  id="register-email-error"
+                  className="auth-register-field-error"
+                  role="alert"
+                  aria-live="polite"
+                >
                   <>
                     <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
                     <span>{emailError}</span>
                   </>
-                ) : null}
-              </p>
+                </p>
+              ) : copyReadyFields.email ? (
+                <FieldCopyButton
+                  label="email address"
+                  copied={copiedField === "email"}
+                  onCopy={() => handleCopyField("email", email)}
+                />
+              ) : null}
             </div>
             <input
               id="register-email"
@@ -423,6 +603,7 @@ export function CreateAccountPage({
               onChange={(event) => {
                 setEmail(event.target.value);
                 setEmailError(null);
+                resetCopyState("email");
                 clearFieldError("email");
               }}
               onFocus={(event) => revealTrailingCaret(event.currentTarget)}
@@ -432,7 +613,16 @@ export function CreateAccountPage({
           </div>
 
           <div className="auth-form-field">
-            <span id="register-name-label">Name</span>
+            <div className="auth-register-field-heading">
+              <span id="register-name-label">Name</span>
+              {copyReadyFields.name ? (
+                <FieldCopyButton
+                  label="name"
+                  copied={copiedField === "name"}
+                  onCopy={() => handleCopyField("name", name)}
+                />
+              ) : null}
+            </div>
             <input
               id="register-name"
               aria-labelledby="register-name-label"
@@ -446,10 +636,12 @@ export function CreateAccountPage({
               aria-describedby={formError ? "register-form-error" : undefined}
               onChange={(event) => {
                 setName(event.target.value);
+                resetCopyState("name");
                 clearFieldError("name");
               }}
               onFocus={(event) => revealTrailingCaret(event.currentTarget)}
               onClick={(event) => revealTrailingCaret(event.currentTarget)}
+              onBlur={validateNameField}
             />
           </div>
 
@@ -468,8 +660,17 @@ export function CreateAccountPage({
             }
             onGenerate={handleGeneratePassword}
             characterStatuses={characterStatuses.password}
-            onChange={(value) => {
+            onAutofill={() => setPasswordAutofillDetected(true)}
+            onChange={(value, autofilled) => {
               setPassword(value);
+
+              if (autofilled) {
+                setPasswordAutofillDetected(true);
+              } else {
+                setPasswordAutofillDetected(false);
+                resetCopyState("passwordConfirmation");
+              }
+
               clearPasswordErrors();
             }}
           />
@@ -484,8 +685,31 @@ export function CreateAccountPage({
             complete={passwordPairComplete}
             describedBy={formError ? "register-form-error" : undefined}
             characterStatuses={characterStatuses.confirmation}
-            onChange={(value) => {
+            copyAction={
+              copyReadyFields.passwordConfirmation
+                ? {
+                    label: "repeated password",
+                    copied: copiedField === "passwordConfirmation",
+                    onCopy: () =>
+                      handleCopyField(
+                        "passwordConfirmation",
+                        passwordConfirmation
+                      )
+                  }
+                : undefined
+            }
+            onAutofill={() => setPasswordAutofillDetected(true)}
+            onBlur={validatePasswordConfirmationField}
+            onChange={(value, autofilled) => {
               setPasswordConfirmation(value);
+
+              if (autofilled) {
+                setPasswordAutofillDetected(true);
+              } else {
+                setPasswordAutofillDetected(false);
+                resetCopyState("passwordConfirmation");
+              }
+
               clearPasswordErrors();
             }}
           />

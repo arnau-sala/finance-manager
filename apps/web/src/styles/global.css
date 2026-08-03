@@ -626,6 +626,20 @@ body.app-logout-transition .confirm-dialog-backdrop {
   -webkit-text-security: none;
 }
 
+@keyframes auth-password-autofill-detected {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-register-form .auth-password-input:-webkit-autofill {
+  animation: auth-password-autofill-detected 1ms;
+}
+
 .auth-password-input.has-character-feedback {
   color: transparent;
   caret-color: var(--color-text);
@@ -818,6 +832,75 @@ body.app-logout-transition .confirm-dialog-backdrop {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.auth-field-copy-action {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  margin: -5px 16px -5px 0;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  white-space: nowrap;
+}
+
+.auth-field-copy-action__icons {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.auth-field-copy-action__icons svg {
+  position: absolute;
+  inset: 0;
+  width: 14px;
+  height: 14px;
+  transition:
+    opacity 150ms ease,
+    transform 180ms ease;
+}
+
+.auth-field-copy-action__copy {
+  color: var(--color-text-muted);
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+}
+
+.auth-field-copy-action__check {
+  color: var(--color-success);
+  opacity: 0;
+  transform: scale(0.65) rotate(-18deg);
+}
+
+.auth-field-copy-action:active {
+  color: var(--color-text-muted);
+  background: transparent;
+  transform: none;
+}
+
+.auth-field-copy-action.is-copied {
+  color: var(--color-text-muted);
+}
+
+.auth-field-copy-action.is-copied .auth-field-copy-action__copy {
+  opacity: 0;
+  transform: scale(0.65) rotate(18deg);
+}
+
+.auth-field-copy-action.is-copied .auth-field-copy-action__check {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
 }
 
 .auth-register-field-error {
