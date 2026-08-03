@@ -807,6 +807,19 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 10px;
 }
 
+.auth-register-form .auth-form-field input {
+  height: 50px;
+  font-size: 14px;
+}
+
+.auth-register-form .auth-input-with-action button {
+  top: 3px;
+}
+
+.auth-register-form > .auth-form-field + .auth-form-field {
+  margin-top: 10px;
+}
+
 .auth-verification-expiry {
   margin: -2px 20px 0;
   color: var(--color-text-muted);

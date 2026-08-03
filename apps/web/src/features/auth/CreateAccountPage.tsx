@@ -401,6 +401,22 @@ export function CreateAccountPage({
             }}
           />
 
+          <PasswordField
+            id="register-password-confirmation"
+            label="Repeat password"
+            name="passwordConfirmation"
+            placeholder="Repeat your password"
+            value={passwordConfirmation}
+            invalid={invalidFields.passwordConfirmation === true}
+            complete={passwordPairComplete}
+            describedBy={formError ? "register-form-error" : undefined}
+            characterStatuses={characterStatuses.confirmation}
+            onChange={(value) => {
+              setPasswordConfirmation(value);
+              clearPasswordErrors();
+            }}
+          />
+
           <div className="auth-password-assistance">
             <div className="auth-password-strength">
               <div
@@ -439,22 +455,6 @@ export function CreateAccountPage({
               ))}
             </div>
           </div>
-
-          <PasswordField
-            id="register-password-confirmation"
-            label="Repeat password"
-            name="passwordConfirmation"
-            placeholder="Repeat your password"
-            value={passwordConfirmation}
-            invalid={invalidFields.passwordConfirmation === true}
-            complete={passwordPairComplete}
-            describedBy={formError ? "register-form-error" : undefined}
-            characterStatuses={characterStatuses.confirmation}
-            onChange={(value) => {
-              setPasswordConfirmation(value);
-              clearPasswordErrors();
-            }}
-          />
 
           <p
             id="register-form-error"
