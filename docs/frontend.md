@@ -177,6 +177,7 @@ Core colors:
 | `--color-danger-soft` | `#FEE2E2` | Soft expense/destructive backgrounds |
 | `--color-warning` | `#D97706` | Warnings |
 | `--color-warning-soft` | `#FEF3C7` | Soft warning backgrounds |
+| `--color-password-autofill` | `#FAFFBD` | Apple-compatible generated-password fill |
 
 Usage rules:
 
@@ -411,7 +412,9 @@ UX notes:
   prepared, then clear both password fields before opening verification.
 - Show requirement completion and a compact strength meter beneath the first
   password. The optional generator uses Web Crypto, guarantees every backend
-  requirement, and fills both password fields with a 14-character value.
+  requirement, and fills both password fields with a 14-character value. Both
+  fields use the same pale-yellow fill as WebKit password autofill until the
+  user manually edits either value.
 - Keep the native password inputs active for cursor, editing, and visibility
   behavior. While masked, both fields use the same thin dots; compared
   positions remain black when they match and turn red only when they differ.

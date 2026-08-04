@@ -74,6 +74,7 @@ type PasswordFieldProps = {
   generating?: boolean;
   characterStatuses?: PasswordCharacterStatus[];
   copyAction?: FieldCopyAction;
+  generated?: boolean;
   onAutofill?: () => void;
   onBlur?: () => void;
   onChange: (value: string, autofilled: boolean) => void;
@@ -124,6 +125,7 @@ function PasswordField({
   generating = false,
   characterStatuses = [],
   copyAction,
+  generated = false,
   onAutofill,
   onBlur,
   onChange
@@ -200,7 +202,9 @@ function PasswordField({
           }
           className={`auth-password-input auth-password-input--${
             isVisible ? "visible" : "masked"
-          }${showCharacterFeedback ? " has-character-feedback" : ""}`}
+          }${showCharacterFeedback ? " has-character-feedback" : ""}${
+            generated && value.length > 0 ? " is-generated" : ""
+          }`}
           autoComplete="new-password"
           autoCapitalize="none"
           autoCorrect="off"
@@ -340,6 +344,7 @@ export function CreateAccountPage({
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
+  const [isAppGeneratedPassword, setIsAppGeneratedPassword] = useState(false);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const passwordGenerationRunRef = useRef(0);
   const usernameAvailabilityRequestRef = useRef(0);
@@ -488,6 +493,7 @@ export function CreateAccountPage({
 
       passwordGenerationRunRef.current = runId;
       setIsGeneratingPassword(true);
+      setIsAppGeneratedPassword(true);
       setPassword("");
       setPasswordConfirmation("");
       resetCopyState("passwordConfirmation");
@@ -526,6 +532,7 @@ export function CreateAccountPage({
       }
     } catch (error) {
       setIsGeneratingPassword(false);
+      setIsAppGeneratedPassword(false);
       setFormError(
         error instanceof Error
           ? error.message
@@ -1004,10 +1011,12 @@ export function CreateAccountPage({
             }
             onGenerate={handleGeneratePassword}
             generating={isGeneratingPassword}
+            generated={isAppGeneratedPassword}
             characterStatuses={characterStatuses.password}
             onAutofill={() => setPasswordAutofillDetected(true)}
             onChange={(value, autofilled) => {
               cancelGeneratedPasswordAnimation();
+              setIsAppGeneratedPassword(false);
               setPassword(value);
 
               if (autofilled) {
@@ -1029,6 +1038,7 @@ export function CreateAccountPage({
             value={passwordConfirmation}
             invalid={invalidFields.passwordConfirmation === true}
             complete={passwordPairComplete}
+            generated={isAppGeneratedPassword}
             describedBy={formError ? "register-form-error" : undefined}
             characterStatuses={characterStatuses.confirmation}
             copyAction={
@@ -1048,6 +1058,7 @@ export function CreateAccountPage({
             onBlur={validatePasswordConfirmationField}
             onChange={(value, autofilled) => {
               cancelGeneratedPasswordAnimation();
+              setIsAppGeneratedPassword(false);
               setPasswordConfirmation(value);
 
               if (autofilled) {
