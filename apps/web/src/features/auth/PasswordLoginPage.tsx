@@ -115,7 +115,6 @@ export function PasswordLoginPage({
             </div>
             <input
               id="login-identifier"
-              className="auth-warning-input"
               aria-labelledby="login-identifier-label"
               name="username"
               type="text"
