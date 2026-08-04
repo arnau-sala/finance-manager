@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
-import { ChevronLeft, Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
+import { ChevronLeft } from "lucide-react";
 
+import { AuthPasswordField, revealTrailingCaret } from "./AuthPasswordField";
 import { login } from "./auth-api";
 import { validateLoginIdentifier } from "./login-identifier-validation";
 import { validateLoginPassword } from "./password-validation";
@@ -23,29 +24,12 @@ export function PasswordLoginPage({
 }: PasswordLoginPageProps) {
   const [identifier, setIdentifier] = useState(initialIdentifier);
   const [password, setPassword] = useState("");
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({
     identifier: false,
     password: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const passwordInput = useRef<HTMLInputElement>(null);
-
-  function togglePasswordVisibility() {
-    setIsPasswordVisible((isVisible) => !isVisible);
-
-    requestAnimationFrame(() => {
-      const input = passwordInput.current;
-
-      if (!input) {
-        return;
-      }
-
-      input.focus({ preventScroll: true });
-      input.setSelectionRange(password.length, password.length);
-    });
-  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -121,14 +105,17 @@ export function PasswordLoginPage({
         </header>
 
         <form
-          className="auth-login-form"
+          className="auth-login-form auth-register-form"
           onSubmit={handleSubmit}
           noValidate
         >
           <div className="auth-form-field">
-            <span id="login-identifier-label">Email or username</span>
+            <div className="auth-register-field-heading">
+              <span id="login-identifier-label">Email or username</span>
+            </div>
             <input
               id="login-identifier"
+              className="auth-warning-input"
               aria-labelledby="login-identifier-label"
               name="username"
               type="text"
@@ -140,6 +127,8 @@ export function PasswordLoginPage({
               value={identifier}
               aria-invalid={invalidFields.identifier}
               aria-describedby={formError ? "login-form-error" : undefined}
+              onFocus={(event) => revealTrailingCaret(event.currentTarget)}
+              onClick={(event) => revealTrailingCaret(event.currentTarget)}
               onChange={(event) => {
                 setIdentifier(event.target.value);
                 if (formError) {
@@ -150,48 +139,27 @@ export function PasswordLoginPage({
             />
           </div>
 
-          <div className="auth-form-field auth-password-field">
-            <span id="login-password-label">Password</span>
-            <div className="auth-input-with-action">
-              <input
-                ref={passwordInput}
-                id="login-password"
-                aria-labelledby="login-password-label"
-                name="password"
-                type={isPasswordVisible ? "text" : "password"}
-                className={`auth-password-input auth-password-input--${
-                  isPasswordVisible ? "visible" : "masked"
-                }`}
-                autoComplete="current-password"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="Enter your password"
-                value={password}
-                aria-invalid={invalidFields.password}
-                aria-describedby={formError ? "login-form-error" : undefined}
-                onChange={(event) => {
-                  setPassword(event.target.value);
-                  if (formError) {
-                    setFormError(null);
-                    setInvalidFields({ identifier: false, password: false });
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-                aria-pressed={isPasswordVisible}
-              >
-                {isPasswordVisible ? (
-                  <EyeOff aria-hidden="true" strokeWidth={1.8} />
-                ) : (
-                  <Eye aria-hidden="true" strokeWidth={1.8} />
-                )}
-              </button>
-            </div>
-          </div>
+          <AuthPasswordField
+            id="login-password"
+            label="Password"
+            name="password"
+            placeholder="Enter your password"
+            value={password}
+            invalid={invalidFields.password}
+            autoComplete="current-password"
+            describedBy={formError ? "login-form-error" : undefined}
+            characterStatuses={Array.from(
+              { length: password.length },
+              () => "match" as const
+            )}
+            onChange={(value) => {
+              setPassword(value);
+              if (formError) {
+                setFormError(null);
+                setInvalidFields({ identifier: false, password: false });
+              }
+            }}
+          />
 
           <p
             id="login-form-error"

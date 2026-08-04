@@ -381,7 +381,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-email-form input:focus {
   background: var(--color-surface);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  box-shadow: none;
 }
 
 @keyframes auth-email-autofill {
@@ -400,7 +400,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-email-form input[aria-invalid="true"] {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 4px var(--color-danger-soft);
+  box-shadow: none;
 }
 
 .auth-email-form button {
@@ -629,7 +629,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-form-field textarea:focus {
   background: var(--color-surface);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  box-shadow: none;
 }
 
 .auth-form-field input[readonly] {
@@ -646,7 +646,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-form-field input[aria-invalid="true"]:not(.auth-warning-input),
 .auth-form-field textarea[aria-invalid="true"] {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 4px var(--color-danger-soft);
+  box-shadow: none;
 }
 
 .auth-password-input {
@@ -813,7 +813,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-password-field.is-complete .auth-input-with-action input {
   background: var(--color-surface);
   border-color: var(--color-success);
-  box-shadow: 0 0 0 3px var(--color-success-soft);
+  box-shadow: none;
 }
 
 .auth-register-form .auth-password-input.is-generated,
@@ -825,12 +825,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-password-field.is-complete .auth-password-input.is-generated,
 .auth-password-field.is-complete .auth-password-input:-webkit-autofill {
-  box-shadow:
-    inset 0 0 0 1000px var(--color-password-autofill),
-    0 0 0 3px var(--color-success-soft);
-  -webkit-box-shadow:
-    inset 0 0 0 1000px var(--color-password-autofill),
-    0 0 0 3px var(--color-success-soft);
+  box-shadow: inset 0 0 0 1000px var(--color-password-autofill);
+  -webkit-box-shadow: inset 0 0 0 1000px var(--color-password-autofill);
 }
 
 .auth-primary-button {
@@ -1387,7 +1383,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-verification-code.is-focused .auth-verification-boxes > span.is-active {
   background: var(--color-primary-soft);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  box-shadow: none;
 }
 
 .auth-verification-code.is-invalid .auth-verification-boxes > span {
@@ -4946,8 +4942,8 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-date-filter-field__control:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 1px;
+  border-color: var(--color-primary);
+  outline: none;
 }
 
 .moves-filter-field input:focus {
@@ -4988,6 +4984,10 @@ button.transaction-row__content:focus-visible {
 .moves-filter-field input:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
+}
+
+.moves-filter-field input:focus-visible {
+  outline: none;
 }
 
 .moves-filter-panel__actions {
@@ -6441,7 +6441,7 @@ button.transaction-row__content:focus-visible {
 
 .transaction-composer__date-control.is-invalid {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 4px var(--color-danger-soft);
+  box-shadow: none;
 }
 
 .transaction-composer__date-control input[type="date"]::-webkit-date-and-time-value {
@@ -6460,7 +6460,7 @@ button.transaction-row__content:focus-visible {
 .transaction-composer__date-control:focus-within {
   background: var(--color-surface);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  box-shadow: none;
 }
 
 .transaction-composer__date-control input[type="date"]:focus {
@@ -6478,7 +6478,7 @@ button.transaction-row__content:focus-visible {
 .transaction-composer__field input[aria-invalid="true"],
 .transaction-composer__field textarea[aria-invalid="true"] {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 4px var(--color-danger-soft);
+  box-shadow: none;
 }
 
 .transaction-composer__footer {
@@ -6558,14 +6558,14 @@ button.transaction-row__content:focus-visible {
 .transaction-composer__field textarea:focus {
   background: var(--color-surface);
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  box-shadow: none;
 }
 
 .transaction-composer__field input[aria-invalid="true"]:focus,
 .transaction-composer__field textarea[aria-invalid="true"]:focus,
 .transaction-composer__date-control.is-invalid:focus-within {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 4px var(--color-danger-soft);
+  box-shadow: none;
 }
 
 .profile-page {
@@ -6987,14 +6987,12 @@ button.transaction-row__content:focus-visible {
 
 .confirm-dialog__form input:focus {
   border-color: var(--color-primary);
-  outline: 3px solid var(--color-focus-ring);
-  outline-offset: 1px;
+  outline: none;
 }
 
 .confirm-dialog--danger .confirm-dialog__form input:focus {
   border-color: var(--color-danger);
-  outline: 3px solid color-mix(in srgb, var(--color-danger) 18%, transparent);
-  outline-offset: 1px;
+  outline: none;
 }
 
 .confirm-dialog__form input[aria-invalid="true"] {
