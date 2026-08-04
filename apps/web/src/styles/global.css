@@ -643,7 +643,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   box-shadow: none;
 }
 
-.auth-form-field input[aria-invalid="true"]:not(.auth-warning-input),
+.auth-form-field input[aria-invalid="true"],
 .auth-form-field textarea[aria-invalid="true"] {
   border-color: var(--color-danger);
   box-shadow: none;
