@@ -314,7 +314,8 @@ export type RegistrationVerificationResult =
       type: "created";
       user: {
         id: string;
-        email: string;
+        email: string | null;
+        username: string | null;
         name: string;
         role: "USER" | "ADMIN";
         status: "APPROVED" | "SUSPENDED";
@@ -399,6 +400,7 @@ export async function verifyPasswordRegistration(
       select: {
         id: true,
         email: true,
+        username: true,
         name: true,
         role: true,
         status: true,

@@ -1,16 +1,23 @@
 import rateLimit from "@fastify/rate-limit";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
-function getBodyEmail(request: FastifyRequest) {
+function getBodyIdentifier(request: FastifyRequest) {
   const body = request.body;
 
-  if (!body || typeof body !== "object" || !("email" in body)) {
+  if (!body || typeof body !== "object") {
     return "unknown";
   }
 
-  const email = (body as { email?: unknown }).email;
+  const record = body as {
+    email?: unknown;
+    identifier?: unknown;
+    username?: unknown;
+  };
+  const identifier = record.identifier ?? record.email ?? record.username;
 
-  return typeof email === "string" ? email.trim().toLowerCase() : "unknown";
+  return typeof identifier === "string"
+    ? identifier.trim().toLowerCase()
+    : "unknown";
 }
 
 function getSessionUserId(request: FastifyRequest) {
@@ -41,7 +48,7 @@ export const authLoginRateLimit = {
   max: 20,
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) =>
-    `auth-login:${request.ip}:${getBodyEmail(request)}`,
+    `auth-login:${request.ip}:${getBodyIdentifier(request)}`,
 };
 
 export const authRegisterRateLimit = {
@@ -57,7 +64,15 @@ export const authRegistrationVerifyRateLimit = {
   max: 10,
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) =>
-    `auth-register-verify:${request.ip}:${getBodyEmail(request)}`,
+    `auth-register-verify:${request.ip}:${getBodyIdentifier(request)}`,
+};
+
+export const authRecoveryRateLimit = {
+  hook: "preHandler" as const,
+  max: 5,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-recovery:${request.ip}:${getBodyIdentifier(request)}`,
 };
 
 export const authLogoutRateLimit = {
@@ -92,12 +107,28 @@ export const accountLinkRateLimit = {
     getSessionOrIpKey(request, "account-link"),
 };
 
+export const accountEmailLinkVerifyRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "account-email-link-verify"),
+};
+
 export const passwordChangeRateLimit = {
   hook: "preHandler" as const,
   max: 5,
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) =>
     getSessionOrIpKey(request, "password-change"),
+};
+
+export const accountRecoveryCodeRateLimit = {
+  hook: "preHandler" as const,
+  max: 5,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "account-recovery-code"),
 };
 
 export const authGoogleRateLimit = {

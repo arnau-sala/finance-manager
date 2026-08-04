@@ -72,12 +72,11 @@ npm run db:deploy
 ## Current Models
 
 `User` stores registered users, their required display name, role/status, and
-authentication provider. Names are limited to 100 characters and cannot be
-null. `emailVerifiedAt` records when ownership of the address was established.
-The migration backfills existing accounts with their creation timestamp so
-they remain usable; new password users receive the code verification time and
-new Google users receive their creation time because Google has already
-verified the address.
+authentication provider. A user must have at least one login identifier:
+`email` or `username`; PostgreSQL enforces this invariant with a check
+constraint. Both identifiers are unique and nullable so a username-only account
+does not need a placeholder email. Names remain required and limited to 100
+characters. `emailVerifiedAt` is null until a real address is verified.
 
 `PendingRegistration` is temporary state for password registration. Its email
 is unique and normalized. Each row stores the required name, Argon2id password
@@ -112,16 +111,32 @@ income transaction.
 `PASSWORD_AND_GOOGLE` users. It is unique and is used with the verified Google
 ID token so sign-in does not rely only on a changeable email address.
 
-New password registrations require a verified code and a name, then explicitly
-receive role `USER`, status `APPROVED`, and provider `PASSWORD`. New Google
+`AccountRecoveryCode` contains at most one row per username user. It stores a
+SHA-256 hash of a cryptographically random 128-bit code and cascades on account
+deletion. A successful recovery deletes the existing row and creates a new one
+in the same transaction, making every plaintext code single-use.
+
+`PendingEmailLink` stores one active email-link attempt per user and reserves
+one candidate email per attempt. It uses an account-and-email-bound HMAC hash,
+10-minute expiry, five-attempt limit, 60-second send cooldown, and cascading
+deletion. Successful verification deletes the row and assigns the email to the
+existing `User` rather than creating another account.
+
+New email/password registrations require a verified code and a name, then
+explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. New Google
 identities store Google's verified profile name and receive provider `GOOGLE`,
 no password hash, and the verified Google subject.
 
+Username registrations also use provider `PASSWORD`, store a required username
+and name, leave email fields null, and create their recovery code atomically.
+Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
+`PASSWORD_AND_GOOGLE` and records Google's verified email when none existed.
+
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
-Deleting a user removes its transactions through `ON DELETE CASCADE` and
-explicitly removes any matching `PendingRegistration` in the same database
-transaction.
+Deleting a user removes transactions, recovery code, and pending email link
+through `ON DELETE CASCADE`, and explicitly removes any matching
+`PendingRegistration` when the user has an email.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 

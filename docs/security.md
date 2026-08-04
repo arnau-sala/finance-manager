@@ -2,8 +2,8 @@
 
 ## Current Foundation
 
-The project supports open account creation only after ownership of the email is
-verified through Brevo, plus Google sign-in for identities verified by Google.
+The project supports verified-email registration, Google identities, and
+username-only accounts protected by a high-entropy recovery code.
 
 Security decisions already in place:
 
@@ -12,6 +12,8 @@ Security decisions already in place:
 - Real credentials, production database URLs, and secrets must not be committed.
 - User emails are unique in `User` and pending emails are unique in
   `PendingRegistration`.
+- Usernames are normalized, unique, and separate from the required display
+  name. PostgreSQL requires every user to have an email or username.
 
 Every private financial table must include an owner field such as `userId`.
 
@@ -36,12 +38,49 @@ Registration security decisions:
 - Brevo credentials and the verification HMAC secret are backend-only environment variables and must never enter frontend bundles or Git.
 - Brevo requests have an eight-second timeout. Failed delivery restores or removes the pending row so an undelivered code does not leave misleading active state.
 - Pending rows older than 24 hours are removed opportunistically and contain neither plaintext passwords nor plaintext codes.
-- Successful responses expose only the user ID, email, name, role, status, and creation timestamp.
+- Successful responses expose only public fields such as ID, nullable email,
+  nullable username, name, role, status, and creation timestamp.
+
+Username account and recovery decisions:
+
+- Usernames contain 3 to 30 lowercase characters from a restricted alphabet,
+  must start and end alphanumerically, and reject reserved system names.
+- Username ownership is checked before Argon2id hashing and rechecked inside the
+  account-creation transaction.
+- Each new username account receives 128 random bits from `randomBytes`; the
+  plaintext recovery code is returned only in the creation response.
+- PostgreSQL stores only the SHA-256 recovery-code hash. Its entropy makes
+  offline guessing infeasible without requiring a server secret.
+- Recovery compares hashes with `timingSafeEqual` and uses a dummy hash for
+  unknown usernames.
+- A successful recovery atomically deletes the submitted code, changes the
+  password, increments `sessionVersion`, and inserts a replacement code. The
+  previous code cannot succeed twice, including under concurrent requests.
+- Invalid usernames and recovery codes share one response. Attempts are also
+  limited by IP and normalized username.
+- Authenticated rotation requires the current password and invalidates the old
+  recovery code immediately.
+
+Email-linking decisions:
+
+- Only an approved authenticated user without an email can start the normal
+  email-link flow; the target user ID never comes from the request body.
+- Candidate addresses are normalized and checked against users, pending email
+  registrations, and other pending links before delivery and before assignment.
+- Codes use a scoped HMAC binding the user ID, candidate email, and code, so a
+  code from another registration or account cannot be replayed.
+- The flow has the same 10-minute expiry, five-attempt limit, 60-second resend
+  cooldown, neutral issuance response, and delivery rollback as registration.
+- Successful verification updates the existing user. Unique constraints and an
+  atomic final claim prevent two accounts from taking the same address.
+- Google linking may establish a username account's first email only after
+  Google verifies it. Accounts with an existing email must select that exact
+  email, and every Google subject remains globally unique.
 
 Login security decisions:
 
-- Unknown emails, incorrect passwords, and suspended users return the same `401` response.
-- Unknown emails still run an Argon2id verification against a dummy hash to reduce timing differences.
+- Unknown identifiers, incorrect passwords, and suspended users return the same `401` response.
+- Unknown identifiers still run an Argon2id verification against a dummy hash to reduce timing differences.
 - Password login only accepts users whose `authProvider` is `PASSWORD` or
   `PASSWORD_AND_GOOGLE` and whose password hash exists.
 - Password hashes and user details are never returned by login.
@@ -100,7 +139,8 @@ Google sign-in security decisions:
   the account chooser.
 - Google linking has its own random, one-use OAuth `state`, separate from public
   sign-in and account deletion. The callback requires the verified Google email
-  to equal the session email and rejects a `sub` already owned by another user.
+  to equal an existing session email, or securely assigns it when the username
+  account has no email. It rejects an email or `sub` already owned elsewhere.
 - Successful linking keeps the Argon2id password hash, stores `googleSubject`,
   and changes the provider to `PASSWORD_AND_GOOGLE`; mismatch and failure paths
   make no database changes.
@@ -143,14 +183,18 @@ Current limits:
 | Area | Limit | Key |
 | :---: | :---: | :---: |
 | Global API | 300/min | IP |
-| Login | 20/15min | IP + email |
+| Login | 20/15min | IP + identifier |
 | Register/email | 20/hour | IP |
 | Verify registration | 10/15min | IP + email |
+| Recover password | 5/15min | IP + username |
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
 | Profile editing | 30/15min | session/IP |
 | Google linking | 5/15min | session/IP |
+| Email linking | 5/15min | session/IP |
+| Verify linked email | 10/15min | session/IP |
 | Password changes | 5/15min | session/IP |
+| Replace recovery code | 5/15min | session/IP |
 | Account deletion | 5/15min | session/IP |
 | Financial reads | 180/min | session/IP |
 | Financial writes | 60/min | session/IP |
@@ -161,7 +205,8 @@ Administrative user listing security decisions:
 - `GET /admin/users` and `GET /admin/users/:id` require an active session for an `APPROVED` administrator.
 - Authenticated non-administrators receive `403 Forbidden`.
 - User detail IDs must be valid CUIDs before reaching the database.
-- The database query selects only ID, email, role, status, and creation timestamp.
+- The database query selects only public ID, nullable email/username, name,
+  role, status, and creation timestamp.
 - Password hashes and update timestamps are never loaded into the endpoint response.
 - User lists are paginated with a default limit of 50 and maximum limit of 100.
 

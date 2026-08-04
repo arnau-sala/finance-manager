@@ -109,6 +109,18 @@ the current code. Starting or resending registration always uses a neutral
 `202` response when the input is valid, so it does not reveal whether an email
 already has an account.
 
+## Link An Email To A Username Account
+
+The same Brevo configuration also supports authenticated username accounts
+that later add an email. Start with `POST /account/email/link` and an `email`
+body, resend with `POST /account/email/link/resend`, and submit the six-digit
+code to `POST /account/email/link/verify`.
+
+This flow has its own pending table and HMAC scope, so a registration code
+cannot be reused as an account-link code. Verification updates the current
+`User` row and preserves username/password login. It does not create a second
+account.
+
 ## Failure Behavior
 
 Missing Brevo configuration returns `503 Email verification is not

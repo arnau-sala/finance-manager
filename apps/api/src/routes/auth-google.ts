@@ -253,7 +253,7 @@ async function linkGoogleIdentityToUser(
       return "failed";
     }
 
-    if (user.email !== identity.email) {
+    if (user.email && user.email !== identity.email) {
       return "mismatch";
     }
 
@@ -270,9 +270,24 @@ async function linkGoogleIdentityToUser(
       select: { id: true },
     });
 
-    if (existingGoogleAccount && existingGoogleAccount.id !== user.id) {
+    const existingEmailAccount = await transaction.user.findUnique({
+      where: { email: identity.email },
+      select: { id: true },
+    });
+
+    if (
+      (existingGoogleAccount && existingGoogleAccount.id !== user.id) ||
+      (existingEmailAccount && existingEmailAccount.id !== user.id)
+    ) {
       return "failed";
     }
+
+    await transaction.pendingRegistration.deleteMany({
+      where: { email: identity.email },
+    });
+    await transaction.pendingEmailLink.deleteMany({
+      where: { email: identity.email },
+    });
 
     const update = await transaction.user.updateMany({
       where: {
@@ -285,6 +300,12 @@ async function linkGoogleIdentityToUser(
       data: {
         authProvider: "PASSWORD_AND_GOOGLE",
         googleSubject: identity.googleSubject,
+        ...(user.email
+          ? {}
+          : {
+              email: identity.email,
+              emailVerifiedAt: new Date(),
+            }),
       },
     });
 

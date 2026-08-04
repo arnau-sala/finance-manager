@@ -4,6 +4,7 @@ import { z } from "zod";
 import { supportsPasswordAuthentication } from "../auth/auth-provider.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
+import { recoveryCodeSchema } from "../auth/recovery-code.js";
 import {
   beginPasswordRegistration,
   EmailConfigurationError,
@@ -13,10 +14,19 @@ import {
   verifyPasswordRegistration,
 } from "../auth/registration.js";
 import { userNameSchema } from "../auth/user-validation.js";
+import {
+  normalizeLoginIdentifier,
+  usernameSchema,
+} from "../auth/username-validation.js";
+import {
+  recoverUsernameAccount,
+  registerUsernameAccount,
+} from "../auth/username-account.js";
 import { db } from "../db/client.js";
 import {
   authLoginRateLimit,
   authLogoutRateLimit,
+  authRecoveryRateLimit,
   authRegisterRateLimit,
   authRegistrationVerifyRateLimit,
 } from "../security/rate-limit.js";
@@ -51,6 +61,24 @@ const emailSchema = z
   .max(254)
   .transform((email) => email.toLowerCase());
 
+const usernameRegisterBodySchema = z
+  .object({
+    username: usernameSchema,
+    name: userNameSchema,
+    password: passwordSchema,
+    passwordConfirmation: z.string().max(128),
+  })
+  .strict()
+  .superRefine(({ password, passwordConfirmation }, context) => {
+    if (password !== passwordConfirmation) {
+      context.addIssue({
+        code: "custom",
+        path: ["passwordConfirmation"],
+        message: "Passwords do not match.",
+      });
+    }
+  });
+
 const resendRegistrationBodySchema = z
   .object({ email: emailSchema })
   .strict();
@@ -66,20 +94,49 @@ const invalidVerificationCodeResponse = {
   error: "Invalid or expired verification code.",
 };
 
-const loginBodySchema = z
+const loginIdentifierSchema = z.union([emailSchema, usernameSchema]);
+
+const loginBodySchema = z.union([
+  z
+    .object({
+      identifier: loginIdentifierSchema,
+      password: z.string().min(1).max(128),
+    })
+    .strict()
+    .transform(({ identifier, password }) => ({ identifier, password })),
+  z
+    .object({
+      email: emailSchema,
+      password: z.string().min(1).max(128),
+    })
+    .strict()
+    .transform(({ email, password }) => ({ identifier: email, password })),
+]);
+
+const recoverUsernameAccountBodySchema = z
   .object({
-    email: z
-      .string()
-      .trim()
-      .email()
-      .max(254)
-      .transform((email) => email.toLowerCase()),
-    password: z.string().min(1).max(128),
+    username: usernameSchema,
+    recoveryCode: recoveryCodeSchema,
+    newPassword: passwordSchema,
+    newPasswordConfirmation: z.string().max(128),
   })
-  .strict();
+  .strict()
+  .superRefine(({ newPassword, newPasswordConfirmation }, context) => {
+    if (newPassword !== newPasswordConfirmation) {
+      context.addIssue({
+        code: "custom",
+        path: ["newPasswordConfirmation"],
+        message: "Passwords do not match.",
+      });
+    }
+  });
 
 const invalidCredentialsResponse = {
-  error: "Invalid email or password.",
+  error: "Invalid identifier or password.",
+};
+
+const invalidRecoveryResponse = {
+  error: "Invalid username or recovery code.",
 };
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
@@ -128,6 +185,45 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return reply.code(202).send(genericRegistrationResponse);
+    },
+  );
+
+  app.post(
+    "/auth/register/username",
+    { config: { rateLimit: authRegisterRateLimit } },
+    async (request, reply) => {
+      const parsedBody = usernameRegisterBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid registration data.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const { username, name, password } = parsedBody.data;
+      const result = await registerUsernameAccount({
+        username,
+        name,
+        password,
+      });
+
+      if (result.type === "username-unavailable") {
+        return reply.code(409).send({ error: "Username is unavailable." });
+      }
+
+      request.session.regenerate();
+      request.session.set("userId", result.user.id);
+      request.session.set("sessionVersion", result.sessionVersion);
+
+      return reply.code(201).send({
+        message: "Account created successfully.",
+        user: result.user,
+        recoveryCode: result.recoveryCode,
+      });
     },
   );
 
@@ -215,6 +311,51 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
   );
 
   app.post(
+    "/auth/recovery/password",
+    { config: { rateLimit: authRecoveryRateLimit } },
+    async (request, reply) => {
+      const parsedBody = recoverUsernameAccountBodySchema.safeParse(
+        request.body,
+      );
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid recovery data.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const result = await recoverUsernameAccount({
+        username: parsedBody.data.username,
+        recoveryCode: parsedBody.data.recoveryCode,
+        newPassword: parsedBody.data.newPassword,
+      });
+
+      if (result.type === "invalid") {
+        return reply.code(401).send(invalidRecoveryResponse);
+      }
+
+      if (result.type === "password-unchanged") {
+        return reply.code(400).send({
+          error: "New password must be different from current password.",
+        });
+      }
+
+      request.session.regenerate();
+      request.session.set("userId", result.userId);
+      request.session.set("sessionVersion", result.sessionVersion);
+
+      return reply.send({
+        message: "Password recovered successfully.",
+        recoveryCode: result.recoveryCode,
+      });
+    },
+  );
+
+  app.post(
     "/auth/login",
     { config: { rateLimit: authLoginRateLimit } },
     async (request, reply) => {
@@ -224,9 +365,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid login data." });
       }
 
-      const { email, password } = parsedBody.data;
+      const { identifier, password } = parsedBody.data;
+      const normalizedIdentifier = normalizeLoginIdentifier(identifier);
       const user = await db.user.findUnique({
-        where: { email },
+        where: normalizedIdentifier.includes("@")
+          ? { email: normalizedIdentifier }
+          : { username: normalizedIdentifier },
         select: {
           id: true,
           passwordHash: true,

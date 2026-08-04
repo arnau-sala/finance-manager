@@ -13,9 +13,11 @@ import { supportsPasswordAuthentication } from "../auth/auth-provider.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
+import { rotateAccountRecoveryCode } from "../auth/username-account.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
+  accountRecoveryCodeRateLimit,
   accountWriteRateLimit,
   passwordChangeRateLimit,
 } from "../security/rate-limit.js";
@@ -56,6 +58,12 @@ const changePasswordBodySchema = z
       });
     }
   });
+
+const rotateRecoveryCodeBodySchema = z
+  .object({
+    currentPassword: z.string().min(1).max(128),
+  })
+  .strict();
 
 const startingNetWorthBodySchema = z.discriminatedUnion("action", [
   z
@@ -295,6 +303,52 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
         throw error;
       }
+    },
+  );
+
+  app.post(
+    "/account/recovery-code",
+    { config: { rateLimit: accountRecoveryCodeRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = rotateRecoveryCodeBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({ error: "Current password is required." });
+      }
+
+      const result = await rotateAccountRecoveryCode({
+        userId,
+        sessionVersion,
+        currentPassword: parsedBody.data.currentPassword,
+      });
+
+      if (result.type === "unauthenticated") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (result.type === "unavailable") {
+        return reply.code(400).send({
+          error: "Recovery codes are unavailable for this account.",
+        });
+      }
+
+      if (result.type === "incorrect-password") {
+        return reply.code(401).send({ error: "Incorrect current password." });
+      }
+
+      return reply.send({
+        message: "Recovery code replaced successfully.",
+        recoveryCode: result.recoveryCode,
+      });
     },
   );
 

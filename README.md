@@ -8,10 +8,11 @@ The mobile-first authenticated experience now includes real Home, Moves, Profile
 and Statistics screens. Statistics Overview and Charts use owner-scoped
 PostgreSQL aggregations rather than frontend fixtures. A one-time authenticated
 setup records the user's timeless starting net worth, or `0` when skipped,
-before the app opens. Password registration is now open to any valid email and
-uses a six-digit verification code delivered through Brevo. The mobile frontend
-validates registration locally, presents a six-cell OTP input, supports the
-60-second resend cooldown, and enters onboarding after successful verification.
+before the app opens. Accounts can be created with a verified email or with a
+username and password. Username accounts receive a one-use recovery code and
+can later add a verified email or Google without creating a second user. The
+mobile frontend currently implements the email flow; username UI is the next
+frontend step.
 
 Implemented:
 
@@ -31,8 +32,10 @@ Core:
 Authentication:
 
 - `POST /auth/register`
+- `POST /auth/register/username`
 - `POST /auth/register/resend`
 - `POST /auth/register/verify`
+- `POST /auth/recovery/password`
 - `POST /auth/login`
 - `GET /auth/google/start`
 - `GET /auth/google/callback`
@@ -41,6 +44,10 @@ Authentication:
 - `POST /account/onboarding/starting-net-worth`
 - `PATCH /account`
 - `PATCH /account/password`
+- `POST /account/recovery-code`
+- `POST /account/email/link`
+- `POST /account/email/link/resend`
+- `POST /account/email/link/verify`
 - `POST /account/google/link/start`
 - `DELETE /account`
 - `POST /account/google/delete/start`
@@ -214,6 +221,35 @@ If Brevo or its configuration is unavailable, code issuance returns `503` and
 the database change is rolled back so an undelivered code cannot block the
 next attempt.
 
+### Register With A Username
+
+A user can create an account without an email:
+
+```http
+POST /auth/register/username
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "alex.morgan",
+  "name": "Alex Morgan",
+  "password": "SecurePass1!",
+  "passwordConfirmation": "SecurePass1!"
+}
+```
+
+Usernames are normalized to lowercase, contain 3 to 30 characters, and may use
+letters, digits, dots, hyphens, and underscores. They must start and end with a
+letter or digit, and reserved system names are rejected. The display `name`
+remains separate and continues to be used as the person's visible name.
+
+Successful registration immediately creates the account and secure session.
+The response also contains a 128-bit recovery code such as
+`7C93-2C02-1FE8-885B-669D-E52A-EA0A-C6D1`. It is returned in plaintext only
+once; the database stores only its SHA-256 hash. The client must require the
+user to store it before continuing.
+
 ## Login
 
 ```http
@@ -223,10 +259,14 @@ Content-Type: application/json
 
 ```json
 {
-  "email": "user@example.com",
+  "identifier": "user@example.com",
   "password": "SecurePass1!"
 }
 ```
+
+`identifier` accepts either a normalized email or username. The legacy
+`email` field remains temporarily accepted so the existing frontend continues
+to work while its login UI is migrated.
 
 Valid credentials for an approved user return:
 
@@ -236,7 +276,63 @@ Valid credentials for an approved user return:
 }
 ```
 
-Unknown emails, incorrect passwords, and suspended users receive the same `401 Unauthorized` response. Successful login creates a secure cookie session.
+Unknown identifiers, incorrect passwords, and suspended users receive the same
+`401 Unauthorized` response. Successful login creates a secure cookie session.
+
+## Recover A Username Account
+
+The recovery code replaces a forgotten password without relying on email:
+
+```http
+POST /auth/recovery/password
+Content-Type: application/json
+```
+
+```json
+{
+  "username": "alex.morgan",
+  "recoveryCode": "7C93-2C02-1FE8-885B-669D-E52A-EA0A-C6D1",
+  "newPassword": "DifferentPass2!",
+  "newPasswordConfirmation": "DifferentPass2!"
+}
+```
+
+A valid recovery atomically consumes the submitted code, changes the password,
+increments `sessionVersion`, starts a new session, and returns a replacement
+recovery code. The old code can never be reused. Invalid usernames and codes
+share the same `401` response. An authenticated username account can explicitly
+replace its code with `POST /account/recovery-code` and its current password.
+
+## Link An Email
+
+An authenticated account created with a username can add a normal verified
+email without losing username login:
+
+```http
+POST /account/email/link
+Content-Type: application/json
+
+{ "email": "person@example.com" }
+```
+
+The API sends a six-digit code with the same 10-minute expiry, five-attempt
+limit, 60-second resend cooldown, neutral responses, and Brevo delivery
+rollback used by registration. Resend with `POST /account/email/link/resend`
+and verify with:
+
+```http
+POST /account/email/link/verify
+Content-Type: application/json
+
+{ "code": "123456" }
+```
+
+Verification assigns the email to the existing user and records
+`emailVerifiedAt`; it never creates a second account. Email and username can
+then both be used as the login identifier. Alternatively,
+`POST /account/google/link/start` can link Google; for an account without an
+email, Google's verified address becomes its email and both password and
+Google authentication remain available.
 
 ## Continue With Google
 
@@ -282,12 +378,12 @@ POST /account/google/link/start
 ```
 
 The endpoint returns a Google authorization URL and preserves the active
-session. The shared callback accepts the link only when Google's verified email
-exactly matches the session account, the one-use link-specific OAuth `state` is
-valid, and the Google `sub` is not linked elsewhere. Success keeps the password
-hash, stores the Google subject, and changes `authProvider` to
-`PASSWORD_AND_GOOGLE`. Selecting another email returns to Profile without any
-database change and allows the user to retry with the required account email.
+session. For an account with an email, the shared callback requires Google's
+verified email to match it exactly. For a username-only account, the selected
+verified Google email becomes its first email. In both cases the one-use
+link-specific OAuth `state` must be valid and the Google `sub` and email must
+not belong to another user. Success keeps the password hash, stores the Google
+subject, and changes `authProvider` to `PASSWORD_AND_GOOGLE`.
 
 ## Logout
 

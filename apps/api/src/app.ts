@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 
 import { registerSecureSession } from "./auth/session.js";
+import { accountEmailRoutes } from "./routes/account-email.js";
 import { accountRoutes } from "./routes/account.js";
 import { adminUserRoutes } from "./routes/admin-users.js";
 import { authGoogleRoutes } from "./routes/auth-google.js";
@@ -29,6 +30,7 @@ export function buildApp() {
   });
 
   app.register(accountRoutes);
+  app.register(accountEmailRoutes);
   app.register(adminUserRoutes);
   app.register(authGoogleRoutes);
   app.register(authRoutes);

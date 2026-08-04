@@ -55,6 +55,8 @@ The active database models cover authentication and financial records:
 
 - `User`
 - `PendingRegistration`
+- `AccountRecoveryCode`
+- `PendingEmailLink`
 - `Category`
 - `Transaction`
 
@@ -101,7 +103,17 @@ creating the user, so concurrent submissions cannot consume the same code
 twice. Successful verification records `emailVerifiedAt` and immediately starts
 the user's encrypted session.
 
-Login reuses the password module to verify Argon2id hashes. Unknown emails are checked against a precomputed dummy hash so the endpoint follows the same expensive verification path without exposing whether a user exists.
+Username registration is a separate synchronous path. It validates and claims
+the normalized username before hashing the password, creates a `User` with no
+email, and creates its `AccountRecoveryCode` in the same transaction. The
+plaintext 128-bit code is returned once; only its SHA-256 hash is persisted.
+Recovery atomically consumes that row, changes the password, increments
+`sessionVersion`, and inserts a newly generated replacement code.
+
+Login accepts one `identifier`, resolves it as an email or username, and reuses
+the password module to verify Argon2id hashes. Unknown identifiers are checked
+against a precomputed dummy hash so the endpoint follows the same expensive
+verification path without exposing whether an account exists.
 
 Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side
 OAuth 2.0 / OpenID Connect flow, validates callback `state`, verifies the Google
@@ -119,7 +131,14 @@ authenticate normally and use the separate account-linking flow.
 
 `routes/auth-me.ts` returns the public profile selected by the current secure session. It includes the required name, authentication provider, and `updatedAt` in addition to the fields shared with administrative user reads. The frontend uses the provider to offer Google linking only to password accounts.
 
-`routes/account.ts` owns owner-only profile updates through `PATCH /account`, password changes through `PATCH /account/password`, and password-confirmed self-service deletion through `DELETE /account`. Password changes verify the current Argon2id hash before hashing the new value, increment `sessionVersion`, and regenerate the current cookie; other cookies then fail version validation. `routes/auth-google.ts` owns public Google sign-in plus authenticated account linking and Google-capable deletion reauthentication. Each OAuth intention uses an independent one-use `state`. Linking requires the verified Google email to match the active password account and preserves both credentials; deletion requires the verified email and stable `sub` to match the active `GOOGLE` or `PASSWORD_AND_GOOGLE` account. Hybrid accounts may verify deletion with either credential. Both deletion paths call `account/delete-account.ts`, which performs the same database cleanup atomically and never accepts a client-provided user ID.
+`routes/account.ts` owns owner-only profile updates, password changes, recovery
+code rotation, and password-confirmed deletion. `routes/account-email.ts` and
+`account/email-link.ts` own the authenticated six-digit verification flow that
+adds an email to the existing username user. `routes/auth-google.ts` owns public
+Google sign-in plus authenticated account linking and Google-capable deletion
+reauthentication. A username account may link its first verified Google email;
+an account that already has an email must select that exact address. Both paths
+preserve the password credential and operate on the same `User` row.
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views. The financial day is stored as `occurredOn` using PostgreSQL `DATE`; the public API exposes it as `date: "YYYY-MM-DD"`, while `createdAt` remains the exact technical timestamp.
 

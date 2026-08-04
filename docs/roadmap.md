@@ -38,7 +38,7 @@
 
 - Add `POST /auth/login`.
 - Verify Argon2id credentials.
-- Return the same error for unknown emails, incorrect passwords, and suspended users.
+- Return the same error for unknown identifiers, incorrect passwords, and suspended users.
 - Create a secure cookie session after login.
 - Add `POST /auth/logout` and require an active session.
 
@@ -55,6 +55,16 @@
 - Require the current password and two matching new-password values.
 - Reuse the registration password policy and Argon2id hashing.
 - Rotate the current cookie and invalidate other sessions through `sessionVersion`.
+
+## Phase 5E: Username Accounts And Recovery
+
+- Allow account creation with a unique username and no placeholder email.
+- Accept email or username through one login identifier.
+- Generate a 128-bit recovery code and store only its hash.
+- Make recovery codes single-use and return a replacement after recovery.
+- Allow authenticated recovery-code rotation with the current password.
+- Allow username accounts to add a verified normal email or Google identity
+  without creating a second user.
 
 ## Phase 6A: Basic Transaction Creation
 
@@ -93,7 +103,7 @@
 - Add authenticated `GET /admin/users`.
 - Add authenticated `GET /admin/users/:id` with CUID validation.
 - Restrict the endpoint to users with role `ADMIN`.
-- Return only ID, email, role, status, and creation timestamp.
+- Return only public ID, email/username, name, role, status, and creation timestamp.
 
 ## Phase 7B: Current User Profile
 
