@@ -782,6 +782,16 @@ body.app-logout-transition .confirm-dialog-backdrop {
   height: 21px;
 }
 
+.auth-input-with-action .auth-password-visibility {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-input-with-action .auth-password-visibility:active {
+  color: var(--color-text-muted);
+  background: transparent;
+  transform: none;
+}
+
 .auth-password-character-feedback {
   position: absolute;
   inset: 0 64px 0 20px;
