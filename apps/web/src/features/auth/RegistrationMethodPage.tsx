@@ -1,4 +1,4 @@
-import { ArrowRight, AtSign, ChevronLeft, Mail } from "lucide-react";
+import { ArrowRight, AtSign, Check, ChevronLeft, Mail } from "lucide-react";
 
 import type { RegistrationMethod } from "./registration-method";
 
@@ -10,14 +10,22 @@ type RegistrationMethodPageProps = {
 const registrationMethods = [
   {
     value: "email",
-    title: "Use email",
-    description: "Verify your address with a 6-digit code.",
+    title: "Email account",
+    benefits: [
+      "Sign in with your email",
+      "Recover access by email",
+      "Add a username later",
+    ],
     icon: Mail,
   },
   {
     value: "username",
-    title: "Use username",
-    description: "No email needed. Save a recovery code for account access.",
+    title: "Username account",
+    benefits: [
+      "Sign in without an email",
+      "Recover with a recovery code",
+      "Add an email later",
+    ],
     icon: AtSign,
   },
 ] as const;
@@ -62,7 +70,7 @@ export function RegistrationMethodPage({
           <div className="auth-message">
             <h1 id="registration-method-title">Choose how to sign in</h1>
             <p className="auth-subtitle auth-registration-method-subtitle">
-              Start with an email or create your account without one.
+              Choose your first sign-in method. 
             </p>
           </div>
         </header>
@@ -84,10 +92,17 @@ export function RegistrationMethodPage({
                 >
                   <Icon strokeWidth={1.7} />
                 </span>
-                <span className="auth-registration-method-option__content">
+                <div className="auth-registration-method-option__content">
                   <strong>{method.title}</strong>
-                  <span>{method.description}</span>
-                </span>
+                  <ul>
+                    {method.benefits.map((benefit) => (
+                      <li key={benefit}>
+                        <Check aria-hidden="true" strokeWidth={2} />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <ArrowRight
                   className="auth-registration-method-option__arrow"
                   aria-hidden="true"
@@ -99,7 +114,7 @@ export function RegistrationMethodPage({
         </div>
 
         <p className="auth-registration-method-note">
-          Username accounts can add an email later. Both can link Google.
+          Both account types can link Google
         </p>
       </section>
     </main>

@@ -383,8 +383,11 @@ then collect the corresponding credentials without making the distinction
 ambiguous.
 
 The first registration screen is static and non-scrollable. It presents two
-large, separate actions: `Use email` and `Use username`. Each option includes a
-short consequence-focused explanation. Selecting either option slides the
+large, separate actions: `Email account` and `Username account`. Each option includes a
+compact three-point comparison covering its login identifier, recovery method,
+and the ability to add the other identifier later. Email accounts recover by
+email and may add a username; username accounts recover with their one-use code
+and may add an email. Both can link Google. Selecting either option slides the
 shared form in from the right; returning reveals the method screen underneath.
 
 Shared fields:

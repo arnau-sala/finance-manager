@@ -918,7 +918,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   min-width: 0;
   display: grid;
   align-content: center;
-  gap: 7px;
+  gap: 10px;
 }
 
 .auth-registration-method-option__content strong {
@@ -927,11 +927,30 @@ body.app-logout-transition .confirm-dialog-backdrop {
   line-height: 1.2;
 }
 
-.auth-registration-method-option__content > span {
+.auth-registration-method-option__content ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-registration-method-option__content li {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 300;
-  line-height: 1.4;
+  line-height: 1.25;
+}
+
+.auth-registration-method-option__content li svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  color: var(--color-primary);
 }
 
 .auth-registration-method-option__arrow {
@@ -7241,6 +7260,10 @@ button.transaction-row__content:focus-visible {
   }
 
   .auth-registration-method-option__content {
+    gap: 7px;
+  }
+
+  .auth-registration-method-option__content ul {
     gap: 4px;
   }
 
