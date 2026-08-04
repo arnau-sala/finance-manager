@@ -70,7 +70,7 @@ export function RegistrationMethodPage({
           <div className="auth-message">
             <h1 id="registration-method-title">Choose how to sign in</h1>
             <p className="auth-subtitle auth-registration-method-subtitle">
-              Choose your first sign-in method. 
+              Choose your first sign-in method 
             </p>
           </div>
         </header>

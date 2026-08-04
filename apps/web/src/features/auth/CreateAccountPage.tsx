@@ -880,8 +880,8 @@ export function CreateAccountPage({
             <h1 id="register-title">Create your account</h1>
             <p className="auth-subtitle auth-register-subtitle">
               {method === "email"
-                ? "Enter your details and verify your email."
-                : "No email needed. Choose a secure username."}
+                ? "Enter your details and verify your email"
+                : "No email needed"}
             </p>
           </div>
         </header>
