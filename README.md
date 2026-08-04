@@ -257,10 +257,12 @@ letter or digit, and reserved system names are rejected. The display `name`
 remains separate and continues to be used as the person's visible name.
 
 Successful registration immediately creates the account and secure session.
-The response also contains a 128-bit recovery code such as
-`7C93-2C02-1FE8-885B-669D-E52A-EA0A-C6D1`. It is returned in plaintext only
+The response also contains a 16-character Base58 recovery code such as
+`7KmP-x4Td-N9qR-2WcH`. It is returned in plaintext only
 once; the database stores only its SHA-256 hash. The client must require the
-user to store it before continuing.
+user to store it before continuing. The web app presents a dedicated one-time
+handoff screen with a copy action, keeps the plaintext only in memory, and then
+continues into authenticated onboarding.
 
 ## Login
 
@@ -303,7 +305,7 @@ Content-Type: application/json
 ```json
 {
   "username": "alex.morgan",
-  "recoveryCode": "7C93-2C02-1FE8-885B-669D-E52A-EA0A-C6D1",
+  "recoveryCode": "7KmP-x4Td-N9qR-2WcH",
   "newPassword": "DifferentPass2!",
   "newPasswordConfirmation": "DifferentPass2!"
 }

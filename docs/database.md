@@ -112,7 +112,7 @@ income transaction.
 ID token so sign-in does not rely only on a changeable email address.
 
 `AccountRecoveryCode` contains at most one row per username user. It stores a
-SHA-256 hash of a cryptographically random 128-bit code and cascades on account
+SHA-256 hash of a cryptographically random 16-character Base58 code and cascades on account
 deletion. A successful recovery deletes the existing row and creates a new one
 in the same transaction, making every plaintext code single-use.
 

@@ -250,6 +250,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       request.session.regenerate();
       request.session.set("userId", result.user.id);
       request.session.set("sessionVersion", result.sessionVersion);
+      reply.header("Cache-Control", "no-store");
 
       return reply.code(201).send({
         message: "Account created successfully.",

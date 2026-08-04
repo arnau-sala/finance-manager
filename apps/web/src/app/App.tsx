@@ -20,8 +20,10 @@ import {
   type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
+import { RecoveryCodePage } from "../features/auth/RecoveryCodePage";
 import { RegistrationMethodPage } from "../features/auth/RegistrationMethodPage";
 import { RegistrationVerificationPage } from "../features/auth/RegistrationVerificationPage";
+import type { UsernameRegistrationResult } from "../features/auth/registration-api";
 import type { RegistrationMethod } from "../features/auth/registration-method";
 import {
   HomePage,
@@ -36,7 +38,8 @@ type AuthScreen =
   | "login"
   | "register-method"
   | "register-form"
-  | "verification";
+  | "verification"
+  | "recovery-code";
 type StartupTransitionState =
   | "covered"
   | "exiting"
@@ -53,6 +56,8 @@ export function App() {
   const [registrationEmail, setRegistrationEmail] = useState<string | null>(
     null
   );
+  const [usernameRegistration, setUsernameRegistration] =
+    useState<UsernameRegistrationResult | null>(null);
   const [landingError, setLandingError] = useState<string | null>(null);
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
@@ -341,6 +346,7 @@ export function App() {
   function openRegistration() {
     setLandingError(null);
     setRegistrationEmail(null);
+    setUsernameRegistration(null);
     setActiveScreen("register-method");
   }
 
@@ -354,6 +360,18 @@ export function App() {
     setRegistrationEmail(email);
     setVerificationVersion((version) => version + 1);
     setActiveScreen("verification");
+  }
+
+  function showUsernameRecoveryCode(
+    registration: UsernameRegistrationResult
+  ) {
+    setUsernameRegistration(registration);
+    setActiveScreen("recovery-code");
+  }
+
+  async function completeUsernameRegistration() {
+    await handleLoginSuccess();
+    setUsernameRegistration(null);
   }
 
   function returnToRegistration() {
@@ -411,6 +429,7 @@ export function App() {
     setSessionUser(null);
     setLoginIdentifier("");
     setRegistrationEmail(null);
+    setUsernameRegistration(null);
     setLandingError(null);
     setGoogleAccountDeletionFeedback(null);
     setGoogleAccountLinkFeedback(null);
@@ -598,6 +617,7 @@ export function App() {
           method={registrationMethod}
           onBack={() => setActiveScreen("register-method")}
           onRegistrationStarted={showRegistrationVerification}
+          onUsernameRegistrationCreated={showUsernameRecoveryCode}
         />
       </div>
 
@@ -612,6 +632,20 @@ export function App() {
             email={registrationEmail}
             onBack={returnToRegistration}
             onVerified={handleLoginSuccess}
+          />
+        ) : null}
+      </div>
+
+      <div
+        className="auth-flow-page auth-flow-page--recovery-code"
+        aria-hidden={activeScreen !== "recovery-code"}
+        inert={activeScreen !== "recovery-code"}
+      >
+        {usernameRegistration ? (
+          <RecoveryCodePage
+            username={usernameRegistration.username}
+            recoveryCode={usernameRegistration.recoveryCode}
+            onContinue={completeUsernameRegistration}
           />
         ) : null}
       </div>

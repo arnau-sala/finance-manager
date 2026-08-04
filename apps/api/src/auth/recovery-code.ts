@@ -2,20 +2,33 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { z } from "zod";
 
-const recoveryCodeBytes = 16;
-const recoveryCodeHexLength = recoveryCodeBytes * 2;
+const recoveryCodeLength = 16;
+const recoveryCodeAlphabet =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+const unbiasedByteLimit =
+  Math.floor(256 / recoveryCodeAlphabet.length) * recoveryCodeAlphabet.length;
+const legacyRecoveryCodePattern = /^[A-F0-9]{32}$/;
+const recoveryCodePattern = new RegExp(
+  `^[${recoveryCodeAlphabet}]{${recoveryCodeLength}}$`,
+);
 const dummyRecoveryCodeHash = hashCanonicalRecoveryCode(
-  "0".repeat(recoveryCodeHexLength),
+  "1".repeat(recoveryCodeLength),
 );
 
 export const recoveryCodeSchema = z
   .string()
   .trim()
-  .min(recoveryCodeHexLength)
+  .min(recoveryCodeLength)
   .max(64)
-  .transform((code) => code.replace(/[\s-]/g, "").toUpperCase())
+  .transform((code) => code.replace(/[\s-]/g, ""))
+  .transform((code) =>
+    legacyRecoveryCodePattern.test(code.toUpperCase())
+      ? code.toUpperCase()
+      : code,
+  )
   .refine(
-    (code) => new RegExp(`^[A-F0-9]{${recoveryCodeHexLength}}$`).test(code),
+    (code) =>
+      recoveryCodePattern.test(code) || legacyRecoveryCodePattern.test(code),
     "Invalid recovery code.",
   );
 
@@ -24,9 +37,24 @@ function hashCanonicalRecoveryCode(code: string) {
 }
 
 export function createAccountRecoveryCode() {
-  const canonicalCode = randomBytes(recoveryCodeBytes)
-    .toString("hex")
-    .toUpperCase();
+  let canonicalCode = "";
+
+  while (canonicalCode.length < recoveryCodeLength) {
+    const bytes = randomBytes(recoveryCodeLength);
+
+    for (const byte of bytes) {
+      if (byte >= unbiasedByteLimit) {
+        continue;
+      }
+
+      canonicalCode += recoveryCodeAlphabet[byte % recoveryCodeAlphabet.length];
+
+      if (canonicalCode.length === recoveryCodeLength) {
+        break;
+      }
+    }
+  }
+
   const displayCode = canonicalCode.match(/.{1,4}/g)?.join("-") ?? canonicalCode;
 
   return {

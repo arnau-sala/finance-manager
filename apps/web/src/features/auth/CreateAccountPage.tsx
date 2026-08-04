@@ -20,7 +20,9 @@ import { validateEmail } from "./email-validation";
 import { getAccountPasswordRequirements } from "./password-validation";
 import {
   checkUsernameAvailability,
-  startRegistration
+  startRegistration,
+  startUsernameRegistration,
+  type UsernameRegistrationResult
 } from "./registration-api";
 import type { RegistrationMethod } from "./registration-method";
 import {
@@ -38,6 +40,9 @@ type CreateAccountPageProps = {
   method: RegistrationMethod;
   onBack: () => void;
   onRegistrationStarted: (email: string) => void;
+  onUsernameRegistrationCreated: (
+    registration: UsernameRegistrationResult
+  ) => void;
 };
 
 type CreateAccountField = RegistrationField | "username";
@@ -316,7 +321,8 @@ async function copyTextToClipboard(value: string) {
 export function CreateAccountPage({
   method,
   onBack,
-  onRegistrationStarted
+  onRegistrationStarted,
+  onUsernameRegistrationCreated
 }: CreateAccountPageProps) {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -727,15 +733,73 @@ export function CreateAccountPage({
 
     if (method === "username") {
       const parsedUsername = validateUsername(username);
+      const parsedName = validateUserName(name);
+      const usernameIsAvailable =
+        usernameAvailability === "available" &&
+        isUsernameAvailabilityVisible;
+      const passwordIsValid = isAccountPasswordComplete(password);
+      const confirmationIsValid =
+        isAccountPasswordComplete(passwordConfirmation) &&
+        password === passwordConfirmation;
 
-      if (!parsedUsername.success || usernameAvailability !== "available") {
-        setInvalidFields((current) => ({ ...current, username: true }));
+      if (
+        !parsedUsername.success ||
+        !usernameIsAvailable ||
+        !parsedName.success ||
+        !passwordIsValid ||
+        !confirmationIsValid
+      ) {
+        setInvalidFields({
+          username: !parsedUsername.success || !usernameIsAvailable,
+          name: !parsedName.success,
+          password: !passwordIsValid,
+          passwordConfirmation: !confirmationIsValid
+        });
         setFormError(
-          parsedUsername.success
-            ? "Choose an available username"
-            : (getUsernameValidationMessage(username) ??
-                "Enter a valid username")
+          !parsedUsername.success
+            ? (getUsernameValidationMessage(username) ??
+              "Enter a valid username")
+            : !usernameIsAvailable
+              ? "Choose an available username"
+              : !parsedName.success
+                ? (parsedName.error.issues[0]?.message ?? "Enter your name")
+                : !passwordIsValid
+                  ? "Choose a password that meets every requirement"
+                  : "Passwords do not match"
         );
+        return;
+      }
+
+      setInvalidFields({});
+      setFormError(null);
+      setIsSubmitting(true);
+
+      try {
+        const registration = await startUsernameRegistration({
+          username: parsedUsername.data,
+          name: parsedName.data,
+          password,
+          passwordConfirmation
+        });
+
+        setPassword("");
+        setPasswordConfirmation("");
+        onUsernameRegistrationCreated(registration);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Unable to create your account. Please try again.";
+
+        if (message === "Username is unavailable.") {
+          setUsernameAvailability("unavailable");
+          setIsUsernameAvailabilityVisible(true);
+          setInvalidFields((current) => ({ ...current, username: true }));
+        }
+
+        setFormError(message);
+      } finally {
+        setIsSubmitting(false);
       }
 
       return;
@@ -1125,7 +1189,11 @@ export function CreateAccountPage({
             type="submit"
             disabled={isSubmitting || !canSubmitRegistration}
           >
-            {isSubmitting && method === "email" ? "Sending code..." : "Continue"}
+            {isSubmitting
+              ? method === "email"
+                ? "Sending code..."
+                : "Creating account..."
+              : "Continue"}
           </button>
         </form>
       </section>

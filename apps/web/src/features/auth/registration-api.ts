@@ -1,6 +1,18 @@
 import { ApiRequestError } from "./auth-api";
 import type { RegistrationInput } from "./registration-validation";
 
+export type UsernameRegistrationInput = {
+  username: string;
+  name: string;
+  password: string;
+  passwordConfirmation: string;
+};
+
+export type UsernameRegistrationResult = {
+  username: string;
+  recoveryCode: string;
+};
+
 type ApiIssue = {
   field?: string;
   message?: string;
@@ -55,6 +67,43 @@ export async function startRegistration(input: RegistrationInput) {
     input,
     "Unable to start registration. Please try again."
   );
+}
+
+export async function startUsernameRegistration(
+  input: UsernameRegistrationInput,
+): Promise<UsernameRegistrationResult> {
+  const response = await fetch("/api/auth/register/username", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw await createRegistrationError(
+      response,
+      "Unable to create your account. Please try again.",
+    );
+  }
+
+  const body = (await response.json()) as {
+    recoveryCode?: unknown;
+    user?: { username?: unknown };
+  };
+
+  if (
+    typeof body.recoveryCode !== "string" ||
+    typeof body.user?.username !== "string"
+  ) {
+    throw new ApiRequestError("Unable to load your recovery code.", 500);
+  }
+
+  return {
+    username: body.user.username,
+    recoveryCode: body.recoveryCode,
+  };
 }
 
 export async function checkUsernameAvailability(

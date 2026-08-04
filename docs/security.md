@@ -51,8 +51,14 @@ Username account and recovery decisions:
   enforced by final registration.
 - Username ownership is checked before Argon2id hashing and rechecked inside the
   account-creation transaction.
-- Each new username account receives 128 random bits from `randomBytes`; the
-  plaintext recovery code is returned only in the creation response.
+- Each new username account receives 16 unbiased Base58 characters from
+  `randomBytes`, providing about 94 bits of entropy. The plaintext recovery
+  code is returned only in the creation response.
+- Legacy 32-character hexadecimal recovery codes remain valid so existing
+  accounts are not locked out by the format migration.
+- The recovery-code response is marked `Cache-Control: no-store`. The web
+  client keeps the plaintext only in component memory for the one-time handoff
+  screen and clears it when authenticated onboarding begins.
 - PostgreSQL stores only the SHA-256 recovery-code hash. Its entropy makes
   offline guessing infeasible without requiring a server secret.
 - Recovery compares hashes with `timingSafeEqual` and uses a dummy hash for

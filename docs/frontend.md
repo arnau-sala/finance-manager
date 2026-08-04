@@ -433,11 +433,30 @@ UX notes:
   state. A valid available username then shows an animated green check;
   unavailable and failed checks remain visible beside the field. Never show an
   intermediate `Checking` label.
-- Username availability only enables the primary action. The current frontend
-  deliberately does not submit `POST /auth/register/username` until the
-  one-time recovery-code handoff screen is implemented.
+- Username availability only enables the primary action. Submission still
+  sends the complete payload to `POST /auth/register/username`, where every
+  field and the final username claim are validated again.
 
-### 4. Email Verification
+### 4. Username Recovery Code
+
+Purpose: hand the username-only account's recovery secret to its owner before
+entering the authenticated app.
+
+Behavior:
+
+- Open immediately after successful `POST /auth/register/username`.
+- Display the grouped recovery code returned by that response and provide a
+  dedicated copy action with visible confirmation.
+- Explain that the code replaces email recovery, must be stored securely, can
+  reset the password, and cannot be shown again.
+- Keep the plaintext code only in React memory. Do not write it to local
+  storage, session storage, logs, or URLs.
+- Enter the authenticated flow only after the user presses `Continue`; the
+  existing first-account flow then opens Starting Net Worth setup.
+- Do not provide a back action after account creation, because returning to the
+  form would hide the only plaintext copy of the recovery code.
+
+### 5. Email Verification
 
 Purpose: finish password registration with the code delivered by Brevo.
 
@@ -459,7 +478,7 @@ Security UX:
 - Returning to the form keeps the non-sensitive email and name but requires the
   password fields to be entered again.
 
-### 5. Starting Net Worth Setup
+### 6. Starting Net Worth Setup
 
 Purpose: establish the user's real financial baseline before showing the
 authenticated app for the first time.
@@ -477,7 +496,7 @@ restoration, so no authentication path can bypass the initial screen
 accidentally. The value can be replaced later without changing transactions.
 Session expiration uses the existing non-dismissible dialog.
 
-### 6. Dashboard
+### 7. Dashboard
 
 Purpose: first authenticated screen.
 
@@ -502,7 +521,7 @@ The Home layout uses five intrinsic grid rows with a minimum gap. Available vert
 - Recent transactions.
 - Link to statistics.
 
-### 7. Create Transaction
+### 8. Create Transaction
 
 Purpose: fast mobile-first transaction entry.
 
@@ -554,7 +573,7 @@ UX notes:
   response so its balance, latest moves, and monthly activity update together.
   A `401` response opens the existing non-dismissible session-expired dialog.
 
-### 8. Transactions
+### 9. Transactions
 
 Purpose: browse historical records.
 
@@ -611,7 +630,7 @@ Final MVP content:
 - Transaction detail entry point.
 - Empty states.
 
-### 9. Transaction Detail And Edit
+### 10. Transaction Detail And Edit
 
 Purpose: view, update, or delete one transaction.
 
@@ -668,7 +687,7 @@ cancel only the confirmation. While the authenticated `DELETE` request is in
 progress, every confirmation control is disabled; success closes the detail and
 refreshes every financial view, while failures remain visible in the popover.
 
-### 10. Statistics
+### 11. Statistics
 
 Purpose: show simple financial insights.
 
@@ -794,7 +813,7 @@ The deterministic statistics fixture files remain in the repository as visual
 development references, but production components do not import or bundle
 them.
 
-### 11. Account
+### 12. Account
 
 Purpose: user profile and session controls.
 
@@ -828,7 +847,7 @@ The change-password modal requires the current password and two copies of the ne
 
 Logout keeps the confirmation dialog visible while the request is pending. Only after the API confirms that the session has ended does the private screen slide to the right, revealing the public access screen underneath. Failed and cancelled attempts do not trigger the transition.
 
-### 12. Admin
+### 13. Admin
 
 Purpose: operational review tools.
 

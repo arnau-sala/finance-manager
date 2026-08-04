@@ -106,7 +106,7 @@ the user's encrypted session.
 Username registration is a separate synchronous path. It validates and claims
 the normalized username before hashing the password, creates a `User` with no
 email, and creates its `AccountRecoveryCode` in the same transaction. The
-plaintext 128-bit code is returned once; only its SHA-256 hash is persisted.
+plaintext 16-character Base58 code is returned once; only its SHA-256 hash is persisted.
 Recovery atomically consumes that row, changes the password, increments
 `sessionVersion`, and inserts a newly generated replacement code.
 
