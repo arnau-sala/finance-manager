@@ -47,6 +47,75 @@ button {
   color: inherit;
 }
 
+button,
+a,
+[role="button"],
+input[type="button"],
+input[type="submit"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Press feedback is reserved for large command buttons. */
+.auth-back-button:active:not(:disabled),
+.auth-registration-method-option:active:not(:disabled),
+.auth-recovery-code-copy:active:not(:disabled),
+.profile-action:not(.profile-action--danger):active:not(:disabled),
+.confirm-dialog__button--cancel:active:not(:disabled),
+.transaction-detail-delete-confirm__actions
+  button:not(.transaction-detail-delete-confirm__submit):active:not(:disabled) {
+  background-color: var(--color-surface-muted);
+}
+
+.auth-option:not(.auth-option--google):active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--color-surface-muted) 70%,
+    white
+  );
+}
+
+.auth-option--google:active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary-soft) 72%,
+    white
+  );
+}
+
+.auth-recovery-code-copy.is-copied:active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary-soft) 72%,
+    white
+  );
+}
+
+.auth-email-form button:active:not(:disabled),
+.auth-primary-button:active:not(:disabled),
+.starting-net-worth-form__submit:active:not(:disabled),
+.home-new-transaction:active:not(:disabled),
+.transaction-composer__footer button:active:not(:disabled),
+.confirm-dialog__button--confirm:active:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-primary) 82%, white);
+}
+
+.profile-action--danger:active:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--color-danger-soft) 72%,
+    white
+  );
+}
+
+.confirm-dialog--danger
+  .confirm-dialog__button--confirm:active:not(:disabled),
+.confirm-dialog--confirm-danger
+  .confirm-dialog__button--confirm:active:not(:disabled),
+.transaction-detail-delete-confirm__actions
+  .transaction-detail-delete-confirm__submit:active:not(:disabled) {
+  background-color: color-mix(in srgb, var(--color-danger) 82%, white);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -425,10 +494,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-on-primary);
 }
 
-.auth-email-form button:active {
-  background: var(--color-primary-pressed);
-}
-
 .auth-email-form button:focus-visible,
 .auth-option:focus-visible,
 .auth-registration-method-option:focus-visible,
@@ -554,12 +619,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-back-button svg {
   width: 22px;
   height: 22px;
-}
-
-.auth-back-button:active {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
 }
 
 .auth-login-panel {
@@ -728,12 +787,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   height: 13px;
 }
 
-.auth-password-generate:active {
-  color: var(--color-primary);
-  background: transparent;
-  transform: none;
-}
-
 @keyframes auth-password-generate-spin {
   from {
     transform: rotate(0deg);
@@ -773,11 +826,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   touch-action: manipulation;
 }
 
-.auth-input-with-action button:active {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
-}
-
 .auth-input-with-action button svg {
   width: 21px;
   height: 21px;
@@ -785,12 +833,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-input-with-action .auth-password-visibility {
   -webkit-tap-highlight-color: transparent;
-}
-
-.auth-input-with-action .auth-password-visibility:active {
-  color: var(--color-text-muted);
-  background: transparent;
-  transform: none;
 }
 
 .auth-password-character-feedback {
@@ -841,10 +883,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   touch-action: manipulation;
   font-size: 16px;
   font-weight: 400;
-}
-
-.auth-primary-button:active {
-  background: var(--color-primary-pressed);
 }
 
 .auth-primary-button:disabled {
@@ -906,11 +944,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   touch-action: manipulation;
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-}
-
-.auth-registration-method-option:active {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
 }
 
 .auth-registration-method-option__icon {
@@ -1075,12 +1108,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-success);
   opacity: 0;
   transform: scale(0.65) rotate(-18deg);
-}
-
-.auth-field-copy-action:active {
-  color: var(--color-text-muted);
-  background: transparent;
-  transform: none;
 }
 
 .auth-field-copy-action.is-copied {
@@ -1419,11 +1446,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
 }
 
-.auth-verification-resend:active:not(:disabled) {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
-}
-
 .auth-verification-resend:disabled {
   color: var(--color-text-muted);
   cursor: default;
@@ -1621,10 +1643,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-recovery-code-continue.is-waiting {
   cursor: default;
   opacity: 0.72;
-}
-
-.auth-recovery-code-continue.is-waiting:active {
-  background: var(--color-primary);
 }
 
 .starting-net-worth-screen {
@@ -1889,10 +1907,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
   cursor: pointer;
   touch-action: manipulation;
-}
-
-.starting-net-worth-form__submit:active:not(:disabled) {
-  background: var(--color-primary-pressed);
 }
 
 .starting-net-worth-form__submit:disabled {
@@ -2839,10 +2853,6 @@ button.transaction-row__content:focus-visible {
   cursor: default;
 }
 
-.month-picker__header button:not(:disabled):active {
-  background: var(--color-primary-soft);
-}
-
 .month-picker__header button:focus-visible,
 .month-picker__grid button:focus-visible {
   outline: 2px solid var(--color-focus-ring);
@@ -2905,11 +2915,6 @@ button.transaction-row__content:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.month-picker__grid button:not(:disabled):not(.is-selected):active {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
-}
-
 .month-picker__grid button.is-current:not(.is-selected) {
   color: var(--color-primary);
 }
@@ -2935,10 +2940,6 @@ button.transaction-row__content:focus-visible {
   justify-content: start;
   gap: 2px;
   border-radius: 8px;
-}
-
-.month-picker__header .date-picker__period:not(:disabled):active {
-  background: transparent;
 }
 
 .date-picker__period span {
@@ -3033,14 +3034,6 @@ button.transaction-row__content:focus-visible {
   position: relative;
   z-index: 1;
   border-radius: inherit;
-}
-
-.date-picker__day-grid
-  > button:not(:disabled):not(.is-selected):not(.is-range-boundary):not(
-    .is-in-range
-  ):active {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
 }
 
 .date-picker__day-grid
@@ -3185,11 +3178,6 @@ button.transaction-row__content:focus-visible {
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-}
-
-.year-picker__row button:not(:disabled):not(.is-selected):active {
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
 }
 
 .year-picker__row button.is-current:not(.is-selected) {
@@ -3480,10 +3468,6 @@ button.transaction-row__content:focus-visible {
 .stats-cash-flow__metric:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
-}
-
-.stats-cash-flow__metric:not(:disabled):active {
-  transform: scale(0.94);
 }
 
 .stats-cash-flow__metric:disabled {
@@ -4587,12 +4571,6 @@ button.transaction-row__content:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.moves-filter-button:active {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
-}
-
 .moves-filter-button.is-active {
   color: var(--color-primary);
   background: var(--color-primary-soft);
@@ -5446,11 +5424,6 @@ button.transaction-row__content:focus-visible {
   border-radius: 50%;
 }
 
-.transaction-detail-sheet__action-button:active,
-.transaction-detail-sheet__close:active {
-  background: var(--color-surface-muted);
-}
-
 .transaction-detail-sheet__toolbar button:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 1px;
@@ -6020,12 +5993,6 @@ button.transaction-row__content:focus-visible {
   stroke-width: 1.8;
 }
 
-.transaction-composer__close:active {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
-}
-
 .transaction-composer__form {
   width: 100%;
   min-width: 0;
@@ -6528,10 +6495,6 @@ button.transaction-row__content:focus-visible {
   -webkit-tap-highlight-color: transparent;
 }
 
-.transaction-composer__footer button:active:not(:disabled) {
-  background: var(--color-primary-pressed);
-}
-
 .transaction-composer__footer button:disabled {
   cursor: default;
   opacity: 0.42;
@@ -6803,12 +6766,6 @@ button.transaction-row__content:focus-visible {
   touch-action: manipulation;
 }
 
-.profile-action:not(:disabled):active {
-  color: var(--color-primary-pressed);
-  background: var(--color-primary-soft);
-  border-color: var(--color-primary-border);
-}
-
 .profile-action__icon {
   width: 20px;
   height: 20px;
@@ -7039,11 +6996,6 @@ button.transaction-row__content:focus-visible {
   border: 1px solid var(--color-primary);
 }
 
-.confirm-dialog__button--confirm:not(:disabled):active {
-  background: var(--color-primary-pressed);
-  border-color: var(--color-primary-pressed);
-}
-
 .confirm-dialog--danger .confirm-dialog__button--confirm {
   background: var(--color-danger);
   border-color: var(--color-danger);
@@ -7052,17 +7004,6 @@ button.transaction-row__content:focus-visible {
 .confirm-dialog--confirm-danger .confirm-dialog__button--confirm {
   background: var(--color-danger);
   border-color: var(--color-danger);
-}
-
-.confirm-dialog--danger .confirm-dialog__button--confirm:not(:disabled):active {
-  background: color-mix(in srgb, var(--color-danger) 84%, black);
-  border-color: color-mix(in srgb, var(--color-danger) 84%, black);
-}
-
-.confirm-dialog--confirm-danger
-  .confirm-dialog__button--confirm:not(:disabled):active {
-  background: color-mix(in srgb, var(--color-danger) 84%, black);
-  border-color: color-mix(in srgb, var(--color-danger) 84%, black);
 }
 
 .confirm-dialog--danger .confirm-dialog__button:focus-visible {
