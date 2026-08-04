@@ -31,6 +31,15 @@ export function PasswordLoginPage({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  function clearLoginError() {
+    if (!formError && !invalidFields.identifier && !invalidFields.password) {
+      return;
+    }
+
+    setFormError(null);
+    setInvalidFields({ identifier: false, password: false });
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -126,7 +135,10 @@ export function PasswordLoginPage({
               value={identifier}
               aria-invalid={invalidFields.identifier}
               aria-describedby={formError ? "login-form-error" : undefined}
-              onFocus={(event) => revealTrailingCaret(event.currentTarget)}
+              onFocus={(event) => {
+                clearLoginError();
+                revealTrailingCaret(event.currentTarget);
+              }}
               onClick={(event) => revealTrailingCaret(event.currentTarget)}
               onChange={(event) => {
                 setIdentifier(event.target.value);
@@ -147,6 +159,7 @@ export function PasswordLoginPage({
             invalid={invalidFields.password}
             autoComplete="current-password"
             describedBy={formError ? "login-form-error" : undefined}
+            onFocus={clearLoginError}
             characterStatuses={Array.from(
               { length: password.length },
               () => "match" as const

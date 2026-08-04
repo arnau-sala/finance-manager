@@ -26,6 +26,7 @@ type AuthPasswordFieldProps = {
   generated?: boolean;
   onAutofill?: () => void;
   onBlur?: () => void;
+  onFocus?: () => void;
   onChange: (value: string, autofilled: boolean) => void;
 };
 
@@ -72,6 +73,7 @@ export function AuthPasswordField({
   generated = false,
   onAutofill,
   onBlur,
+  onFocus,
   onChange
 }: AuthPasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -87,6 +89,7 @@ export function AuthPasswordField({
   }
 
   function handleCaretVisibility(event: React.SyntheticEvent<HTMLInputElement>) {
+    onFocus?.();
     revealTrailingCaret(event.currentTarget, syncCharacterFeedbackScroll);
   }
 
