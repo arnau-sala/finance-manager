@@ -18,21 +18,42 @@ import {
 } from "./password-assistance";
 import { validateEmail } from "./email-validation";
 import { getAccountPasswordRequirements } from "./password-validation";
-import { startRegistration } from "./registration-api";
+import {
+  checkUsernameAvailability,
+  startRegistration
+} from "./registration-api";
+import type { RegistrationMethod } from "./registration-method";
 import {
   type RegistrationField,
   validateRegistration
 } from "./registration-validation";
 import { validateUserName } from "./user-name-validation";
+import {
+  getUsernameValidationMessage,
+  isReservedUsername,
+  validateUsername
+} from "./username-validation";
 
 type CreateAccountPageProps = {
+  method: RegistrationMethod;
   onBack: () => void;
   onRegistrationStarted: (email: string) => void;
 };
 
-type InvalidFields = Partial<Record<RegistrationField, boolean>>;
-type CopyableField = "email" | "name" | "passwordConfirmation";
+type CreateAccountField = RegistrationField | "username";
+type InvalidFields = Partial<Record<CreateAccountField, boolean>>;
+type CopyableField =
+  | "email"
+  | "username"
+  | "name"
+  | "passwordConfirmation";
 type CopyReadyFields = Partial<Record<CopyableField, boolean>>;
+type UsernameAvailability =
+  | "idle"
+  | "checking"
+  | "available"
+  | "unavailable"
+  | "error";
 
 type FieldCopyAction = {
   copied: boolean;
@@ -62,6 +83,7 @@ const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
 const generatedPasswordCharacterDelayMs = 11;
 const generatedPasswordFieldDelayMs = 24;
+const usernameAvailabilityDelayMs = 250;
 
 function isBrowserAutofilled(input: HTMLInputElement) {
   try {
@@ -288,10 +310,12 @@ async function copyTextToClipboard(value: string) {
 }
 
 export function CreateAccountPage({
+  method,
   onBack,
   onRegistrationStarted
 }: CreateAccountPageProps) {
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
@@ -301,12 +325,28 @@ export function CreateAccountPage({
   const [passwordAutofillDetected, setPasswordAutofillDetected] =
     useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [usernameLocalError, setUsernameLocalError] = useState<string | null>(
+    null
+  );
+  const [usernameAvailabilityError, setUsernameAvailabilityError] = useState<
+    string | null
+  >(null);
+  const [usernameAvailability, setUsernameAvailability] =
+    useState<UsernameAvailability>("idle");
+  const [isUsernameAvailabilityVisible, setIsUsernameAvailabilityVisible] =
+    useState(false);
+  const [usernameAvailabilityRevealId, setUsernameAvailabilityRevealId] =
+    useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const passwordGenerationRunRef = useRef(0);
+  const usernameAvailabilityRequestRef = useRef(0);
+  const usernameAvailabilityAbortRef = useRef<AbortController | null>(null);
+  const usernameAvailabilityTimerRef = useRef<number | null>(null);
   const emailValidation = validateEmail(email);
+  const usernameValidation = validateUsername(username);
   const passwordRequirements = getAccountPasswordRequirements(password);
   const passwordStrength = getPasswordStrength(password);
   const characterStatuses = getPasswordCharacterStatuses(
@@ -317,8 +357,21 @@ export function CreateAccountPage({
     password.length > 0 && password === passwordConfirmation;
   const passwordPairComplete =
     passwordsMatch && isAccountPasswordComplete(password);
+  const identifierComplete =
+    method === "email"
+      ? emailValidation.success
+      : usernameValidation.success &&
+        usernameAvailability === "available" &&
+        isUsernameAvailabilityVisible;
+  const usernameRemoteError =
+    isUsernameAvailabilityVisible && usernameAvailability === "unavailable"
+      ? "Username already exists"
+      : isUsernameAvailabilityVisible && usernameAvailability === "error"
+        ? usernameAvailabilityError
+        : null;
+  const usernameDisplayedError = usernameLocalError ?? usernameRemoteError;
   const canSubmitRegistration =
-    emailValidation.success &&
+    identifierComplete &&
     name.trim().length > 0 &&
     passwordPairComplete &&
     isAccountPasswordComplete(passwordConfirmation);
@@ -329,6 +382,11 @@ export function CreateAccountPage({
         window.clearTimeout(copyFeedbackTimeoutRef.current);
       }
 
+      if (usernameAvailabilityTimerRef.current !== null) {
+        window.clearTimeout(usernameAvailabilityTimerRef.current);
+      }
+
+      usernameAvailabilityAbortRef.current?.abort();
       passwordGenerationRunRef.current += 1;
     };
   }, []);
@@ -476,7 +534,7 @@ export function CreateAccountPage({
     }
   }
 
-  function clearFieldError(field: RegistrationField) {
+  function clearFieldError(field: CreateAccountField) {
     if (invalidFields[field]) {
       setInvalidFields((current) => ({ ...current, [field]: false }));
     }
@@ -508,6 +566,135 @@ export function CreateAccountPage({
     setCopyStateAfterValidation("email", email, false);
   }
 
+  function cancelUsernameAvailabilityCheck() {
+    if (usernameAvailabilityTimerRef.current !== null) {
+      window.clearTimeout(usernameAvailabilityTimerRef.current);
+      usernameAvailabilityTimerRef.current = null;
+    }
+
+    usernameAvailabilityAbortRef.current?.abort();
+    usernameAvailabilityAbortRef.current = null;
+    usernameAvailabilityRequestRef.current += 1;
+  }
+
+  async function runUsernameAvailabilityCheck(
+    normalizedUsername: string,
+    requestId: number
+  ) {
+    const controller = new AbortController();
+    usernameAvailabilityAbortRef.current = controller;
+    usernameAvailabilityTimerRef.current = null;
+    setUsernameAvailabilityError(null);
+    setUsernameAvailability("checking");
+
+    try {
+      const available = await checkUsernameAvailability(
+        normalizedUsername,
+        controller.signal
+      );
+
+      if (usernameAvailabilityRequestRef.current !== requestId) {
+        return;
+      }
+
+      setUsernameAvailability(available ? "available" : "unavailable");
+    } catch (error) {
+      if (
+        controller.signal.aborted ||
+        usernameAvailabilityRequestRef.current !== requestId
+      ) {
+        return;
+      }
+
+      setUsernameAvailability("error");
+      setUsernameAvailabilityError(
+        (error instanceof Error
+          ? error.message
+          : "Unable to check username availability"
+        ).replace(/\.$/, "")
+      );
+    } finally {
+      if (usernameAvailabilityAbortRef.current === controller) {
+        usernameAvailabilityAbortRef.current = null;
+      }
+    }
+  }
+
+  function scheduleUsernameAvailabilityCheck(normalizedUsername: string) {
+    const requestId = usernameAvailabilityRequestRef.current;
+
+    usernameAvailabilityTimerRef.current = window.setTimeout(() => {
+      void runUsernameAvailabilityCheck(normalizedUsername, requestId);
+    }, usernameAvailabilityDelayMs);
+  }
+
+  function handleUsernameChange(value: string) {
+    const normalizedValue = value.toLowerCase();
+    const result = validateUsername(normalizedValue);
+
+    setUsername(normalizedValue);
+    setUsernameAvailability("idle");
+    setUsernameAvailabilityError(null);
+    setIsUsernameAvailabilityVisible(false);
+    cancelUsernameAvailabilityCheck();
+    clearFieldError("username");
+
+    if (normalizedValue.trim().length === 0) {
+      setUsernameLocalError(null);
+      setInvalidFields((current) => ({ ...current, username: false }));
+      return;
+    }
+
+    if (!result.success) {
+      const reserved = isReservedUsername(normalizedValue);
+
+      setUsernameLocalError(
+        reserved
+          ? (result.error.issues[0]?.message ?? "This username is reserved")
+          : null
+      );
+      setInvalidFields((current) => ({
+        ...current,
+        username: reserved
+      }));
+      return;
+    }
+
+    setUsernameLocalError(null);
+    setInvalidFields((current) => ({ ...current, username: false }));
+    scheduleUsernameAvailabilityCheck(result.data);
+  }
+
+  function handleUsernameBlur() {
+    const result = validateUsername(username);
+
+    if (!result.success) {
+      if (username.trim().length > 0) {
+        setUsernameLocalError(
+          getUsernameValidationMessage(username) ?? "Username is not valid"
+        );
+        setInvalidFields((current) => ({ ...current, username: true }));
+      }
+
+      return;
+    }
+
+    if (!isUsernameAvailabilityVisible) {
+      setUsernameAvailabilityRevealId((current) => current + 1);
+    }
+
+    setIsUsernameAvailabilityVisible(true);
+
+    if (usernameAvailabilityTimerRef.current !== null) {
+      window.clearTimeout(usernameAvailabilityTimerRef.current);
+      usernameAvailabilityTimerRef.current = null;
+      void runUsernameAvailabilityCheck(
+        result.data,
+        usernameAvailabilityRequestRef.current
+      );
+    }
+  }
+
   function validateNameField() {
     setCopyStateAfterValidation(
       "name",
@@ -528,6 +715,22 @@ export function CreateAccountPage({
     event.preventDefault();
 
     if (isSubmitting) {
+      return;
+    }
+
+    if (method === "username") {
+      const parsedUsername = validateUsername(username);
+
+      if (!parsedUsername.success || usernameAvailability !== "available") {
+        setInvalidFields((current) => ({ ...current, username: true }));
+        setFormError(
+          parsedUsername.success
+            ? "Choose an available username"
+            : (getUsernameValidationMessage(username) ??
+                "Enter a valid username")
+        );
+      }
+
       return;
     }
 
@@ -614,7 +817,9 @@ export function CreateAccountPage({
           <div className="auth-message">
             <h1 id="register-title">Create your account</h1>
             <p className="auth-subtitle auth-register-subtitle">
-              Enter your details to get started.
+              {method === "email"
+                ? "Enter your details and verify your email."
+                : "No email needed. Choose a secure username."}
             </p>
           </div>
         </header>
@@ -624,62 +829,132 @@ export function CreateAccountPage({
           noValidate
           onSubmit={handleSubmit}
         >
-          <div className="auth-form-field">
-            <div className="auth-register-field-heading">
-              <span id="register-email-label">Email address</span>
-              {emailError ? (
-                <p
-                  id="register-email-error"
-                  className="auth-register-field-error"
-                  role="alert"
-                  aria-live="polite"
-                >
-                  <>
+          {method === "email" ? (
+            <div className="auth-form-field">
+              <div className="auth-register-field-heading">
+                <span id="register-email-label">Email address</span>
+                {emailError ? (
+                  <p
+                    id="register-email-error"
+                    className="auth-register-field-error"
+                    role="alert"
+                    aria-live="polite"
+                  >
                     <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
                     <span>{emailError}</span>
-                  </>
-                </p>
-              ) : copyReadyFields.email ? (
-                <FieldCopyButton
-                  label="email address"
-                  copied={copiedField === "email"}
-                  onCopy={() => handleCopyField("email", email)}
-                />
-              ) : null}
+                  </p>
+                ) : copyReadyFields.email ? (
+                  <FieldCopyButton
+                    label="email address"
+                    copied={copiedField === "email"}
+                    onCopy={() => handleCopyField("email", email)}
+                  />
+                ) : null}
+              </div>
+              <input
+                id="register-email"
+                className="auth-warning-input"
+                aria-labelledby="register-email-label"
+                name="email"
+                type="text"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="Enter your email address"
+                value={email}
+                maxLength={254}
+                aria-invalid={invalidFields.email === true}
+                aria-describedby={
+                  emailError
+                    ? "register-email-error"
+                    : formError
+                      ? "register-form-error"
+                      : undefined
+                }
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setEmailError(null);
+                  resetCopyState("email");
+                  clearFieldError("email");
+                }}
+                onFocus={(event) => revealTrailingCaret(event.currentTarget)}
+                onClick={(event) => revealTrailingCaret(event.currentTarget)}
+                onBlur={validateEmailField}
+              />
             </div>
-            <input
-              id="register-email"
-              className="auth-warning-input"
-              aria-labelledby="register-email-label"
-              name="email"
-              type="text"
-              inputMode="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="Enter your email address"
-              value={email}
-              maxLength={254}
-              aria-invalid={invalidFields.email === true}
-              aria-describedby={
-                emailError
-                  ? "register-email-error"
-                  : formError
-                    ? "register-form-error"
-                    : undefined
-              }
-              onChange={(event) => {
-                setEmail(event.target.value);
-                setEmailError(null);
-                resetCopyState("email");
-                clearFieldError("email");
-              }}
-              onFocus={(event) => revealTrailingCaret(event.currentTarget)}
-              onClick={(event) => revealTrailingCaret(event.currentTarget)}
-              onBlur={validateEmailField}
-            />
-          </div>
+          ) : (
+            <div className="auth-form-field">
+              <div className="auth-register-field-heading">
+                <span id="register-username-label">Username</span>
+                {usernameDisplayedError ? (
+                  <p
+                    id="register-username-error"
+                    className="auth-register-field-error"
+                    role="alert"
+                    aria-live="polite"
+                  >
+                    <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                    <span>{usernameDisplayedError}</span>
+                  </p>
+                ) : isUsernameAvailabilityVisible &&
+                  usernameAvailability === "available" ? (
+                  <FieldCopyButton
+                    label="username"
+                    copied={copiedField === "username"}
+                    onCopy={() => handleCopyField("username", username)}
+                  />
+                ) : null}
+              </div>
+              <div className="auth-input-with-action auth-username-input">
+                <input
+                  id="register-username"
+                  className="auth-warning-input"
+                  aria-labelledby="register-username-label"
+                  name="username"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="Choose a username"
+                  value={username}
+                  maxLength={30}
+                  aria-invalid={
+                    invalidFields.username === true ||
+                    usernameRemoteError !== null
+                  }
+                  aria-describedby={
+                    usernameDisplayedError
+                      ? "register-username-error"
+                      : formError
+                        ? "register-form-error"
+                        : undefined
+                  }
+                  onChange={(event) => {
+                    resetCopyState("username");
+                    handleUsernameChange(event.target.value);
+                  }}
+                  onFocus={(event) => revealTrailingCaret(event.currentTarget)}
+                  onClick={(event) => revealTrailingCaret(event.currentTarget)}
+                  onBlur={handleUsernameBlur}
+                />
+                {isUsernameAvailabilityVisible &&
+                usernameAvailability === "available" ? (
+                  <span
+                    key={usernameAvailabilityRevealId}
+                    className="auth-username-input__status"
+                    role="status"
+                    aria-label="Username is available"
+                  >
+                    <Check aria-hidden="true" strokeWidth={2} />
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          )}
 
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
@@ -839,7 +1114,7 @@ export function CreateAccountPage({
             type="submit"
             disabled={isSubmitting || !canSubmitRegistration}
           >
-            {isSubmitting ? "Sending code..." : "Continue"}
+            {isSubmitting && method === "email" ? "Sending code..." : "Continue"}
           </button>
         </form>
       </section>

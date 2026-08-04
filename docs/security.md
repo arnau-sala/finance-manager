@@ -45,6 +45,10 @@ Username account and recovery decisions:
 
 - Usernames contain 3 to 30 lowercase characters from a restricted alphabet,
   must start and end alphanumerically, and reject reserved system names.
+- Public username availability is an intentionally enumerable property because
+  usernames are public login identifiers. The advisory lookup is rate limited
+  by IP, selects only the user ID, and never replaces the unique constraint
+  enforced by final registration.
 - Username ownership is checked before Argon2id hashing and rechecked inside the
   account-creation transaction.
 - Each new username account receives 128 random bits from `randomBytes`; the
@@ -185,6 +189,7 @@ Current limits:
 | Global API | 300/min | IP |
 | Login | 20/15min | IP + identifier |
 | Register/email | 20/hour | IP |
+| Username availability | 60/15min | IP |
 | Verify registration | 10/15min | IP + email |
 | Recover password | 5/15min | IP + username |
 | Google auth | 30/15min | IP |

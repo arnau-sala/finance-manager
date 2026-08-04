@@ -7,6 +7,7 @@ import {
   useState
 } from "react";
 import {
+  AtSign,
   CalendarDays,
   ChevronRight,
   CircleCheck,
@@ -635,54 +636,68 @@ export function ProfilePage({
                 </div>
               </div>
 
-              <div
-                className={`profile-detail profile-detail--email${
-                  hasGoogleAccess ? " profile-detail--with-provider" : ""
-                }`}
-              >
-                <span className="profile-detail__icon" aria-hidden="true">
-                  <Mail />
-                </span>
-                <div>
-                  <dt>Email</dt>
-                  <dd ref={profileEmailRef} className="profile-detail__email">
-                    {user.email}
-                  </dd>
-                </div>
-                {hasGoogleAccess ? (
-                  <div ref={googleInfoRef} className="profile-detail__provider-anchor">
-                    <button
-                      type="button"
-                      className="profile-detail__provider"
-                      aria-label="View Google sign-in details"
-                      aria-expanded={isGoogleInfoOpen}
-                      aria-controls="profile-google-info"
-                      onClick={() => setIsGoogleInfoOpen((isOpen) => !isOpen)}
-                    >
-                      <GoogleIcon />
-                    </button>
-
-                    {isGoogleInfoOpen ? (
-                      <div
-                        id="profile-google-info"
-                        className="profile-google-info"
-                        role="note"
-                      >
-                        <strong>
-                          {user.authProvider === "PASSWORD_AND_GOOGLE"
-                            ? "Google linked"
-                            : "Google sign-in"}
-                        </strong>
-                        <p>
-                          {user.authProvider === "PASSWORD_AND_GOOGLE"
-                            ? `Sign in with Google as ${user.email}, or keep using your email and password.`
-                            : `This account signs in with Google as ${user.email} and does not use a password.`}
-                        </p>
-                      </div>
-                    ) : null}
+              {user.username ? (
+                <div className="profile-detail">
+                  <span className="profile-detail__icon" aria-hidden="true">
+                    <AtSign />
+                  </span>
+                  <div>
+                    <dt>Username</dt>
+                    <dd>{user.username}</dd>
                   </div>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
+
+              {user.email ? (
+                <div
+                  className={`profile-detail profile-detail--email${
+                    hasGoogleAccess ? " profile-detail--with-provider" : ""
+                  }`}
+                >
+                  <span className="profile-detail__icon" aria-hidden="true">
+                    <Mail />
+                  </span>
+                  <div>
+                    <dt>Email</dt>
+                    <dd ref={profileEmailRef} className="profile-detail__email">
+                      {user.email}
+                    </dd>
+                  </div>
+                  {hasGoogleAccess ? (
+                    <div ref={googleInfoRef} className="profile-detail__provider-anchor">
+                      <button
+                        type="button"
+                        className="profile-detail__provider"
+                        aria-label="View Google sign-in details"
+                        aria-expanded={isGoogleInfoOpen}
+                        aria-controls="profile-google-info"
+                        onClick={() => setIsGoogleInfoOpen((isOpen) => !isOpen)}
+                      >
+                        <GoogleIcon />
+                      </button>
+
+                      {isGoogleInfoOpen ? (
+                        <div
+                          id="profile-google-info"
+                          className="profile-google-info"
+                          role="note"
+                        >
+                          <strong>
+                            {user.authProvider === "PASSWORD_AND_GOOGLE"
+                              ? "Google linked"
+                              : "Google sign-in"}
+                          </strong>
+                          <p>
+                            {user.authProvider === "PASSWORD_AND_GOOGLE"
+                              ? `Sign in with Google as ${user.email}, or keep using your password.`
+                              : `This account signs in with Google as ${user.email} and does not use a password.`}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="profile-detail">
                 <span className="profile-detail__icon" aria-hidden="true">
@@ -939,10 +954,16 @@ export function ProfilePage({
           googleLinkDialogMode === "success"
             ? "You can now sign in with your password or Google."
             : googleLinkDialogMode === "mismatch"
-              ? `Nothing was linked. Choose ${user.email}, the email used by this account.`
+              ? user.email
+                ? `Nothing was linked. Choose ${user.email}, the email used by this account.`
+                : "Nothing was linked. Choose a Google account that is not used elsewhere."
               : googleLinkDialogMode === "failed"
-                ? `We couldn't link Google. Try again and choose ${user.email}.`
-                : `Keep password access and add Google sign-in. Continue and choose ${user.email}.`
+                ? user.email
+                  ? `We couldn't link Google. Try again and choose ${user.email}.`
+                  : "We couldn't link that Google account. Please try again."
+                : user.email
+                  ? `Keep password access and add Google sign-in. Continue and choose ${user.email}.`
+                  : "Keep password access and add Google sign-in. Its verified email will be added to this account."
         }
         confirmLabel={
           googleLinkDialogMode === "success"

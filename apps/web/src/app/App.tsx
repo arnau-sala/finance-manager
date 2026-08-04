@@ -20,7 +20,9 @@ import {
   type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
+import { RegistrationMethodPage } from "../features/auth/RegistrationMethodPage";
 import { RegistrationVerificationPage } from "../features/auth/RegistrationVerificationPage";
+import type { RegistrationMethod } from "../features/auth/registration-method";
 import {
   HomePage,
   type GoogleAccountDeletionFeedback,
@@ -29,7 +31,12 @@ import {
 import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPage";
 
 type SessionStatus = "checking" | "anonymous" | "authenticated";
-type AuthScreen = "landing" | "login" | "register" | "verification";
+type AuthScreen =
+  | "landing"
+  | "login"
+  | "register-method"
+  | "register-form"
+  | "verification";
 type StartupTransitionState =
   | "covered"
   | "exiting"
@@ -40,7 +47,9 @@ export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [activeScreen, setActiveScreen] = useState<AuthScreen>("landing");
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [registrationMethod, setRegistrationMethod] =
+    useState<RegistrationMethod>("email");
   const [registrationEmail, setRegistrationEmail] = useState<string | null>(
     null
   );
@@ -95,7 +104,7 @@ export function App() {
   }
 
   function returnToLanding() {
-    setLoginEmail("");
+    setLoginIdentifier("");
     setRegistrationEmail(null);
     setLandingError(null);
     setLandingVersion((version) => version + 1);
@@ -322,9 +331,9 @@ export function App() {
     };
   }, [startupTransitionState]);
 
-  function openLogin(email: string) {
+  function openLogin(identifier: string) {
     setLandingError(null);
-    setLoginEmail(email);
+    setLoginIdentifier(identifier);
     setLoginVersion((version) => version + 1);
     setActiveScreen("login");
   }
@@ -332,8 +341,13 @@ export function App() {
   function openRegistration() {
     setLandingError(null);
     setRegistrationEmail(null);
+    setActiveScreen("register-method");
+  }
+
+  function openRegistrationForm(method: RegistrationMethod) {
+    setRegistrationMethod(method);
     setRegisterVersion((version) => version + 1);
-    setActiveScreen("register");
+    setActiveScreen("register-form");
   }
 
   function showRegistrationVerification(email: string) {
@@ -343,7 +357,7 @@ export function App() {
   }
 
   function returnToRegistration() {
-    setActiveScreen("register");
+    setActiveScreen("register-form");
   }
 
   function continueWithGoogle() {
@@ -395,7 +409,7 @@ export function App() {
     clearAuthenticatedData();
     setIsSessionExpired(false);
     setSessionUser(null);
-    setLoginEmail("");
+    setLoginIdentifier("");
     setRegistrationEmail(null);
     setLandingError(null);
     setGoogleAccountDeletionFeedback(null);
@@ -480,7 +494,7 @@ export function App() {
             inert
           >
             <AuthLandingPage
-              onEmailContinue={openLogin}
+              onIdentifierContinue={openLogin}
               onCreateAccount={openRegistration}
               onGoogleContinue={continueWithGoogle}
             />
@@ -542,7 +556,7 @@ export function App() {
       >
         <AuthLandingPage
           key={landingVersion}
-          onEmailContinue={openLogin}
+          onIdentifierContinue={openLogin}
           onCreateAccount={openRegistration}
           onGoogleContinue={continueWithGoogle}
           externalError={landingError}
@@ -556,21 +570,33 @@ export function App() {
         inert={activeScreen !== "login"}
       >
         <PasswordLoginPage
-          key={`${loginVersion}:${loginEmail}`}
-          email={loginEmail}
+          key={`${loginVersion}:${loginIdentifier}`}
+          identifier={loginIdentifier}
           onBack={returnToLanding}
           onLoginSuccess={handleLoginSuccess}
         />
       </div>
 
       <div
-        className="auth-flow-page auth-flow-page--register"
-        aria-hidden={activeScreen !== "register"}
-        inert={activeScreen !== "register"}
+        className="auth-flow-page auth-flow-page--register-method"
+        aria-hidden={activeScreen !== "register-method"}
+        inert={activeScreen !== "register-method"}
+      >
+        <RegistrationMethodPage
+          onBack={returnToLanding}
+          onSelect={openRegistrationForm}
+        />
+      </div>
+
+      <div
+        className="auth-flow-page auth-flow-page--register-form"
+        aria-hidden={activeScreen !== "register-form"}
+        inert={activeScreen !== "register-form"}
       >
         <CreateAccountPage
-          key={registerVersion}
-          onBack={returnToLanding}
+          key={`${registerVersion}:${registrationMethod}`}
+          method={registrationMethod}
+          onBack={() => setActiveScreen("register-method")}
           onRegistrationStarted={showRegistrationVerification}
         />
       </div>

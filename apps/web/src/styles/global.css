@@ -145,18 +145,24 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .auth-flow-page--login,
-.auth-flow-page--register {
+.auth-flow-page--register-method {
   z-index: 2;
   background: var(--color-surface);
 }
 
-.auth-flow-page--verification {
+.auth-flow-page--register-form {
   z-index: 3;
   background: var(--color-surface);
 }
 
+.auth-flow-page--verification {
+  z-index: 4;
+  background: var(--color-surface);
+}
+
 .auth-flow--login .auth-flow-page--login,
-.auth-flow--register .auth-flow-page--register,
+.auth-flow--register-method .auth-flow-page--register-method,
+.auth-flow--register-form .auth-flow-page--register-form,
 .auth-flow--verification .auth-flow-page--verification {
   box-shadow: var(--shadow-screen-transition);
 }
@@ -166,13 +172,15 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .auth-flow--landing .auth-flow-page--login,
-.auth-flow--landing .auth-flow-page--register,
+.auth-flow--landing .auth-flow-page--register-method,
+.auth-flow--landing .auth-flow-page--register-form,
 .auth-flow--landing .auth-flow-page--verification {
   transform: translate3d(100%, 0, 0);
 }
 
 .auth-flow--login .auth-flow-page--landing,
-.auth-flow--register .auth-flow-page--landing,
+.auth-flow--register-method .auth-flow-page--landing,
+.auth-flow--register-form .auth-flow-page--landing,
 .auth-flow--verification .auth-flow-page--landing {
   transform: translate3d(-18%, 0, 0);
 }
@@ -181,19 +189,26 @@ body.app-logout-transition .confirm-dialog-backdrop {
   transform: translate3d(0, 0, 0);
 }
 
-.auth-flow--login .auth-flow-page--register,
+.auth-flow--login .auth-flow-page--register-method,
+.auth-flow--login .auth-flow-page--register-form,
 .auth-flow--login .auth-flow-page--verification,
-.auth-flow--register .auth-flow-page--login,
-.auth-flow--register .auth-flow-page--verification,
+.auth-flow--register-method .auth-flow-page--login,
+.auth-flow--register-method .auth-flow-page--register-form,
+.auth-flow--register-method .auth-flow-page--verification,
+.auth-flow--register-form .auth-flow-page--login,
+.auth-flow--register-form .auth-flow-page--verification,
 .auth-flow--verification .auth-flow-page--login {
   transform: translate3d(100%, 0, 0);
 }
 
-.auth-flow--register .auth-flow-page--register {
+.auth-flow--register-method .auth-flow-page--register-method,
+.auth-flow--register-form .auth-flow-page--register-form {
   transform: translate3d(0, 0, 0);
 }
 
-.auth-flow--verification .auth-flow-page--register {
+.auth-flow--register-form .auth-flow-page--register-method,
+.auth-flow--verification .auth-flow-page--register-method,
+.auth-flow--verification .auth-flow-page--register-form {
   transform: translate3d(-18%, 0, 0);
 }
 
@@ -396,6 +411,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-email-form button:focus-visible,
 .auth-option:focus-visible,
+.auth-registration-method-option:focus-visible,
 .auth-back-button:focus-visible,
 .auth-input-with-action button:focus-visible,
 .auth-primary-button:focus-visible,
@@ -808,6 +824,114 @@ body.app-logout-transition .confirm-dialog-backdrop {
   margin: -4px 0 -10px;
 }
 
+.auth-screen--registration-method {
+  place-items: center;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.auth-registration-method-panel {
+  height: min(640px, calc(100dvh - 120px));
+  max-height: 100%;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 28px;
+}
+
+.auth-registration-method-header {
+  gap: 12px;
+}
+
+.auth-logo--registration-method {
+  width: 88px;
+  height: 88px;
+  margin-bottom: 0;
+}
+
+.auth-registration-method-subtitle {
+  max-width: 330px;
+}
+
+.auth-registration-method-options {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.auth-registration-method-option {
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  cursor: pointer;
+  touch-action: manipulation;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-registration-method-option:active {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.auth-registration-method-option__icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 50%;
+}
+
+.auth-registration-method-option__icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.auth-registration-method-option__content {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+}
+
+.auth-registration-method-option__content strong {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.auth-registration-method-option__content > span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.4;
+}
+
+.auth-registration-method-option__arrow {
+  width: 20px;
+  height: 20px;
+  color: var(--color-primary);
+}
+
+.auth-registration-method-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .auth-screen--register {
   overflow-y: auto;
   overscroll-behavior-y: contain;
@@ -928,7 +1052,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   align-items: center;
   gap: 5px;
   margin: 0 20px 0 0;
-  color: var(--color-warning);
+  color: var(--color-danger);
   font-size: 10px;
   font-weight: 400;
   line-height: 1.2;
@@ -938,6 +1062,47 @@ body.app-logout-transition .confirm-dialog-backdrop {
   width: 12px;
   height: 12px;
   flex: 0 0 auto;
+}
+
+.auth-username-input input {
+  padding-right: 48px;
+}
+
+.auth-username-input__status {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--color-success);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.auth-username-input__status svg {
+  width: 15px;
+  height: 15px;
+  animation: auth-username-available-in 300ms cubic-bezier(0.22, 1, 0.36, 1)
+    both;
+}
+
+@keyframes auth-username-available-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.35) rotate(-18deg);
+  }
+
+  68% {
+    opacity: 1;
+    transform: scale(1.16) rotate(3deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
 }
 
 .auth-register-form .auth-input-with-action button {
@@ -7028,6 +7193,40 @@ button.transaction-row__content:focus-visible {
     gap: 28px;
   }
 
+  .auth-registration-method-panel {
+    height: calc(100dvh - 104px);
+    gap: 18px;
+  }
+
+  .auth-registration-method-header {
+    gap: 8px;
+  }
+
+  .auth-logo--registration-method {
+    width: 64px;
+    height: 64px;
+  }
+
+  .auth-registration-method-options {
+    gap: 10px;
+  }
+
+  .auth-registration-method-option {
+    grid-template-columns: 44px minmax(0, 1fr) 20px;
+    gap: 13px;
+    padding: 14px 16px;
+    border-radius: 20px;
+  }
+
+  .auth-registration-method-option__icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .auth-registration-method-option__content {
+    gap: 4px;
+  }
+
   .auth-login-header {
     gap: 10px;
   }
@@ -7130,6 +7329,7 @@ button.transaction-row__content:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .auth-username-input__status svg,
   .stats-cash-flow-tooltip,
   .stats-cash-flow-tooltip__content {
     animation-duration: 1ms !important;

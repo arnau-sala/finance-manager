@@ -2,10 +2,10 @@ import { useRef, useState } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
-import { validateEmail } from "./email-validation";
+import { validateLoginIdentifier } from "./login-identifier-validation";
 
 type AuthLandingPageProps = {
-  onEmailContinue: (email: string) => void;
+  onIdentifierContinue: (identifier: string) => void;
   onCreateAccount: () => void;
   onGoogleContinue: () => void;
   externalError?: string | null;
@@ -21,21 +21,21 @@ function isAutofilled(input: HTMLInputElement) {
 }
 
 export function AuthLandingPage({
-  onEmailContinue,
+  onIdentifierContinue,
   onCreateAccount,
   onGoogleContinue,
   externalError = null,
   onClearExternalError
 }: AuthLandingPageProps) {
-  const [email, setEmail] = useState("");
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [identifier, setIdentifier] = useState("");
+  const [identifierError, setIdentifierError] = useState<string | null>(null);
   const hasContinued = useRef(false);
 
-  function continueWithEmail(value: string) {
-    const result = validateEmail(value);
+  function continueWithIdentifier(value: string) {
+    const result = validateLoginIdentifier(value);
 
     if (!result.success) {
-      setEmailError(result.error.issues[0]?.message ?? "Enter a valid email address.");
+      setIdentifierError(result.message);
       return;
     }
 
@@ -44,19 +44,19 @@ export function AuthLandingPage({
     }
 
     hasContinued.current = true;
-    setEmailError(null);
-    onEmailContinue(result.data);
+    setIdentifierError(null);
+    onIdentifierContinue(result.data);
   }
 
-  function handleEmailSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleIdentifierSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    continueWithEmail(email);
+    continueWithIdentifier(identifier);
   }
 
-  function handleEmailAutofill(input: HTMLInputElement) {
+  function handleIdentifierAutofill(input: HTMLInputElement) {
     if (input.value) {
-      setEmail(input.value);
-      continueWithEmail(input.value);
+      setIdentifier(input.value);
+      continueWithIdentifier(input.value);
     }
   }
 
@@ -93,52 +93,55 @@ export function AuthLandingPage({
 
           <form
             className="auth-email-form"
-            onSubmit={handleEmailSubmit}
+            onSubmit={handleIdentifierSubmit}
             noValidate
           >
-            <label className="sr-only" htmlFor="email">
-              Email address
+            <label className="sr-only" htmlFor="login-identifier">
+              Email or username
             </label>
             <input
-              id="email"
-              name="email"
-              type="email"
+              id="login-identifier"
+              name="username"
+              type="text"
               inputMode="email"
-              autoComplete="email"
-              placeholder="Email address"
-              value={email}
-              aria-invalid={emailError !== null}
-              aria-describedby={emailError ? "email-error" : undefined}
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Email or username"
+              value={identifier}
+              aria-invalid={identifierError !== null}
+              aria-describedby={identifierError ? "identifier-error" : undefined}
               onChange={(event) => {
                 const input = event.currentTarget;
-                setEmail(input.value);
+                setIdentifier(input.value);
                 onClearExternalError?.();
-                if (emailError) {
-                  setEmailError(null);
+                if (identifierError) {
+                  setIdentifierError(null);
                 }
 
                 if (isAutofilled(input)) {
-                  handleEmailAutofill(input);
+                  handleIdentifierAutofill(input);
                 }
               }}
               onAnimationStart={(event) => {
                 if (event.animationName === "auth-email-autofill") {
-                  handleEmailAutofill(event.currentTarget);
+                  handleIdentifierAutofill(event.currentTarget);
                 }
               }}
             />
-            <button type="submit" aria-label="Continue with email">
+            <button type="submit" aria-label="Continue with email or username">
               <ArrowRight aria-hidden="true" strokeWidth={2} />
             </button>
           </form>
 
           <p
-            id="email-error"
+            id="identifier-error"
             className="auth-field-message auth-field-message--error"
             role="alert"
             aria-live="polite"
           >
-            {emailError ?? externalError ?? "\u00a0"}
+            {identifierError ?? externalError ?? "\u00a0"}
           </p>
 
           <div className="auth-divider" aria-hidden="true">

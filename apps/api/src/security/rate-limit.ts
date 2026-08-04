@@ -59,6 +59,14 @@ export const authRegisterRateLimit = {
     `auth-register:${request.ip}`,
 };
 
+export const authUsernameAvailabilityRateLimit = {
+  hook: "preHandler" as const,
+  max: 60,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-username-availability:${request.ip}`,
+};
+
 export const authRegistrationVerifyRateLimit = {
   hook: "preHandler" as const,
   max: 10,

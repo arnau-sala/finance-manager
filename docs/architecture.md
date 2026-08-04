@@ -110,6 +110,11 @@ plaintext 128-bit code is returned once; only its SHA-256 hash is persisted.
 Recovery atomically consumes that row, changes the password, increments
 `sessionVersion`, and inserts a newly generated replacement code.
 
+The public registration UI first calls the indexed, rate-limited
+`GET /auth/usernames/:username/availability` lookup on field blur. This is only
+an advisory UX check; `POST /auth/register/username` remains the authoritative
+claim and handles concurrent attempts through the database unique constraint.
+
 Login accepts one `identifier`, resolves it as an email or username, and reuses
 the password module to verify Argon2id hashes. Unknown identifiers are checked
 against a precomputed dummy hash so the endpoint follows the same expensive

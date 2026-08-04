@@ -1,5 +1,5 @@
 type LoginInput = {
-  email: string;
+  identifier: string;
   password: string;
 };
 
@@ -41,7 +41,8 @@ export class ApiRequestError extends Error {
 
 export type SessionUser = {
   id: string;
-  email: string;
+  email: string | null;
+  username: string | null;
   name: string;
   authProvider: "PASSWORD" | "GOOGLE" | "PASSWORD_AND_GOOGLE";
   role: "USER" | "ADMIN";

@@ -352,8 +352,10 @@ Purpose: authenticate an existing user.
 The unauthenticated entry screen combines the available access paths in one
 static, mobile-first layout:
 
-- Email entry starts the normal login flow; password entry belongs to the next screen.
-- Create an account will lead to the open password-registration flow.
+- Email or username entry starts the unified login flow; password entry belongs
+  to the next screen.
+- Create an account opens a dedicated method screen before either registration
+  form.
 - Continue with Google starts the backend OAuth flow. An existing Google account
   enters the app, while a new Google identity creates its verified account and
   enters immediately.
@@ -364,7 +366,7 @@ static, mobile-first layout:
 
 Fields across the two login steps:
 
-- Email.
+- Email or username.
 - Password.
 
 States:
@@ -375,14 +377,28 @@ States:
 
 ### 3. Register
 
-Purpose: create a password account with verified email ownership.
+Purpose: choose between a verified-email account and a username-only account,
+then collect the corresponding credentials without making the distinction
+ambiguous.
 
-Fields:
+The first registration screen is static and non-scrollable. It presents two
+large, separate actions: `Use email` and `Use username`. Each option includes a
+short consequence-focused explanation. Selecting either option slides the
+shared form in from the right; returning reveals the method screen underneath.
 
-- Email.
+Shared fields:
+
 - Name.
 - Password.
 - Password confirmation.
+
+Email-specific field:
+
+- Email.
+
+Username-specific field:
+
+- Username.
 
 UX notes:
 
@@ -404,6 +420,16 @@ UX notes:
 - Treat the API response identically for new and existing emails. The browser
   receives no delivery flag and cannot infer whether Brevo was called from the
   response status or body.
+- Detect reserved usernames immediately while the user types, but reveal other
+  local length and format errors only after the field loses focus. For locally
+  valid values, debounce `GET /auth/usernames/:username/availability` by 250 ms
+  and keep its result hidden until blur. Only the latest request may update
+  state. A valid available username then shows an animated green check;
+  unavailable and failed checks remain visible beside the field. Never show an
+  intermediate `Checking` label.
+- Username availability only enables the primary action. The current frontend
+  deliberately does not submit `POST /auth/register/username` until the
+  one-time recovery-code handoff screen is implemented.
 
 ### 4. Email Verification
 

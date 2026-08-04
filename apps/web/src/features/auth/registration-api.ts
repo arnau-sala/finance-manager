@@ -57,6 +57,35 @@ export async function startRegistration(input: RegistrationInput) {
   );
 }
 
+export async function checkUsernameAvailability(
+  username: string,
+  signal?: AbortSignal,
+) {
+  const response = await fetch(
+    `/api/auth/usernames/${encodeURIComponent(username)}/availability`,
+    {
+      method: "GET",
+      credentials: "include",
+      signal,
+    },
+  );
+
+  if (!response.ok) {
+    throw await createRegistrationError(
+      response,
+      "Unable to check username availability.",
+    );
+  }
+
+  const body = (await response.json()) as { available?: unknown };
+
+  if (typeof body.available !== "boolean") {
+    throw new ApiRequestError("Unable to check username availability.", 500);
+  }
+
+  return body.available;
+}
+
 export async function resendRegistrationCode(email: string) {
   await postRegistrationRequest(
     "/api/auth/register/resend",

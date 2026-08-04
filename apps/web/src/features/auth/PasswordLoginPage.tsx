@@ -2,17 +2,17 @@ import { useRef, useState } from "react";
 import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 
 import { login } from "./auth-api";
-import { validateEmail } from "./email-validation";
+import { validateLoginIdentifier } from "./login-identifier-validation";
 import { validateLoginPassword } from "./password-validation";
 
 type PasswordLoginPageProps = {
-  email: string;
+  identifier: string;
   onBack: () => void;
   onLoginSuccess: () => void | Promise<void>;
 };
 
 type InvalidFields = {
-  email: boolean;
+  identifier: boolean;
   password: boolean;
 };
 
@@ -20,16 +20,16 @@ const supportsImmediatePasswordMask =
   typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
 
 export function PasswordLoginPage({
-  email: initialEmail,
+  identifier: initialIdentifier,
   onBack,
   onLoginSuccess
 }: PasswordLoginPageProps) {
-  const [email, setEmail] = useState(initialEmail);
+  const [identifier, setIdentifier] = useState(initialIdentifier);
   const [password, setPassword] = useState("");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({
-    email: false,
+    identifier: false,
     password: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,34 +57,34 @@ export function PasswordLoginPage({
       return;
     }
 
-    const parsedEmail = validateEmail(email);
+    const parsedIdentifier = validateLoginIdentifier(identifier);
 
-    if (!parsedEmail.success) {
-      setInvalidFields({ email: true, password: false });
-      setFormError(parsedEmail.error.issues[0]?.message ?? "Enter a valid email address.");
+    if (!parsedIdentifier.success) {
+      setInvalidFields({ identifier: true, password: false });
+      setFormError(parsedIdentifier.message);
       return;
     }
 
     const parsedPassword = validateLoginPassword(password);
 
     if (!parsedPassword.success) {
-      setInvalidFields({ email: false, password: true });
+      setInvalidFields({ identifier: false, password: true });
       setFormError(parsedPassword.error.issues[0]?.message ?? "Enter your password.");
       return;
     }
 
     setFormError(null);
-    setInvalidFields({ email: false, password: false });
+    setInvalidFields({ identifier: false, password: false });
     setIsSubmitting(true);
 
     try {
       await login({
-        email: parsedEmail.data,
+        identifier: parsedIdentifier.data,
         password: parsedPassword.data
       });
       await onLoginSuccess();
     } catch (error) {
-      setInvalidFields({ email: true, password: true });
+      setInvalidFields({ identifier: true, password: true });
       setFormError(
         error instanceof Error
           ? error.message
@@ -129,22 +129,25 @@ export function PasswordLoginPage({
           noValidate
         >
           <div className="auth-form-field">
-            <span id="login-email-label">Email address</span>
+            <span id="login-identifier-label">Email or username</span>
             <input
-              id="login-email"
-              aria-labelledby="login-email-label"
-              name="email"
-              type="email"
+              id="login-identifier"
+              aria-labelledby="login-identifier-label"
+              name="username"
+              type="text"
               inputMode="email"
-              autoComplete="email"
-              value={email}
-              aria-invalid={invalidFields.email}
+              autoComplete="username"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              value={identifier}
+              aria-invalid={invalidFields.identifier}
               aria-describedby={formError ? "login-form-error" : undefined}
               onChange={(event) => {
-                setEmail(event.target.value);
+                setIdentifier(event.target.value);
                 if (formError) {
                   setFormError(null);
-                  setInvalidFields({ email: false, password: false });
+                  setInvalidFields({ identifier: false, password: false });
                 }
               }}
             />
@@ -179,7 +182,7 @@ export function PasswordLoginPage({
                   setPassword(event.target.value);
                   if (formError) {
                     setFormError(null);
-                    setInvalidFields({ email: false, password: false });
+                    setInvalidFields({ identifier: false, password: false });
                   }
                 }}
               />

@@ -29,6 +29,7 @@ import {
   authRecoveryRateLimit,
   authRegisterRateLimit,
   authRegistrationVerifyRateLimit,
+  authUsernameAvailabilityRateLimit,
 } from "../security/rate-limit.js";
 
 const registerBodySchema = z
@@ -78,6 +79,10 @@ const usernameRegisterBodySchema = z
       });
     }
   });
+
+const usernameAvailabilityParamsSchema = z
+  .object({ username: usernameSchema })
+  .strict();
 
 const resendRegistrationBodySchema = z
   .object({ email: emailSchema })
@@ -141,6 +146,33 @@ const invalidRecoveryResponse = {
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const dummyPasswordHash = await hashPassword("Dummy-password1!");
+
+  app.get(
+    "/auth/usernames/:username/availability",
+    { config: { rateLimit: authUsernameAvailabilityRateLimit } },
+    async (request, reply) => {
+      const parsedParams = usernameAvailabilityParamsSchema.safeParse(
+        request.params,
+      );
+
+      if (!parsedParams.success) {
+        return reply.code(400).send({
+          error: "Invalid username.",
+          issues: parsedParams.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const user = await db.user.findUnique({
+        where: { username: parsedParams.data.username },
+        select: { id: true },
+      });
+
+      return reply.send({ available: user === null });
+    },
+  );
 
   app.post(
     "/auth/register",

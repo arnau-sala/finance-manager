@@ -11,8 +11,10 @@ setup records the user's timeless starting net worth, or `0` when skipped,
 before the app opens. Accounts can be created with a verified email or with a
 username and password. Username accounts receive a one-use recovery code and
 can later add a verified email or Google without creating a second user. The
-mobile frontend currently implements the email flow; username UI is the next
-frontend step.
+mobile frontend lets the user choose between both account types and validates
+username availability before submission. The final username-account submission
+and recovery-code handoff remain intentionally disabled until that screen is
+implemented.
 
 Implemented:
 
@@ -31,6 +33,7 @@ Core:
 
 Authentication:
 
+- `GET /auth/usernames/:username/availability`
 - `POST /auth/register`
 - `POST /auth/register/username`
 - `POST /auth/register/resend`
@@ -226,6 +229,15 @@ next attempt.
 A user can create an account without an email:
 
 ```http
+GET /auth/usernames/:username/availability
+```
+
+The availability response is `{ "available": true }` or
+`{ "available": false }`. It is an advisory UX check: clients must still handle
+the unique-constraint result from registration because another request can
+claim the username between both calls.
+
+```http
 POST /auth/register/username
 Content-Type: application/json
 ```
@@ -264,9 +276,9 @@ Content-Type: application/json
 }
 ```
 
-`identifier` accepts either a normalized email or username. The legacy
-`email` field remains temporarily accepted so the existing frontend continues
-to work while its login UI is migrated.
+`identifier` accepts either a normalized email or username. The web login uses
+this unified field. The legacy `email` request field remains temporarily
+accepted for older API clients.
 
 Valid credentials for an approved user return:
 
