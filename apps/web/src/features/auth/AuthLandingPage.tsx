@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
+import { formatErrorMessage } from "../../components/ui/error-message";
 import { validateLoginIdentifier } from "./login-identifier-validation";
 
 type AuthLandingPageProps = {
@@ -141,7 +142,9 @@ export function AuthLandingPage({
             role="alert"
             aria-live="polite"
           >
-            {identifierError ?? externalError ?? "\u00a0"}
+            {identifierError || externalError
+              ? formatErrorMessage(identifierError ?? externalError ?? "")
+              : "\u00a0"}
           </p>
 
           <div className="auth-divider" aria-hidden="true">

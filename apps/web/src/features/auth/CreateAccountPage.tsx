@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, TriangleAlert } from "lucide-react";
 
+import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   generateAccountPassword,
   getPasswordCharacterStatuses,
@@ -59,10 +60,6 @@ type UsernameAvailability =
 const generatedPasswordCharacterDelayMs = 11;
 const generatedPasswordFieldDelayMs = 24;
 const usernameAvailabilityDelayMs = 250;
-
-function formatFormError(message: string | null) {
-  return message?.replace(/[.]+$/u, "") ?? null;
-}
 
 async function copyTextToClipboard(value: string) {
   if (navigator.clipboard && window.isSecureContext) {
@@ -680,7 +677,7 @@ export function CreateAccountPage({
                     aria-live="polite"
                   >
                     <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
-                    <span>{emailError}</span>
+                    <span>{formatErrorMessage(emailError)}</span>
                   </p>
                 ) : copyReadyFields.email ? (
                   <FieldCopyButton
@@ -735,7 +732,7 @@ export function CreateAccountPage({
                     aria-live="polite"
                   >
                     <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
-                    <span>{usernameDisplayedError}</span>
+                    <span>{formatErrorMessage(usernameDisplayedError)}</span>
                   </p>
                 ) : isUsernameAvailabilityVisible &&
                   usernameAvailability === "available" ? (
@@ -949,7 +946,7 @@ export function CreateAccountPage({
             role="alert"
             aria-live="polite"
           >
-            {formatFormError(formError) ?? "\u00a0"}
+            {formError ? formatErrorMessage(formError) : "\u00a0"}
           </p>
 
           <button

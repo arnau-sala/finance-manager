@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
+import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   resendRegistrationCode,
   verifyRegistrationCode
@@ -217,7 +218,9 @@ export function RegistrationVerificationPage({
             role={formError ? "alert" : "status"}
             aria-live="polite"
           >
-            {formError ?? statusMessage ?? "\u00a0"}
+            {formError
+              ? formatErrorMessage(formError)
+              : (statusMessage ?? "\u00a0")}
           </p>
 
           <button

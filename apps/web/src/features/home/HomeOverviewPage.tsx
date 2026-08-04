@@ -217,8 +217,8 @@ export function HomeOverviewPage({
           </header>
 
           <div className="home-overview-error" role="alert">
-            <h2>We couldn't load your overview.</h2>
-            <p>Check your connection and try again.</p>
+            <h2>We couldn't load your overview</h2>
+            <p>Check your connection and try again</p>
             <button
               type="button"
               onClick={() => {

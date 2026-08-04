@@ -6,6 +6,7 @@ import {
 } from "react";
 import { Landmark } from "lucide-react";
 
+import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   ApiRequestError,
   type SessionUser
@@ -216,7 +217,7 @@ export function StartingNetWorthPage({
             className="starting-net-worth-form__error"
             role={error ? "alert" : undefined}
           >
-            {error ?? ""}
+            {error ? formatErrorMessage(error) : ""}
           </p>
 
           <button

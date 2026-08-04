@@ -20,6 +20,7 @@ import { createPortal } from "react-dom";
 
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
+import { formatErrorMessage } from "../../components/ui/error-message";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
@@ -890,7 +891,7 @@ export function TransactionDetailSheet({
                     className="transaction-detail-delete-confirm__error"
                     role="alert"
                   >
-                    {deleteError}
+                    {formatErrorMessage(deleteError)}
                   </p>
                 ) : null}
 
@@ -935,7 +936,9 @@ export function TransactionDetailSheet({
             role={shareNotice.kind === "error" ? "alert" : "status"}
             aria-live="polite"
           >
-            {shareNotice.message}
+            {shareNotice.kind === "error"
+              ? formatErrorMessage(shareNotice.message)
+              : shareNotice.message}
           </p>
         ) : null}
 
@@ -1021,7 +1024,7 @@ export function TransactionDetailSheet({
                       className="transaction-detail-context__status"
                       role="alert"
                     >
-                      {matchingError}
+                      {formatErrorMessage(matchingError)}
                     </p>
                   ) : !context ? (
                     <TransactionContextSkeleton />

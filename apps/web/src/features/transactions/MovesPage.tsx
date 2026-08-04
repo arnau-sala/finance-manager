@@ -545,7 +545,7 @@ export function MovesPage({
           <div className="moves-empty-state" role="alert">
             <Search aria-hidden="true" />
             <h2>Unable to load transactions</h2>
-            <p>Please try again later.</p>
+            <p>Please try again later</p>
           </div>
         ) : (
           <div className="moves-empty-state" role="status">

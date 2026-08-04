@@ -2,6 +2,8 @@ import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { formatErrorMessage } from "./error-message";
+
 type ConfirmDialogProps = {
   open: boolean;
   title: string;
@@ -170,7 +172,7 @@ export function ConfirmDialog({
 
         {error ? (
           <p className="confirm-dialog__error" role="alert">
-            {error}
+            {formatErrorMessage(error)}
           </p>
         ) : null}
 

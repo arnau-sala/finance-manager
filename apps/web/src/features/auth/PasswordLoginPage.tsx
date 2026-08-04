@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
+import { formatErrorMessage } from "../../components/ui/error-message";
 import { AuthPasswordField, revealTrailingCaret } from "./AuthPasswordField";
 import { login } from "./auth-api";
 import { validateLoginIdentifier } from "./login-identifier-validation";
@@ -179,7 +180,7 @@ export function PasswordLoginPage({
             role="alert"
             aria-live="polite"
           >
-            {formError ?? "\u00a0"}
+            {formError ? formatErrorMessage(formError) : "\u00a0"}
           </p>
 
           <button className="auth-primary-button" type="submit" disabled={isSubmitting}>

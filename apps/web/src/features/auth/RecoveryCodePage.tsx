@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, KeyRound, ShieldCheck } from "lucide-react";
 
+import { formatErrorMessage } from "../../components/ui/error-message";
 type RecoveryCodePageProps = {
   username: string;
   recoveryCode: string;
@@ -199,7 +200,9 @@ export function RecoveryCodePage({
             role={feedback?.tone === "error" ? "alert" : "status"}
             aria-live="polite"
           >
-            {feedback?.message ?? "\u00a0"}
+            {feedback?.tone === "error"
+              ? formatErrorMessage(feedback.message)
+              : (feedback?.message ?? "\u00a0")}
           </p>
         </div>
       </section>

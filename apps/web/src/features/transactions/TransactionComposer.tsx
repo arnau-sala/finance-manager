@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
+import { formatErrorMessage } from "../../components/ui/error-message";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { type TransactionType } from "./category-catalog";
 import {
@@ -536,7 +537,7 @@ export function TransactionComposer({
               role="alert"
               aria-live="polite"
             >
-              {formError ?? ""}
+              {formError ? formatErrorMessage(formError) : ""}
             </p>
             <button type="submit" disabled={!canSubmit}>
               {isSubmitting

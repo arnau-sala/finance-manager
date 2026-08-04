@@ -454,6 +454,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-field-message--error {
   color: var(--color-danger);
+  text-align: center;
 }
 
 .auth-divider {
@@ -1872,6 +1873,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-size: 12px;
   line-height: 1.45;
   font-weight: 400;
+  text-align: center;
 }
 
 .starting-net-worth-form__submit {
@@ -6939,6 +6941,7 @@ button.transaction-row__content:focus-visible {
 
 .confirm-dialog > p.confirm-dialog__error {
   color: var(--color-danger);
+  text-align: center;
 }
 
 .confirm-dialog__form {

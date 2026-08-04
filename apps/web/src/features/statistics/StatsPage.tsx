@@ -25,6 +25,8 @@ import {
   type LucideIcon
 } from "lucide-react";
 
+import { formatErrorMessage } from "../../components/ui/error-message";
+
 import { MonthPicker } from "../../components/ui/MonthPicker";
 import { scheduleStatisticsPrefetches } from "../../cache/financial-prefetch";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
@@ -691,7 +693,7 @@ function StatisticsLoadState({
 }) {
   return (
     <div className="stats-load-state" role={retry ? "alert" : "status"}>
-      <span>{message}</span>
+      <span>{retry ? formatErrorMessage(message) : message}</span>
       {retry ? (
         <button type="button" onClick={retry}>
           <RefreshCw aria-hidden="true" />
