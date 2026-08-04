@@ -60,6 +60,10 @@ const generatedPasswordCharacterDelayMs = 11;
 const generatedPasswordFieldDelayMs = 24;
 const usernameAvailabilityDelayMs = 250;
 
+function formatFormError(message: string | null) {
+  return message?.replace(/[.]+$/u, "") ?? null;
+}
+
 async function copyTextToClipboard(value: string) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(value);
@@ -832,7 +836,6 @@ export function CreateAccountPage({
             value={password}
             invalid={invalidFields.password === true}
             autoComplete="new-password"
-            complete={passwordPairComplete}
             describedBy={
               formError
                 ? "register-form-error"
@@ -867,7 +870,6 @@ export function CreateAccountPage({
             value={passwordConfirmation}
             invalid={invalidFields.passwordConfirmation === true}
             autoComplete="new-password"
-            complete={passwordPairComplete}
             generated={isAppGeneratedPassword}
             describedBy={formError ? "register-form-error" : undefined}
             characterStatuses={characterStatuses.confirmation}
@@ -947,7 +949,7 @@ export function CreateAccountPage({
             role="alert"
             aria-live="polite"
           >
-            {formError ?? "\u00a0"}
+            {formatFormError(formError) ?? "\u00a0"}
           </p>
 
           <button

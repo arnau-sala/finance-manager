@@ -810,21 +810,9 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-danger);
 }
 
-.auth-password-field.is-complete .auth-input-with-action input {
-  background: var(--color-surface);
-  border-color: var(--color-success);
-  box-shadow: none;
-}
-
 .auth-register-form .auth-password-input.is-generated,
 .auth-register-form .auth-password-input:-webkit-autofill {
   background-color: var(--color-password-autofill);
-  box-shadow: inset 0 0 0 1000px var(--color-password-autofill);
-  -webkit-box-shadow: inset 0 0 0 1000px var(--color-password-autofill);
-}
-
-.auth-password-field.is-complete .auth-password-input.is-generated,
-.auth-password-field.is-complete .auth-password-input:-webkit-autofill {
   box-shadow: inset 0 0 0 1000px var(--color-password-autofill);
   -webkit-box-shadow: inset 0 0 0 1000px var(--color-password-autofill);
 }
@@ -1275,6 +1263,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-register-error {
   margin: -3px 0 -8px;
+  text-align: center;
 }
 
 .auth-register-submit {

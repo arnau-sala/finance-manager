@@ -17,7 +17,6 @@ type AuthPasswordFieldProps = {
   value: string;
   invalid: boolean;
   autoComplete: "current-password" | "new-password";
-  complete?: boolean;
   describedBy?: string;
   onGenerate?: () => void;
   generating?: boolean;
@@ -64,7 +63,6 @@ export function AuthPasswordField({
   value,
   invalid,
   autoComplete,
-  complete = false,
   describedBy,
   onGenerate,
   generating = false,
@@ -106,11 +104,7 @@ export function AuthPasswordField({
   }, [showCharacterFeedback, value]);
 
   return (
-    <div
-      className={`auth-form-field auth-password-field${
-        complete ? " is-complete" : ""
-      }`}
-    >
+    <div className="auth-form-field auth-password-field">
       <div className="auth-password-field-heading">
         <span id={`${id}-label`}>{label}</span>
         {onGenerate ? (
