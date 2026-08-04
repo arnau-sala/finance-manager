@@ -70,6 +70,12 @@ Username account and recovery decisions:
   limited by IP and normalized username.
 - Authenticated rotation requires the current password and invalidates the old
   recovery code immediately.
+- During registration, the semantic form remains mounted only until
+  server-confirmed account creation. Final confirmation submits it to the
+  rate-limited `POST /auth/login/browser` endpoint, which repeats normal
+  password authentication and redirects without placing credentials in URLs.
+  Abandoning registration unmounts the form, and plaintext credentials are
+  never written to browser storage or logs.
 
 Email-linking decisions:
 

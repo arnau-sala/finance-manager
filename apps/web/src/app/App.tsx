@@ -111,8 +111,10 @@ export function App() {
   function returnToLanding() {
     setLoginIdentifier("");
     setRegistrationEmail(null);
+    setUsernameRegistration(null);
     setLandingError(null);
     setLandingVersion((version) => version + 1);
+    setRegisterVersion((version) => version + 1);
     setActiveScreen("landing");
   }
 
@@ -369,9 +371,22 @@ export function App() {
     setActiveScreen("recovery-code");
   }
 
-  async function completeUsernameRegistration() {
-    await handleLoginSuccess();
-    setUsernameRegistration(null);
+  function completeUsernameRegistration() {
+    completeRegistrationWithNativeSubmit();
+  }
+
+  function completeRegistrationWithNativeSubmit() {
+    const form = document.querySelector<HTMLFormElement>(
+      "[data-registration-credential-form]"
+    );
+
+    if (!form) {
+      throw new Error("Unable to complete credential setup.");
+    }
+
+    const formPage = form.closest<HTMLElement>(".auth-flow-page");
+    formPage?.removeAttribute("inert");
+    HTMLFormElement.prototype.submit.call(form);
   }
 
   function returnToRegistration() {
@@ -631,7 +646,7 @@ export function App() {
             key={`${verificationVersion}:${registrationEmail}`}
             email={registrationEmail}
             onBack={returnToRegistration}
-            onVerified={handleLoginSuccess}
+            onVerified={completeRegistrationWithNativeSubmit}
           />
         ) : null}
       </div>

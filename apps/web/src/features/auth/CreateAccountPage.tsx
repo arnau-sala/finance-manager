@@ -85,8 +85,6 @@ type PasswordFieldProps = {
   onChange: (value: string, autofilled: boolean) => void;
 };
 
-const supportsImmediatePasswordMask =
-  typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
 const generatedPasswordCharacterDelayMs = 11;
 const generatedPasswordFieldDelayMs = 24;
 const usernameAvailabilityDelayMs = 250;
@@ -197,14 +195,11 @@ function PasswordField({
         }`}
       >
         <input
-          key={isVisible ? "visible" : "masked"}
           ref={inputRef}
           id={id}
           aria-labelledby={`${id}-label`}
           name={name}
-          type={
-            isVisible || supportsImmediatePasswordMask ? "text" : "password"
-          }
+          type={isVisible ? "text" : "password"}
           className={`auth-password-input auth-password-input--${
             isVisible ? "visible" : "masked"
           }${showCharacterFeedback ? " has-character-feedback" : ""}${
@@ -782,8 +777,6 @@ export function CreateAccountPage({
           passwordConfirmation
         });
 
-        setPassword("");
-        setPasswordConfirmation("");
         onUsernameRegistrationCreated(registration);
       } catch (error) {
         const message =
@@ -841,8 +834,6 @@ export function CreateAccountPage({
 
     try {
       await startRegistration(result.data);
-      setPassword("");
-      setPasswordConfirmation("");
       onRegistrationStarted(result.data.email);
     } catch (error) {
       setFormError(
@@ -897,6 +888,10 @@ export function CreateAccountPage({
 
         <form
           className="auth-login-form auth-register-form"
+          data-registration-credential-form
+          action="/api/auth/login/browser"
+          method="post"
+          autoComplete="on"
           noValidate
           onSubmit={handleSubmit}
         >
@@ -926,10 +921,10 @@ export function CreateAccountPage({
                 id="register-email"
                 className="auth-warning-input"
                 aria-labelledby="register-email-label"
-                name="email"
-                type="text"
+                name="username"
+                type="email"
                 inputMode="email"
-                autoComplete="email"
+                autoComplete="username"
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}

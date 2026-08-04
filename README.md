@@ -12,9 +12,10 @@ before the app opens. Accounts can be created with a verified email or with a
 username and password. Username accounts receive a one-use recovery code and
 can later add a verified email or Google without creating a second user. The
 mobile frontend lets the user choose between both account types and validates
-username availability before submission. The final username-account submission
-and recovery-code handoff remain intentionally disabled until that screen is
-implemented.
+username availability before submission. Username registration now creates the
+account, presents its recovery code once, and enters onboarding through a
+native credential form submission so platform password managers can offer to
+save the account.
 
 Implemented:
 
@@ -40,6 +41,7 @@ Authentication:
 - `POST /auth/register/verify`
 - `POST /auth/recovery/password`
 - `POST /auth/login`
+- `POST /auth/login/browser` (internal native-form completion)
 - `GET /auth/google/start`
 - `GET /auth/google/callback`
 - `POST /auth/logout`

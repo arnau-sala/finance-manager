@@ -1,3 +1,4 @@
+import formBody from "@fastify/formbody";
 import Fastify from "fastify";
 
 import { registerSecureSession } from "./auth/session.js";
@@ -20,6 +21,7 @@ export function buildApp() {
     logger: true,
   });
 
+  app.register(formBody);
   registerSecurityHeaders(app);
   registerSecureSession(app);
   registerOriginCheck(app);

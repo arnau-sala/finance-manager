@@ -118,6 +118,13 @@ const loginBodySchema = z.union([
     .transform(({ email, password }) => ({ identifier: email, password })),
 ]);
 
+const browserLoginBodySchema = z
+  .object({
+    username: loginIdentifierSchema,
+    password: z.string().min(1).max(128),
+  })
+  .passthrough();
+
 const recoverUsernameAccountBodySchema = z
   .object({
     username: usernameSchema,
@@ -143,6 +150,46 @@ const invalidCredentialsResponse = {
 const invalidRecoveryResponse = {
   error: "Invalid username or recovery code.",
 };
+
+async function authenticatePasswordUser(
+  identifier: string,
+  password: string,
+  dummyPasswordHash: string,
+) {
+  const normalizedIdentifier = normalizeLoginIdentifier(identifier);
+  const user = await db.user.findUnique({
+    where: normalizedIdentifier.includes("@")
+      ? { email: normalizedIdentifier }
+      : { username: normalizedIdentifier },
+    select: {
+      id: true,
+      passwordHash: true,
+      authProvider: true,
+      status: true,
+      sessionVersion: true,
+    },
+  });
+
+  const userCanUsePassword =
+    user !== null &&
+    supportsPasswordAuthentication(user.authProvider) &&
+    Boolean(user.passwordHash);
+  const passwordMatches = await verifyPassword(
+    userCanUsePassword ? user.passwordHash! : dummyPasswordHash,
+    password,
+  );
+
+  if (
+    !user ||
+    !userCanUsePassword ||
+    !passwordMatches ||
+    user.status !== "APPROVED"
+  ) {
+    return null;
+  }
+
+  return user;
+}
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
   const dummyPasswordHash = await hashPassword("Dummy-password1!");
@@ -399,35 +446,13 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { identifier, password } = parsedBody.data;
-      const normalizedIdentifier = normalizeLoginIdentifier(identifier);
-      const user = await db.user.findUnique({
-        where: normalizedIdentifier.includes("@")
-          ? { email: normalizedIdentifier }
-          : { username: normalizedIdentifier },
-        select: {
-          id: true,
-          passwordHash: true,
-          authProvider: true,
-          status: true,
-          sessionVersion: true,
-        },
-      });
-
-      const userCanUsePassword =
-        user !== null &&
-        supportsPasswordAuthentication(user.authProvider) &&
-        Boolean(user.passwordHash);
-      const passwordMatches = await verifyPassword(
-        userCanUsePassword ? user.passwordHash! : dummyPasswordHash,
+      const user = await authenticatePasswordUser(
+        identifier,
         password,
+        dummyPasswordHash,
       );
 
-      if (
-        !user ||
-        !userCanUsePassword ||
-        !passwordMatches ||
-        user.status !== "APPROVED"
-      ) {
+      if (!user) {
         return reply.code(401).send(invalidCredentialsResponse);
       }
 
@@ -436,6 +461,34 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("sessionVersion", user.sessionVersion);
 
       return reply.send({ message: "Login successful." });
+    },
+  );
+
+  app.post(
+    "/auth/login/browser",
+    { config: { rateLimit: authLoginRateLimit } },
+    async (request, reply) => {
+      const parsedBody = browserLoginBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({ error: "Invalid login data." });
+      }
+
+      const user = await authenticatePasswordUser(
+        parsedBody.data.username,
+        parsedBody.data.password,
+        dummyPasswordHash,
+      );
+
+      if (!user) {
+        return reply.code(401).send(invalidCredentialsResponse);
+      }
+
+      request.session.regenerate();
+      request.session.set("userId", user.id);
+      request.session.set("sessionVersion", user.sessionVersion);
+
+      return reply.code(303).redirect("/");
     },
   );
 

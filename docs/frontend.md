@@ -411,18 +411,30 @@ UX notes:
   email format on blur and keep submission disabled until it is valid.
 - Move to code verification after the neutral `202` response.
 - Do not reveal whether the email already has an account.
-- Keep passwords only in the registration component while the request is being
-  prepared, then clear both password fields before opening verification.
+- Keep registration passwords only in React memory and in their semantic form
+  controls until server-confirmed account creation. This lets Safari associate
+  the submitted credential with the final success state. Unmount and clear the
+  form immediately when registration finishes or is abandoned.
 - Show requirement completion and a compact strength meter beneath the first
   password. The optional generator uses Web Crypto, guarantees every backend
   requirement, and fills both password fields with a 14-character value. Both
   fields use the same pale-yellow fill as WebKit password autofill until the
   user manually edits either value.
 - Keep the native password inputs active for cursor, editing, and visibility
-  behavior. While masked, both fields use the same thin dots; compared
+  behavior. Masked fields remain real `type="password"` controls and switch to
+  `type="text"` only while explicitly revealed, without replacing the DOM
+  input. While masked, both fields use the same thin dots; compared
   positions remain black when they match and turn red only when they differ.
   Both input borders turn green only when the password is valid and the
   complete values match.
+- Mark both new-password controls with `autocomplete="new-password"` and mark
+  either email or username as `autocomplete="username"` so platform password
+  managers can associate the credential with the account.
+- Keep the semantic registration form mounted until the account is actually
+  created. The final confirmation submits that same form natively to
+  `POST /auth/login/browser`; its `303` redirect returns to the app with an
+  authenticated session and gives platform password managers the conventional
+  form-submission lifecycle used for save prompts.
 - Treat the API response identically for new and existing emails. The browser
   receives no delivery flag and cannot infer whether Brevo was called from the
   response status or body.

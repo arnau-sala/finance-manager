@@ -120,6 +120,13 @@ the password module to verify Argon2id hashes. Unknown identifiers are checked
 against a precomputed dummy hash so the endpoint follows the same expensive
 verification path without exposing whether an account exists.
 
+Completed registration uses the internal `POST /auth/login/browser` route for
+one final native HTML form submission. It shares the same password
+authentication and rate limit as JSON login, regenerates the secure session,
+and returns a `303` redirect to the frontend. This deliberate full navigation
+gives platform password managers the conventional successful-login lifecycle
+without placing credentials in a URL.
+
 Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side
 OAuth 2.0 / OpenID Connect flow, validates callback `state`, verifies the Google
 ID token, and requires a verified email. A new Google identity creates its

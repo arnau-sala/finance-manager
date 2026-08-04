@@ -16,9 +16,6 @@ type InvalidFields = {
   password: boolean;
 };
 
-const supportsImmediatePasswordMask =
-  typeof CSS !== "undefined" && CSS.supports("-webkit-text-security", "disc");
-
 export function PasswordLoginPage({
   identifier: initialIdentifier,
   onBack,
@@ -157,16 +154,11 @@ export function PasswordLoginPage({
             <span id="login-password-label">Password</span>
             <div className="auth-input-with-action">
               <input
-                key={isPasswordVisible ? "visible" : "masked"}
                 ref={passwordInput}
                 id="login-password"
                 aria-labelledby="login-password-label"
                 name="password"
-                type={
-                  isPasswordVisible || supportsImmediatePasswordMask
-                    ? "text"
-                    : "password"
-                }
+                type={isPasswordVisible ? "text" : "password"}
                 className={`auth-password-input auth-password-input--${
                   isPasswordVisible ? "visible" : "masked"
                 }`}
