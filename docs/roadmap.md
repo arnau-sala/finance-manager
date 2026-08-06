@@ -66,6 +66,21 @@
 - Allow username accounts to add a verified normal email or Google identity
   without creating a second user.
 
+## Phase 5F: Password Recovery
+
+- Start email recovery with a neutral response that does not reveal whether an
+  account exists or which authentication providers it supports.
+- Send a six-digit, ten-minute verification code to password accounts and clear
+  Google sign-in guidance to Google-only accounts.
+- Exchange either a verified email code or a one-use account recovery code for
+  a restricted, ten-minute password-reset grant stored in an HttpOnly cookie.
+- Support secure username discovery using the globally unique recovery-code
+  hash without scanning accounts or exposing partial matches.
+- Complete password replacement without creating a login session, invalidate
+  every existing session, and rotate a consumed account recovery code.
+- Apply resend cooldowns, attempt limits, endpoint rate limits, generic errors,
+  no-store responses, and password-change notifications.
+
 ## Phase 6A: Basic Transaction Creation
 
 - Add the `Transaction` model and `TransactionType` enum.

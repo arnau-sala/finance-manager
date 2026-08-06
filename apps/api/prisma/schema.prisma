@@ -23,6 +23,16 @@ enum AuthProvider {
   PASSWORD_AND_GOOGLE
 }
 
+enum PasswordResetMethod {
+  EMAIL_CODE
+  RECOVERY_CODE
+}
+
+enum PasswordResetEmailKind {
+  RESET_CODE
+  GOOGLE_GUIDANCE
+}
+
 enum TransactionType {
   INCOME
   EXPENSE
@@ -44,9 +54,11 @@ model User {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime?    @updatedAt
 
-  transactions     Transaction[]
-  recoveryCode     AccountRecoveryCode?
-  pendingEmailLink PendingEmailLink?
+  transactions         Transaction[]
+  recoveryCode         AccountRecoveryCode?
+  pendingEmailLink     PendingEmailLink?
+  pendingPasswordReset PendingPasswordReset?
+  passwordResetGrant   PasswordResetGrant?
 }
 
 model PendingRegistration {
@@ -67,9 +79,38 @@ model PendingRegistration {
 model AccountRecoveryCode {
   id        String   @id @default(cuid())
   userId    String   @unique
-  codeHash  String   @db.Char(64)
+  codeHash  String   @unique @db.Char(64)
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PendingPasswordReset {
+  id                   String                 @id @default(cuid())
+  userId               String                 @unique
+  email                String                 @unique
+  kind                 PasswordResetEmailKind
+  verificationCodeHash String?                @db.Char(64)
+  verificationAttempts Int                    @default(0)
+  expiresAt            DateTime
+  lastSentAt           DateTime
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
+  user                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+}
+
+model PasswordResetGrant {
+  id               String              @id @default(cuid())
+  userId           String              @unique
+  method           PasswordResetMethod
+  tokenHash        String              @unique @db.Char(64)
+  recoveryCodeHash String?             @db.Char(64)
+  expiresAt        DateTime
+  createdAt        DateTime            @default(now())
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
 }
 
 model PendingEmailLink {

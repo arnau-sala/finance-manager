@@ -8,6 +8,7 @@ import { adminUserRoutes } from "./routes/admin-users.js";
 import { authGoogleRoutes } from "./routes/auth-google.js";
 import { authMeRoutes } from "./routes/auth-me.js";
 import { authRoutes } from "./routes/auth.js";
+import { passwordRecoveryRoutes } from "./routes/password-recovery.js";
 import { categoryRoutes } from "./routes/categories.js";
 import { homeRoutes } from "./routes/home.js";
 import { statisticsRoutes } from "./routes/statistics.js";
@@ -36,6 +37,7 @@ export function buildApp() {
   app.register(adminUserRoutes);
   app.register(authGoogleRoutes);
   app.register(authRoutes);
+  app.register(passwordRecoveryRoutes);
   app.register(authMeRoutes);
   app.register(categoryRoutes);
   app.register(homeRoutes);

@@ -4,7 +4,6 @@ import { z } from "zod";
 import { supportsPasswordAuthentication } from "../auth/auth-provider.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
-import { recoveryCodeSchema } from "../auth/recovery-code.js";
 import {
   beginPasswordRegistration,
   EmailConfigurationError,
@@ -19,14 +18,12 @@ import {
   usernameSchema,
 } from "../auth/username-validation.js";
 import {
-  recoverUsernameAccount,
   registerUsernameAccount,
 } from "../auth/username-account.js";
 import { db } from "../db/client.js";
 import {
   authLoginRateLimit,
   authLogoutRateLimit,
-  authRecoveryRateLimit,
   authRegisterRateLimit,
   authRegistrationVerifyRateLimit,
   authUsernameAvailabilityRateLimit,
@@ -125,30 +122,8 @@ const browserLoginBodySchema = z
   })
   .passthrough();
 
-const recoverUsernameAccountBodySchema = z
-  .object({
-    username: usernameSchema,
-    recoveryCode: recoveryCodeSchema,
-    newPassword: passwordSchema,
-    newPasswordConfirmation: z.string().max(128),
-  })
-  .strict()
-  .superRefine(({ newPassword, newPasswordConfirmation }, context) => {
-    if (newPassword !== newPasswordConfirmation) {
-      context.addIssue({
-        code: "custom",
-        path: ["newPasswordConfirmation"],
-        message: "Passwords do not match.",
-      });
-    }
-  });
-
 const invalidCredentialsResponse = {
   error: "Invalid identifier or password.",
-};
-
-const invalidRecoveryResponse = {
-  error: "Invalid username or recovery code.",
 };
 
 async function authenticatePasswordUser(
@@ -386,51 +361,6 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       return reply.code(201).send({
         message: "Account created successfully.",
         user: result.user,
-      });
-    },
-  );
-
-  app.post(
-    "/auth/recovery/password",
-    { config: { rateLimit: authRecoveryRateLimit } },
-    async (request, reply) => {
-      const parsedBody = recoverUsernameAccountBodySchema.safeParse(
-        request.body,
-      );
-
-      if (!parsedBody.success) {
-        return reply.code(400).send({
-          error: "Invalid recovery data.",
-          issues: parsedBody.error.issues.map((issue) => ({
-            field: issue.path.join("."),
-            message: issue.message,
-          })),
-        });
-      }
-
-      const result = await recoverUsernameAccount({
-        username: parsedBody.data.username,
-        recoveryCode: parsedBody.data.recoveryCode,
-        newPassword: parsedBody.data.newPassword,
-      });
-
-      if (result.type === "invalid") {
-        return reply.code(401).send(invalidRecoveryResponse);
-      }
-
-      if (result.type === "password-unchanged") {
-        return reply.code(400).send({
-          error: "New password must be different from current password.",
-        });
-      }
-
-      request.session.regenerate();
-      request.session.set("userId", result.userId);
-      request.session.set("sessionVersion", result.sessionVersion);
-
-      return reply.send({
-        message: "Password recovered successfully.",
-        recoveryCode: result.recoveryCode,
       });
     },
   );

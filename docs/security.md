@@ -59,15 +59,20 @@ Username account and recovery decisions:
 - The recovery-code response is marked `Cache-Control: no-store`. The web
   client keeps the plaintext only in component memory for the one-time handoff
   screen and clears it when authenticated onboarding begins.
-- PostgreSQL stores only the SHA-256 recovery-code hash. Its entropy makes
-  offline guessing infeasible without requiring a server secret.
-- Recovery compares hashes with `timingSafeEqual` and uses a dummy hash for
-  unknown usernames.
-- A successful recovery atomically deletes the submitted code, changes the
-  password, increments `sessionVersion`, and inserts a replacement code. The
-  previous code cannot succeed twice, including under concurrent requests.
-- Invalid usernames and recovery codes share one response. Attempts are also
-  limited by IP and normalized username.
+- PostgreSQL stores only a unique SHA-256 recovery-code hash. Its entropy makes
+  offline guessing infeasible without requiring a server secret, while the
+  unique index supports secure code-only username recovery without a table scan.
+- Recovery input discards separators and punctuation but preserves
+  alphanumeric characters and letter case. Invalid Base58 characters still
+  fail validation.
+- A valid code creates a random, short-lived reset grant instead of an
+  authenticated session. The code is rotated only when that grant completes a
+  password change, so abandoning the form cannot destroy the user's only code.
+- Completion atomically claims the grant, verifies the original code hash is
+  still current, changes the password, increments `sessionVersion`, and stores
+  a replacement recovery-code hash. Concurrent reuse cannot succeed.
+- Invalid usernames, codes, and code-only lookups share one response. Verification
+  is rate limited by IP so raw recovery secrets never become rate-limit keys.
 - Authenticated rotation requires the current password and invalidates the old
   recovery code immediately.
 - During registration, the semantic form remains mounted only until
@@ -76,6 +81,33 @@ Username account and recovery decisions:
   password authentication and redirects without placing credentials in URLs.
   Abandoning registration unmounts the form, and plaintext credentials are
   never written to browser storage or logs.
+
+Password-reset security decisions:
+
+- Email reset issuance always returns the same neutral response. Unknown
+  addresses, cooldowns, password accounts, and Google-only accounts cannot be
+  distinguished by status or response body.
+- Delivery happens after the neutral response path has been decided. Eligible
+  password accounts receive a six-digit HMAC-SHA256 email code; Google-only
+  accounts receive sign-in guidance instead of a nonexistent password reset.
+- Email codes expire after 10 minutes, allow five failed attempts, and have a
+  persistent 60-second resend cooldown. They are bound to the normalized email.
+- Successful email-code or recovery-code verification creates a 32-byte random
+  grant. Only its SHA-256 hash is stored in PostgreSQL; the plaintext exists in
+  a ten-minute `HttpOnly`, `SameSite=Strict` cookie restricted to the reset API.
+- The grant authorizes only password-reset endpoints. It is never accepted by
+  authenticated routes and is never exposed to React, local storage, session
+  storage, logs, or URLs.
+- The frontend may keep only the non-sensitive recovery stage and identifier in
+  `sessionStorage` for up to 10 minutes so switching to Mail on mobile does not
+  lose the flow.
+- Completing a reset requires the normal password policy and matching fields,
+  consumes the grant once, increments `sessionVersion`, clears the current
+  session, and does not sign the user in automatically.
+- Accounts with an email receive a password-change notification. Delivery
+  failure is logged but cannot roll back an already-secured password change.
+- Starting a new recovery or cancelling after verification invalidates an older
+  grant. Expired grants and stale pending rows are removed opportunistically.
 
 Email-linking decisions:
 
@@ -203,7 +235,10 @@ Current limits:
 | Register/email | 20/hour | IP |
 | Username availability | 60/15min | IP |
 | Verify registration | 10/15min | IP + email |
-| Recover password | 5/15min | IP + username |
+| Start/reset email | 5/15min | IP + email |
+| Verify email code | 10/15min | IP + email |
+| Verify recovery code | 10/15min | IP |
+| Complete reset | 5/15min | IP |
 | Google auth | 30/15min | IP |
 | Logout | 30/min | session/IP |
 | Profile editing | 30/15min | session/IP |

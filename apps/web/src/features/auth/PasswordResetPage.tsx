@@ -1,0 +1,169 @@
+import { useState } from "react";
+import { ChevronLeft } from "lucide-react";
+
+import { formatErrorMessage } from "../../components/ui/error-message";
+import { AuthPasswordField } from "./AuthPasswordField";
+import {
+  getPasswordCharacterStatuses,
+  isAccountPasswordComplete
+} from "./password-assistance";
+import { completePasswordReset } from "./password-recovery-api";
+import { PasswordSecuritySummary } from "./PasswordSecuritySummary";
+import { validateAccountPassword } from "./password-validation";
+
+export type PasswordResetResult = {
+  username: string | null;
+  recoveryCode: string | null;
+};
+
+type PasswordResetPageProps = {
+  onBack: () => void;
+  onComplete: (result: PasswordResetResult) => void;
+};
+
+export function PasswordResetPage({
+  onBack,
+  onComplete
+}: PasswordResetPageProps) {
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const characterStatuses = getPasswordCharacterStatuses(
+    password,
+    passwordConfirmation
+  );
+  const canSubmit =
+    password === passwordConfirmation &&
+    isAccountPasswordComplete(password) &&
+    isAccountPasswordComplete(passwordConfirmation);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canSubmit || isSubmitting) {
+      return;
+    }
+
+    const passwordValidation = validateAccountPassword(password);
+
+    if (!passwordValidation.success) {
+      setError(passwordValidation.error.issues[0]?.message ?? "Invalid password");
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const result = await completePasswordReset({
+        newPassword: password,
+        newPasswordConfirmation: passwordConfirmation
+      });
+      onComplete(result);
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to change the password. Please try again"
+      );
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-screen auth-screen--login auth-screen--password-reset">
+      <button
+        className="auth-back-button"
+        type="button"
+        onClick={onBack}
+        aria-label="Go back"
+      >
+        <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
+      </button>
+
+      <section
+        className="auth-panel auth-password-reset-panel"
+        aria-labelledby="password-reset-title"
+      >
+        <header className="auth-header auth-password-reset-header">
+          <div className="auth-logo auth-logo--verification" aria-hidden="true">
+            <img
+              src="/icons/app-icon-512.png"
+              width={512}
+              height={512}
+              alt=""
+              decoding="sync"
+            />
+          </div>
+          <div className="auth-message">
+            <h1 id="password-reset-title">Create a new password</h1>
+            <p className="auth-subtitle">
+              All existing sessions will be signed out
+            </p>
+          </div>
+        </header>
+
+        <form
+          className="auth-register-form auth-password-reset-form"
+          noValidate
+          onSubmit={handleSubmit}
+        >
+          <AuthPasswordField
+            id="password-reset-password"
+            label="New password"
+            name="newPassword"
+            placeholder="Create a new password"
+            value={password}
+            invalid={error !== null}
+            autoComplete="new-password"
+            describedBy="password-reset-requirements password-reset-error"
+            characterStatuses={characterStatuses.password}
+            onChange={(value) => {
+              setPassword(value);
+              setError(null);
+            }}
+          />
+
+          <AuthPasswordField
+            id="password-reset-confirmation"
+            label="Repeat password"
+            name="newPasswordConfirmation"
+            placeholder="Repeat your new password"
+            value={passwordConfirmation}
+            invalid={error !== null}
+            autoComplete="new-password"
+            describedBy="password-reset-error"
+            characterStatuses={characterStatuses.confirmation}
+            onChange={(value) => {
+              setPasswordConfirmation(value);
+              setError(null);
+            }}
+          />
+
+          <PasswordSecuritySummary
+            password={password}
+            requirementsId="password-reset-requirements"
+          />
+
+          <p
+            id="password-reset-error"
+            className="auth-field-message auth-field-message--error auth-password-recovery-error"
+            role="alert"
+            aria-live="polite"
+          >
+            {error ? formatErrorMessage(error) : "\u00a0"}
+          </p>
+
+          <button
+            className="auth-primary-button auth-password-reset-submit"
+            type="submit"
+            disabled={!canSubmit || isSubmitting}
+          >
+            {isSubmitting ? "Updating..." : "Change password"}
+          </button>
+        </form>
+      </section>
+    </main>
+  );
+}

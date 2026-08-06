@@ -15,7 +15,9 @@ mobile frontend lets the user choose between both account types and validates
 username availability before submission. Username registration now creates the
 account, presents its recovery code once, and enters onboarding through a
 native credential form submission so platform password managers can offer to
-save the account.
+save the account. Account recovery now supports email codes, username recovery
+codes, and forgotten usernames without turning either code into an authenticated
+session.
 
 Implemented:
 
@@ -39,7 +41,12 @@ Authentication:
 - `POST /auth/register/username`
 - `POST /auth/register/resend`
 - `POST /auth/register/verify`
-- `POST /auth/recovery/password`
+- `POST /auth/password-reset/email/request`
+- `POST /auth/password-reset/email/resend`
+- `POST /auth/password-reset/email/verify`
+- `POST /auth/password-reset/recovery-code/verify`
+- `POST /auth/password-reset/complete`
+- `POST /auth/password-reset/cancel`
 - `POST /auth/login`
 - `POST /auth/login/browser` (internal native-form completion)
 - `GET /auth/google/start`
@@ -295,29 +302,34 @@ Valid credentials for an approved user return:
 Unknown identifiers, incorrect passwords, and suspended users receive the same
 `401 Unauthorized` response. Successful login creates a secure cookie session.
 
-## Recover A Username Account
+## Recover An Account
 
-The recovery code replaces a forgotten password without relying on email:
+Email recovery starts with `POST /auth/password-reset/email/request`. The same
+neutral `202` response is returned for an unknown email, an active cooldown, a
+password account, and a Google-only account. Password accounts receive a
+six-digit code; Google-only accounts receive instructions to use `Continue with
+Google`. Resend uses `/auth/password-reset/email/resend`.
 
-```http
-POST /auth/recovery/password
-Content-Type: application/json
-```
+`POST /auth/password-reset/email/verify` validates the email-bound code. It does
+not authenticate the user: it creates a ten-minute, single-purpose grant and
+places its random token in an `HttpOnly`, `SameSite=Strict` cookie.
 
-```json
-{
-  "username": "alex.morgan",
-  "recoveryCode": "7KmP-x4Td-N9qR-2WcH",
-  "newPassword": "DifferentPass2!",
-  "newPasswordConfirmation": "DifferentPass2!"
-}
-```
+Username recovery verifies the one-time Base58 code with
+`POST /auth/password-reset/recovery-code/verify`. Supplying `username` requires
+an exact match. Omitting it implements `Forgot your username?`; the username is
+returned only after a valid globally unique recovery-code hash is found.
+Spaces, hyphens, and other separators are ignored, while Base58 letter case
+remains significant.
 
-A valid recovery atomically consumes the submitted code, changes the password,
-increments `sessionVersion`, starts a new session, and returns a replacement
-recovery code. The old code can never be reused. Invalid usernames and codes
-share the same `401` response. An authenticated username account can explicitly
-replace its code with `POST /account/recovery-code` and its current password.
+Both methods finish through `POST /auth/password-reset/complete` with matching
+new-password fields. The endpoint consumes the restricted grant, changes the
+password, increments `sessionVersion`, clears the current session, and sends an
+email notification when the account has an email. Recovery-code resets also
+rotate and return the replacement code. No reset automatically signs the user
+in. `/auth/password-reset/cancel` revokes an unfinished grant.
+
+An authenticated username account can still rotate its recovery code through
+`POST /account/recovery-code` by providing its current password.
 
 ## Link An Email
 

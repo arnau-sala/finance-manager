@@ -490,7 +490,33 @@ Security UX:
 - Returning to the form keeps the non-sensitive email and name but requires the
   password fields to be entered again.
 
-### 6. Starting Net Worth Setup
+### 6. Account Recovery
+
+Purpose: recover password accounts without exposing whether an identifier
+exists or turning a recovery credential into an authenticated session.
+
+Behavior:
+
+- `Forgot password?` opens the existing dialog style over login and accepts the
+  same unified email-or-username identifier.
+- An email starts the neutral email flow and opens the shared six-cell code
+  screen. A username opens the 16-character recovery-code screen. `Forgot your
+  username?` opens that same screen without requiring an identifier.
+- Reuse the registration email-code component so iOS `one-time-code` AutoFill,
+  expiry text, resend countdown, spacing, and controls remain identical.
+- After verification, show two normal `AuthPasswordField` controls and the same
+  password-strength and requirements component used by account creation. Keep
+  the action disabled until both valid passwords match.
+- Email recovery returns to login with the identifier filled and a concise
+  success status. Recovery-code completion first reuses the one-time code page
+  to hand off the replacement recovery code, then returns to login.
+- Never store passwords, email codes, recovery codes, or reset-grant tokens in
+  browser storage. `sessionStorage` may retain only the stage and normalized
+  identifier for 10 minutes so switching to Mail can survive a page reload.
+- Back from the new-password step calls the cancellation endpoint to revoke the
+  temporary grant. A completed reset never signs the user in automatically.
+
+### 7. Starting Net Worth Setup
 
 Purpose: establish the user's real financial baseline before showing the
 authenticated app for the first time.
@@ -508,7 +534,7 @@ restoration, so no authentication path can bypass the initial screen
 accidentally. The value can be replaced later without changing transactions.
 Session expiration uses the existing non-dismissible dialog.
 
-### 7. Dashboard
+### 8. Dashboard
 
 Purpose: first authenticated screen.
 
@@ -533,7 +559,7 @@ The Home layout uses five intrinsic grid rows with a minimum gap. Available vert
 - Recent transactions.
 - Link to statistics.
 
-### 8. Create Transaction
+### 9. Create Transaction
 
 Purpose: fast mobile-first transaction entry.
 
@@ -585,7 +611,7 @@ UX notes:
   response so its balance, latest moves, and monthly activity update together.
   A `401` response opens the existing non-dismissible session-expired dialog.
 
-### 9. Transactions
+### 10. Transactions
 
 Purpose: browse historical records.
 
@@ -642,7 +668,7 @@ Final MVP content:
 - Transaction detail entry point.
 - Empty states.
 
-### 10. Transaction Detail And Edit
+### 11. Transaction Detail And Edit
 
 Purpose: view, update, or delete one transaction.
 
@@ -699,7 +725,7 @@ cancel only the confirmation. While the authenticated `DELETE` request is in
 progress, every confirmation control is disabled; success closes the detail and
 refreshes every financial view, while failures remain visible in the popover.
 
-### 11. Statistics
+### 12. Statistics
 
 Purpose: show simple financial insights.
 
@@ -825,7 +851,7 @@ The deterministic statistics fixture files remain in the repository as visual
 development references, but production components do not import or bundle
 them.
 
-### 12. Account
+### 13. Account
 
 Purpose: user profile and session controls.
 
@@ -859,7 +885,7 @@ The change-password modal requires the current password and two copies of the ne
 
 Logout keeps the confirmation dialog visible while the request is pending. Only after the API confirms that the session has ended does the private screen slide to the right, revealing the public access screen underneath. Failed and cancelled attempts do not trigger the transition.
 
-### 13. Admin
+### 14. Admin
 
 Purpose: operational review tools.
 
@@ -893,9 +919,9 @@ Baseline requirements:
 ## Frontend Delivery Status
 
 The Vite/React shell, theme, authentication, verified password registration,
-onboarding, Home, transaction creation and management, Statistics, and Profile
-flows are implemented. Administrative screens remain outside the current mobile
-MVP frontend.
+email and recovery-code password reset, onboarding, Home, transaction creation
+and management, Statistics, and Profile flows are implemented. Administrative
+screens remain outside the current mobile MVP frontend.
 
 Each completed screen includes its relevant loading, error, empty, and API
 states rather than relying on static preview data.

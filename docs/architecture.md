@@ -27,10 +27,12 @@ apps/api
     auth
       authenticated-user.ts
       password.ts
+      password-recovery.ts
       registration.ts
       session.ts
     email
       brevo.ts
+      password-recovery.ts
       registration-verification.ts
     routes
       admin-users.ts
@@ -39,6 +41,7 @@ apps/api
       categories.ts
       auth-me.ts
       home.ts
+      password-recovery.ts
       statistics.ts
       transactions.ts
     money
@@ -57,6 +60,8 @@ The active database models cover authentication and financial records:
 - `PendingRegistration`
 - `AccountRecoveryCode`
 - `PendingEmailLink`
+- `PendingPasswordReset`
+- `PasswordResetGrant`
 - `Category`
 - `Transaction`
 
@@ -82,6 +87,13 @@ registration state machine. Password hashing remains isolated in
 `auth/password.ts` so registration, login, password changes, and account
 deletion share the same Argon2id implementation.
 
+`routes/password-recovery.ts` owns the unauthenticated reset contract, neutral
+responses, and restricted cookie boundary. `auth/password-recovery.ts` owns
+email issuance state, code verification, temporary grants, session-version
+invalidation, and atomic recovery-code rotation. Verification and completion
+are separate by design: neither an email code nor a recovery code can be used as
+a normal authenticated session.
+
 `PendingRegistration` has one row per normalized email. It stores the required
 name, Argon2id password hash, HMAC-SHA256 verification-code hash, failed-attempt
 count, expiry, and last-send timestamp. The plaintext password and code are
@@ -106,9 +118,11 @@ the user's encrypted session.
 Username registration is a separate synchronous path. It validates and claims
 the normalized username before hashing the password, creates a `User` with no
 email, and creates its `AccountRecoveryCode` in the same transaction. The
-plaintext 16-character Base58 code is returned once; only its SHA-256 hash is persisted.
-Recovery atomically consumes that row, changes the password, increments
-`sessionVersion`, and inserts a newly generated replacement code.
+plaintext 16-character Base58 code is returned once; only its globally unique
+SHA-256 hash is persisted. Recovery first exchanges a valid code for a
+single-purpose grant. Completion atomically verifies that the code hash is still
+current, changes the password, increments `sessionVersion`, and replaces the
+hash with a newly generated code.
 
 The public registration UI first calls the indexed, rate-limited
 `GET /auth/usernames/:username/availability` lookup on field blur. This is only

@@ -5,12 +5,19 @@ import { formatErrorMessage } from "../../components/ui/error-message";
 import { AuthPasswordField, revealTrailingCaret } from "./AuthPasswordField";
 import { login } from "./auth-api";
 import { validateLoginIdentifier } from "./login-identifier-validation";
+import { PasswordRecoveryStartDialog } from "./PasswordRecoveryStartDialog";
 import { validateLoginPassword } from "./password-validation";
 
 type PasswordLoginPageProps = {
   identifier: string;
+  statusMessage?: string | null;
   onBack: () => void;
   onLoginSuccess: () => void | Promise<void>;
+  onPasswordRecoveryStart: (
+    start:
+      | { method: "email"; identifier: string }
+      | { method: "recovery-code"; username: string | null }
+  ) => void;
 };
 
 type InvalidFields = {
@@ -20,8 +27,10 @@ type InvalidFields = {
 
 export function PasswordLoginPage({
   identifier: initialIdentifier,
+  statusMessage = null,
   onBack,
-  onLoginSuccess
+  onLoginSuccess,
+  onPasswordRecoveryStart
 }: PasswordLoginPageProps) {
   const [identifier, setIdentifier] = useState(initialIdentifier);
   const [password, setPassword] = useState("");
@@ -31,6 +40,7 @@ export function PasswordLoginPage({
     password: false
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRecoveryDialogOpen, setIsRecoveryDialogOpen] = useState(false);
 
   function clearLoginError() {
     if (!formError && !invalidFields.identifier && !invalidFields.password) {
@@ -174,13 +184,25 @@ export function PasswordLoginPage({
             }}
           />
 
+          <button
+            className="auth-forgot-password"
+            type="button"
+            onClick={() => setIsRecoveryDialogOpen(true)}
+          >
+            Forgot password?
+          </button>
+
           <p
             id="login-form-error"
-            className="auth-field-message auth-field-message--error auth-login-error"
-            role="alert"
+            className={`auth-field-message auth-login-error${
+              formError ? " auth-field-message--error" : " auth-login-status"
+            }`}
+            role={formError ? "alert" : "status"}
             aria-live="polite"
           >
-            {formError ? formatErrorMessage(formError) : "\u00a0"}
+            {formError
+              ? formatErrorMessage(formError)
+              : (statusMessage ?? "\u00a0")}
           </p>
 
           <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
@@ -188,6 +210,20 @@ export function PasswordLoginPage({
           </button>
         </form>
       </section>
+
+      <PasswordRecoveryStartDialog
+        open={isRecoveryDialogOpen}
+        initialIdentifier={identifier}
+        onCancel={() => setIsRecoveryDialogOpen(false)}
+        onEmailSelected={(email) => {
+          setIsRecoveryDialogOpen(false);
+          onPasswordRecoveryStart({ method: "email", identifier: email });
+        }}
+        onRecoveryCodeSelected={(username) => {
+          setIsRecoveryDialogOpen(false);
+          onPasswordRecoveryStart({ method: "recovery-code", username });
+        }}
+      />
     </main>
   );
 }

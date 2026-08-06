@@ -5,7 +5,6 @@ import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   generateAccountPassword,
   getPasswordCharacterStatuses,
-  getPasswordStrength,
   isAccountPasswordComplete
 } from "./password-assistance";
 import {
@@ -14,7 +13,7 @@ import {
   revealTrailingCaret
 } from "./AuthPasswordField";
 import { validateEmail } from "./email-validation";
-import { getAccountPasswordRequirements } from "./password-validation";
+import { PasswordSecuritySummary } from "./PasswordSecuritySummary";
 import {
   checkUsernameAvailability,
   startRegistration,
@@ -123,8 +122,6 @@ export function CreateAccountPage({
   const usernameAvailabilityTimerRef = useRef<number | null>(null);
   const emailValidation = validateEmail(email);
   const usernameValidation = validateUsername(username);
-  const passwordRequirements = getAccountPasswordRequirements(password);
-  const passwordStrength = getPasswordStrength(password);
   const characterStatuses = getPasswordCharacterStatuses(
     password,
     passwordConfirmation
@@ -901,44 +898,10 @@ export function CreateAccountPage({
             }}
           />
 
-          <div className="auth-password-assistance">
-            <div className="auth-password-strength">
-              <div
-                className="auth-password-strength__track"
-                role="progressbar"
-                aria-label="Password strength"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={passwordStrength.percentage}
-                aria-valuetext={passwordStrength.label}
-              >
-                <span
-                  className={`is-${passwordStrength.level}`}
-                  style={{ width: `${passwordStrength.percentage}%` }}
-                />
-              </div>
-              <span
-                className={`auth-password-strength__label is-${passwordStrength.level}`}
-              >
-                {passwordStrength.label}
-              </span>
-            </div>
-
-            <div
-              id="register-password-requirements"
-              className="auth-password-requirements"
-              aria-label="Password requirements"
-            >
-              {passwordRequirements.map((requirement) => (
-                <span
-                  key={requirement.id}
-                  className={requirement.met ? "is-met" : undefined}
-                >
-                  {requirement.label}
-                </span>
-              ))}
-            </div>
-          </div>
+          <PasswordSecuritySummary
+            password={password}
+            requirementsId="register-password-requirements"
+          />
 
           <p
             id="register-form-error"

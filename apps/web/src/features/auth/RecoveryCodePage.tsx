@@ -5,6 +5,7 @@ import { formatErrorMessage } from "../../components/ui/error-message";
 type RecoveryCodePageProps = {
   username: string;
   recoveryCode: string;
+  context?: "registration" | "password-reset";
   onContinue: () => void | Promise<void>;
 };
 
@@ -42,6 +43,7 @@ async function copyText(value: string) {
 export function RecoveryCodePage({
   username,
   recoveryCode,
+  context = "registration",
   onContinue
 }: RecoveryCodePageProps) {
   const [isCopied, setIsCopied] = useState(false);
@@ -50,6 +52,7 @@ export function RecoveryCodePage({
   const [feedback, setFeedback] = useState<RecoveryCodeFeedback | null>(null);
   const copyFeedbackTimerRef = useRef<number | null>(null);
   const recoveryCodeGroups = recoveryCode.split("-");
+  const isPasswordReset = context === "password-reset";
 
   useEffect(() => {
     const continueTimer = window.setTimeout(() => {
@@ -110,10 +113,12 @@ export function RecoveryCodePage({
       await onContinue();
     } catch (error) {
       setFeedback({
-        message:
+          message:
           error instanceof Error
           ? error.message
-          : "Unable to open your account. Please try again",
+          : isPasswordReset
+            ? "Unable to return to sign in. Please try again"
+            : "Unable to open your account. Please try again",
         tone: "error"
       });
       setIsContinuing(false);
@@ -134,8 +139,9 @@ export function RecoveryCodePage({
             <p className="auth-recovery-code-eyebrow">@{username}</p>
             <h1 id="recovery-code-title">Save your recovery code</h1>
             <p className="auth-subtitle auth-recovery-code-subtitle">
-              Use this code to recover your account if you forget your
-              password
+              {isPasswordReset
+                ? "Your previous code no longer works. Save this replacement"
+                : "Use this code to recover your account if you forget your password"}
             </p>
           </div>
         </header>
@@ -190,7 +196,13 @@ export function RecoveryCodePage({
             aria-disabled={!isContinueReady || isContinuing}
             onClick={handleContinue}
           >
-            {isContinuing ? "Opening account..." : "Continue"}
+            {isContinuing
+              ? isPasswordReset
+                ? "Returning..."
+                : "Opening account..."
+              : isPasswordReset
+                ? "Back to sign in"
+                : "Continue"}
           </button>
 
           <p

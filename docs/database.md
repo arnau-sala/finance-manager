@@ -112,9 +112,21 @@ income transaction.
 ID token so sign-in does not rely only on a changeable email address.
 
 `AccountRecoveryCode` contains at most one row per username user. It stores a
-SHA-256 hash of a cryptographically random 16-character Base58 code and cascades on account
-deletion. A successful recovery deletes the existing row and creates a new one
-in the same transaction, making every plaintext code single-use.
+globally unique SHA-256 hash of a cryptographically random 16-character Base58
+code and cascades on account deletion. Successful recovery replaces the hash in
+the same transaction as the password change, making every plaintext code
+single-use and enabling indexed code-only username recovery without scanning
+users.
+
+`PendingPasswordReset` stores at most one email-recovery attempt per user and
+email. It distinguishes password-reset codes from Google sign-in guidance. A
+reset code is stored only as an email-bound HMAC hash and carries its expiry,
+attempt count, and persistent resend timestamp.
+
+`PasswordResetGrant` stores the SHA-256 hash of a 32-byte random temporary token,
+its method, and its 10-minute expiry. Recovery-code grants also bind the code
+hash that must still be current when completion rotates it. Both reset tables
+cascade on user deletion.
 
 `PendingEmailLink` stores one active email-link attempt per user and reserves
 one candidate email per attempt. It uses an account-and-email-bound HMAC hash,
@@ -134,9 +146,10 @@ Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
-Deleting a user removes transactions, recovery code, and pending email link
-through `ON DELETE CASCADE`, and explicitly removes any matching
-`PendingRegistration` when the user has an email.
+Deleting a user removes transactions, recovery code, pending email link,
+pending password reset, and password-reset grant through `ON DELETE CASCADE`,
+and explicitly removes any matching `PendingRegistration` when the user has an
+email.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 

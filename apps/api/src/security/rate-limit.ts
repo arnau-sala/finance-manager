@@ -75,12 +75,36 @@ export const authRegistrationVerifyRateLimit = {
     `auth-register-verify:${request.ip}:${getBodyIdentifier(request)}`,
 };
 
-export const authRecoveryRateLimit = {
+export const authPasswordResetRequestRateLimit = {
   hook: "preHandler" as const,
   max: 5,
   timeWindow: "15 minutes",
   keyGenerator: (request: FastifyRequest) =>
-    `auth-recovery:${request.ip}:${getBodyIdentifier(request)}`,
+    `auth-password-reset-request:${request.ip}:${getBodyIdentifier(request)}`,
+};
+
+export const authPasswordResetVerifyRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-password-reset-verify:${request.ip}:${getBodyIdentifier(request)}`,
+};
+
+export const authPasswordResetRecoveryCodeRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-password-reset-recovery-code:${request.ip}`,
+};
+
+export const authPasswordResetCompleteRateLimit = {
+  hook: "preHandler" as const,
+  max: 5,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-password-reset-complete:${request.ip}`,
 };
 
 export const authLogoutRateLimit = {

@@ -20,6 +20,12 @@ import {
   type SessionUser
 } from "../features/auth/auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
+import {
+  clearStoredPasswordRecovery,
+  hasStoredPasswordRecovery,
+  PasswordRecoveryFlow,
+  type PasswordRecoveryStart
+} from "../features/auth/PasswordRecoveryFlow";
 import { RecoveryCodePage } from "../features/auth/RecoveryCodePage";
 import { RegistrationMethodPage } from "../features/auth/RegistrationMethodPage";
 import { RegistrationVerificationPage } from "../features/auth/RegistrationVerificationPage";
@@ -36,6 +42,7 @@ type SessionStatus = "checking" | "anonymous" | "authenticated";
 type AuthScreen =
   | "landing"
   | "login"
+  | "password-recovery"
   | "register-method"
   | "register-form"
   | "verification"
@@ -49,8 +56,16 @@ type StartupTransitionState =
 export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
-  const [activeScreen, setActiveScreen] = useState<AuthScreen>("landing");
+  const [activeScreen, setActiveScreen] = useState<AuthScreen>(() =>
+    hasStoredPasswordRecovery() ? "password-recovery" : "landing"
+  );
   const [loginIdentifier, setLoginIdentifier] = useState("");
+  const [loginStatusMessage, setLoginStatusMessage] = useState<string | null>(
+    null
+  );
+  const [passwordRecoveryStart, setPasswordRecoveryStart] =
+    useState<PasswordRecoveryStart | null>(null);
+  const [passwordRecoveryVersion, setPasswordRecoveryVersion] = useState(0);
   const [registrationMethod, setRegistrationMethod] =
     useState<RegistrationMethod>("email");
   const [registrationEmail, setRegistrationEmail] = useState<string | null>(
@@ -109,7 +124,10 @@ export function App() {
   }
 
   function returnToLanding() {
+    clearStoredPasswordRecovery();
     setLoginIdentifier("");
+    setLoginStatusMessage(null);
+    setPasswordRecoveryStart(null);
     setRegistrationEmail(null);
     setUsernameRegistration(null);
     setLandingError(null);
@@ -340,7 +358,27 @@ export function App() {
 
   function openLogin(identifier: string) {
     setLandingError(null);
+    setLoginStatusMessage(null);
     setLoginIdentifier(identifier);
+    setLoginVersion((version) => version + 1);
+    setActiveScreen("login");
+  }
+
+  function startPasswordRecovery(start: PasswordRecoveryStart) {
+    setPasswordRecoveryStart(start);
+    setPasswordRecoveryVersion((version) => version + 1);
+    setLoginStatusMessage(null);
+    setActiveScreen("password-recovery");
+  }
+
+  function returnToLoginFromRecovery(
+    identifier: string,
+    statusMessage?: string
+  ) {
+    clearStoredPasswordRecovery();
+    setPasswordRecoveryStart(null);
+    setLoginIdentifier(identifier);
+    setLoginStatusMessage(statusMessage ?? null);
     setLoginVersion((version) => version + 1);
     setActiveScreen("login");
   }
@@ -406,6 +444,8 @@ export function App() {
     }
 
     clearAuthenticatedData();
+    clearStoredPasswordRecovery();
+    setLoginStatusMessage(null);
     setSessionUser(user);
     setSessionStatus("authenticated");
   }
@@ -443,6 +483,9 @@ export function App() {
     setIsSessionExpired(false);
     setSessionUser(null);
     setLoginIdentifier("");
+    setLoginStatusMessage(null);
+    setPasswordRecoveryStart(null);
+    clearStoredPasswordRecovery();
     setRegistrationEmail(null);
     setUsernameRegistration(null);
     setLandingError(null);
@@ -606,8 +649,22 @@ export function App() {
         <PasswordLoginPage
           key={`${loginVersion}:${loginIdentifier}`}
           identifier={loginIdentifier}
+          statusMessage={loginStatusMessage}
           onBack={returnToLanding}
           onLoginSuccess={handleLoginSuccess}
+          onPasswordRecoveryStart={startPasswordRecovery}
+        />
+      </div>
+
+      <div
+        className="auth-flow-page auth-flow-page--password-recovery"
+        aria-hidden={activeScreen !== "password-recovery"}
+        inert={activeScreen !== "password-recovery"}
+      >
+        <PasswordRecoveryFlow
+          key={passwordRecoveryVersion}
+          start={passwordRecoveryStart}
+          onReturnToLogin={returnToLoginFromRecovery}
         />
       </div>
 

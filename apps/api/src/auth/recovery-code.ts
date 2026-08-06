@@ -1,4 +1,4 @@
-import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 import { z } from "zod";
 
@@ -11,28 +11,28 @@ const legacyRecoveryCodePattern = /^[A-F0-9]{32}$/;
 const recoveryCodePattern = new RegExp(
   `^[${recoveryCodeAlphabet}]{${recoveryCodeLength}}$`,
 );
-const dummyRecoveryCodeHash = hashCanonicalRecoveryCode(
-  "1".repeat(recoveryCodeLength),
-);
 
 export const recoveryCodeSchema = z
   .string()
   .trim()
   .min(recoveryCodeLength)
-  .max(64)
-  .transform((code) => code.replace(/[\s-]/g, ""))
-  .transform((code) =>
-    legacyRecoveryCodePattern.test(code.toUpperCase())
-      ? code.toUpperCase()
-      : code,
-  )
+  .max(128)
+  .transform(normalizeRecoveryCode)
   .refine(
     (code) =>
       recoveryCodePattern.test(code) || legacyRecoveryCodePattern.test(code),
     "Invalid recovery code.",
   );
 
-function hashCanonicalRecoveryCode(code: string) {
+export function normalizeRecoveryCode(code: string) {
+  const alphanumericCode = code.replace(/[^A-Za-z0-9]/g, "");
+
+  return legacyRecoveryCodePattern.test(alphanumericCode.toUpperCase())
+    ? alphanumericCode.toUpperCase()
+    : alphanumericCode;
+}
+
+export function hashCanonicalRecoveryCode(code: string) {
   return createHash("sha256").update(code, "utf8").digest("hex");
 }
 
@@ -61,19 +61,4 @@ export function createAccountRecoveryCode() {
     displayCode,
     codeHash: hashCanonicalRecoveryCode(canonicalCode),
   };
-}
-
-export function recoveryCodeMatches(
-  canonicalCode: string,
-  expectedHash: string | null,
-) {
-  const candidate = Buffer.from(
-    hashCanonicalRecoveryCode(canonicalCode),
-    "hex",
-  );
-  const expected = Buffer.from(expectedHash ?? dummyRecoveryCodeHash, "hex");
-
-  return (
-    candidate.length === expected.length && timingSafeEqual(candidate, expected)
-  );
 }

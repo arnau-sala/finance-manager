@@ -14,6 +14,7 @@ type TransactionalEmail = {
   };
   subject: string;
   htmlContent: string;
+  textContent?: string;
   tag: string;
 };
 
@@ -72,6 +73,7 @@ export async function sendTransactionalEmail(email: TransactionalEmail) {
         to: [email.to],
         subject: email.subject,
         htmlContent: email.htmlContent,
+        ...(email.textContent ? { textContent: email.textContent } : {}),
         tags: [email.tag],
       }),
       signal: AbortSignal.timeout(BREVO_REQUEST_TIMEOUT_MS),

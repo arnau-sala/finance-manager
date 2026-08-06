@@ -3,10 +3,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "../db/client.js";
 import { supportsPasswordAuthentication } from "./auth-provider.js";
 import { hashPassword, verifyPassword } from "./password.js";
-import {
-  createAccountRecoveryCode,
-  recoveryCodeMatches,
-} from "./recovery-code.js";
+import { createAccountRecoveryCode } from "./recovery-code.js";
 
 type UsernameRegistrationInput = {
   username: string;
@@ -109,92 +106,6 @@ export async function registerUsernameAccount(
 
     throw error;
   }
-}
-
-type RecoverUsernameAccountInput = {
-  username: string;
-  recoveryCode: string;
-  newPassword: string;
-};
-
-export type RecoverUsernameAccountResult =
-  | {
-      type: "recovered";
-      userId: string;
-      sessionVersion: number;
-      recoveryCode: string;
-    }
-  | { type: "invalid" }
-  | { type: "password-unchanged" };
-
-export async function recoverUsernameAccount(
-  input: RecoverUsernameAccountInput,
-): Promise<RecoverUsernameAccountResult> {
-  const user = await db.user.findUnique({
-    where: { username: input.username },
-    select: {
-      id: true,
-      passwordHash: true,
-      authProvider: true,
-      status: true,
-      recoveryCode: { select: { id: true, codeHash: true } },
-    },
-  });
-  const codeMatches = recoveryCodeMatches(
-    input.recoveryCode,
-    user?.recoveryCode?.codeHash ?? null,
-  );
-
-  if (
-    !user ||
-    !codeMatches ||
-    user.status !== "APPROVED" ||
-    !supportsPasswordAuthentication(user.authProvider) ||
-    !user.passwordHash ||
-    !user.recoveryCode
-  ) {
-    return { type: "invalid" };
-  }
-
-  if (await verifyPassword(user.passwordHash, input.newPassword)) {
-    return { type: "password-unchanged" };
-  }
-
-  const passwordHash = await hashPassword(input.newPassword);
-  const replacementRecoveryCode = createAccountRecoveryCode();
-
-  return db.$transaction(async (transaction) => {
-    const claim = await transaction.accountRecoveryCode.deleteMany({
-      where: {
-        id: user.recoveryCode!.id,
-        userId: user.id,
-        codeHash: user.recoveryCode!.codeHash,
-      },
-    });
-
-    if (claim.count !== 1) {
-      return { type: "invalid" } as const;
-    }
-
-    const updatedUser = await transaction.user.update({
-      where: { id: user.id, status: "APPROVED" },
-      data: {
-        passwordHash,
-        sessionVersion: { increment: 1 },
-        recoveryCode: {
-          create: { codeHash: replacementRecoveryCode.codeHash },
-        },
-      },
-      select: { sessionVersion: true },
-    });
-
-    return {
-      type: "recovered",
-      userId: user.id,
-      sessionVersion: updatedUser.sessionVersion,
-      recoveryCode: replacementRecoveryCode.displayCode,
-    } as const;
-  });
 }
 
 export async function rotateAccountRecoveryCode(input: {

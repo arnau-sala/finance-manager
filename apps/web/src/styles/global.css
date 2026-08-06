@@ -234,6 +234,26 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-surface);
 }
 
+.auth-flow-page--password-recovery {
+  z-index: 6;
+  background: var(--color-surface);
+}
+
+.auth-flow:not(.auth-flow--password-recovery)
+  .auth-flow-page--password-recovery {
+  transform: translate3d(100%, 0, 0);
+}
+
+.auth-flow--password-recovery
+  .auth-flow-page:not(.auth-flow-page--password-recovery) {
+  transform: translate3d(-18%, 0, 0);
+}
+
+.auth-flow--password-recovery .auth-flow-page--password-recovery {
+  transform: translate3d(0, 0, 0);
+  box-shadow: var(--shadow-screen-transition);
+}
+
 .auth-flow--login .auth-flow-page--login,
 .auth-flow--register-method .auth-flow-page--register-method,
 .auth-flow--register-form .auth-flow-page--register-form,
@@ -892,6 +912,90 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-login-error {
   margin: -4px 0 -10px;
+}
+
+.auth-login-status {
+  color: var(--color-primary);
+  text-align: center;
+}
+
+.auth-forgot-password {
+  justify-self: end;
+  margin: -2px 16px -4px 0;
+  padding: 0;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.password-recovery-start-form {
+  gap: 12px;
+}
+
+.password-recovery-forgot-username {
+  justify-self: end;
+  margin: 0 2px 0 0;
+  padding: 0;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-screen--password-recovery-code,
+.auth-screen--password-reset {
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
+
+.auth-password-recovery-code-panel,
+.auth-password-reset-panel {
+  gap: 30px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom));
+}
+
+.auth-password-recovery-code-header,
+.auth-password-reset-header {
+  gap: 10px;
+}
+
+.auth-password-recovery-code-subtitle {
+  max-width: 330px;
+}
+
+.auth-password-recovery-code-form,
+.auth-password-reset-form {
+  gap: 12px;
+}
+
+.auth-password-recovery-code-form input {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.auth-password-recovery-code-note {
+  margin: -4px 20px 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 300;
+  line-height: 1.4;
+}
+
+.auth-password-recovery-error {
+  margin: -2px 0 -8px;
+}
+
+.auth-password-reset-submit {
+  margin-top: 2px;
 }
 
 .auth-screen--registration-method {
