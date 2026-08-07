@@ -1,12 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
+import {
+  Check,
+  ClipboardPaste,
+  Copy,
+  Eye,
+  EyeOff,
+  RefreshCw
+} from "lucide-react";
 
 import type { PasswordCharacterStatus } from "./password-assistance";
 
 export type FieldCopyAction = {
   copied: boolean;
+  disabled?: boolean;
   label: string;
   onCopy: () => void;
+};
+
+export type FieldPasteAction = {
+  disabled?: boolean;
+  label: string;
+  onPaste: () => void;
 };
 
 type AuthPasswordFieldProps = {
@@ -22,7 +36,9 @@ type AuthPasswordFieldProps = {
   generating?: boolean;
   characterStatuses?: PasswordCharacterStatus[];
   copyAction?: FieldCopyAction;
+  pasteAction?: FieldPasteAction;
   generated?: boolean;
+  disabled?: boolean;
   onAutofill?: () => void;
   onBlur?: () => void;
   onFocus?: () => void;
@@ -68,7 +84,9 @@ export function AuthPasswordField({
   generating = false,
   characterStatuses = [],
   copyAction,
+  pasteAction,
   generated = false,
+  disabled = false,
   onAutofill,
   onBlur,
   onFocus,
@@ -115,12 +133,25 @@ export function AuthPasswordField({
             type="button"
             onClick={onGenerate}
             aria-disabled={generating}
+            disabled={disabled}
           >
             <RefreshCw aria-hidden="true" strokeWidth={1.8} />
             Generate
           </button>
         ) : copyAction ? (
           <FieldCopyButton {...copyAction} />
+        ) : pasteAction ? (
+          <button
+            className="auth-password-paste"
+            type="button"
+            aria-label={pasteAction.label}
+            disabled={disabled || pasteAction.disabled}
+            onPointerDown={(event) => event.preventDefault()}
+            onClick={pasteAction.onPaste}
+          >
+            <ClipboardPaste aria-hidden="true" strokeWidth={1.8} />
+            Paste
+          </button>
         ) : null}
       </div>
       <div
@@ -148,6 +179,7 @@ export function AuthPasswordField({
           maxLength={128}
           aria-invalid={invalid}
           aria-describedby={describedBy}
+          disabled={disabled}
           onChange={(event) => {
             const autofilled = isBrowserAutofilled(event.currentTarget);
             onChange(event.target.value, autofilled);
@@ -188,6 +220,7 @@ export function AuthPasswordField({
         <button
           className="auth-password-visibility"
           type="button"
+          disabled={disabled}
           onClick={() => setIsVisible((current) => !current)}
           aria-label={
             isVisible
@@ -207,13 +240,19 @@ export function AuthPasswordField({
   );
 }
 
-export function FieldCopyButton({ copied, label, onCopy }: FieldCopyAction) {
+export function FieldCopyButton({
+  copied,
+  disabled = false,
+  label,
+  onCopy
+}: FieldCopyAction) {
   return (
     <button
       className={`auth-field-copy-action${copied ? " is-copied" : ""}`}
       type="button"
       aria-label={copied ? `${label} copied` : `Copy ${label}`}
       title={copied ? "Copied" : `Copy ${label}`}
+      disabled={disabled}
       onPointerDown={(event) => event.preventDefault()}
       onClick={onCopy}
     >

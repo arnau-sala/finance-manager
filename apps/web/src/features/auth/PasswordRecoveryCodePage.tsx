@@ -9,6 +9,7 @@ import {
 
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { formatErrorMessage } from "../../components/ui/error-message";
+import { isClipboardReadCancelled } from "./clipboard";
 import { verifyPasswordResetRecoveryCode } from "./password-recovery-api";
 
 type PasswordRecoveryCodePageProps = {
@@ -50,13 +51,6 @@ function getUnsupportedRecoveryCodeCharacters(value: string) {
       )
     )
   ];
-}
-
-function isClipboardPasteCancelled(error: unknown) {
-  return (
-    error instanceof DOMException &&
-    (error.name === "NotAllowedError" || error.name === "AbortError")
-  );
 }
 
 export function PasswordRecoveryCodePage({
@@ -181,7 +175,7 @@ export function PasswordRecoveryCodePage({
     } catch (clipboardError) {
       setIsPasting(false);
 
-      if (isClipboardPasteCancelled(clipboardError)) {
+      if (isClipboardReadCancelled(clipboardError)) {
         return;
       }
 

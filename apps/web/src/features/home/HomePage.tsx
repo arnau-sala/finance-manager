@@ -21,6 +21,7 @@ import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
+import { ChangePasswordPage } from "./ChangePasswordPage";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 
@@ -47,6 +48,7 @@ type HomePageProps = {
 type HomeSectionProps = {
   user: SessionUser;
   onProfileUpdated: (user: SessionUser) => void;
+  onChangePassword: () => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
@@ -113,6 +115,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   profile: ({
     user,
     onProfileUpdated,
+    onChangePassword,
     onLogout,
     onAccountDeleted,
     googleAccountDeletionFeedback,
@@ -123,6 +126,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     <ProfilePage
       user={user}
       onProfileUpdated={onProfileUpdated}
+      onChangePassword={onChangePassword}
       onLogout={onLogout}
       onAccountDeleted={onAccountDeleted}
       googleAccountDeletionFeedback={googleAccountDeletionFeedback}
@@ -156,6 +160,7 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionPreview | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
@@ -165,7 +170,9 @@ export function HomePage({
   );
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
-    isTransactionComposerOpen || selectedTransaction !== null;
+    isChangePasswordOpen ||
+    isTransactionComposerOpen ||
+    selectedTransaction !== null;
 
   useEffect(() => {
     if (activeSection !== "home") {
@@ -215,13 +222,19 @@ export function HomePage({
   return (
     <main className="home-screen">
       <div
-        className="home-main-layer"
+        className={`home-main-layer${
+          isChangePasswordOpen ? " is-password-page-open" : ""
+        }`}
         aria-hidden={isOverlayOpen}
         inert={isOverlayOpen}
       >
         {ActiveSection({
           user,
           onProfileUpdated: finishProfileUpdate,
+          onChangePassword: () => {
+            prefetchScheduler.prioritizeUserRequest();
+            setIsChangePasswordOpen(true);
+          },
           onLogout,
           onAccountDeleted,
           onSessionExpired,
@@ -242,6 +255,11 @@ export function HomePage({
           onSectionChange={changeSection}
         />
       </div>
+
+      <ChangePasswordPage
+        open={isChangePasswordOpen}
+        onBack={() => setIsChangePasswordOpen(false)}
+      />
 
       <TransactionComposer
         open={isTransactionComposerOpen}

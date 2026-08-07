@@ -19,3 +19,18 @@ export async function copyTextToClipboard(value: string) {
     throw new Error("Clipboard access is unavailable");
   }
 }
+
+export async function readTextFromClipboard() {
+  if (!navigator.clipboard || !window.isSecureContext) {
+    throw new Error("Clipboard access is unavailable");
+  }
+
+  return navigator.clipboard.readText();
+}
+
+export function isClipboardReadCancelled(error: unknown) {
+  return (
+    error instanceof DOMException &&
+    (error.name === "NotAllowedError" || error.name === "AbortError")
+  );
+}
