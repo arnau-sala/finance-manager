@@ -2338,10 +2338,13 @@ body.anchored-picker-open .home-content--moves {
 }
 
 .home-balance__label svg {
+  display: block;
+  flex: 0 0 17px;
   width: 17px;
   height: 17px;
   color: var(--color-primary);
   stroke-width: 1.8;
+  transform: translateY(-1px);
 }
 
 .home-balance__label h2 {
