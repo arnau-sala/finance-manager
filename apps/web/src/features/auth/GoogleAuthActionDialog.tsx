@@ -15,7 +15,7 @@ function getDialogContent(action: GoogleAuthAction) {
   if (action.action === "create-account") {
     return {
       title: "No account found",
-      description: `No account is linked to ${action.email}. Create one with Google?`,
+      description: `No account is linked to ${action.email}.\nCreate one with Google?`,
       confirmLabel: "Create account",
       confirmingLabel: "Creating..."
     };
