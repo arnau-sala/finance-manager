@@ -42,6 +42,7 @@ import {
   type UpdateProfileInput,
   type SessionUser
 } from "../auth/auth-api";
+import { AuthPasswordField } from "../auth/AuthPasswordField";
 import { validateAccountPassword } from "../auth/password-validation";
 import { validateUserName } from "../auth/user-name-validation";
 
@@ -927,23 +928,20 @@ export function ProfilePage({
 
         {!deletesWithGoogle && deleteDialogMode === "confirm" ? (
           <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
-            <label
-              className="text-field-label"
-              htmlFor="delete-account-password"
-            >
-              Confirm your password
-            </label>
-            <input
+            <AuthPasswordField
               id="delete-account-password"
-              className="text-field text-field--dialog"
-              type="password"
-              autoComplete="current-password"
+              label="Confirm your password"
+              name="deleteAccountPassword"
+              placeholder="Enter your password"
               value={deletePassword}
-              onChange={(event) => {
-                setDeletePassword(event.target.value);
+              invalid={deleteError !== null}
+              autoComplete="current-password"
+              variant="dialog"
+              disabled={isDeletingAccount}
+              onChange={(value) => {
+                setDeletePassword(value);
                 setDeleteError(null);
               }}
-              disabled={isDeletingAccount}
             />
           </form>
         ) : null}

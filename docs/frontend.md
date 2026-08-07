@@ -172,6 +172,12 @@ different visual structure.
 Visible field titles use `text-field-label`, which applies the same `20px`
 leading alignment and muted text color across forms, filters, and dialogs.
 
+Password inputs must use the shared `AuthPasswordField`. While hidden, it
+renders the same fine-dot overlay in every flow and can color only mismatched
+confirmation characters. Every password field includes the persistent
+show/hide icon action. The `dialog` variant keeps the shared behavior while
+using the white 44px modal field surface.
+
 ### Buttons
 
 Command buttons use the shared `ActionButton` component in

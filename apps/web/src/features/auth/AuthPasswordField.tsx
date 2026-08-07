@@ -38,6 +38,7 @@ type AuthPasswordFieldProps = {
   copyAction?: FieldCopyAction;
   pasteAction?: FieldPasteAction;
   generated?: boolean;
+  variant?: "standard" | "dialog";
   disabled?: boolean;
   onAutofill?: () => void;
   onBlur?: () => void;
@@ -86,6 +87,7 @@ export function AuthPasswordField({
   copyAction,
   pasteAction,
   generated = false,
+  variant = "standard",
   disabled = false,
   onAutofill,
   onBlur,
@@ -95,8 +97,12 @@ export function AuthPasswordField({
   const [isVisible, setIsVisible] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const characterFeedbackRef = useRef<HTMLDivElement>(null);
-  const showCharacterFeedback =
-    !isVisible && value.length > 0 && characterStatuses.length > 0;
+  const valueCharacters = Array.from(value);
+  const displayedCharacterStatuses =
+    characterStatuses.length === valueCharacters.length
+      ? characterStatuses
+      : valueCharacters.map(() => "match" as const);
+  const showCharacterFeedback = !isVisible && valueCharacters.length > 0;
 
   function syncCharacterFeedbackScroll() {
     if (inputRef.current && characterFeedbackRef.current) {
@@ -122,7 +128,9 @@ export function AuthPasswordField({
   }, [showCharacterFeedback, value]);
 
   return (
-    <div className="auth-form-field auth-password-field">
+    <div
+      className={`auth-form-field auth-password-field auth-password-field--${variant}`}
+    >
       <div className="auth-password-field-heading">
         <span className="text-field-label" id={`${id}-label`}>
           {label}
@@ -167,7 +175,9 @@ export function AuthPasswordField({
           aria-labelledby={`${id}-label`}
           name={name}
           type={isVisible ? "text" : "password"}
-          className={`text-field auth-password-input auth-password-input--${
+          className={`text-field${
+            variant === "dialog" ? " text-field--dialog" : ""
+          } auth-password-input auth-password-input--${
             isVisible ? "visible" : "masked"
           }${showCharacterFeedback ? " has-character-feedback" : ""}${
             generated && value.length > 0 ? " is-generated" : ""
@@ -209,11 +219,11 @@ export function AuthPasswordField({
             <div
               className="auth-password-character-feedback__track"
               style={{
-                width: `${characterStatuses.length * 12}px`,
-                gridTemplateColumns: `repeat(${characterStatuses.length}, 12px)`
+                width: `${displayedCharacterStatuses.length * 12}px`,
+                gridTemplateColumns: `repeat(${displayedCharacterStatuses.length}, 12px)`
               }}
             >
-              {characterStatuses.map((status, index) => (
+              {displayedCharacterStatuses.map((status, index) => (
                 <span key={index} className={`is-${status}`} />
               ))}
             </div>

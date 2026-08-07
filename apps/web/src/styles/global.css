@@ -840,6 +840,21 @@ body.app-logout-transition .confirm-dialog-backdrop {
   -webkit-tap-highlight-color: transparent;
 }
 
+.auth-password-field--dialog .auth-input-with-action input {
+  padding-right: 54px;
+}
+
+.auth-password-field--dialog .auth-input-with-action button {
+  top: 2px;
+  right: 4px;
+  width: 40px;
+  height: 40px;
+}
+
+.auth-password-field--dialog .auth-password-character-feedback {
+  right: 54px;
+}
+
 .auth-password-character-feedback {
   position: absolute;
   inset: 0 64px 0 20px;
