@@ -1000,11 +1000,12 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .auth-password-recovery-code-note {
-  margin: -4px 20px 0;
+  margin: 4px 20px 0;
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 300;
   line-height: 1.4;
+  text-align: center;
 }
 
 .auth-password-recovery-error {
