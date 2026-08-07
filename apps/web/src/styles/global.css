@@ -5613,7 +5613,7 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--modal-radius);
   box-shadow: var(--shadow-dialog);
   pointer-events: auto;
   text-align: left;
@@ -6820,7 +6820,7 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--modal-radius);
   box-shadow: var(--shadow-dialog);
   text-align: center;
   animation: confirm-dialog-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
