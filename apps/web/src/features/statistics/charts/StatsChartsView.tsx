@@ -15,6 +15,9 @@ type StatsChartsViewProps = {
 export default function StatsChartsView({ charts }: StatsChartsViewProps) {
   const { period } = charts;
   const aggregateMode = period.mode === "ALL" ? "ALL" : "YEAR";
+  const hasCategoryData = charts.categories.some(
+    (category) => category.transactionCount > 0
+  );
   const financialIntervals = useMemo(
     () =>
       period.mode === "MONTH"
@@ -40,19 +43,23 @@ export default function StatsChartsView({ charts }: StatsChartsViewProps) {
           intervals={financialIntervals}
         />
       ) : null}
-      <CategoryBreakdownChart
-        mode={period.mode}
-        periodStart={period.startDate}
-        periodEnd={period.endDate}
-        categories={charts.categories}
-      />
-      <CategoryTimelineChart
-        mode={period.mode}
-        periodStart={period.startDate}
-        periodEnd={period.endDate}
-        categories={charts.categories}
-        timeline={charts.categoryTimeline}
-      />
+      {hasCategoryData ? (
+        <>
+          <CategoryBreakdownChart
+            mode={period.mode}
+            periodStart={period.startDate}
+            periodEnd={period.endDate}
+            categories={charts.categories}
+          />
+          <CategoryTimelineChart
+            mode={period.mode}
+            periodStart={period.startDate}
+            periodEnd={period.endDate}
+            categories={charts.categories}
+            timeline={charts.categoryTimeline}
+          />
+        </>
+      ) : null}
       <WeekdaySpendingChart
         mode={period.mode}
         periodStart={period.startDate}
