@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ClipboardPaste, KeyRound } from "lucide-react";
+import {
+  ChevronLeft,
+  ClipboardPaste,
+  KeyRound,
+  TriangleAlert
+} from "lucide-react";
 
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { verifyPasswordResetRecoveryCode } from "./password-recovery-api";
@@ -13,6 +18,7 @@ type PasswordRecoveryCodePageProps = {
 const RECOVERY_CODE_LENGTH = 16;
 const RECOVERY_CODE_DISPLAY_LENGTH = 19;
 const PASTED_CODE_CHARACTER_DELAY_MS = 11;
+const PASTE_WARNING_DURATION_MS = 5000;
 const RECOVERY_CODE_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -31,6 +37,19 @@ function formatRecoveryCode(value: string) {
   return canonical.match(/.{1,4}/g)?.join("-") ?? canonical;
 }
 
+function getUnsupportedRecoveryCodeCharacters(value: string) {
+  return [
+    ...new Set(
+      Array.from(value).filter(
+        (character) =>
+          !RECOVERY_CODE_ALPHABET.includes(character) &&
+          character !== "-" &&
+          !/\s/u.test(character)
+      )
+    )
+  ];
+}
+
 function isClipboardPasteCancelled(error: unknown) {
   return (
     error instanceof DOMException &&
@@ -47,15 +66,43 @@ export function PasswordRecoveryCodePage({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPasting, setIsPasting] = useState(false);
+  const [unsupportedPasteCharacters, setUnsupportedPasteCharacters] =
+    useState<string[]>([]);
   const pasteRunRef = useRef(0);
+  const pasteWarningTimerRef = useRef<number | null>(null);
   const codeLength = canonicalRecoveryCode(recoveryCode).length;
   const canSubmit = codeLength === RECOVERY_CODE_LENGTH;
 
   useEffect(() => {
     return () => {
       pasteRunRef.current += 1;
+
+      if (pasteWarningTimerRef.current !== null) {
+        window.clearTimeout(pasteWarningTimerRef.current);
+      }
     };
   }, []);
+
+  function updatePasteWarning(value: string) {
+    const unsupportedCharacters =
+      getUnsupportedRecoveryCodeCharacters(value);
+
+    if (pasteWarningTimerRef.current !== null) {
+      window.clearTimeout(pasteWarningTimerRef.current);
+      pasteWarningTimerRef.current = null;
+    }
+
+    setUnsupportedPasteCharacters(unsupportedCharacters);
+
+    if (unsupportedCharacters.length === 0) {
+      return;
+    }
+
+    pasteWarningTimerRef.current = window.setTimeout(() => {
+      setUnsupportedPasteCharacters([]);
+      pasteWarningTimerRef.current = null;
+    }, PASTE_WARNING_DURATION_MS);
+  }
 
   function cancelPasteAnimation() {
     if (!isPasting) {
@@ -84,12 +131,18 @@ export function PasswordRecoveryCodePage({
 
     try {
       const clipboardValue = await navigator.clipboard.readText();
+      const unsupportedCharacters =
+        getUnsupportedRecoveryCodeCharacters(clipboardValue);
+      updatePasteWarning(clipboardValue);
       const canonical = canonicalRecoveryCode(clipboardValue).slice(
         0,
         RECOVERY_CODE_LENGTH
       );
 
-      if (canonical.length !== RECOVERY_CODE_LENGTH) {
+      if (
+        canonical.length !== RECOVERY_CODE_LENGTH &&
+        unsupportedCharacters.length === 0
+      ) {
         setError("Clipboard does not contain a valid recovery code");
         return;
       }
@@ -195,15 +248,28 @@ export function PasswordRecoveryCodePage({
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
               <span id="password-recovery-code-label">Recovery code</span>
-              <button
-                className="auth-password-recovery-code-paste"
-                type="button"
-                aria-disabled={isPasting}
-                onClick={() => void handlePasteFromClipboard()}
-              >
-                <ClipboardPaste aria-hidden="true" strokeWidth={1.8} />
-                Paste
-              </button>
+              {unsupportedPasteCharacters.length > 0 ? (
+                <p
+                  className="auth-register-field-error auth-password-recovery-code-paste-warning"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                  <span>
+                    Could not paste: {unsupportedPasteCharacters.join(", ")}
+                  </span>
+                </p>
+              ) : (
+                <button
+                  className="auth-password-recovery-code-paste"
+                  type="button"
+                  aria-disabled={isPasting}
+                  onClick={() => void handlePasteFromClipboard()}
+                >
+                  <ClipboardPaste aria-hidden="true" strokeWidth={1.8} />
+                  Paste
+                </button>
+              )}
             </div>
             <input
               id="password-recovery-code"
@@ -227,9 +293,9 @@ export function PasswordRecoveryCodePage({
               onPaste={(event) => {
                 event.preventDefault();
                 cancelPasteAnimation();
-                setRecoveryCode(
-                  formatRecoveryCode(event.clipboardData.getData("text"))
-                );
+                const pastedValue = event.clipboardData.getData("text");
+                updatePasteWarning(pastedValue);
+                setRecoveryCode(formatRecoveryCode(pastedValue));
                 setError(null);
               }}
             />

@@ -1273,6 +1273,10 @@ body.app-logout-transition .confirm-dialog-backdrop {
   flex: 0 0 auto;
 }
 
+.auth-password-recovery-code-paste-warning {
+  color: var(--color-warning);
+}
+
 .auth-username-input input {
   padding-right: 48px;
 }
