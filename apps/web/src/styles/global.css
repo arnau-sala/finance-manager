@@ -209,6 +209,37 @@ body.app-logout-transition .confirm-dialog-backdrop {
   position: absolute;
 }
 
+.password-recovery-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-surface);
+  backface-visibility: hidden;
+}
+
+.password-recovery-stage > .auth-screen {
+  position: absolute;
+}
+
+.password-recovery-stage.is-entering {
+  animation: password-recovery-stage-enter 460ms
+    cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: var(--shadow-screen-transition);
+  will-change: transform;
+}
+
+@keyframes password-recovery-stage-enter {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 .auth-flow-page[aria-hidden="true"] {
   pointer-events: none;
 }
@@ -7718,6 +7749,10 @@ button.transaction-row__content:focus-visible {
 
   .auth-flow-page {
     transition-duration: 1ms;
+  }
+
+  .password-recovery-stage.is-entering {
+    animation-duration: 1ms;
   }
 
   .confirm-dialog-backdrop,

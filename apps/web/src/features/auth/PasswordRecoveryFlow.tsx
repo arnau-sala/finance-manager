@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { EmailVerificationPage } from "./EmailVerificationPage";
 import {
@@ -135,6 +135,7 @@ export function PasswordRecoveryFlow({
   const [stage, setStage] = useState<PasswordRecoveryStage | null>(() =>
     stageFromStart(start)
   );
+  const [stageTransitionVersion, setStageTransitionVersion] = useState(0);
 
   useEffect(() => {
     if (stage) {
@@ -148,9 +149,14 @@ export function PasswordRecoveryFlow({
     onReturnToLogin(identifier);
   }
 
+  function showNextStage(nextStage: PasswordRecoveryStage) {
+    setStage(nextStage);
+    setStageTransitionVersion((version) => version + 1);
+  }
+
   function handlePasswordResetComplete(result: PasswordResetResult) {
     if (result.recoveryCode && result.username) {
-      setStage({
+      showNextStage({
         type: "replacement-code",
         username: result.username,
         recoveryCode: result.recoveryCode
@@ -169,23 +175,38 @@ export function PasswordRecoveryFlow({
     return null;
   }
 
-  if (stage.type === "email-code") {
+  const currentStage = stage;
+
+  function renderStage(content: ReactNode) {
     return (
+      <div
+        key={`${currentStage.type}:${stageTransitionVersion}`}
+        className={`password-recovery-stage${
+          stageTransitionVersion > 0 ? " is-entering" : ""
+        }`}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  if (currentStage.type === "email-code") {
+    return renderStage(
       <EmailVerificationPage
-        email={stage.email}
+        email={currentStage.email}
         idPrefix="password-reset-verification"
         title="Check your email"
         verifyLabel="Continue"
-        onBack={() => leaveRecovery(stage.email)}
+        onBack={() => leaveRecovery(currentStage.email)}
         onResendCode={async () => {
-          await resendPasswordResetEmail(stage.email);
+          await resendPasswordResetEmail(currentStage.email);
         }}
         onVerifyCode={async (code) => {
-          await verifyPasswordResetEmailCode(stage.email, code);
-          setStage({
+          await verifyPasswordResetEmailCode(currentStage.email, code);
+          showNextStage({
             type: "new-password",
             method: "email",
-            identifier: stage.email,
+            identifier: currentStage.email,
             username: null
           });
         }}
@@ -193,13 +214,13 @@ export function PasswordRecoveryFlow({
     );
   }
 
-  if (stage.type === "recovery-code") {
-    return (
+  if (currentStage.type === "recovery-code") {
+    return renderStage(
       <PasswordRecoveryCodePage
-        username={stage.username}
-        onBack={() => leaveRecovery(stage.username ?? "")}
+        username={currentStage.username}
+        onBack={() => leaveRecovery(currentStage.username ?? "")}
         onVerified={(username) => {
-          setStage({
+          showNextStage({
             type: "new-password",
             method: "recovery-code",
             identifier: username,
@@ -210,21 +231,21 @@ export function PasswordRecoveryFlow({
     );
   }
 
-  if (stage.type === "new-password") {
-    return (
+  if (currentStage.type === "new-password") {
+    return renderStage(
       <PasswordResetPage
-        onBack={() => leaveRecovery(stage.identifier)}
+        onBack={() => leaveRecovery(currentStage.identifier)}
         onComplete={handlePasswordResetComplete}
       />
     );
   }
 
-  return (
+  return renderStage(
     <RecoveryCodePage
-      username={stage.username}
-      recoveryCode={stage.recoveryCode}
+      username={currentStage.username}
+      recoveryCode={currentStage.recoveryCode}
       context="password-reset"
-      onContinue={() => leaveRecovery(stage.username)}
+      onContinue={() => leaveRecovery(currentStage.username)}
     />
   );
 }
