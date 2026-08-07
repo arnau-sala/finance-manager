@@ -91,11 +91,15 @@ export function PasswordRecoveryStartDialog({
         }}
       >
         <div className="confirm-dialog__field">
-          <label htmlFor="password-recovery-identifier">
+          <label
+            className="text-field-label"
+            htmlFor="password-recovery-identifier"
+          >
             Email or username
           </label>
           <input
             id="password-recovery-identifier"
+            className="text-field text-field--dialog"
             name="username"
             type="text"
             inputMode="email"

@@ -9,6 +9,7 @@ import "@fontsource/inter/latin-300.css";
 import "@fontsource/inter/latin-400.css";
 import "@fontsource/inter/latin-600.css";
 import "./styles/tokens.css";
+import "./styles/text-fields.css";
 import "./styles/global.css";
 
 lockPortraitOrientation();

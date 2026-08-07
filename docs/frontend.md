@@ -148,6 +148,28 @@ The visual direction is inspired by modern Apple-like interfaces:
 
 Cards should be subtle and functional. Avoid nesting cards inside cards. Repeated transaction rows can be card-like list items, but the main layout should not become a wall of floating boxes.
 
+### Text fields
+
+Conventional text fields use the shared classes in `styles/text-fields.css` and
+the dimensions defined in `styles/tokens.css`:
+
+- `text-field` is the standard 50px, muted-surface field.
+- `text-field--prominent` keeps the landing identifier aligned with its 58px actions.
+- `text-field--compact` and `text-field--search` serve dense filter and toolbar controls.
+- `text-field--composer` follows the transaction composer's compact viewport height.
+- `text-field--dialog` preserves the 44px modal height and uses a white surface.
+- `text-field-shell` applies the same system to composite fields containing icons or native controls.
+
+All variants share the same pill shape, border, typography, focus, and error
+behavior, including `20px` of leading text padding. Focus and error states
+change the border only; non-dialog fields stay gray and dialog fields stay
+white. Large currency editors and segmented
+verification-code inputs are intentional exceptions because their content has a
+different visual structure.
+
+Visible field titles use `text-field-label`, which applies the same `20px`
+leading alignment and muted text color across forms, filters, and dialogs.
+
 ## Color System
 
 The MVP uses a light palette with neutral surfaces and restrained semantic colors.

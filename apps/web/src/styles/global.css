@@ -508,29 +508,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 }
 
 .auth-email-form input {
-  width: 100%;
-  height: 58px;
   padding: 0 66px 0 20px;
-  color: var(--color-text);
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  outline: none;
-  font-size: 16px;
-  user-select: text;
-  -webkit-user-select: text;
-  touch-action: manipulation;
-}
-
-.auth-email-form input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
-}
-
-.auth-email-form input:focus {
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-  box-shadow: none;
 }
 
 @keyframes auth-email-autofill {
@@ -545,11 +523,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-email-form input:-webkit-autofill {
   animation: auth-email-autofill 1ms both;
-}
-
-.auth-email-form input[aria-invalid="true"] {
-  border-color: var(--color-danger);
-  box-shadow: none;
 }
 
 .auth-email-form button {
@@ -734,64 +707,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-form-field > span,
 .auth-register-field-heading > span,
 .auth-password-field-heading > span {
-  padding-left: 20px;
-  color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 400;
-}
-
-.auth-form-field input,
-.auth-form-field textarea {
-  width: 100%;
-  height: 58px;
-  padding: 0 20px;
-  color: var(--color-text);
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  outline: none;
-  font-size: 16px;
-  user-select: text;
-  -webkit-user-select: text;
-  touch-action: manipulation;
-}
-
-.auth-form-field textarea {
-  height: 96px;
-  padding: 16px 20px;
-  border-radius: 28px;
-  line-height: 1.45;
-  resize: none;
-}
-
-.auth-form-field input::placeholder,
-.auth-form-field textarea::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
-}
-
-.auth-form-field input:focus,
-.auth-form-field textarea:focus {
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-  box-shadow: none;
-}
-
-.auth-form-field input[readonly] {
-  color: var(--color-text-muted);
-  cursor: default;
-}
-
-.auth-form-field input[readonly]:focus {
-  background: var(--color-surface-muted);
-  border-color: var(--color-border);
-  box-shadow: none;
-}
-
-.auth-form-field input[aria-invalid="true"],
-.auth-form-field textarea[aria-invalid="true"] {
-  border-color: var(--color-danger);
-  box-shadow: none;
 }
 
 .auth-password-input {
@@ -1232,11 +1149,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-register-form {
   gap: 10px;
-}
-
-.auth-register-form .auth-form-field input {
-  height: 50px;
-  font-size: 14px;
 }
 
 .auth-register-field-heading {
@@ -4681,24 +4593,16 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-search {
-  min-width: 0;
-  height: 42px;
   display: grid;
   grid-template-columns: 19px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
-  padding: 0 12px;
   color: var(--color-text-muted);
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
   -webkit-tap-highlight-color: transparent;
 }
 
 .moves-search:focus-within {
   color: var(--color-primary);
-  background: var(--color-surface);
-  border-color: var(--color-primary);
 }
 
 .moves-search > svg {
@@ -4708,26 +4612,10 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-search input {
-  width: 100%;
-  min-width: 0;
-  padding: 0;
-  color: var(--color-text);
-  background: transparent;
-  border: 0;
-  outline: 0;
-  font-size: 14px;
   line-height: 1.3;
-  font-weight: 400;
-  user-select: text;
-  -webkit-user-select: text;
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   -webkit-appearance: none;
-}
-
-.moves-search input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
 }
 
 .moves-search input::-webkit-search-cancel-button {
@@ -4812,7 +4700,6 @@ button.transaction-row__content:focus-visible {
 
 .moves-filter-panel {
   --moves-filter-control-height: 46px;
-  --moves-filter-input-height: 40px;
   --moves-filter-heading-font-size: 14px;
   --moves-filter-shortcut-title-font-size: 12px;
   --moves-filter-field-title-font-size: 11px;
@@ -5007,7 +4894,6 @@ button.transaction-row__content:focus-visible {
 .moves-filter-editor .transaction-category-picker legend {
   min-height: 14px;
   margin: 0 0 6px;
-  padding: 0;
   color: var(--color-text-muted);
   font-size: var(--moves-filter-field-title-font-size);
   line-height: var(--moves-filter-title-line-height);
@@ -5077,41 +4963,18 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-filter-field input {
-  width: 100%;
-  min-width: 0;
-  height: var(--moves-filter-input-height);
-  padding: 0 10px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  outline: 0;
-  font-size: 13px;
   line-height: 1.3;
-  font-weight: 400;
   -webkit-tap-highlight-color: transparent;
-  appearance: none;
-  -webkit-appearance: none;
 }
 
 .moves-date-filter-field__control {
-  width: 100%;
-  min-width: 0;
-  height: var(--moves-filter-input-height);
   display: grid;
   place-items: center;
-  padding: 0 10px;
   overflow: hidden;
   color: var(--color-text-muted);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 13px;
   line-height: 1.3;
-  font-weight: 400;
   text-overflow: ellipsis;
   white-space: nowrap;
-  appearance: none;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -5124,15 +4987,6 @@ button.transaction-row__content:focus-visible {
 .moves-date-filter-field__control:focus-visible {
   border-color: var(--color-primary);
   outline: none;
-}
-
-.moves-filter-field input:focus {
-  border-color: var(--color-primary);
-}
-
-.moves-filter-field input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.72;
 }
 
 .moves-filter-editor--categories {
@@ -6428,7 +6282,6 @@ button.transaction-row__content:focus-visible {
 .transaction-category-picker legend,
 .transaction-composer__field > span {
   margin: 0 0 6px;
-  padding: 0;
   color: var(--color-text-muted);
   font-size: 13px;
   line-height: 1.3;
@@ -6542,31 +6395,18 @@ button.transaction-row__content:focus-visible {
 
 .transaction-composer__field input,
 .transaction-composer__field textarea {
-  width: 100%;
   max-width: 100%;
-  min-width: 0;
-  height: var(--transaction-composer-control-height);
-  padding: 0 16px;
-  color: var(--color-text);
   color-scheme: light;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  outline: none;
-  font-size: 16px;
-  font-weight: 400;
-  user-select: text;
-  -webkit-user-select: text;
-  touch-action: manipulation;
+}
+
+.transaction-category-picker legend {
+  padding: 0;
 }
 
 .transaction-composer__field textarea {
-  min-height: var(--transaction-composer-control-height);
   max-height: calc(var(--transaction-composer-control-height) + 44px);
-  padding: 11px 16px;
   overflow-x: hidden;
   overflow-y: hidden;
-  line-height: 22px;
   resize: none;
   scrollbar-width: none;
 }
@@ -6576,41 +6416,18 @@ button.transaction-row__content:focus-visible {
 }
 
 .transaction-composer__date-control {
-  width: 100%;
   max-width: 100%;
-  min-width: 0;
-  height: var(--transaction-composer-control-height);
-  box-sizing: border-box;
-  padding: 0 16px;
   overflow: hidden;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
 }
 
 .transaction-composer__date-control input[type="date"] {
   display: block;
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 0;
   color: var(--color-text-muted);
-  background: transparent;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
   text-align: center;
 }
 
 .transaction-composer__date-control.is-selected input[type="date"] {
   color: var(--color-text);
-}
-
-.transaction-composer__date-control.is-invalid {
-  border-color: var(--color-danger);
-  box-shadow: none;
 }
 
 .transaction-composer__date-control input[type="date"]::-webkit-date-and-time-value {
@@ -6626,28 +6443,8 @@ button.transaction-row__content:focus-visible {
   text-align: center;
 }
 
-.transaction-composer__date-control:focus-within {
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-  box-shadow: none;
-}
-
 .transaction-composer__date-control input[type="date"]:focus {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-
-.transaction-composer__field input::placeholder,
-.transaction-composer__field textarea::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
-}
-
-.transaction-composer__field input[aria-invalid="true"],
-.transaction-composer__field textarea[aria-invalid="true"] {
-  border-color: var(--color-danger);
-  box-shadow: none;
+  outline: none;
 }
 
 .transaction-composer__footer {
@@ -6717,20 +6514,6 @@ button.transaction-row__content:focus-visible {
 .transaction-composer__footer button:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
-}
-
-.transaction-composer__field input:focus,
-.transaction-composer__field textarea:focus {
-  background: var(--color-surface);
-  border-color: var(--color-primary);
-  box-shadow: none;
-}
-
-.transaction-composer__field input[aria-invalid="true"]:focus,
-.transaction-composer__field textarea[aria-invalid="true"]:focus,
-.transaction-composer__date-control.is-invalid:focus-within {
-  border-color: var(--color-danger);
-  box-shadow: none;
 }
 
 .profile-page {
@@ -7130,39 +6913,8 @@ button.transaction-row__content:focus-visible {
 }
 
 .confirm-dialog__form label {
-  color: var(--color-text);
   font-size: 13px;
   font-weight: 400;
-}
-
-.confirm-dialog__form input {
-  width: 100%;
-  height: 44px;
-  padding: 0 13px;
-  color: var(--color-text);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  font: inherit;
-}
-
-.confirm-dialog__form input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 1;
-}
-
-.confirm-dialog__form input:focus {
-  border-color: var(--color-primary);
-  outline: none;
-}
-
-.confirm-dialog--danger .confirm-dialog__form input:focus {
-  border-color: var(--color-danger);
-  outline: none;
-}
-
-.confirm-dialog__form input[aria-invalid="true"] {
-  border-color: var(--color-danger);
 }
 
 .confirm-dialog__actions {
@@ -7587,7 +7339,10 @@ button.transaction-row__content:focus-visible {
     line-height: 1.35;
   }
 
-  .auth-email-form input,
+  .auth-email-form .text-field {
+    --text-field-height: 54px;
+  }
+
   .auth-option {
     height: 54px;
     min-height: 54px;
@@ -7656,7 +7411,10 @@ button.transaction-row__content:focus-visible {
     gap: 5px;
   }
 
-  .auth-form-field input,
+  .auth-form-field .text-field {
+    --text-field-height: 54px;
+  }
+
   .auth-primary-button {
     height: 54px;
   }
@@ -7684,7 +7442,10 @@ button.transaction-row__content:focus-visible {
     gap: 7px;
   }
 
-  .auth-register-form .auth-form-field input,
+  .auth-register-form .text-field {
+    --text-field-height: 50px;
+  }
+
   .auth-register-form .auth-primary-button {
     height: 50px;
   }

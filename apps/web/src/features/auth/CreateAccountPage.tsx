@@ -644,7 +644,9 @@ export function CreateAccountPage({
           {method === "email" ? (
             <div className="auth-form-field">
               <div className="auth-register-field-heading">
-                <span id="register-email-label">Email address</span>
+                <span className="text-field-label" id="register-email-label">
+                  Email address
+                </span>
                 {emailError ? (
                   <p
                     id="register-email-error"
@@ -665,7 +667,7 @@ export function CreateAccountPage({
               </div>
               <input
                 id="register-email"
-                className="auth-warning-input"
+                className="text-field auth-warning-input"
                 aria-labelledby="register-email-label"
                 name="username"
                 type="email"
@@ -699,7 +701,9 @@ export function CreateAccountPage({
           ) : (
             <div className="auth-form-field">
               <div className="auth-register-field-heading">
-                <span id="register-username-label">Username</span>
+                <span className="text-field-label" id="register-username-label">
+                  Username
+                </span>
                 {usernameDisplayedError ? (
                   <p
                     id="register-username-error"
@@ -722,7 +726,7 @@ export function CreateAccountPage({
               <div className="auth-input-with-action auth-username-input">
                 <input
                   id="register-username"
-                  className="auth-warning-input"
+                  className="text-field auth-warning-input"
                   aria-labelledby="register-username-label"
                   name="username"
                   type="text"
@@ -770,7 +774,9 @@ export function CreateAccountPage({
 
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
-              <span id="register-name-label">Name</span>
+              <span className="text-field-label" id="register-name-label">
+                Name
+              </span>
               {copyReadyFields.name ? (
                 <FieldCopyButton
                   label="name"
@@ -781,6 +787,7 @@ export function CreateAccountPage({
             </div>
             <input
               id="register-name"
+              className="text-field"
               aria-labelledby="register-name-label"
               name="name"
               type="text"

@@ -463,7 +463,9 @@ export function TransactionComposer({
 
             <div className="transaction-composer__field">
               <div className="transaction-composer__field-heading">
-                <span id="transaction-name-label">Name</span>
+                <span className="text-field-label" id="transaction-name-label">
+                  Name
+                </span>
                 {name.length >= 35 ? (
                   <span
                     className="transaction-composer__character-count"
@@ -476,6 +478,7 @@ export function TransactionComposer({
               <textarea
                 ref={nameInput}
                 id="transaction-name"
+                className="text-field text-field--composer text-field--multiline"
                 name="description"
                 rows={1}
                 enterKeyHint="next"

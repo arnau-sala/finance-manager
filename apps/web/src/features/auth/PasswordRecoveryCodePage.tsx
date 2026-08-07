@@ -261,7 +261,12 @@ export function PasswordRecoveryCodePage({
         >
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
-              <span id="password-recovery-code-label">Recovery code</span>
+              <span
+                className="text-field-label"
+                id="password-recovery-code-label"
+              >
+                Recovery code
+              </span>
               {unsupportedPasteCharacters.length > 0 ? (
                 <p
                   className="auth-register-field-error auth-password-recovery-code-paste-warning"
@@ -287,6 +292,7 @@ export function PasswordRecoveryCodePage({
             </div>
             <input
               id="password-recovery-code"
+              className="text-field"
               aria-labelledby="password-recovery-code-label"
               type="text"
               inputMode="text"

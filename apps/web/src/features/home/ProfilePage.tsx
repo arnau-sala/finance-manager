@@ -723,9 +723,12 @@ export function ProfilePage({
           onSubmit={confirmProfileUpdate}
         >
           <div className="confirm-dialog__field">
-            <label htmlFor="profile-name">Name</label>
+            <label className="text-field-label" htmlFor="profile-name">
+              Name
+            </label>
             <input
               id="profile-name"
+              className="text-field text-field--dialog"
               type="text"
               autoComplete="name"
               value={profileName}
@@ -741,11 +744,15 @@ export function ProfilePage({
           </div>
 
           <div className="confirm-dialog__field">
-            <label htmlFor="profile-starting-net-worth">
+            <label
+              className="text-field-label"
+              htmlFor="profile-starting-net-worth"
+            >
               Starting net worth
             </label>
             <input
               id="profile-starting-net-worth"
+              className="text-field text-field--dialog"
               type="text"
               inputMode="decimal"
               enterKeyHint="done"
@@ -919,9 +926,15 @@ export function ProfilePage({
 
         {!deletesWithGoogle && deleteDialogMode === "confirm" ? (
           <form className="confirm-dialog__form" onSubmit={confirmAccountDeletion}>
-            <label htmlFor="delete-account-password">Confirm your password</label>
+            <label
+              className="text-field-label"
+              htmlFor="delete-account-password"
+            >
+              Confirm your password
+            </label>
             <input
               id="delete-account-password"
+              className="text-field text-field--dialog"
               type="password"
               autoComplete="current-password"
               value={deletePassword}

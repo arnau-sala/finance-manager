@@ -426,7 +426,9 @@ function FilterAmountField({
   return (
     <div className="moves-filter-field">
       <div className="moves-filter-field__heading">
-        <label htmlFor={id}>{label}</label>
+        <label className="text-field-label" htmlFor={id}>
+          {label}
+        </label>
         {value ? (
           <button
             className="moves-filter-field__clear"
@@ -440,6 +442,7 @@ function FilterAmountField({
       </div>
       <input
         id={id}
+        className="text-field text-field--compact"
         type="text"
         inputMode="decimal"
         placeholder={placeholder}

@@ -38,7 +38,9 @@ function RangeDateField({
   return (
     <div className="transaction-composer__field moves-date-filter-field">
       <div className="moves-filter-field__heading">
-        <span id={labelId}>{label}</span>
+        <span className="text-field-label" id={labelId}>
+          {label}
+        </span>
         {value ? (
           <button
             className="moves-filter-field__clear"
@@ -54,7 +56,7 @@ function RangeDateField({
       <button
         ref={buttonRef}
         id={id}
-        className={`moves-date-filter-field__control${
+        className={`text-field text-field--compact moves-date-filter-field__control${
           value ? " is-selected" : ""
         }`}
         type="button"

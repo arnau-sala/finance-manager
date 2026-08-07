@@ -124,7 +124,9 @@ export function AuthPasswordField({
   return (
     <div className="auth-form-field auth-password-field">
       <div className="auth-password-field-heading">
-        <span id={`${id}-label`}>{label}</span>
+        <span className="text-field-label" id={`${id}-label`}>
+          {label}
+        </span>
         {onGenerate ? (
           <button
             className={`auth-password-generate${
@@ -165,7 +167,7 @@ export function AuthPasswordField({
           aria-labelledby={`${id}-label`}
           name={name}
           type={isVisible ? "text" : "password"}
-          className={`auth-password-input auth-password-input--${
+          className={`text-field auth-password-input auth-password-input--${
             isVisible ? "visible" : "masked"
           }${showCharacterFeedback ? " has-character-feedback" : ""}${
             generated && value.length > 0 ? " is-generated" : ""

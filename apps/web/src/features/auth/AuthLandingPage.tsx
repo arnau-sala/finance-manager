@@ -108,6 +108,7 @@ export function AuthLandingPage({
             </label>
             <input
               id="login-identifier"
+              className="text-field text-field--prominent"
               name="username"
               type="text"
               inputMode="email"

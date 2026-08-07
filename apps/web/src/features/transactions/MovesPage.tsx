@@ -437,13 +437,14 @@ export function MovesPage({
         </header>
 
         <div className="moves-toolbar">
-          <div className="moves-search">
+          <div className="moves-search text-field-shell text-field--search">
             <label className="sr-only" htmlFor="moves-search-input">
               Search transaction names
             </label>
             <Search aria-hidden="true" />
             <input
               id="moves-search-input"
+              className="text-field-shell__input"
               type="search"
               inputMode="search"
               enterKeyHint="search"

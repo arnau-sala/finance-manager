@@ -129,10 +129,13 @@ export function PasswordLoginPage({
         >
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
-              <span id="login-identifier-label">Email or username</span>
+              <span className="text-field-label" id="login-identifier-label">
+                Email or username
+              </span>
             </div>
             <input
               id="login-identifier"
+              className="text-field"
               aria-labelledby="login-identifier-label"
               name="username"
               type="text"

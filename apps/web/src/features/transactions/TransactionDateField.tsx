@@ -25,14 +25,17 @@ export function TransactionDateField({
 
   return (
     <div className="transaction-composer__field">
-      <span id={labelId}>{label}</span>
+      <span className="text-field-label" id={labelId}>
+        {label}
+      </span>
       <div
-        className={`transaction-composer__date-control${
+        className={`text-field-shell text-field--composer transaction-composer__date-control${
           selected ? " is-selected" : ""
         }${invalid ? " is-invalid" : ""}`}
       >
         <input
           id={id}
+          className="text-field-shell__input"
           name={name}
           type="date"
           value={value}

@@ -1,0 +1,129 @@
+/* Large currency inputs and segmented verification codes intentionally opt out. */
+.text-field-label {
+  padding-left: var(--text-field-padding);
+  color: var(--color-text-muted);
+}
+
+.text-field,
+.text-field-shell {
+  --text-field-height: var(--text-field-height-standard);
+  --text-field-padding-inline: var(--text-field-padding);
+  --text-field-font-size: 14px;
+  --text-field-background: var(--color-surface-muted);
+  --text-field-focus-background: var(--color-surface-muted);
+  width: 100%;
+  min-width: 0;
+  height: var(--text-field-height);
+  color: var(--color-text);
+  background: var(--text-field-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--text-field-radius);
+  box-shadow: none;
+  font-size: var(--text-field-font-size);
+  font-weight: 400;
+}
+
+.text-field {
+  display: block;
+  margin: 0;
+  padding: 0 var(--text-field-padding-inline);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.text-field::placeholder,
+.text-field-shell__input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.text-field:focus,
+.text-field-shell:focus-within {
+  background: var(--text-field-focus-background);
+  border-color: var(--color-primary);
+  box-shadow: none;
+  outline: none;
+}
+
+.text-field[aria-invalid="true"],
+.text-field-shell.is-invalid,
+.text-field-shell.is-invalid:focus-within {
+  border-color: var(--color-danger);
+  box-shadow: none;
+}
+
+.text-field[readonly] {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.text-field[readonly]:focus {
+  background: var(--text-field-background);
+  border-color: var(--color-border);
+}
+
+.text-field--prominent {
+  --text-field-height: var(--text-field-height-prominent);
+  --text-field-font-size: 16px;
+}
+
+.text-field--compact {
+  --text-field-height: var(--text-field-height-compact);
+  --text-field-font-size: 13px;
+}
+
+.text-field--search {
+  --text-field-height: var(--text-field-height-search);
+  --text-field-font-size: 14px;
+}
+
+.text-field--composer {
+  --text-field-height: var(--transaction-composer-control-height, 46px);
+  --text-field-font-size: 16px;
+}
+
+.text-field--dialog {
+  --text-field-height: var(--text-field-height-dialog);
+  --text-field-font-size: 14px;
+  --text-field-background: var(--color-surface);
+  --text-field-focus-background: var(--color-surface);
+}
+
+.text-field--multiline {
+  height: auto;
+  min-height: var(--text-field-height);
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-radius: var(--text-field-radius-multiline);
+  line-height: 22px;
+}
+
+.text-field-shell {
+  padding: 0 var(--text-field-padding-inline);
+}
+
+.text-field-shell__input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  font: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+  touch-action: manipulation;
+}
+
+.confirm-dialog--danger .text-field:focus {
+  border-color: var(--color-danger);
+}
