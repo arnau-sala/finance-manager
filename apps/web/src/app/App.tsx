@@ -574,6 +574,7 @@ export function App() {
               onIdentifierContinue={openLogin}
               onCreateAccount={openRegistration}
               onGoogleContinue={continueWithGoogle}
+              onPasswordRecoveryStart={startPasswordRecovery}
             />
           </div>
         ) : null}
@@ -636,6 +637,7 @@ export function App() {
           onIdentifierContinue={openLogin}
           onCreateAccount={openRegistration}
           onGoogleContinue={continueWithGoogle}
+          onPasswordRecoveryStart={startPasswordRecovery}
           externalError={landingError}
           onClearExternalError={() => setLandingError(null)}
         />

@@ -4,11 +4,14 @@ import { ArrowRight, Mail } from "lucide-react";
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { validateLoginIdentifier } from "./login-identifier-validation";
+import type { PasswordRecoveryStart } from "./PasswordRecoveryFlow";
+import { PasswordRecoveryStartDialog } from "./PasswordRecoveryStartDialog";
 
 type AuthLandingPageProps = {
   onIdentifierContinue: (identifier: string) => void;
   onCreateAccount: () => void;
   onGoogleContinue: () => void;
+  onPasswordRecoveryStart: (start: PasswordRecoveryStart) => void;
   externalError?: string | null;
   onClearExternalError?: () => void;
 };
@@ -25,11 +28,13 @@ export function AuthLandingPage({
   onIdentifierContinue,
   onCreateAccount,
   onGoogleContinue,
+  onPasswordRecoveryStart,
   externalError = null,
   onClearExternalError
 }: AuthLandingPageProps) {
   const [identifier, setIdentifier] = useState("");
   const [identifierError, setIdentifierError] = useState<string | null>(null);
+  const [isRecoveryDialogOpen, setIsRecoveryDialogOpen] = useState(false);
   const hasContinued = useRef(false);
 
   function continueWithIdentifier(value: string) {
@@ -172,8 +177,30 @@ export function AuthLandingPage({
               <ArrowRight className="auth-option-arrow" aria-hidden="true" />
             </button>
           </div>
+
+          <button
+            className="auth-landing-help"
+            type="button"
+            onClick={() => setIsRecoveryDialogOpen(true)}
+          >
+            Need help?
+          </button>
         </div>
       </section>
+
+      <PasswordRecoveryStartDialog
+        open={isRecoveryDialogOpen}
+        initialIdentifier={identifier}
+        onCancel={() => setIsRecoveryDialogOpen(false)}
+        onEmailSelected={(email) => {
+          setIsRecoveryDialogOpen(false);
+          onPasswordRecoveryStart({ method: "email", identifier: email });
+        }}
+        onRecoveryCodeSelected={(username) => {
+          setIsRecoveryDialogOpen(false);
+          onPasswordRecoveryStart({ method: "recovery-code", username });
+        }}
+      />
     </main>
   );
 }

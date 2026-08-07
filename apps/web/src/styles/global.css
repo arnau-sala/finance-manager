@@ -933,6 +933,20 @@ body.app-logout-transition .confirm-dialog-backdrop {
   -webkit-tap-highlight-color: transparent;
 }
 
+.auth-landing-help {
+  justify-self: center;
+  margin: 8px 0 0;
+  padding: 0;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .password-recovery-start-form {
   gap: 12px;
 }
