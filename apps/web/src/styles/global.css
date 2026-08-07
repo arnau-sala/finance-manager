@@ -1479,6 +1479,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   position: relative;
   width: 100%;
   height: 54px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .auth-verification-code > input {
@@ -1498,6 +1499,9 @@ body.app-logout-transition .confirm-dialog-backdrop {
   opacity: 0.01;
   font-size: 16px;
   user-select: text;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
   -webkit-user-select: text;
   touch-action: manipulation;
 }
