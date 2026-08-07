@@ -125,7 +125,7 @@ function stageFromStart(start: PasswordRecoveryStart | null) {
 
 type PasswordRecoveryFlowProps = {
   start: PasswordRecoveryStart | null;
-  onReturnToLogin: (identifier: string, statusMessage?: string) => void;
+  onReturnToLogin: (identifier: string) => void;
 };
 
 export function PasswordRecoveryFlow({
@@ -142,10 +142,10 @@ export function PasswordRecoveryFlow({
     }
   }, [stage]);
 
-  function leaveRecovery(identifier: string, statusMessage?: string) {
+  function leaveRecovery(identifier: string) {
     clearStoredPasswordRecovery();
     void cancelPasswordReset().catch(() => undefined);
-    onReturnToLogin(identifier, statusMessage);
+    onReturnToLogin(identifier);
   }
 
   function handlePasswordResetComplete(result: PasswordResetResult) {
@@ -162,10 +162,7 @@ export function PasswordRecoveryFlow({
       result.username ??
       (stage?.type === "new-password" ? stage.identifier : "");
     clearStoredPasswordRecovery();
-    onReturnToLogin(
-      identifier,
-      "Password updated. Sign in with your new password"
-    );
+    onReturnToLogin(identifier);
   }
 
   if (!stage) {
@@ -227,12 +224,7 @@ export function PasswordRecoveryFlow({
       username={stage.username}
       recoveryCode={stage.recoveryCode}
       context="password-reset"
-      onContinue={() =>
-        leaveRecovery(
-          stage.username,
-          "Password updated. Sign in with your new password"
-        )
-      }
+      onContinue={() => leaveRecovery(stage.username)}
     />
   );
 }

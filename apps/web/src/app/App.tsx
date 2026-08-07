@@ -104,9 +104,6 @@ export function App() {
     hasStoredPasswordRecovery() ? "password-recovery" : "landing"
   );
   const [loginIdentifier, setLoginIdentifier] = useState("");
-  const [loginStatusMessage, setLoginStatusMessage] = useState<string | null>(
-    null
-  );
   const [passwordRecoveryStart, setPasswordRecoveryStart] =
     useState<PasswordRecoveryStart | null>(null);
   const [passwordRecoveryVersion, setPasswordRecoveryVersion] = useState(0);
@@ -180,7 +177,6 @@ export function App() {
   function returnToLanding() {
     clearStoredPasswordRecovery();
     setLoginIdentifier("");
-    setLoginStatusMessage(null);
     setPasswordRecoveryStart(null);
     setRegistrationEmail(null);
     setUsernameRegistration(null);
@@ -457,7 +453,6 @@ export function App() {
 
   function openLogin(identifier: string) {
     setLandingError(null);
-    setLoginStatusMessage(null);
     setLoginIdentifier(identifier);
     setLoginVersion((version) => version + 1);
     setActiveScreen("login");
@@ -466,18 +461,13 @@ export function App() {
   function startPasswordRecovery(start: PasswordRecoveryStart) {
     setPasswordRecoveryStart(start);
     setPasswordRecoveryVersion((version) => version + 1);
-    setLoginStatusMessage(null);
     setActiveScreen("password-recovery");
   }
 
-  function returnToLoginFromRecovery(
-    identifier: string,
-    statusMessage?: string
-  ) {
+  function returnToLoginFromRecovery(identifier: string) {
     clearStoredPasswordRecovery();
     setPasswordRecoveryStart(null);
     setLoginIdentifier(identifier);
-    setLoginStatusMessage(statusMessage ?? null);
     setLoginVersion((version) => version + 1);
     setActiveScreen("login");
   }
@@ -609,7 +599,6 @@ export function App() {
 
     clearAuthenticatedData();
     clearStoredPasswordRecovery();
-    setLoginStatusMessage(null);
     setSessionUser(user);
     setSessionStatus("authenticated");
   }
@@ -647,7 +636,6 @@ export function App() {
     setIsSessionExpired(false);
     setSessionUser(null);
     setLoginIdentifier("");
-    setLoginStatusMessage(null);
     setPasswordRecoveryStart(null);
     clearStoredPasswordRecovery();
     setRegistrationEmail(null);
@@ -816,7 +804,6 @@ export function App() {
         <PasswordLoginPage
           key={`${loginVersion}:${loginIdentifier}`}
           identifier={loginIdentifier}
-          statusMessage={loginStatusMessage}
           onBack={returnToLanding}
           onLoginSuccess={handleLoginSuccess}
           onPasswordRecoveryStart={startPasswordRecovery}

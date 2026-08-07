@@ -10,7 +10,6 @@ import { validateLoginPassword } from "./password-validation";
 
 type PasswordLoginPageProps = {
   identifier: string;
-  statusMessage?: string | null;
   onBack: () => void;
   onLoginSuccess: () => void | Promise<void>;
   onPasswordRecoveryStart: (
@@ -27,7 +26,6 @@ type InvalidFields = {
 
 export function PasswordLoginPage({
   identifier: initialIdentifier,
-  statusMessage = null,
   onBack,
   onLoginSuccess,
   onPasswordRecoveryStart
@@ -195,14 +193,12 @@ export function PasswordLoginPage({
           <p
             id="login-form-error"
             className={`auth-field-message auth-login-error${
-              formError ? " auth-field-message--error" : " auth-login-status"
+              formError ? " auth-field-message--error" : ""
             }`}
             role={formError ? "alert" : "status"}
             aria-live="polite"
           >
-            {formError
-              ? formatErrorMessage(formError)
-              : (statusMessage ?? "\u00a0")}
+            {formError ? formatErrorMessage(formError) : "\u00a0"}
           </p>
 
           <button className="auth-primary-button" type="submit" disabled={isSubmitting}>

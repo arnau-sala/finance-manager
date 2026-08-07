@@ -921,11 +921,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   margin: -4px 0 -10px;
 }
 
-.auth-login-status {
-  color: var(--color-primary);
-  text-align: center;
-}
-
 .auth-forgot-password {
   justify-self: end;
   margin: -2px 16px -4px 0;
