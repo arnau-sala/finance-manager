@@ -6947,7 +6947,11 @@ button.transaction-row__content:focus-visible {
     max(20px, env(safe-area-inset-right))
     max(20px, env(safe-area-inset-bottom))
     max(20px, env(safe-area-inset-left));
-  background: var(--color-overlay);
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 72%,
+    transparent
+  );
   animation: confirm-dialog-backdrop-in 180ms ease-out;
 }
 
