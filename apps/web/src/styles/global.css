@@ -566,6 +566,15 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 12px;
 }
 
+.auth-landing-divider,
+.auth-landing-options {
+  margin-top: 20px;
+}
+
+.auth-landing-divider--after-error {
+  margin-top: 0;
+}
+
 .auth-option {
   width: 100%;
   min-height: 58px;
@@ -935,7 +944,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-landing-help {
   justify-self: center;
-  margin: 8px 0 0;
+  margin: 20px 0 0;
   padding: 0;
   color: var(--color-primary);
   background: transparent;
@@ -7467,6 +7476,16 @@ button.transaction-row__content:focus-visible {
 
   .auth-entry {
     gap: 10px;
+  }
+
+  .auth-landing-divider,
+  .auth-landing-options,
+  .auth-landing-help {
+    margin-top: 14px;
+  }
+
+  .auth-landing-divider--after-error {
+    margin-top: 0;
   }
 
   .auth-logo {

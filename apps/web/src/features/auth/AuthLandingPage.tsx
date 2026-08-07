@@ -36,6 +36,7 @@ export function AuthLandingPage({
   const [identifierError, setIdentifierError] = useState<string | null>(null);
   const [isRecoveryDialogOpen, setIsRecoveryDialogOpen] = useState(false);
   const hasContinued = useRef(false);
+  const displayedError = identifierError ?? externalError;
 
   function continueWithIdentifier(value: string) {
     const result = validateLoginIdentifier(value);
@@ -117,7 +118,7 @@ export function AuthLandingPage({
               placeholder="Email or username"
               value={identifier}
               aria-invalid={identifierError !== null}
-              aria-describedby={identifierError ? "identifier-error" : undefined}
+              aria-describedby={displayedError ? "identifier-error" : undefined}
               onChange={(event) => {
                 const input = event.currentTarget;
                 setIdentifier(input.value);
@@ -141,22 +142,27 @@ export function AuthLandingPage({
             </button>
           </form>
 
-          <p
-            id="identifier-error"
-            className="auth-field-message auth-field-message--error"
-            role="alert"
-            aria-live="polite"
-          >
-            {identifierError || externalError
-              ? formatErrorMessage(identifierError ?? externalError ?? "")
-              : "\u00a0"}
-          </p>
+          {displayedError ? (
+            <p
+              id="identifier-error"
+              className="auth-field-message auth-field-message--error"
+              role="alert"
+              aria-live="polite"
+            >
+              {formatErrorMessage(displayedError)}
+            </p>
+          ) : null}
 
-          <div className="auth-divider" aria-hidden="true">
+          <div
+            className={`auth-divider auth-landing-divider${
+              displayedError ? " auth-landing-divider--after-error" : ""
+            }`}
+            aria-hidden="true"
+          >
             <span>OR</span>
           </div>
 
-          <div className="auth-options">
+          <div className="auth-options auth-landing-options">
             <button className="auth-option" type="button" onClick={onCreateAccount}>
               <span className="auth-option-label">
                 <Mail aria-hidden="true" strokeWidth={1.8} />
