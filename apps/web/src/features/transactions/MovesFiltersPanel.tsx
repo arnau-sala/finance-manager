@@ -9,6 +9,7 @@ import {
   Shapes
 } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
@@ -197,14 +198,14 @@ export function MovesFiltersPanel({
           >
             Clear all
           </button>
-          <button
+          <ActionButton
             className="moves-filter-panel__apply"
             type="button"
             disabled={!hasPendingChanges}
             onClick={applyFilters}
           >
             Apply filters
-          </button>
+          </ActionButton>
         </div>
       </div>
 
@@ -388,7 +389,7 @@ function FilterShortcut({
   const ExpandIcon = expanded ? ChevronUp : ChevronDown;
 
   return (
-    <button
+    <ActionButton
       type="button"
       className={
         `${active ? "is-applied" : ""}${
@@ -404,7 +405,7 @@ function FilterShortcut({
         <small>{summary}</small>
       </span>
       <ExpandIcon className="moves-filter-shortcut__chevron" aria-hidden="true" />
-    </button>
+    </ActionButton>
   );
 }
 

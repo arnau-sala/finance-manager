@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
+import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
@@ -219,7 +220,7 @@ export function HomeOverviewPage({
           <div className="home-overview-error" role="alert">
             <h2>We couldn't load your overview</h2>
             <p>Check your connection and try again</p>
-            <button
+            <ActionButton
               type="button"
               onClick={() => {
                 prefetchScheduler.prioritizeUserRequest();
@@ -228,7 +229,7 @@ export function HomeOverviewPage({
             >
               <RefreshCw aria-hidden="true" />
               Try again
-            </button>
+            </ActionButton>
           </div>
         </div>
       </section>
@@ -273,7 +274,7 @@ export function HomeOverviewPage({
           </p>
         </section>
 
-        <button
+        <ActionButton
           className="home-new-transaction"
           type="button"
           onClick={onNewTransaction}
@@ -283,7 +284,7 @@ export function HomeOverviewPage({
           </span>
           <span>New transaction</span>
           <ChevronRight aria-hidden="true" />
-        </button>
+        </ActionButton>
 
         <section
           className="home-recent-moves"

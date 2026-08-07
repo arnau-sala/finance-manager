@@ -56,6 +56,8 @@ apps/web/
       formatters.ts
     styles/
       tokens.css
+      text-fields.css
+      buttons.css
       global.css
 ```
 
@@ -169,6 +171,26 @@ different visual structure.
 
 Visible field titles use `text-field-label`, which applies the same `20px`
 leading alignment and muted text color across forms, filters, and dialogs.
+
+### Buttons
+
+Command buttons use the shared `ActionButton` component in
+`components/ui/ActionButton.tsx`. Its geometry lives in `styles/buttons.css`
+and uses the radius tokens from `styles/tokens.css`:
+
+- The default shape is a full pill for primary, secondary, destructive, dialog,
+  profile, retry, and compact text actions.
+- `shape="icon"` creates a circular icon action such as Back, Close, or Filters.
+- `shape="card"` is reserved for multi-line action cards, such as choosing the
+  initial account method, where a pill would not fit the content naturally.
+
+Colors, heights, and layout remain owned by each feature so semantic danger,
+brand actions, and neutral actions stay distinct. Data rows, chart cells,
+category choices, filter tags, navigation items, inline text links, and
+segmented controls are not `ActionButton` instances because they represent
+selection or information rather than a standalone command. The compact
+List/Charts view control is an intentional pill-shaped exception while keeping
+its segmented-control behavior.
 
 ## Color System
 

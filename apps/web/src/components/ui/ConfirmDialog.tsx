@@ -2,6 +2,7 @@ import type { MouseEvent, ReactNode } from "react";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
+import { ActionButton } from "./ActionButton";
 import { formatErrorMessage } from "./error-message";
 
 type ConfirmDialogProps = {
@@ -174,7 +175,7 @@ export function ConfirmDialog({
           }`}
         >
           {showCancel ? (
-            <button
+            <ActionButton
               ref={cancelButtonRef}
               className="confirm-dialog__button confirm-dialog__button--cancel"
               type="button"
@@ -182,9 +183,9 @@ export function ConfirmDialog({
               disabled={isConfirming || interactionLocked}
             >
               {cancelLabel}
-            </button>
+            </ActionButton>
           ) : null}
-          <button
+          <ActionButton
             ref={confirmButtonRef}
             className="confirm-dialog__button confirm-dialog__button--confirm"
             type="button"
@@ -192,7 +193,7 @@ export function ConfirmDialog({
             disabled={isConfirming || interactionLocked || confirmDisabled}
           >
             {isConfirming ? confirmingLabel : confirmLabel}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>,

@@ -536,7 +536,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   padding: 0;
   background: var(--color-primary);
   border: 0;
-  border-radius: 50%;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -615,7 +614,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-text);
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
   cursor: pointer;
   touch-action: manipulation;
   font-size: 16px;
@@ -669,7 +667,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 50%;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -886,7 +883,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border: 0;
-  border-radius: 999px;
   cursor: pointer;
   touch-action: manipulation;
   font-size: 16px;
@@ -1041,7 +1037,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 24px;
   cursor: pointer;
   touch-action: manipulation;
   text-align: left;
@@ -1675,7 +1670,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
   cursor: pointer;
   touch-action: manipulation;
   font-size: 13px;
@@ -2007,7 +2001,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border: 0;
-  border-radius: 999px;
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
@@ -2284,7 +2277,6 @@ body.anchored-picker-open .home-content--moves {
   align-items: center;
   gap: 7px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
   padding: 0 13px;
   color: var(--color-text);
   background: var(--color-surface);
@@ -2401,7 +2393,6 @@ body.anchored-picker-open .home-content--moves {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border: 1px solid var(--color-primary);
-  border-radius: 8px;
   text-align: left;
   font-size: 15px;
   font-weight: 400;
@@ -2740,18 +2731,15 @@ button.transaction-row__content:focus-visible {
   height: 40px;
   padding: 3px;
   background: var(--color-surface);
-  border-radius: 11px;
 }
 
 .stats-view-toggle .sliding-segmented-control__indicator {
   background: var(--color-primary-soft-strong);
   border-color: var(--color-primary-border);
-  border-radius: 8px;
 }
 
 .stats-view-toggle.sliding-segmented-control button {
   padding: 0;
-  border-radius: 8px;
 }
 
 .stats-view-toggle.sliding-segmented-control button svg {
@@ -3470,7 +3458,6 @@ button.transaction-row__content:focus-visible {
   align-items: center;
   gap: 7px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
   padding: 0 12px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -4653,7 +4640,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
   overflow: visible;
   cursor: pointer;
   touch-action: manipulation;
@@ -4749,7 +4735,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -5052,7 +5037,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border: 1px solid var(--color-primary);
-  border-radius: 7px;
 }
 
 .moves-filter-panel__clear:disabled {
@@ -5676,7 +5660,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
   font-size: 13px;
   font-weight: 400;
 }
@@ -6036,7 +6019,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text);
   background: var(--color-surface-muted);
   border: 1px solid var(--color-border);
-  border-radius: 50%;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -6485,7 +6467,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border: 0;
-  border-radius: 999px;
   font-size: 16px;
   font-weight: 400;
   cursor: pointer;
@@ -6725,7 +6706,6 @@ button.transaction-row__content:focus-visible {
   color: var(--color-text);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
   text-align: left;
   font-size: 14px;
   font-weight: 400;
@@ -6931,7 +6911,6 @@ button.transaction-row__content:focus-visible {
 .confirm-dialog__button {
   height: 44px;
   padding: 0 14px;
-  border-radius: 8px;
   cursor: pointer;
   touch-action: manipulation;
   font-size: 14px;
@@ -7378,7 +7357,6 @@ button.transaction-row__content:focus-visible {
     grid-template-columns: 44px minmax(0, 1fr) 20px;
     gap: 13px;
     padding: 14px 16px;
-    border-radius: 20px;
   }
 
   .auth-registration-method-option__icon {

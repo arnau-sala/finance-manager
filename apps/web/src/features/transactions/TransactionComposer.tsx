@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { type TransactionType } from "./category-catalog";
@@ -395,7 +396,8 @@ export function TransactionComposer({
     >
       <header className="transaction-composer__header">
         <div className="transaction-composer__header-inner">
-          <button
+          <ActionButton
+            shape="icon"
             className="transaction-composer__close"
             type="button"
             disabled={isSubmitting}
@@ -406,7 +408,7 @@ export function TransactionComposer({
             onClick={onClose}
           >
             <X aria-hidden="true" />
-          </button>
+          </ActionButton>
           <h1 id="transaction-composer-title">
             {isEditing ? "Edit transaction" : "New transaction"}
           </h1>
@@ -548,7 +550,7 @@ export function TransactionComposer({
             >
               {formError ? formatErrorMessage(formError) : ""}
             </p>
-            <button type="submit" disabled={!canSubmit}>
+            <ActionButton type="submit" disabled={!canSubmit}>
               {isSubmitting
                 ? isEditing
                   ? "Saving..."
@@ -556,7 +558,7 @@ export function TransactionComposer({
                 : isEditing
                   ? "Save changes"
                   : "Add transaction"}
-            </button>
+            </ActionButton>
           </div>
         </footer>
       </form>

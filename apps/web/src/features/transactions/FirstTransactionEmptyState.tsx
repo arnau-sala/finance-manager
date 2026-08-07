@@ -1,5 +1,7 @@
 import { ChevronRight, Plus, ReceiptEuro } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
+
 type FirstTransactionEmptyStateProps = {
   headingId: string;
   description: string;
@@ -16,7 +18,7 @@ export function FirstTransactionEmptyState({
       <ReceiptEuro aria-hidden="true" />
       <h2 id={headingId}>No transactions yet</h2>
       <p>{description}</p>
-      <button
+      <ActionButton
         className="home-new-transaction first-transaction-empty__action"
         type="button"
         onClick={onNewTransaction}
@@ -26,7 +28,7 @@ export function FirstTransactionEmptyState({
         </span>
         <span>New transaction</span>
         <ChevronRight aria-hidden="true" />
-      </button>
+      </ActionButton>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { AuthPasswordField, revealTrailingCaret } from "./AuthPasswordField";
 import { login } from "./auth-api";
@@ -96,9 +97,15 @@ export function PasswordLoginPage({
 
   return (
     <main className="auth-screen auth-screen--static auth-screen--login">
-      <button className="auth-back-button" type="button" onClick={onBack} aria-label="Go back">
+      <ActionButton
+        shape="icon"
+        className="auth-back-button"
+        type="button"
+        onClick={onBack}
+        aria-label="Go back"
+      >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      </ActionButton>
 
       <section className="auth-panel auth-login-panel" aria-labelledby="login-title">
         <header className="auth-header auth-login-header">
@@ -204,9 +211,13 @@ export function PasswordLoginPage({
             {formError ? formatErrorMessage(formError) : "\u00a0"}
           </p>
 
-          <button className="auth-primary-button" type="submit" disabled={isSubmitting}>
+          <ActionButton
+            className="auth-primary-button"
+            type="submit"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Checking..." : "Continue"}
-          </button>
+          </ActionButton>
         </form>
       </section>
 

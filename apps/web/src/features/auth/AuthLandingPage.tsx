@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ArrowRight, Mail } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { validateLoginIdentifier } from "./login-identifier-validation";
 import type { PasswordRecoveryStart } from "./PasswordRecoveryFlow";
@@ -138,9 +139,13 @@ export function AuthLandingPage({
                 }
               }}
             />
-            <button type="submit" aria-label="Continue with email or username">
+            <ActionButton
+              shape="icon"
+              type="submit"
+              aria-label="Continue with email or username"
+            >
               <ArrowRight aria-hidden="true" strokeWidth={2} />
-            </button>
+            </ActionButton>
           </form>
 
           {displayedError ? (
@@ -154,7 +159,7 @@ export function AuthLandingPage({
             </p>
           ) : null}
 
-          <button
+          <ActionButton
             className="auth-option auth-option--google"
             type="button"
             onClick={onGoogleContinue}
@@ -164,7 +169,7 @@ export function AuthLandingPage({
               Continue with Google
             </span>
             <ArrowRight className="auth-option-arrow" aria-hidden="true" />
-          </button>
+          </ActionButton>
 
           <div
             className={`auth-divider auth-landing-divider${
@@ -175,7 +180,7 @@ export function AuthLandingPage({
             <span>OR</span>
           </div>
 
-          <button
+          <ActionButton
             className="auth-option auth-landing-create"
             type="button"
             onClick={onCreateAccount}
@@ -185,7 +190,7 @@ export function AuthLandingPage({
               Create an account
             </span>
             <ArrowRight className="auth-option-arrow" aria-hidden="true" />
-          </button>
+          </ActionButton>
 
           <button
             className="auth-landing-help"

@@ -1,6 +1,7 @@
 import { ArrowRight, AtSign, Check, ChevronLeft, Mail } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
+import { ActionButton } from "../../components/ui/ActionButton";
 import type { RegistrationMethod } from "./registration-method";
 
 type RegistrationMethodPageProps = {
@@ -47,14 +48,15 @@ export function RegistrationMethodPage({
 }: RegistrationMethodPageProps) {
   return (
     <main className="auth-screen auth-screen--static auth-screen--login auth-screen--registration-method">
-      <button
+      <ActionButton
+        shape="icon"
         className="auth-back-button"
         type="button"
         onClick={onBack}
         aria-label="Go back"
       >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      </ActionButton>
 
       <section
         className="auth-panel auth-registration-method-panel"
@@ -91,8 +93,9 @@ export function RegistrationMethodPage({
             const Icon = method.icon;
 
             return (
-              <button
+              <ActionButton
                 key={method.value}
+                shape="card"
                 className="auth-registration-method-option"
                 type="button"
                 onClick={() => onSelect(method.value)}
@@ -123,7 +126,7 @@ export function RegistrationMethodPage({
                   aria-hidden="true"
                   strokeWidth={1.8}
                 />
-              </button>
+              </ActionButton>
             );
           })}
         </div>

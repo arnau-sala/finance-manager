@@ -6,6 +6,7 @@ import {
 } from "react";
 import { Landmark } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   ApiRequestError,
@@ -220,13 +221,13 @@ export function StartingNetWorthPage({
             {error ? formatErrorMessage(error) : ""}
           </p>
 
-          <button
+          <ActionButton
             className="starting-net-worth-form__submit"
             type="submit"
             disabled={parsedAmount === null || isPending}
           >
             {pendingAction === "SAVE" ? "Saving..." : "Continue"}
-          </button>
+          </ActionButton>
         </form>
       </section>
     </main>

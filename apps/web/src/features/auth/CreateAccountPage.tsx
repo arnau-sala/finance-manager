@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronLeft, TriangleAlert } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   generateAccountPassword,
@@ -594,14 +595,15 @@ export function CreateAccountPage({
 
   return (
     <main className="auth-screen auth-screen--login auth-screen--register">
-      <button
+      <ActionButton
+        shape="icon"
         className="auth-back-button"
         type="button"
         onClick={onBack}
         aria-label="Go back"
       >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      </ActionButton>
 
       <section
         className="auth-panel auth-register-panel"
@@ -898,7 +900,7 @@ export function CreateAccountPage({
             {formError ? formatErrorMessage(formError) : "\u00a0"}
           </p>
 
-          <button
+          <ActionButton
             className="auth-primary-button auth-register-submit"
             type="submit"
             disabled={isSubmitting || !canSubmitRegistration}
@@ -908,7 +910,7 @@ export function CreateAccountPage({
                 ? "Sending code..."
                 : "Creating account..."
               : "Continue"}
-          </button>
+          </ActionButton>
         </form>
       </section>
     </main>

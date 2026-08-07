@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { NewPasswordFields } from "./NewPasswordFields";
 import { isAccountPasswordComplete } from "./password-assistance";
@@ -65,14 +66,15 @@ export function PasswordResetPage({
 
   return (
     <main className="auth-screen auth-screen--login auth-screen--password-reset">
-      <button
+      <ActionButton
+        shape="icon"
         className="auth-back-button"
         type="button"
         onClick={onBack}
         aria-label="Go back"
       >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      </ActionButton>
 
       <section
         className="auth-panel auth-password-reset-panel"
@@ -122,13 +124,13 @@ export function PasswordResetPage({
             {error ? formatErrorMessage(error) : "\u00a0"}
           </p>
 
-          <button
+          <ActionButton
             className="auth-primary-button auth-register-submit"
             type="submit"
             disabled={!canSubmit || isSubmitting}
           >
             {isSubmitting ? "Updating..." : "Change password"}
-          </button>
+          </ActionButton>
         </form>
       </section>
     </main>

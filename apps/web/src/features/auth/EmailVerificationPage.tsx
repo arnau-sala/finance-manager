@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 
 type EmailVerificationPageProps = {
@@ -120,14 +121,15 @@ export function EmailVerificationPage({
 
   return (
     <main className="auth-screen auth-screen--login auth-screen--verification">
-      <button
+      <ActionButton
+        shape="icon"
         className="auth-back-button"
         type="button"
         onClick={onBack}
         aria-label="Go back"
       >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      </ActionButton>
 
       <section
         className="auth-panel auth-verification-panel"
@@ -226,13 +228,13 @@ export function EmailVerificationPage({
               : (statusMessage ?? "\u00a0")}
           </p>
 
-          <button
+          <ActionButton
             className="auth-primary-button auth-verification-submit"
             type="submit"
             disabled={isVerifying || code.length !== CODE_LENGTH}
           >
             {isVerifying ? verifyingLabel : verifyLabel}
-          </button>
+          </ActionButton>
 
           <button
             className="auth-verification-resend"

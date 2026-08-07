@@ -27,6 +27,7 @@ import {
 
 import { formatErrorMessage } from "../../components/ui/error-message";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { MonthPicker } from "../../components/ui/MonthPicker";
 import { scheduleStatisticsPrefetches } from "../../cache/financial-prefetch";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
@@ -695,10 +696,10 @@ function StatisticsLoadState({
     <div className="stats-load-state" role={retry ? "alert" : "status"}>
       <span>{retry ? formatErrorMessage(message) : message}</span>
       {retry ? (
-        <button type="button" onClick={retry}>
+        <ActionButton type="button" onClick={retry}>
           <RefreshCw aria-hidden="true" />
           Try again
-        </button>
+        </ActionButton>
       ) : null}
     </div>
   );

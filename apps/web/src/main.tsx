@@ -11,6 +11,7 @@ import "@fontsource/inter/latin-600.css";
 import "./styles/tokens.css";
 import "./styles/text-fields.css";
 import "./styles/global.css";
+import "./styles/buttons.css";
 
 lockPortraitOrientation();
 

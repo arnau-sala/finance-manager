@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
+import { ActionButton } from "../../components/ui/ActionButton";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
@@ -967,7 +968,7 @@ function ProfileActionButton({
   onClick
 }: ProfileActionButtonProps) {
   return (
-    <button
+    <ActionButton
       className={`profile-action profile-action--${tone}${
         centered ? " profile-action--centered" : ""
       }`}
@@ -982,6 +983,6 @@ function ProfileActionButton({
       {centered ? null : (
         <ChevronRight className="profile-action__chevron" aria-hidden="true" />
       )}
-    </button>
+    </ActionButton>
   );
 }

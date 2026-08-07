@@ -66,6 +66,9 @@
   --text-field-height-dialog: 44px;
   --text-field-padding: 20px;
 
+  --button-radius: 999px;
+  --button-radius-card: 24px;
+
   --shadow-screen-transition: -18px 0 40px rgba(17, 24, 39, 0.12);
   --shadow-dialog: 0 18px 50px rgba(17, 24, 39, 0.18);
   --shadow-navigation: 0 8px 24px rgba(17, 24, 39, 0.12);

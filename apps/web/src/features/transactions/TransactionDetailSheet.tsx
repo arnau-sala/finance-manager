@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { formatErrorMessage } from "../../components/ui/error-message";
@@ -806,7 +807,8 @@ export function TransactionDetailSheet({
 
         <div className="transaction-detail-sheet__toolbar">
           <div className="transaction-detail-sheet__more">
-            <button
+            <ActionButton
+              shape="icon"
               type="button"
               className="transaction-detail-sheet__action-button"
               aria-label="More transaction actions"
@@ -821,7 +823,7 @@ export function TransactionDetailSheet({
               }}
             >
               <Ellipsis aria-hidden="true" />
-            </button>
+            </ActionButton>
 
             {actionsRendered ? (
               <div
@@ -831,7 +833,8 @@ export function TransactionDetailSheet({
                 role="menu"
                 aria-label="Transaction actions"
               >
-                <button
+                <ActionButton
+                  shape="icon"
                   type="button"
                   className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--share"
                   role="menuitem"
@@ -843,8 +846,9 @@ export function TransactionDetailSheet({
                   onClick={shareDisplayedTransaction}
                 >
                   <Share aria-hidden="true" />
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
+                  shape="icon"
                   type="button"
                   className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
                   role="menuitem"
@@ -866,8 +870,9 @@ export function TransactionDetailSheet({
                   }}
                 >
                   <Pencil aria-hidden="true" />
-                </button>
-                <button
+                </ActionButton>
+                <ActionButton
+                  shape="icon"
                   type="button"
                   className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--delete"
                   role="menuitem"
@@ -880,7 +885,7 @@ export function TransactionDetailSheet({
                   }}
                 >
                   <Trash2 aria-hidden="true" />
-                </button>
+                </ActionButton>
               </div>
             ) : null}
 
@@ -911,7 +916,7 @@ export function TransactionDetailSheet({
                 ) : null}
 
                 <div className="transaction-detail-delete-confirm__actions">
-                  <button
+                  <ActionButton
                     type="button"
                     disabled={isDeleting}
                     onClick={() => {
@@ -920,21 +925,22 @@ export function TransactionDetailSheet({
                     }}
                   >
                     Cancel
-                  </button>
-                  <button
+                  </ActionButton>
+                  <ActionButton
                     type="button"
                     className="transaction-detail-delete-confirm__submit"
                     disabled={isDeleting}
                     onClick={confirmDeleteTransaction}
                   >
                     {isDeleting ? "Deleting..." : "Delete"}
-                  </button>
+                  </ActionButton>
                 </div>
               </div>
             ) : null}
           </div>
 
-          <button
+          <ActionButton
+            shape="icon"
             type="button"
             className="transaction-detail-sheet__close"
             aria-label="Close transaction details"
@@ -942,7 +948,7 @@ export function TransactionDetailSheet({
             onClick={onClose}
           >
             <X aria-hidden="true" />
-          </button>
+          </ActionButton>
         </div>
 
         {shareNotice ? (

@@ -1,0 +1,25 @@
+.button-control {
+  border-radius: var(--button-radius);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.button-control--icon {
+  border-radius: 50%;
+}
+
+.button-control--card {
+  border-radius: var(--button-radius-card);
+}
+
+.button-control:disabled {
+  cursor: default;
+}
+
+/* List/Charts is a compact view control, not a period/type switch. */
+.stats-view-toggle.sliding-segmented-control,
+.stats-view-toggle .sliding-segmented-control__indicator,
+.stats-view-toggle.sliding-segmented-control button {
+  border-radius: var(--button-radius);
+}

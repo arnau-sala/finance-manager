@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { isClipboardReadCancelled } from "./clipboard";
 import { verifyPasswordResetRecoveryCode } from "./password-recovery-api";
@@ -224,14 +225,15 @@ export function PasswordRecoveryCodePage({
 
   return (
     <main className="auth-screen auth-screen--login auth-screen--password-recovery-code">
-      <button
+      <ActionButton
+        shape="icon"
         className="auth-back-button"
         type="button"
         onClick={onBack}
         aria-label="Go back"
       >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-      </button>
+      </ActionButton>
 
       <section
         className="auth-panel auth-password-recovery-code-panel"
@@ -338,13 +340,13 @@ export function PasswordRecoveryCodePage({
             {error ? formatErrorMessage(error) : "\u00a0"}
           </p>
 
-          <button
+          <ActionButton
             className="auth-primary-button"
             type="submit"
             disabled={!canSubmit || isSubmitting}
           >
             {isSubmitting ? "Verifying..." : "Continue"}
-          </button>
+          </ActionButton>
         </form>
       </section>
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy, KeyRound, ShieldCheck } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 type RecoveryCodePageProps = {
   username: string;
@@ -161,7 +162,7 @@ export function RecoveryCodePage({
             ))}
           </p>
 
-          <button
+          <ActionButton
             className={`auth-recovery-code-copy${
               isCopied ? " is-copied" : ""
             }`}
@@ -174,7 +175,7 @@ export function RecoveryCodePage({
               <Copy aria-hidden="true" strokeWidth={1.8} />
             )}
             {isCopied ? "Copied" : "Copy code"}
-          </button>
+          </ActionButton>
         </div>
 
         <div className="auth-recovery-code-notice">
@@ -187,7 +188,7 @@ export function RecoveryCodePage({
         </div>
 
         <div className="auth-recovery-code-action">
-          <button
+          <ActionButton
             className={`auth-primary-button auth-recovery-code-continue${
               isContinueReady ? "" : " is-waiting"
             }`}
@@ -203,7 +204,7 @@ export function RecoveryCodePage({
               : isPasswordReset
                 ? "Back to sign in"
                 : "Continue"}
-          </button>
+          </ActionButton>
 
           <p
             className={`auth-field-message auth-recovery-code-feedback${

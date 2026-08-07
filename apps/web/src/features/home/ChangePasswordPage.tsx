@@ -2,6 +2,7 @@ import { useLayoutEffect, useState } from "react";
 import { ChevronLeft, CircleCheck } from "lucide-react";
 
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
+import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import {
   ApiRequestError,
@@ -137,7 +138,8 @@ export function ChangePasswordPage({
       inert={!open}
     >
       <section className="auth-screen auth-screen--login auth-screen--password-reset">
-        <button
+        <ActionButton
+          shape="icon"
           className="auth-back-button"
           type="button"
           onClick={onBack}
@@ -145,7 +147,7 @@ export function ChangePasswordPage({
           aria-label="Go back"
         >
           <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
-        </button>
+        </ActionButton>
 
         <section
           className="auth-panel auth-password-reset-panel"
@@ -238,22 +240,22 @@ export function ChangePasswordPage({
                 {error ? formatErrorMessage(error) : "\u00a0"}
               </p>
 
-              <button
+              <ActionButton
                 className="auth-primary-button auth-register-submit"
                 type="submit"
                 disabled={!fieldsFilled || isSubmitting}
               >
                 {isSubmitting ? "Updating..." : "Change password"}
-              </button>
+              </ActionButton>
             </form>
           ) : (
-            <button
+            <ActionButton
               className="auth-primary-button change-password-success-button"
               type="button"
               onClick={onBack}
             >
               Done
-            </button>
+            </ActionButton>
           )}
         </section>
       </section>

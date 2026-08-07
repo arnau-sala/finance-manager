@@ -13,6 +13,7 @@ import {
 } from "@tanstack/react-query";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
+import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import {
   cancelTransactionDetailPrefetches,
@@ -466,7 +467,8 @@ export function MovesPage({
             ) : null}
           </div>
 
-          <button
+          <ActionButton
+            shape="icon"
             className={`moves-filter-button${
               isFilterPanelOpen ? " is-active" : ""
             }`}
@@ -483,7 +485,7 @@ export function MovesPage({
                 {activeFilterCount}
               </span>
             ) : null}
-          </button>
+          </ActionButton>
         </div>
 
         {isFilterPanelOpen ? (
