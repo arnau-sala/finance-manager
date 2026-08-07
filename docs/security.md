@@ -194,6 +194,10 @@ Google sign-in security decisions:
   subject, and current ownership before atomically consuming the row.
 - Exact existing-account feedback is available only after Google verifies
   control of the selected email; no public email lookup endpoint is added.
+- Anonymous session checks do not delete pending OAuth state. `/auth/me`
+  returns `401` without clearing the encrypted cookie when it contains no
+  claimed user, while malformed or stale authenticated sessions are still
+  removed.
 - `POST /account/google/link/start` requires an approved authenticated
   password-only account and preserves its active session while Google presents
   the account chooser.

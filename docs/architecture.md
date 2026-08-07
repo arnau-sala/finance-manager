@@ -157,7 +157,12 @@ the normal password screen with the verified email prefilled; it never creates
 a Google session or links credentials. Confirmation rechecks current database
 state and atomically claims the action so races cannot reuse stale decisions.
 
-`auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores `userId` and the current `sessionVersion`; authenticated user resolution requires both to match PostgreSQL. Sessions last up to seven days, and logout deletes the current cookie.
+`auth/session.ts` configures an encrypted stateless cookie session through
+`@fastify/secure-session`. Login stores `userId` and the current
+`sessionVersion`; authenticated user resolution requires both to match
+PostgreSQL. Anonymous cookies may temporarily hold OAuth state or a Google
+action token, so `/auth/me` returns `401` without deleting them when no user is
+claimed. Sessions last up to seven days, and logout deletes the current cookie.
 
 `auth/authenticated-user.ts` resolves the session user and verifies that the account still exists and remains approved. Transaction routes use this server-derived ID; clients cannot select the owner of financial data.
 

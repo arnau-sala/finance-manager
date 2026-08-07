@@ -48,7 +48,11 @@ export async function getAuthenticatedUser(request: FastifyRequest) {
   const sessionUserId = request.session.get("userId");
   const sessionVersion = request.session.get("sessionVersion");
 
-  if (!sessionUserId || sessionVersion === undefined) {
+  if (!sessionUserId) {
+    return null;
+  }
+
+  if (sessionVersion === undefined) {
     request.session.delete();
     return null;
   }

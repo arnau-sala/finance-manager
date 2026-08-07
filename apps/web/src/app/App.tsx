@@ -217,6 +217,38 @@ export function App() {
 
     async function resolveInitialSession() {
       try {
+        const googleIntent = getGoogleAuthIntent(googleAuth);
+
+        if (isGoogleAuthResult(googleAuth, "action")) {
+          try {
+            const action = await getGoogleAuthAction();
+
+            if (!isMounted) {
+              return;
+            }
+
+            setActiveScreen(
+              action.intent === "register" ? "register-method" : "landing"
+            );
+            setGoogleAuthAction(action);
+          } catch {
+            if (!isMounted) {
+              return;
+            }
+
+            setActiveScreen(
+              googleIntent === "register" ? "register-method" : "landing"
+            );
+            setGoogleAuthNotice({
+              title: "Google sign-in expired",
+              description: "Start the Google process again to continue"
+            });
+          }
+
+          setSessionStatus("anonymous");
+          return;
+        }
+
         const user = await getCurrentSession();
 
         if (!isMounted) {
@@ -244,39 +276,13 @@ export function App() {
           return;
         }
 
-        const googleIntent = getGoogleAuthIntent(googleAuth);
-
         if (googleAuth) {
           setActiveScreen(
             googleIntent === "register" ? "register-method" : "landing"
           );
         }
 
-        if (isGoogleAuthResult(googleAuth, "action")) {
-          try {
-            const action = await getGoogleAuthAction();
-
-            if (!isMounted) {
-              return;
-            }
-
-            setActiveScreen(
-              action.intent === "register" ? "register-method" : "landing"
-            );
-            setGoogleAuthAction(action);
-          } catch {
-            if (!isMounted) {
-              return;
-            }
-
-            setGoogleAuthNotice({
-              title: "Google sign-in expired",
-              description: "Start the Google process again to continue"
-            });
-          }
-        } else {
-          setGoogleAuthNotice(getGoogleAuthNotice(googleAuth));
-        }
+        setGoogleAuthNotice(getGoogleAuthNotice(googleAuth));
 
         setSessionStatus("anonymous");
       } catch {
