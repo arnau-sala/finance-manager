@@ -178,6 +178,38 @@ function formatCompactEuro(value: number) {
   return `${Math.round(value)}€`;
 }
 
+type TooltipPositionSize = {
+  contentSize: [number, number];
+  viewSize: [number, number];
+};
+
+function positionTooltipAbovePointer(
+  point: [number, number],
+  _params: unknown,
+  _element: HTMLElement,
+  _rect: unknown,
+  size: TooltipPositionSize
+): [number, number] {
+  const [pointerX, pointerY] = point;
+  const [tooltipWidth, tooltipHeight] = size.contentSize;
+  const [viewWidth, viewHeight] = size.viewSize;
+  const edgeMargin = 4;
+  const pointerGap = 26;
+  const centeredX = pointerX - tooltipWidth / 2;
+  const maxX = Math.max(edgeMargin, viewWidth - tooltipWidth - edgeMargin);
+  const x = Math.min(Math.max(centeredX, edgeMargin), maxX);
+  const yAbove = pointerY - tooltipHeight - pointerGap;
+
+  if (yAbove >= edgeMargin) {
+    return [x, yAbove];
+  }
+
+  const yBelow = pointerY + pointerGap;
+  const maxY = Math.max(edgeMargin, viewHeight - tooltipHeight - edgeMargin);
+
+  return [x, Math.min(yBelow, maxY)];
+}
+
 function createChartOption(
   mode: StatisticsPeriodMode,
   points: readonly NetWorthPoint[],
@@ -227,6 +259,7 @@ function createChartOption(
     tooltip: {
       trigger: "axis",
       confine: true,
+      position: positionTooltipAbovePointer,
       backgroundColor: theme.surface,
       borderColor: theme.border,
       borderWidth: 1,
