@@ -79,7 +79,6 @@ export function PasswordRecoveryStartDialog({
       isConfirming={isSubmitting}
       error={error}
       confirmDisabled={identifier.trim().length === 0}
-      initialFocus="dialog"
       onCancel={onCancel}
       onConfirm={handleContinue}
     >
@@ -97,7 +96,6 @@ export function PasswordRecoveryStartDialog({
           </label>
           <input
             id="password-recovery-identifier"
-            data-dialog-autofocus
             name="username"
             type="text"
             inputMode="email"

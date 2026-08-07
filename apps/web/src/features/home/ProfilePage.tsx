@@ -795,7 +795,6 @@ export function ProfilePage({
         description="Update your name or starting net worth."
         confirmLabel="Continue"
         confirmingLabel="Saving..."
-        initialFocus="dialog"
         icon={<Pencil />}
         isConfirming={isUpdatingProfile}
         confirmDisabled={!canUpdateProfile}
@@ -875,7 +874,6 @@ export function ProfilePage({
         }
         confirmLabel={passwordDialogMode === "success" ? "Done" : "Continue"}
         confirmingLabel="Saving..."
-        initialFocus="dialog"
         icon={passwordDialogMode === "success" ? <CircleCheck /> : <KeyRound />}
         isConfirming={isChangingPassword}
         confirmDisabled={
@@ -973,7 +971,6 @@ export function ProfilePage({
               : "Try again"
         }
         confirmingLabel="Opening..."
-        initialFocus="dialog"
         icon={
           googleLinkDialogMode === "success" ? (
             <CircleCheck />
@@ -1045,7 +1042,6 @@ export function ProfilePage({
         confirmingLabel={
           deletesWithGoogle ? "Opening..." : "Deleting..."
         }
-        initialFocus="dialog"
         icon={
           deleteDialogMode === "confirm" ? (
             <Trash2 />

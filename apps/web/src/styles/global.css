@@ -6971,7 +6971,9 @@ button.transaction-row__content:focus-visible {
   display: none;
 }
 
-.confirm-dialog:focus {
+.confirm-dialog:focus,
+.transaction-composer:focus,
+.transaction-detail-delete-confirm:focus {
   outline: none;
 }
 

@@ -143,6 +143,7 @@ export function TransactionComposer({
   const amountInput = useRef<HTMLInputElement>(null);
   const nameInput = useRef<HTMLTextAreaElement>(null);
   const scrollArea = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
@@ -181,6 +182,9 @@ export function TransactionComposer({
       setFormError(null);
       setIsSubmitting(false);
       scrollArea.current?.scrollTo({ top: 0 });
+      requestAnimationFrame(() => {
+        composerRef.current?.focus({ preventScroll: true });
+      });
     }
 
     if (!open && wasOpen.current) {
@@ -378,6 +382,7 @@ export function TransactionComposer({
 
   return createPortal(
     <section
+      ref={composerRef}
       className={`transaction-composer transaction-composer--${type.toLowerCase()}${
         isEditing ? " transaction-composer--editing" : ""
       }${open ? " is-open" : ""}`}
@@ -386,6 +391,7 @@ export function TransactionComposer({
       aria-labelledby="transaction-composer-title"
       aria-hidden={!open}
       inert={!open}
+      tabIndex={-1}
     >
       <header className="transaction-composer__header">
         <div className="transaction-composer__header-inner">

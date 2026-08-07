@@ -290,6 +290,7 @@ export function TransactionDetailSheet({
   const dateId = useId();
   const deleteTitleId = useId();
   const sheetRef = useRef<HTMLElement>(null);
+  const deleteConfirmRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const dragGesture = useRef<DragGesture | null>(null);
   const dismissSwipeGesture = useRef<DismissSwipeGesture | null>(null);
@@ -316,6 +317,18 @@ export function TransactionDetailSheet({
     kind: "success" | "error";
     message: string;
   } | null>(null);
+
+  useEffect(() => {
+    if (!deleteConfirmOpen) {
+      return;
+    }
+
+    const focusFrame = requestAnimationFrame(() => {
+      deleteConfirmRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => cancelAnimationFrame(focusFrame);
+  }, [deleteConfirmOpen]);
   const transactionId = transaction?.id ?? "";
   const detailQuery = useQuery({
     ...transactionDetailQueryOptions(ownerId, transactionId),
@@ -873,10 +886,12 @@ export function TransactionDetailSheet({
 
             {deleteConfirmOpen && displayedTransaction ? (
               <div
+                ref={deleteConfirmRef}
                 className="transaction-detail-delete-confirm"
                 role="alertdialog"
                 aria-modal="true"
                 aria-labelledby={deleteTitleId}
+                tabIndex={-1}
               >
                 <strong id={deleteTitleId}>Delete permanently?</strong>
                 <span className="transaction-detail-delete-confirm__summary">

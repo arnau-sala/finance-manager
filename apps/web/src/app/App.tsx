@@ -714,7 +714,6 @@ export function App() {
           description="Your session has ended. Return to the main page to sign in again."
           confirmLabel="Return to main"
           icon={<TimerOff />}
-          initialFocus="confirm"
           showCancel={false}
           dismissible={false}
           onCancel={() => undefined}
@@ -782,7 +781,6 @@ export function App() {
           description="Your session has ended. Return to the main page to sign in again."
           confirmLabel="Return to main"
           icon={<TimerOff />}
-          initialFocus="confirm"
           showCancel={false}
           dismissible={false}
           onCancel={() => undefined}
@@ -906,7 +904,6 @@ export function App() {
         description={googleAuthNotice?.description ?? "Unable to continue"}
         confirmLabel="Got it"
         icon={<GoogleIcon />}
-        initialFocus="confirm"
         showCancel={false}
         onCancel={() => setGoogleAuthNotice(null)}
         onConfirm={() => setGoogleAuthNotice(null)}

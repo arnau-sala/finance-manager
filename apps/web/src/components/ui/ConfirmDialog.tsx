@@ -18,7 +18,6 @@ type ConfirmDialogProps = {
   confirmTone?: "default" | "danger";
   confirmDisabled?: boolean;
   confirmingLabel?: string;
-  initialFocus?: "cancel" | "confirm" | "dialog";
   showCancel?: boolean;
   dismissible?: boolean;
   children?: ReactNode;
@@ -40,7 +39,6 @@ export function ConfirmDialog({
   confirmTone = "default",
   confirmDisabled = false,
   confirmingLabel = "Please wait...",
-  initialFocus = "cancel",
   showCancel = true,
   dismissible = true,
   children,
@@ -69,16 +67,7 @@ export function ConfirmDialog({
     const appRoot = document.getElementById("root");
     const rootWasInert = appRoot?.hasAttribute("inert") ?? false;
     const focusFrame = requestAnimationFrame(() => {
-      const initialControl = dialogRef.current?.querySelector<HTMLElement>(
-        "[data-dialog-autofocus]"
-      );
-      const fallbackControl =
-        initialFocus === "dialog"
-          ? dialogRef.current
-          : initialFocus === "confirm"
-            ? confirmButtonRef.current
-            : cancelButtonRef.current;
-      (initialControl ?? fallbackControl)?.focus();
+      dialogRef.current?.focus({ preventScroll: true });
     });
 
     appRoot?.setAttribute("inert", "");
@@ -131,7 +120,7 @@ export function ConfirmDialog({
 
       previousActiveElement?.focus({ preventScroll: true });
     };
-  }, [initialFocus, open]);
+  }, [open]);
 
   if (!open) {
     return null;

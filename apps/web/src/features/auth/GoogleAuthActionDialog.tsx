@@ -60,7 +60,6 @@ export function GoogleAuthActionDialog({
       confirmLabel={content.confirmLabel}
       confirmingLabel={content.confirmingLabel}
       icon={<GoogleIcon />}
-      initialFocus="dialog"
       isConfirming={isConfirming}
       interactionLocked={isCancelling}
       error={error}
