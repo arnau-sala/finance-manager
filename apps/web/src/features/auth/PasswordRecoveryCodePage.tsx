@@ -3,9 +3,11 @@ import {
   ChevronLeft,
   ClipboardPaste,
   KeyRound,
-  TriangleAlert
+  TriangleAlert,
+  UserRoundCheck
 } from "lucide-react";
 
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { verifyPasswordResetRecoveryCode } from "./password-recovery-api";
 
@@ -68,6 +70,9 @@ export function PasswordRecoveryCodePage({
   const [isPasting, setIsPasting] = useState(false);
   const [unsupportedPasteCharacters, setUnsupportedPasteCharacters] =
     useState<string[]>([]);
+  const [verifiedUsername, setVerifiedUsername] = useState<string | null>(null);
+  const [isAccountConfirmationOpen, setIsAccountConfirmationOpen] =
+    useState(false);
   const pasteRunRef = useRef(0);
   const pasteWarningTimerRef = useRef<number | null>(null);
   const codeLength = canonicalRecoveryCode(recoveryCode).length;
@@ -154,6 +159,8 @@ export function PasswordRecoveryCodePage({
       const characterDelay = reduceMotion ? 0 : PASTED_CODE_CHARACTER_DELAY_MS;
 
       pasteRunRef.current = runId;
+      setVerifiedUsername(null);
+      setIsAccountConfirmationOpen(false);
       setIsPasting(true);
       setRecoveryCode("");
       setError(null);
@@ -189,6 +196,11 @@ export function PasswordRecoveryCodePage({
       return;
     }
 
+    if (username === null && verifiedUsername) {
+      setIsAccountConfirmationOpen(true);
+      return;
+    }
+
     setError(null);
     setIsSubmitting(true);
 
@@ -197,6 +209,14 @@ export function PasswordRecoveryCodePage({
         username,
         recoveryCode
       });
+
+      if (username === null) {
+        setVerifiedUsername(verifiedUsername);
+        setIsAccountConfirmationOpen(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       onVerified(verifiedUsername);
     } catch (submitError) {
       setError(
@@ -287,12 +307,16 @@ export function PasswordRecoveryCodePage({
               aria-describedby="password-recovery-code-error"
               onChange={(event) => {
                 cancelPasteAnimation();
+                setVerifiedUsername(null);
+                setIsAccountConfirmationOpen(false);
                 setRecoveryCode(formatRecoveryCode(event.target.value));
                 setError(null);
               }}
               onPaste={(event) => {
                 event.preventDefault();
                 cancelPasteAnimation();
+                setVerifiedUsername(null);
+                setIsAccountConfirmationOpen(false);
                 const pastedValue = event.clipboardData.getData("text");
                 updatePasteWarning(pastedValue);
                 setRecoveryCode(formatRecoveryCode(pastedValue));
@@ -323,6 +347,20 @@ export function PasswordRecoveryCodePage({
           </button>
         </form>
       </section>
+
+      <ConfirmDialog
+        open={isAccountConfirmationOpen && verifiedUsername !== null}
+        title="Account found"
+        description={`This code belongs to @${verifiedUsername ?? ""}\nContinue recovering this account?`}
+        confirmLabel="Continue"
+        icon={<UserRoundCheck />}
+        onCancel={() => setIsAccountConfirmationOpen(false)}
+        onConfirm={() => {
+          if (verifiedUsername) {
+            onVerified(verifiedUsername);
+          }
+        }}
+      />
     </main>
   );
 }
