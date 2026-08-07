@@ -237,13 +237,13 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
       const parsedBody = recoveryCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(401).send({ error: "Invalid recovery details." });
+        return reply.code(401).send({ error: "Invalid recovery code." });
       }
 
       const result = await verifyAccountRecoveryCode(parsedBody.data);
 
       if (result.type === "invalid" || !result.username) {
-        return reply.code(401).send({ error: "Invalid recovery details." });
+        return reply.code(401).send({ error: "Invalid recovery code." });
       }
 
       setResetCookie(reply, result.token);
