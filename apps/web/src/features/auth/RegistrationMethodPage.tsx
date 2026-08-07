@@ -129,7 +129,7 @@ export function RegistrationMethodPage({
         </div>
 
         <p className="auth-registration-method-note">
-          Existing accounts can link Google from Profile
+          Start with one method. Link the others later
         </p>
       </section>
     </main>
