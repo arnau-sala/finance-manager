@@ -521,6 +521,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-input-with-action button:focus-visible,
 .auth-primary-button:focus-visible,
 .auth-password-generate:focus-visible,
+.auth-password-recovery-code-paste:focus-visible,
 .auth-verification-resend:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
@@ -777,7 +778,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 12px;
 }
 
-.auth-password-generate {
+.auth-password-generate,
+.auth-password-recovery-code-paste {
   position: relative;
   height: 30px;
   display: inline-flex;
@@ -799,13 +801,15 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-weight: 400;
 }
 
-.auth-password-generate::before {
+.auth-password-generate::before,
+.auth-password-recovery-code-paste::before {
   content: "";
   position: absolute;
   inset: -7px 0;
 }
 
-.auth-password-generate svg {
+.auth-password-generate svg,
+.auth-password-recovery-code-paste svg {
   width: 13px;
   height: 13px;
 }

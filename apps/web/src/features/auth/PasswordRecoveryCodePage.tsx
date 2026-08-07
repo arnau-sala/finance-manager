@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronLeft, KeyRound } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ClipboardPaste, KeyRound } from "lucide-react";
 
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { verifyPasswordResetRecoveryCode } from "./password-recovery-api";
@@ -12,6 +12,7 @@ type PasswordRecoveryCodePageProps = {
 
 const RECOVERY_CODE_LENGTH = 16;
 const RECOVERY_CODE_DISPLAY_LENGTH = 19;
+const PASTED_CODE_CHARACTER_DELAY_MS = 11;
 const RECOVERY_CODE_ALPHABET =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -30,6 +31,13 @@ function formatRecoveryCode(value: string) {
   return canonical.match(/.{1,4}/g)?.join("-") ?? canonical;
 }
 
+function isClipboardPasteCancelled(error: unknown) {
+  return (
+    error instanceof DOMException &&
+    (error.name === "NotAllowedError" || error.name === "AbortError")
+  );
+}
+
 export function PasswordRecoveryCodePage({
   username,
   onBack,
@@ -38,8 +46,88 @@ export function PasswordRecoveryCodePage({
   const [recoveryCode, setRecoveryCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPasting, setIsPasting] = useState(false);
+  const pasteRunRef = useRef(0);
   const codeLength = canonicalRecoveryCode(recoveryCode).length;
   const canSubmit = codeLength === RECOVERY_CODE_LENGTH;
+
+  useEffect(() => {
+    return () => {
+      pasteRunRef.current += 1;
+    };
+  }, []);
+
+  function cancelPasteAnimation() {
+    if (!isPasting) {
+      return;
+    }
+
+    pasteRunRef.current += 1;
+    setIsPasting(false);
+  }
+
+  function waitForPasteStep(delay: number) {
+    return new Promise<void>((resolve) => {
+      window.setTimeout(resolve, delay);
+    });
+  }
+
+  async function handlePasteFromClipboard() {
+    if (isPasting) {
+      return;
+    }
+
+    if (!navigator.clipboard || !window.isSecureContext) {
+      setError("Clipboard access is unavailable");
+      return;
+    }
+
+    try {
+      const clipboardValue = await navigator.clipboard.readText();
+      const canonical = canonicalRecoveryCode(clipboardValue).slice(
+        0,
+        RECOVERY_CODE_LENGTH
+      );
+
+      if (canonical.length !== RECOVERY_CODE_LENGTH) {
+        setError("Clipboard does not contain a valid recovery code");
+        return;
+      }
+
+      const runId = pasteRunRef.current + 1;
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      const characterDelay = reduceMotion ? 0 : PASTED_CODE_CHARACTER_DELAY_MS;
+
+      pasteRunRef.current = runId;
+      setIsPasting(true);
+      setRecoveryCode("");
+      setError(null);
+
+      for (let index = 1; index <= canonical.length; index += 1) {
+        await waitForPasteStep(characterDelay);
+
+        if (pasteRunRef.current !== runId) {
+          return;
+        }
+
+        setRecoveryCode(formatRecoveryCode(canonical.slice(0, index)));
+      }
+
+      if (pasteRunRef.current === runId) {
+        setIsPasting(false);
+      }
+    } catch (clipboardError) {
+      setIsPasting(false);
+
+      if (isClipboardPasteCancelled(clipboardError)) {
+        return;
+      }
+
+      setError("Unable to read the clipboard");
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -107,6 +195,15 @@ export function PasswordRecoveryCodePage({
           <div className="auth-form-field">
             <div className="auth-register-field-heading">
               <span id="password-recovery-code-label">Recovery code</span>
+              <button
+                className="auth-password-recovery-code-paste"
+                type="button"
+                aria-disabled={isPasting}
+                onClick={() => void handlePasteFromClipboard()}
+              >
+                <ClipboardPaste aria-hidden="true" strokeWidth={1.8} />
+                Paste
+              </button>
             </div>
             <input
               id="password-recovery-code"
@@ -123,11 +220,13 @@ export function PasswordRecoveryCodePage({
               aria-invalid={error !== null}
               aria-describedby="password-recovery-code-error"
               onChange={(event) => {
+                cancelPasteAnimation();
                 setRecoveryCode(formatRecoveryCode(event.target.value));
                 setError(null);
               }}
               onPaste={(event) => {
                 event.preventDefault();
+                cancelPasteAnimation();
                 setRecoveryCode(
                   formatRecoveryCode(event.clipboardData.getData("text"))
                 );
