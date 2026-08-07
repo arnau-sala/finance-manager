@@ -1019,6 +1019,11 @@ body.app-logout-transition .confirm-dialog-backdrop {
   place-items: center;
   overflow: hidden;
   touch-action: none;
+  padding-block: max(
+    24px,
+    env(safe-area-inset-top),
+    env(safe-area-inset-bottom)
+  );
 }
 
 .auth-registration-method-panel {
