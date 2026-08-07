@@ -9,6 +9,30 @@ export type CategoryBreakdownItem = {
   averageAmount: number;
 };
 
+type TypedCategoryBreakdownItem = CategoryBreakdownItem & {
+  type: TransactionType;
+};
+
+export function getDefaultCategoryType(
+  categories: readonly TypedCategoryBreakdownItem[]
+): TransactionType {
+  const hasIncome = categories.some(
+    (category) =>
+      category.type === "INCOME" && category.transactionCount > 0
+  );
+
+  if (hasIncome) {
+    return "INCOME";
+  }
+
+  const hasExpenses = categories.some(
+    (category) =>
+      category.type === "EXPENSE" && category.transactionCount > 0
+  );
+
+  return hasExpenses ? "EXPENSE" : "INCOME";
+}
+
 export function getVisibleCategoryBreakdown(
   categories: readonly CategoryBreakdownItem[],
   type: TransactionType
@@ -70,4 +94,3 @@ export function getVisibleCategoryBreakdown(
     (first, second) => second.amount - first.amount
   );
 }
-

@@ -10,6 +10,7 @@ import {
   type TransactionType
 } from "../../transactions/category-catalog";
 import {
+  getDefaultCategoryType,
   getVisibleCategoryBreakdown,
   type CategoryBreakdownItem
 } from "../statistics-categories";
@@ -454,7 +455,11 @@ export default function CategoryBreakdownChart({
   categories: sourceCategories
 }: CategoryBreakdownChartProps) {
   const matrixRef = useRef<HTMLDivElement>(null);
-  const [type, setType] = useState<TransactionType>("INCOME");
+  const defaultType = useMemo(
+    () => getDefaultCategoryType(sourceCategories),
+    [sourceCategories]
+  );
+  const [type, setType] = useState<TransactionType>(defaultType);
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     string | null
   >(null);
@@ -476,6 +481,10 @@ export default function CategoryBreakdownChart({
     () => formatDisplayedPeriod(periodStart, periodEnd),
     [periodEnd, periodStart]
   );
+
+  useEffect(() => {
+    setType(defaultType);
+  }, [defaultType, periodEnd, periodStart]);
 
   useEffect(() => {
     setSelectedCategoryId(null);

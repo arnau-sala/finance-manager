@@ -17,6 +17,7 @@ import {
   type TransactionType
 } from "../../transactions/category-catalog";
 import {
+  getDefaultCategoryType,
   getVisibleCategoryBreakdown,
   type CategoryBreakdownItem
 } from "../statistics-categories";
@@ -192,7 +193,11 @@ export default function CategoryTimelineChart({
   timeline
 }: CategoryTimelineChartProps) {
   const interactionRef = useRef<HTMLDivElement>(null);
-  const [type, setType] = useState<TransactionType>("INCOME");
+  const defaultType = useMemo(
+    () => getDefaultCategoryType(sourceCategories),
+    [sourceCategories]
+  );
+  const [type, setType] = useState<TransactionType>(defaultType);
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(
     null
   );
@@ -232,6 +237,10 @@ export default function CategoryTimelineChart({
     "--timeline-label-width":
       mode === "MONTH" ? "42px" : mode === "YEAR" ? "26px" : "32px"
   } as CSSProperties;
+
+  useEffect(() => {
+    setType(defaultType);
+  }, [defaultType, periodEnd, periodStart]);
 
   useEffect(() => {
     setSelectedCellKey(null);
