@@ -72,7 +72,7 @@ export function PasswordRecoveryStartDialog({
     <ConfirmDialog
       open={open}
       title="Recover your account"
-      description="Enter the email or username you use to sign in"
+      description="Enter your email or username"
       confirmLabel="Continue"
       confirmingLabel="Checking..."
       icon={<KeyRound />}
