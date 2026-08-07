@@ -10,13 +10,24 @@ type PasswordRecoveryCodePageProps = {
   onVerified: (username: string) => void;
 };
 
-function formatRecoveryCode(value: string) {
-  const canonical = value.replace(/[^A-Za-z0-9]/g, "").slice(0, 32);
-  return canonical.match(/.{1,4}/g)?.join("-") ?? canonical;
-}
+const RECOVERY_CODE_LENGTH = 16;
+const RECOVERY_CODE_DISPLAY_LENGTH = 19;
+const RECOVERY_CODE_ALPHABET =
+  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 function canonicalRecoveryCode(value: string) {
-  return value.replace(/[^A-Za-z0-9]/g, "");
+  return Array.from(value)
+    .filter((character) => RECOVERY_CODE_ALPHABET.includes(character))
+    .join("");
+}
+
+function formatRecoveryCode(value: string) {
+  const canonical = canonicalRecoveryCode(value).slice(
+    0,
+    RECOVERY_CODE_LENGTH
+  );
+
+  return canonical.match(/.{1,4}/g)?.join("-") ?? canonical;
 }
 
 export function PasswordRecoveryCodePage({
@@ -28,7 +39,7 @@ export function PasswordRecoveryCodePage({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const codeLength = canonicalRecoveryCode(recoveryCode).length;
-  const canSubmit = codeLength === 16 || codeLength === 32;
+  const canSubmit = codeLength === RECOVERY_CODE_LENGTH;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,11 +119,18 @@ export function PasswordRecoveryCodePage({
               spellCheck={false}
               placeholder="XXXX-XXXX-XXXX-XXXX"
               value={recoveryCode}
-              maxLength={39}
+              maxLength={RECOVERY_CODE_DISPLAY_LENGTH}
               aria-invalid={error !== null}
               aria-describedby="password-recovery-code-error"
               onChange={(event) => {
                 setRecoveryCode(formatRecoveryCode(event.target.value));
+                setError(null);
+              }}
+              onPaste={(event) => {
+                event.preventDefault();
+                setRecoveryCode(
+                  formatRecoveryCode(event.clipboardData.getData("text"))
+                );
                 setError(null);
               }}
             />

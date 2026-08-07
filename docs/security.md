@@ -54,8 +54,6 @@ Username account and recovery decisions:
 - Each new username account receives 16 unbiased Base58 characters from
   `randomBytes`, providing about 94 bits of entropy. The plaintext recovery
   code is returned only in the creation response.
-- Legacy 32-character hexadecimal recovery codes remain valid so existing
-  accounts are not locked out by the format migration.
 - The recovery-code response is marked `Cache-Control: no-store`. The web
   client keeps the plaintext only in component memory for the one-time handoff
   screen and clears it when authenticated onboarding begins.

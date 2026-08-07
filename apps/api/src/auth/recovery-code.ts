@@ -7,7 +7,6 @@ const recoveryCodeAlphabet =
   "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const unbiasedByteLimit =
   Math.floor(256 / recoveryCodeAlphabet.length) * recoveryCodeAlphabet.length;
-const legacyRecoveryCodePattern = /^[A-F0-9]{32}$/;
 const recoveryCodePattern = new RegExp(
   `^[${recoveryCodeAlphabet}]{${recoveryCodeLength}}$`,
 );
@@ -18,18 +17,10 @@ export const recoveryCodeSchema = z
   .min(recoveryCodeLength)
   .max(128)
   .transform(normalizeRecoveryCode)
-  .refine(
-    (code) =>
-      recoveryCodePattern.test(code) || legacyRecoveryCodePattern.test(code),
-    "Invalid recovery code.",
-  );
+  .refine((code) => recoveryCodePattern.test(code), "Invalid recovery code.");
 
 export function normalizeRecoveryCode(code: string) {
-  const alphanumericCode = code.replace(/[^A-Za-z0-9]/g, "");
-
-  return legacyRecoveryCodePattern.test(alphanumericCode.toUpperCase())
-    ? alphanumericCode.toUpperCase()
-    : alphanumericCode;
+  return code.replace(/[^A-Za-z0-9]/g, "");
 }
 
 export function hashCanonicalRecoveryCode(code: string) {
