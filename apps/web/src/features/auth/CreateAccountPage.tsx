@@ -20,7 +20,7 @@ import {
   startUsernameRegistration,
   type UsernameRegistrationResult
 } from "./registration-api";
-import type { RegistrationMethod } from "./registration-method";
+import type { CredentialRegistrationMethod } from "./registration-method";
 import {
   type RegistrationField,
   validateRegistration
@@ -33,7 +33,7 @@ import {
 } from "./username-validation";
 
 type CreateAccountPageProps = {
-  method: RegistrationMethod;
+  method: CredentialRegistrationMethod;
   onBack: () => void;
   onRegistrationStarted: (email: string) => void;
   onUsernameRegistrationCreated: (

@@ -141,13 +141,21 @@ and returns a `303` redirect to the frontend. This deliberate full navigation
 gives platform password managers the conventional successful-login lifecycle
 without placing credentials in a URL.
 
-Google sign-in lives in `routes/auth-google.ts`. The route starts a server-side
-OAuth 2.0 / OpenID Connect flow, validates callback `state`, verifies the Google
-ID token, and requires a verified email. A new Google identity creates its
-`GOOGLE` user directly because the identity provider has already verified the
-address. Existing Google-capable users require the stable Google subject to
-match. A password-only email collision never links implicitly; the owner must
-authenticate normally and use the separate account-linking flow.
+Google authentication lives in `routes/auth-google.ts`, while
+`auth/google-auth-flow.ts` owns the public login/registration decision state.
+The start route binds a `login` or `register` intent to the server-side OAuth
+state, the callback verifies Google's ID token and verified email, and existing
+Google-capable users still require the stable Google subject to match.
+
+Results that need user consent are represented by a 10-minute, one-use
+`PendingGoogleAuthAction`. Its random plaintext token exists only in the
+encrypted HttpOnly session and its SHA-256 hash is persisted. Login with an
+unknown Google identity pauses before account creation; registration with an
+unknown identity creates it directly. Registration with an existing Google
+identity pauses before sign-in. A password-only email collision can only open
+the normal password screen with the verified email prefilled; it never creates
+a Google session or links credentials. Confirmation rechecks current database
+state and atomically claims the action so races cannot reuse stale decisions.
 
 `auth/session.ts` configures an encrypted stateless cookie session through `@fastify/secure-session`. Login stores `userId` and the current `sessionVersion`; authenticated user resolution requires both to match PostgreSQL. Sessions last up to seven days, and logout deletes the current cookie.
 

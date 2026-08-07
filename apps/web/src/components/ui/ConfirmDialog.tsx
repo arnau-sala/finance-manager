@@ -12,6 +12,7 @@ type ConfirmDialogProps = {
   cancelLabel?: string;
   icon: ReactNode;
   isConfirming?: boolean;
+  interactionLocked?: boolean;
   error?: string | null;
   tone?: "default" | "danger" | "warning";
   confirmTone?: "default" | "danger";
@@ -33,6 +34,7 @@ export function ConfirmDialog({
   cancelLabel = "Cancel",
   icon,
   isConfirming = false,
+  interactionLocked = false,
   error = null,
   tone = "default",
   confirmTone = "default",
@@ -51,11 +53,11 @@ export function ConfirmDialog({
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const onCancelRef = useRef(onCancel);
-  const isConfirmingRef = useRef(isConfirming);
+  const interactionLockedRef = useRef(isConfirming || interactionLocked);
   const dismissibleRef = useRef(dismissible);
 
   onCancelRef.current = onCancel;
-  isConfirmingRef.current = isConfirming;
+  interactionLockedRef.current = isConfirming || interactionLocked;
   dismissibleRef.current = dismissible;
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function ConfirmDialog({
       if (event.key === "Escape") {
         event.preventDefault();
 
-        if (dismissibleRef.current && !isConfirmingRef.current) {
+        if (dismissibleRef.current && !interactionLockedRef.current) {
           onCancelRef.current();
         }
 
@@ -139,7 +141,8 @@ export function ConfirmDialog({
     if (
       dismissible &&
       event.target === event.currentTarget &&
-      !isConfirming
+      !isConfirming &&
+      !interactionLocked
     ) {
       onCancel();
     }
@@ -187,7 +190,7 @@ export function ConfirmDialog({
               className="confirm-dialog__button confirm-dialog__button--cancel"
               type="button"
               onClick={onCancel}
-              disabled={isConfirming}
+              disabled={isConfirming || interactionLocked}
             >
               {cancelLabel}
             </button>
@@ -197,7 +200,7 @@ export function ConfirmDialog({
             className="confirm-dialog__button confirm-dialog__button--confirm"
             type="button"
             onClick={() => void onConfirm()}
-            disabled={isConfirming || confirmDisabled}
+            disabled={isConfirming || interactionLocked || confirmDisabled}
           >
             {isConfirming ? confirmingLabel : confirmLabel}
           </button>

@@ -560,14 +560,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: var(--color-border);
 }
 
-.auth-options {
-  width: 100%;
-  display: grid;
-  gap: 12px;
-}
-
 .auth-landing-divider,
-.auth-landing-options {
+.auth-landing-create {
   margin-top: 20px;
 }
 
@@ -950,7 +944,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   background: transparent;
   border: 0;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
   -webkit-tap-highlight-color: transparent;
@@ -1051,7 +1045,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-registration-method-options {
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -7479,7 +7473,7 @@ button.transaction-row__content:focus-visible {
   }
 
   .auth-landing-divider,
-  .auth-landing-options,
+  .auth-landing-create,
   .auth-landing-help {
     margin-top: 14px;
   }
@@ -7515,10 +7509,6 @@ button.transaction-row__content:focus-visible {
 
   .auth-email-form button {
     top: 5px;
-  }
-
-  .auth-options {
-    gap: 9px;
   }
 
   .auth-login-panel {

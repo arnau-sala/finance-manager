@@ -111,6 +111,14 @@ income transaction.
 `PASSWORD_AND_GOOGLE` users. It is unique and is used with the verified Google
 ID token so sign-in does not rely only on a changeable email address.
 
+`PendingGoogleAuthAction` stores short-lived decisions that must be confirmed
+after Google returns to the app: create a new account, sign into an existing
+Google account, or continue to password login. It records the server-bound
+login/registration intent and verified Google identity, but only stores the
+SHA-256 hash of the random action token held in the encrypted session. Actions
+expire after 10 minutes, are atomically deleted on confirmation, and cascade
+when their referenced user is deleted.
+
 `AccountRecoveryCode` contains at most one row per username user. It stores a
 globally unique SHA-256 hash of a cryptographically random 16-character Base58
 code and cascades on account deletion. Successful recovery replaces the hash in
@@ -147,9 +155,9 @@ Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
 Deleting a user removes transactions, recovery code, pending email link,
-pending password reset, and password-reset grant through `ON DELETE CASCADE`,
-and explicitly removes any matching `PendingRegistration` when the user has an
-email.
+pending password reset, password-reset grant, and referenced Google auth
+actions through `ON DELETE CASCADE`, and explicitly removes any matching
+`PendingRegistration` when the user has an email.
 
 `Category` stores the global predefined catalog. Every category has a stable ID, display name, and `INCOME` or `EXPENSE` type. Names are unique within each type.
 

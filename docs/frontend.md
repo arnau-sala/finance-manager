@@ -355,11 +355,11 @@ static, mobile-first layout:
 
 - Email or username entry starts the unified login flow; password entry belongs
   to the next screen.
-- Create an account opens a dedicated method screen before either registration
-  form.
-- Continue with Google starts the backend OAuth flow. An existing Google account
-  enters the app, while a new Google identity creates its verified account and
-  enters immediately.
+- Continue with Google is grouped with normal sign-in above the `OR` divider.
+  Existing linked identities enter immediately; an unknown identity opens a
+  concise confirmation over the landing page before account creation.
+- Create an account is the sole action below `OR` and opens the dedicated
+  registration-method screen.
 - The initial logo and slogan are placeholders until the product identity is finalized.
 - The entry screen uses a flat white canvas, without a card around the main content.
 - Controls do not use hover animations or desktop-specific sizing; they remain touch-first.
@@ -378,17 +378,22 @@ States:
 
 ### 3. Register
 
-Purpose: choose between a verified-email account and a username-only account,
-then collect the corresponding credentials without making the distinction
-ambiguous.
+Purpose: choose between verified email, username-only, and Google accounts
+without making their recovery and sign-in differences ambiguous.
 
-The first registration screen is static and non-scrollable. It presents two
-large, separate actions: `Email account` and `Username account`. Each option includes a
-compact three-point comparison covering its login identifier, recovery method,
-and the ability to add the other identifier later. Email accounts recover by
-email and may add a username; username accounts recover with their one-use code
-and may add an email. Both can link Google. Selecting either option slides the
-shared form in from the right; returning reveals the method screen underneath.
+The first registration screen is static and non-scrollable. It presents three
+large actions: `Email account`, `Username account`, and `Google account`. Each
+uses the same compact three-point comparison. Email accounts recover by email
+and may add a username; username accounts recover with their one-use code and
+may add an email; Google accounts use a verified Google address and need no app
+password. Selecting email or username slides the shared form in from the right.
+Selecting Google opens its account chooser.
+
+If Google registration finds no account, it creates one and enters onboarding.
+An existing Google account opens a short sign-in confirmation over the method
+screen. A password-only account opens a separate explanation and can continue
+to password login with the verified email prefilled. Cancelling either dialog
+leaves the registration-method screen unchanged.
 
 Shared fields:
 

@@ -178,10 +178,22 @@ Google sign-in security decisions:
 - The backend requires a verified Google email before using it.
 - Existing `GOOGLE` and `PASSWORD_AND_GOOGLE` users can sign in with Google only
   when Google's stable `sub` identifier matches the stored `googleSubject`.
-- If the verified Google email has no user yet, Google sign-in creates a
-  `GOOGLE` user with the verified profile name, verification timestamp, stable
-  Google subject, and no password.
+- Public Google starts bind an explicit `login` or `register` intent to the
+  encrypted-session OAuth state; callback query values cannot change it.
+- Login with a previously unknown Google identity requires explicit in-app
+  confirmation before creating its account. Registration creates a new Google
+  identity directly because Google has already verified the address.
+- Registration with an existing Google-capable identity requires confirmation
+  before starting that existing account's session.
 - Password users are not silently converted to Google users.
+- A verified email collision with a password-only account can prefill normal
+  login, but Google proof alone never authenticates or links that account.
+- Consent-required outcomes use a 32-byte random, 10-minute, one-use token. The
+  encrypted HttpOnly session stores the token and PostgreSQL stores only its
+  SHA-256 hash. Confirmation revalidates provider, status, email, Google
+  subject, and current ownership before atomically consuming the row.
+- Exact existing-account feedback is available only after Google verifies
+  control of the selected email; no public email lookup endpoint is added.
 - `POST /account/google/link/start` requires an approved authenticated
   password-only account and preserves its active session while Google presents
   the account chooser.
@@ -192,9 +204,6 @@ Google sign-in security decisions:
 - Successful linking keeps the Argon2id password hash, stores `googleSubject`,
   and changes the provider to `PASSWORD_AND_GOOGLE`; mismatch and failure paths
   make no database changes.
-- A public Google attempt for an existing password-only email returns to the
-  frontend with `password-required`; linking is allowed only after normal
-  authentication through the dedicated one-use linking flow.
 
 Origin protection decisions:
 
@@ -240,6 +249,7 @@ Current limits:
 | Verify recovery code | 10/15min | IP |
 | Complete reset | 5/15min | IP |
 | Google auth | 30/15min | IP |
+| Google auth decisions | 10/15min | IP |
 | Logout | 30/min | session/IP |
 | Profile editing | 30/15min | session/IP |
 | Google linking | 5/15min | session/IP |

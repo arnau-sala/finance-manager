@@ -1,5 +1,6 @@
 import { ArrowRight, AtSign, Check, ChevronLeft, Mail } from "lucide-react";
 
+import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import type { RegistrationMethod } from "./registration-method";
 
 type RegistrationMethodPageProps = {
@@ -27,6 +28,16 @@ const registrationMethods = [
       "Add an email later",
     ],
     icon: AtSign,
+  },
+  {
+    value: "google",
+    title: "Google account",
+    benefits: [
+      "Sign in with Google",
+      "No password to remember",
+      "Google verifies your email",
+    ],
+    icon: null,
   },
 ] as const;
 
@@ -68,9 +79,9 @@ export function RegistrationMethodPage({
           </div>
 
           <div className="auth-message">
-            <h1 id="registration-method-title">Choose how to sign in</h1>
+            <h1 id="registration-method-title">Create your account</h1>
             <p className="auth-subtitle auth-registration-method-subtitle">
-              Choose your first sign-in method 
+              Choose your first sign-in method
             </p>
           </div>
         </header>
@@ -90,7 +101,11 @@ export function RegistrationMethodPage({
                   className="auth-registration-method-option__icon"
                   aria-hidden="true"
                 >
-                  <Icon strokeWidth={1.7} />
+                  {Icon ? (
+                    <Icon strokeWidth={1.7} />
+                  ) : (
+                    <GoogleIcon className="auth-registration-method-option__google-icon" />
+                  )}
                 </span>
                 <div className="auth-registration-method-option__content">
                   <strong>{method.title}</strong>
@@ -114,7 +129,7 @@ export function RegistrationMethodPage({
         </div>
 
         <p className="auth-registration-method-note">
-          Both account types can link Google
+          Existing accounts can link Google from Profile
         </p>
       </section>
     </main>

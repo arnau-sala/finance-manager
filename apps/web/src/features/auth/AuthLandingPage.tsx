@@ -153,6 +153,18 @@ export function AuthLandingPage({
             </p>
           ) : null}
 
+          <button
+            className="auth-option auth-option--google"
+            type="button"
+            onClick={onGoogleContinue}
+          >
+            <span className="auth-option-label">
+              <GoogleIcon className="auth-provider-icon" />
+              Continue with Google
+            </span>
+            <ArrowRight className="auth-option-arrow" aria-hidden="true" />
+          </button>
+
           <div
             className={`auth-divider auth-landing-divider${
               displayedError ? " auth-landing-divider--after-error" : ""
@@ -162,27 +174,17 @@ export function AuthLandingPage({
             <span>OR</span>
           </div>
 
-          <div className="auth-options auth-landing-options">
-            <button className="auth-option" type="button" onClick={onCreateAccount}>
-              <span className="auth-option-label">
-                <Mail aria-hidden="true" strokeWidth={1.8} />
-                Create an account
-              </span>
-              <ArrowRight className="auth-option-arrow" aria-hidden="true" />
-            </button>
-
-            <button
-              className="auth-option auth-option--google"
-              type="button"
-              onClick={onGoogleContinue}
-            >
-              <span className="auth-option-label">
-                <GoogleIcon className="auth-provider-icon" />
-                Continue with Google
-              </span>
-              <ArrowRight className="auth-option-arrow" aria-hidden="true" />
-            </button>
-          </div>
+          <button
+            className="auth-option auth-landing-create"
+            type="button"
+            onClick={onCreateAccount}
+          >
+            <span className="auth-option-label">
+              <Mail aria-hidden="true" strokeWidth={1.8} />
+              Create an account
+            </span>
+            <ArrowRight className="auth-option-arrow" aria-hidden="true" />
+          </button>
 
           <button
             className="auth-landing-help"

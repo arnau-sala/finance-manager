@@ -17,7 +17,9 @@ account, presents its recovery code once, and enters onboarding through a
 native credential form submission so platform password managers can offer to
 save the account. Account recovery now supports email codes, username recovery
 codes, and forgotten usernames without turning either code into an authenticated
-session.
+session. Google login and Google registration are separate intents: unknown
+login identities require account-creation confirmation, while the registration
+screen also offers Google as a direct account type.
 
 Implemented:
 
@@ -30,7 +32,8 @@ Core:
 - Origin checks for mutating browser requests
 - Security headers through Helmet
 - Pagination limits for growing list endpoints
-- Prisma schema for `User`, `PendingRegistration`, `Category`, and `Transaction`
+- Prisma schema for users, temporary authentication state, categories, and
+  transactions
 - Initial SQL migration
 - Shared Prisma client module for the API
 
@@ -49,8 +52,11 @@ Authentication:
 - `POST /auth/password-reset/cancel`
 - `POST /auth/login`
 - `POST /auth/login/browser` (internal native-form completion)
-- `GET /auth/google/start`
+- `GET /auth/google/start?intent=login|register`
 - `GET /auth/google/callback`
+- `GET /auth/google/action`
+- `POST /auth/google/action/confirm`
+- `POST /auth/google/action/cancel`
 - `POST /auth/logout`
 - `GET /auth/me`
 - `POST /account/onboarding/starting-net-worth`
@@ -364,10 +370,11 @@ Google authentication remain available.
 
 ## Continue With Google
 
-Google sign-in starts from the browser:
+Google authentication starts from the browser with an explicit intent:
 
 ```http
-GET /auth/google/start
+GET /auth/google/start?intent=login
+GET /auth/google/start?intent=register
 ```
 
 The backend redirects the user to Google using OAuth 2.0 / OpenID Connect. Google redirects back to:
@@ -377,16 +384,24 @@ GET /auth/google/callback
 ```
 
 The backend verifies the Google ID token with the configured client ID before
-trusting the email. An existing `GOOGLE` or `PASSWORD_AND_GOOGLE` account starts
-the normal secure session only when Google's stable subject matches. If no user
-has that email, the callback creates a verified `GOOGLE` user immediately and
-starts its session; no approval or email-code step is needed because Google has
-already verified ownership of the address.
+trusting the email. The login intent immediately authenticates an existing
+`GOOGLE` or `PASSWORD_AND_GOOGLE` account only when Google's stable subject
+matches. A previously unknown identity returns to the landing page with a
+short, explicit confirmation before its `GOOGLE` account is created.
 
-If the email belongs to a password-only account, public Google sign-in does not
-silently link it. The frontend receives `googleAuth=password-required`; the
-owner must sign in with their password and use the authenticated linking flow.
-Other identity conflicts fail without changing the database.
+The registration intent creates and authenticates a previously unknown Google
+identity immediately. If the selected identity already belongs to a
+Google-capable account, the registration screen asks before signing into that
+account. If its verified email belongs to a password-only account, neither
+intent authenticates or links it: the user may continue to the password screen
+with that email prefilled.
+
+These decisions use a 10-minute, one-use `PendingGoogleAuthAction`. Only its
+random token is kept in the encrypted HttpOnly session; PostgreSQL stores the
+SHA-256 token hash. The frontend retrieves, confirms, or cancels the action via
+`/auth/google/action`. Cancelling keeps the user on the landing or registration
+method screen from which Google was opened. Exact account-state feedback is
+shown only after Google has verified control of the selected address.
 
 Local Google configuration requires these values in `apps/api/.env`:
 

@@ -1,16 +1,24 @@
 import { randomBytes } from "node:crypto";
 
-import { Prisma } from "@prisma/client";
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 
 import { deleteUserAccount } from "../account/delete-account.js";
 import { supportsGoogleAuthentication } from "../auth/auth-provider.js";
+import {
+  cancelPendingGoogleAuthAction,
+  confirmPendingGoogleAuthAction,
+  getPendingGoogleAuthAction,
+  resolveGoogleIdentity,
+  type PublicGoogleAuthIntent,
+  type VerifiedGoogleIdentity,
+} from "../auth/google-auth-flow.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
   accountLinkRateLimit,
+  authGoogleActionRateLimit,
   authGoogleRateLimit,
 } from "../security/rate-limit.js";
 
@@ -22,23 +30,18 @@ const googleCallbackQuerySchema = z
   })
   .passthrough();
 
+const googleStartQuerySchema = z
+  .object({
+    intent: z.enum(["login", "register"]).default("login"),
+  })
+  .passthrough();
+
 type GoogleOAuthConfig = {
   clientId: string;
   clientSecret: string;
   redirectUri: string;
   webAppUrl: string;
 };
-
-type GoogleIdentity = {
-  email: string;
-  name: string;
-  googleSubject: string;
-};
-
-type GoogleAuthResult =
-  | { type: "login"; userId: string; sessionVersion: number }
-  | { type: "password-required" }
-  | { type: "failed" };
 
 function getGoogleOAuthConfig(): GoogleOAuthConfig | null {
   const clientId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -74,7 +77,7 @@ async function getVerifiedGoogleIdentity(
   client: OAuth2Client,
   code: string,
   clientId: string,
-): Promise<GoogleIdentity | null> {
+): Promise<VerifiedGoogleIdentity | null> {
   const { tokens } = await client.getToken(code);
 
   if (!tokens.id_token) {
@@ -122,6 +125,14 @@ function getAccountDeletionRedirectUrl(
   return url.toString();
 }
 
+function getPublicGoogleRedirectUrl(
+  config: Pick<GoogleOAuthConfig, "webAppUrl">,
+  result: "action" | "cancelled" | "failed" | "not-configured",
+  intent: PublicGoogleAuthIntent,
+) {
+  return getFrontendRedirectUrl(config, `${result}-${intent}`);
+}
+
 function getAccountLinkRedirectUrl(
   config: Pick<GoogleOAuthConfig, "webAppUrl">,
   result: string,
@@ -131,108 +142,10 @@ function getAccountLinkRedirectUrl(
   return url.toString();
 }
 
-async function handleGoogleIdentity(
-  identity: GoogleIdentity,
-): Promise<GoogleAuthResult> {
-  try {
-    return await db.$transaction(async (transaction) => {
-      const [userByGoogleSubject, userByEmail] = await Promise.all([
-        transaction.user.findUnique({
-          where: { googleSubject: identity.googleSubject },
-          select: {
-            id: true,
-            authProvider: true,
-            googleSubject: true,
-            status: true,
-            sessionVersion: true,
-          },
-        }),
-        transaction.user.findUnique({
-          where: { email: identity.email },
-          select: {
-            id: true,
-            authProvider: true,
-            googleSubject: true,
-            status: true,
-            sessionVersion: true,
-          },
-        }),
-      ]);
-
-      if (userByGoogleSubject) {
-        if (
-          supportsGoogleAuthentication(userByGoogleSubject.authProvider) &&
-          userByGoogleSubject.status === "APPROVED"
-        ) {
-          return {
-            type: "login",
-            userId: userByGoogleSubject.id,
-            sessionVersion: userByGoogleSubject.sessionVersion,
-          };
-        }
-
-        return { type: "failed" };
-      }
-
-      if (userByEmail) {
-        if (
-          supportsGoogleAuthentication(userByEmail.authProvider) &&
-          userByEmail.googleSubject === identity.googleSubject &&
-          userByEmail.status === "APPROVED"
-        ) {
-          return {
-            type: "login",
-            userId: userByEmail.id,
-            sessionVersion: userByEmail.sessionVersion,
-          };
-        }
-
-        return userByEmail.authProvider === "PASSWORD"
-          ? { type: "password-required" }
-          : { type: "failed" };
-      }
-
-      await transaction.pendingRegistration.deleteMany({
-        where: { email: identity.email },
-      });
-
-      const user = await transaction.user.create({
-        data: {
-          email: identity.email,
-          name: identity.name,
-          passwordHash: null,
-          authProvider: "GOOGLE",
-          googleSubject: identity.googleSubject,
-          role: "USER",
-          status: "APPROVED",
-          emailVerifiedAt: new Date(),
-          updatedAt: null,
-        },
-        select: { id: true, sessionVersion: true },
-      });
-
-      return {
-        type: "login",
-        userId: user.id,
-        sessionVersion: user.sessionVersion,
-      };
-    });
-  } catch (error) {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === "P2002"
-    ) {
-      return { type: "failed" };
-    }
-
-    throw error;
-  }
-}
-
 type GoogleAccountLinkResult = "success" | "mismatch" | "failed";
 
 async function linkGoogleIdentityToUser(
-  identity: GoogleIdentity,
+  identity: VerifiedGoogleIdentity,
   userId: string,
   sessionVersion: number,
 ): Promise<GoogleAccountLinkResult> {
@@ -313,21 +226,36 @@ async function linkGoogleIdentityToUser(
   });
 }
 
+async function clearPendingPublicGoogleAction(request: FastifyRequest) {
+  const token = request.session.get("googleAuthActionToken");
+
+  request.session.set("googleAuthActionToken", "");
+
+  if (token) {
+    await cancelPendingGoogleAuthAction(token);
+  }
+}
+
 export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/auth/google/start",
     { config: { rateLimit: authGoogleRateLimit } },
     async (request, reply) => {
+      const parsedQuery = googleStartQuerySchema.safeParse(request.query);
+      const intent = parsedQuery.success ? parsedQuery.data.intent : "login";
       const config = getGoogleOAuthConfig();
 
       if (!config) {
         return reply.redirect(
-          getFrontendRedirectUrl(
+          getPublicGoogleRedirectUrl(
             { webAppUrl: getConfiguredWebAppUrl() },
             "not-configured",
+            intent,
           ),
         );
       }
+
+      await clearPendingPublicGoogleAction(request);
 
       const state = randomBytes(32).toString("hex");
       const client = createGoogleClient(config);
@@ -337,6 +265,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("googleAccountDeletionState", "");
       request.session.set("googleAccountLinkState", "");
       request.session.set("googleOAuthState", state);
+      request.session.set("googleOAuthIntent", intent);
 
       return reply.redirect(
         client.generateAuthUrl({
@@ -390,7 +319,9 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const state = randomBytes(32).toString("hex");
       const client = createGoogleClient(config);
 
+      await clearPendingPublicGoogleAction(request);
       request.session.set("googleOAuthState", "");
+      request.session.set("googleOAuthIntent", "");
       request.session.set("googleAccountLinkState", "");
       request.session.set("googleAccountDeletionState", state);
 
@@ -452,7 +383,9 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       const state = randomBytes(32).toString("hex");
       const client = createGoogleClient(config);
 
+      await clearPendingPublicGoogleAction(request);
       request.session.set("googleOAuthState", "");
+      request.session.set("googleOAuthIntent", "");
       request.session.set("googleAccountDeletionState", "");
       request.session.set("googleAccountLinkState", state);
 
@@ -467,22 +400,102 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
   );
 
   app.get(
+    "/auth/google/action",
+    { config: { rateLimit: authGoogleActionRateLimit } },
+    async (request, reply) => {
+      const token = request.session.get("googleAuthActionToken");
+
+      reply.header("Cache-Control", "no-store");
+
+      if (!token) {
+        return reply.code(404).send({ error: "Google action expired." });
+      }
+
+      const action = await getPendingGoogleAuthAction(token);
+
+      if (!action) {
+        request.session.set("googleAuthActionToken", "");
+        return reply.code(404).send({ error: "Google action expired." });
+      }
+
+      return reply.send({ action });
+    },
+  );
+
+  app.post(
+    "/auth/google/action/confirm",
+    { config: { rateLimit: authGoogleActionRateLimit } },
+    async (request, reply) => {
+      const token = request.session.get("googleAuthActionToken");
+
+      reply.header("Cache-Control", "no-store");
+
+      if (!token) {
+        return reply.code(401).send({ error: "Google action expired." });
+      }
+
+      const result = await confirmPendingGoogleAuthAction(token);
+      request.session.set("googleAuthActionToken", "");
+
+      if (result.type === "invalid") {
+        return reply.code(401).send({ error: "Google action expired." });
+      }
+
+      if (result.type === "password-required") {
+        return reply.send({
+          status: "password-required",
+          email: result.email,
+        });
+      }
+
+      request.session.regenerate();
+      request.session.set("userId", result.userId);
+      request.session.set("sessionVersion", result.sessionVersion);
+      return reply.send({ status: "authenticated" });
+    },
+  );
+
+  app.post(
+    "/auth/google/action/cancel",
+    { config: { rateLimit: authGoogleActionRateLimit } },
+    async (request, reply) => {
+      const token = request.session.get("googleAuthActionToken");
+
+      if (token) {
+        await cancelPendingGoogleAuthAction(token);
+      }
+
+      request.session.set("googleAuthActionToken", "");
+      reply.header("Cache-Control", "no-store");
+      return reply.code(204).send();
+    },
+  );
+
+  app.get(
     "/auth/google/callback",
     { config: { rateLimit: authGoogleRateLimit } },
     async (request, reply) => {
+      const storedIntent = request.session.get("googleOAuthIntent");
+      const expectedPublicIntent: PublicGoogleAuthIntent =
+        storedIntent === "register" ? "register" : "login";
       const config = getGoogleOAuthConfig();
 
       if (!config) {
         return reply.redirect(
-          getFrontendRedirectUrl(
+          getPublicGoogleRedirectUrl(
             { webAppUrl: getConfiguredWebAppUrl() },
             "not-configured",
+            expectedPublicIntent,
           ),
         );
       }
 
       const parsedQuery = googleCallbackQuerySchema.safeParse(request.query);
-      const failureRedirectUrl = getFrontendRedirectUrl(config, "failed");
+      const failureRedirectUrl = getPublicGoogleRedirectUrl(
+        config,
+        "failed",
+        expectedPublicIntent,
+      );
       const deletionFailureUrl = getAccountDeletionRedirectUrl(config, "failed");
       const linkFailureUrl = getAccountLinkRedirectUrl(config, "failed");
       const expectedDeletionState = request.session.get(
@@ -501,6 +514,8 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
           return reply.redirect(linkFailureUrl);
         }
 
+        request.session.set("googleOAuthState", "");
+        request.session.set("googleOAuthIntent", "");
         return reply.redirect(failureRedirectUrl);
       }
 
@@ -522,7 +537,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         }
 
         request.session.set("googleOAuthState", "");
-        return reply.redirect(getFrontendRedirectUrl(config, "cancelled"));
+        request.session.set("googleOAuthIntent", "");
+        return reply.redirect(
+          getPublicGoogleRedirectUrl(
+            config,
+            "cancelled",
+            expectedPublicIntent,
+          ),
+        );
       }
 
       if (expectedDeletionState) {
@@ -637,6 +659,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       }
 
       request.session.set("googleOAuthState", "");
+      request.session.set("googleOAuthIntent", "");
 
       if (
         !parsedQuery.data.code ||
@@ -647,32 +670,47 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         return reply.redirect(failureRedirectUrl);
       }
 
-      const client = createGoogleClient(config);
-      const identity = await getVerifiedGoogleIdentity(
-        client,
-        parsedQuery.data.code,
-        config.clientId,
-      );
+      try {
+        const client = createGoogleClient(config);
+        const identity = await getVerifiedGoogleIdentity(
+          client,
+          parsedQuery.data.code,
+          config.clientId,
+        );
 
-      if (!identity) {
+        if (!identity) {
+          return reply.redirect(failureRedirectUrl);
+        }
+
+        const result = await resolveGoogleIdentity(
+          identity,
+          expectedPublicIntent,
+        );
+
+        if (result.type === "authenticated") {
+          request.session.regenerate();
+          request.session.set("userId", result.userId);
+          request.session.set("sessionVersion", result.sessionVersion);
+          return reply.redirect(
+            getFrontendRedirectUrl(config, "login-success"),
+          );
+        }
+
+        if (result.type === "pending") {
+          request.session.set("googleAuthActionToken", result.token);
+          return reply.redirect(
+            getPublicGoogleRedirectUrl(
+              config,
+              "action",
+              expectedPublicIntent,
+            ),
+          );
+        }
+
+        return reply.redirect(failureRedirectUrl);
+      } catch {
         return reply.redirect(failureRedirectUrl);
       }
-
-      const result = await handleGoogleIdentity(identity);
-
-      if (result.type === "login") {
-        request.session.regenerate();
-        request.session.set("userId", result.userId);
-        request.session.set("sessionVersion", result.sessionVersion);
-        return reply.redirect(getFrontendRedirectUrl(config, "login-success"));
-      }
-
-      return reply.redirect(
-        getFrontendRedirectUrl(
-          config,
-          result.type === "password-required" ? "password-required" : "failed",
-        ),
-      );
     },
   );
 };

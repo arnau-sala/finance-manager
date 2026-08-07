@@ -170,6 +170,14 @@ export const authGoogleRateLimit = {
   keyGenerator: (request: FastifyRequest) => `auth-google:${request.ip}`,
 };
 
+export const authGoogleActionRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    `auth-google-action:${request.ip}`,
+};
+
 export const financialReadRateLimit = {
   hook: "preHandler" as const,
   max: 180,

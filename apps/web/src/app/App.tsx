@@ -11,6 +11,7 @@ import { lockAppHorizontalNavigation } from "./app-navigation-guard";
 import { observeAppDataLifecycle } from "../cache/app-data-lifecycle";
 import { clearAuthenticatedData } from "../cache/financial-cache";
 import { prefetchScheduler } from "../cache/prefetch-scheduler";
+import { GoogleIcon } from "../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import { CreateAccountPage } from "../features/auth/CreateAccountPage";
@@ -19,6 +20,15 @@ import {
   logout,
   type SessionUser
 } from "../features/auth/auth-api";
+import { GoogleAuthActionDialog } from "../features/auth/GoogleAuthActionDialog";
+import {
+  cancelGoogleAuthAction,
+  confirmGoogleAuthAction,
+  getGoogleAuthAction,
+  getGoogleAuthStartUrl,
+  type GoogleAuthAction,
+  type GoogleAuthIntent
+} from "../features/auth/google-auth-api";
 import { PasswordLoginPage } from "../features/auth/PasswordLoginPage";
 import {
   clearStoredPasswordRecovery,
@@ -30,7 +40,10 @@ import { RecoveryCodePage } from "../features/auth/RecoveryCodePage";
 import { RegistrationMethodPage } from "../features/auth/RegistrationMethodPage";
 import { RegistrationVerificationPage } from "../features/auth/RegistrationVerificationPage";
 import type { UsernameRegistrationResult } from "../features/auth/registration-api";
-import type { RegistrationMethod } from "../features/auth/registration-method";
+import type {
+  CredentialRegistrationMethod,
+  RegistrationMethod
+} from "../features/auth/registration-method";
 import {
   HomePage,
   type GoogleAccountDeletionFeedback,
@@ -53,6 +66,37 @@ type StartupTransitionState =
   | "revealing"
   | "complete";
 
+type GoogleAuthNotice = {
+  title: string;
+  description: string;
+};
+
+function getGoogleAuthIntent(result: string | null): GoogleAuthIntent {
+  return result?.endsWith("-register") ? "register" : "login";
+}
+
+function isGoogleAuthResult(result: string | null, status: string) {
+  return result === status || result?.startsWith(`${status}-`) === true;
+}
+
+function getGoogleAuthNotice(result: string | null): GoogleAuthNotice | null {
+  if (isGoogleAuthResult(result, "failed")) {
+    return {
+      title: "Google sign-in failed",
+      description: "We couldn't verify the selected Google account. Please try again"
+    };
+  }
+
+  if (isGoogleAuthResult(result, "not-configured")) {
+    return {
+      title: "Google is unavailable",
+      description: "Google sign-in is not available right now"
+    };
+  }
+
+  return null;
+}
+
 export function App() {
   const [sessionStatus, setSessionStatus] = useState<SessionStatus>("checking");
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
@@ -67,13 +111,23 @@ export function App() {
     useState<PasswordRecoveryStart | null>(null);
   const [passwordRecoveryVersion, setPasswordRecoveryVersion] = useState(0);
   const [registrationMethod, setRegistrationMethod] =
-    useState<RegistrationMethod>("email");
+    useState<CredentialRegistrationMethod>("email");
   const [registrationEmail, setRegistrationEmail] = useState<string | null>(
     null
   );
   const [usernameRegistration, setUsernameRegistration] =
     useState<UsernameRegistrationResult | null>(null);
   const [landingError, setLandingError] = useState<string | null>(null);
+  const [googleAuthAction, setGoogleAuthAction] =
+    useState<GoogleAuthAction | null>(null);
+  const [googleAuthActionError, setGoogleAuthActionError] =
+    useState<string | null>(null);
+  const [isGoogleAuthActionConfirming, setIsGoogleAuthActionConfirming] =
+    useState(false);
+  const [isGoogleAuthActionCancelling, setIsGoogleAuthActionCancelling] =
+    useState(false);
+  const [googleAuthNotice, setGoogleAuthNotice] =
+    useState<GoogleAuthNotice | null>(null);
   const [loginVersion, setLoginVersion] = useState(0);
   const [landingVersion, setLandingVersion] = useState(0);
   const [registerVersion, setRegisterVersion] = useState(0);
@@ -131,6 +185,9 @@ export function App() {
     setRegistrationEmail(null);
     setUsernameRegistration(null);
     setLandingError(null);
+    setGoogleAuthAction(null);
+    setGoogleAuthActionError(null);
+    setGoogleAuthNotice(null);
     setLandingVersion((version) => version + 1);
     setRegisterVersion((version) => version + 1);
     setActiveScreen("landing");
@@ -139,7 +196,7 @@ export function App() {
   useEffect(() => {
     let isMounted = true;
     const url = new URL(window.location.href);
-    const googleAuth = initialGoogleAuthRef.current;
+    const googleAuth = initialGoogleAuthRef.current ?? null;
     const accountDeletion = initialAccountDeletionRef.current;
     const accountLink = initialAccountLinkRef.current;
 
@@ -158,8 +215,10 @@ export function App() {
       );
     }
 
-    getCurrentSession()
-      .then((user) => {
+    async function resolveInitialSession() {
+      try {
+        const user = await getCurrentSession();
+
         if (!isMounted) {
           return;
         }
@@ -185,31 +244,65 @@ export function App() {
           return;
         }
 
-        setSessionStatus("anonymous");
+        const googleIntent = getGoogleAuthIntent(googleAuth);
 
-        if (googleAuth === "failed") {
-          setLandingError("We couldn't continue with Google. Please try again.");
-        }
-
-        if (googleAuth === "not-configured") {
-          setLandingError("Google sign-in is not configured yet.");
-        }
-
-        if (googleAuth === "cancelled") {
-          setLandingError("Google sign-in was cancelled.");
-        }
-
-        if (googleAuth === "password-required") {
-          setLandingError(
-            "Sign in with your password first, then link Google from Profile."
+        if (googleAuth) {
+          setActiveScreen(
+            googleIntent === "register" ? "register-method" : "landing"
           );
         }
-      })
-      .catch(() => {
+
+        if (isGoogleAuthResult(googleAuth, "action")) {
+          try {
+            const action = await getGoogleAuthAction();
+
+            if (!isMounted) {
+              return;
+            }
+
+            setActiveScreen(
+              action.intent === "register" ? "register-method" : "landing"
+            );
+            setGoogleAuthAction(action);
+          } catch {
+            if (!isMounted) {
+              return;
+            }
+
+            setGoogleAuthNotice({
+              title: "Google sign-in expired",
+              description: "Start the Google process again to continue"
+            });
+          }
+        } else {
+          setGoogleAuthNotice(getGoogleAuthNotice(googleAuth));
+        }
+
+        setSessionStatus("anonymous");
+      } catch {
         if (isMounted) {
+          const googleIntent = getGoogleAuthIntent(googleAuth);
+
+          if (googleAuth) {
+            setActiveScreen(
+              googleIntent === "register" ? "register-method" : "landing"
+            );
+          }
+
+          setGoogleAuthNotice(
+            googleAuth
+              ? {
+                  title: "Unable to continue",
+                  description: "Check your connection and try again"
+                }
+              : null
+          );
           setSessionStatus("anonymous");
         }
-      });
+      }
+    }
+
+    void resolveInitialSession();
 
     return () => {
       isMounted = false;
@@ -391,6 +484,11 @@ export function App() {
   }
 
   function openRegistrationForm(method: RegistrationMethod) {
+    if (method === "google") {
+      startGoogleAuth("register");
+      return;
+    }
+
     setRegistrationMethod(method);
     setRegisterVersion((version) => version + 1);
     setActiveScreen("register-form");
@@ -431,9 +529,69 @@ export function App() {
     setActiveScreen("register-form");
   }
 
-  function continueWithGoogle() {
+  function startGoogleAuth(intent: GoogleAuthIntent) {
     setLandingError(null);
-    window.location.assign("/api/auth/google/start");
+    setGoogleAuthAction(null);
+    setGoogleAuthActionError(null);
+    setGoogleAuthNotice(null);
+    window.location.assign(getGoogleAuthStartUrl(intent));
+  }
+
+  function continueWithGoogle() {
+    startGoogleAuth("login");
+  }
+
+  async function cancelCurrentGoogleAuthAction() {
+    if (isGoogleAuthActionCancelling || isGoogleAuthActionConfirming) {
+      return;
+    }
+
+    setIsGoogleAuthActionCancelling(true);
+
+    try {
+      await cancelGoogleAuthAction();
+    } catch {
+      // Closing remains safe: the one-use server action expires after 10 minutes.
+    } finally {
+      setGoogleAuthAction(null);
+      setGoogleAuthActionError(null);
+      setIsGoogleAuthActionCancelling(false);
+    }
+  }
+
+  async function confirmCurrentGoogleAuthAction() {
+    if (!googleAuthAction || isGoogleAuthActionConfirming) {
+      return;
+    }
+
+    setGoogleAuthActionError(null);
+    setIsGoogleAuthActionConfirming(true);
+
+    try {
+      const result = await confirmGoogleAuthAction();
+
+      if (result.status === "password-required") {
+        setGoogleAuthAction(null);
+        openLogin(result.email);
+        return;
+      }
+
+      setGoogleAuthAction(null);
+
+      try {
+        await handleLoginSuccess();
+      } catch {
+        window.location.reload();
+      }
+    } catch (error) {
+      setGoogleAuthActionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to continue with Google"
+      );
+    } finally {
+      setIsGoogleAuthActionConfirming(false);
+    }
   }
 
   async function handleLoginSuccess() {
@@ -489,6 +647,9 @@ export function App() {
     setRegistrationEmail(null);
     setUsernameRegistration(null);
     setLandingError(null);
+    setGoogleAuthAction(null);
+    setGoogleAuthActionError(null);
+    setGoogleAuthNotice(null);
     setGoogleAccountDeletionFeedback(null);
     setGoogleAccountLinkFeedback(null);
     setLoginVersion((version) => version + 1);
@@ -723,6 +884,27 @@ export function App() {
           />
         ) : null}
       </div>
+
+      <GoogleAuthActionDialog
+        action={googleAuthAction}
+        isConfirming={isGoogleAuthActionConfirming}
+        isCancelling={isGoogleAuthActionCancelling}
+        error={googleAuthActionError}
+        onCancel={cancelCurrentGoogleAuthAction}
+        onConfirm={confirmCurrentGoogleAuthAction}
+      />
+
+      <ConfirmDialog
+        open={googleAuthNotice !== null}
+        title={googleAuthNotice?.title ?? "Google sign-in"}
+        description={googleAuthNotice?.description ?? "Unable to continue"}
+        confirmLabel="Got it"
+        icon={<GoogleIcon />}
+        initialFocus="confirm"
+        showCancel={false}
+        onCancel={() => setGoogleAuthNotice(null)}
+        onConfirm={() => setGoogleAuthNotice(null)}
+      />
     </div>
   );
 }
