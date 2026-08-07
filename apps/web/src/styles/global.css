@@ -3674,6 +3674,10 @@ button.transaction-row__content:focus-visible {
   border-top: 1px solid var(--color-border);
 }
 
+.stats-net-worth__chart {
+  touch-action: pan-y;
+}
+
 .stats-category-breakdown__type {
   margin-bottom: 8px;
 }

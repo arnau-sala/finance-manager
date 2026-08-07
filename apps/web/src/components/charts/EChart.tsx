@@ -15,6 +15,7 @@ type EChartProps = {
   onItemSelectionChange?: (dataIndex: number | null) => void;
   mergeOptionUpdates?: boolean;
   hideTooltip?: boolean;
+  arbitrateTouchScroll?: boolean;
   onAxisPointerSelection?: (
     value: string | number | null
   ) => boolean | void;
@@ -34,6 +35,7 @@ export function EChart({
   onItemSelectionChange,
   mergeOptionUpdates = false,
   hideTooltip = false,
+  arbitrateTouchScroll = false,
   onAxisPointerSelection
 }: EChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,6 +117,154 @@ export function EChart({
       chartRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const chart = chartRef.current;
+
+    if (!container || !chart || !arbitrateTouchScroll) {
+      return;
+    }
+
+    const movementThreshold = 8;
+    const tooltipHoldDelay = 180;
+    let touchActive = false;
+    let scrollGesture = false;
+    let chartGesture = false;
+    let tooltipVisible = false;
+    let tooltipShownAt: number | null = null;
+    let hideTooltipTimer: number | null = null;
+    let startX = 0;
+    let startY = 0;
+
+    const hideTooltipForScroll = () => {
+      tooltipVisible = false;
+      tooltipShownAt = null;
+      chart.dispatchAction({ type: "hideTip" });
+      chart.dispatchAction({
+        type: "updateAxisPointer",
+        currTrigger: "leave"
+      });
+
+      if (hideTooltipTimer !== null) {
+        window.clearTimeout(hideTooltipTimer);
+      }
+
+      hideTooltipTimer = window.setTimeout(() => {
+        hideTooltipTimer = null;
+
+        if (scrollGesture) {
+          chart.dispatchAction({ type: "hideTip" });
+          chart.dispatchAction({
+            type: "updateAxisPointer",
+            currTrigger: "leave"
+          });
+        }
+      }, 0);
+    };
+
+    const handleShowTip = () => {
+      if (scrollGesture) {
+        hideTooltipForScroll();
+        return;
+      }
+
+      tooltipVisible = true;
+
+      if (touchActive && tooltipShownAt === null) {
+        tooltipShownAt = performance.now();
+      }
+    };
+
+    const handleHideTip = () => {
+      tooltipVisible = false;
+      tooltipShownAt = null;
+    };
+
+    const handleTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+
+      if (!touch || event.touches.length !== 1) {
+        touchActive = false;
+        return;
+      }
+
+      touchActive = true;
+      scrollGesture = false;
+      chartGesture = false;
+      startX = touch.clientX;
+      startY = touch.clientY;
+      tooltipShownAt = tooltipVisible ? performance.now() : null;
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+
+      if (!touchActive || !touch || event.touches.length !== 1) {
+        return;
+      }
+
+      if (chartGesture) {
+        event.preventDefault();
+        return;
+      }
+
+      if (scrollGesture) {
+        return;
+      }
+
+      const deltaX = Math.abs(touch.clientX - startX);
+      const deltaY = Math.abs(touch.clientY - startY);
+      const tooltipWasHeld =
+        tooltipShownAt !== null &&
+        performance.now() - tooltipShownAt >= tooltipHoldDelay;
+
+      if (
+        tooltipWasHeld ||
+        (deltaX >= movementThreshold && deltaX > deltaY)
+      ) {
+        chartGesture = true;
+        event.preventDefault();
+        return;
+      }
+
+      if (deltaY >= movementThreshold && deltaY >= deltaX) {
+        scrollGesture = true;
+        hideTooltipForScroll();
+      }
+    };
+
+    const finishTouch = () => {
+      touchActive = false;
+      scrollGesture = false;
+      chartGesture = false;
+      tooltipShownAt = null;
+    };
+
+    chart.on("showTip", handleShowTip);
+    chart.on("hideTip", handleHideTip);
+    container.addEventListener("touchstart", handleTouchStart, {
+      passive: true
+    });
+    container.addEventListener("touchmove", handleTouchMove, {
+      passive: false
+    });
+    container.addEventListener("touchend", finishTouch, { passive: true });
+    container.addEventListener("touchcancel", finishTouch, { passive: true });
+
+    return () => {
+      if (hideTooltipTimer !== null) {
+        window.clearTimeout(hideTooltipTimer);
+      }
+
+      chart.off("showTip", handleShowTip);
+      chart.off("hideTip", handleHideTip);
+      container.removeEventListener("touchstart", handleTouchStart);
+      container.removeEventListener("touchmove", handleTouchMove);
+      container.removeEventListener("touchend", finishTouch);
+      container.removeEventListener("touchcancel", finishTouch);
+    };
+  }, [arbitrateTouchScroll]);
 
   useEffect(() => {
     const chart = chartRef.current;

@@ -429,6 +429,7 @@ function ReadyNetWorthChart({
         className="stats-net-worth__chart"
         option={option}
         ariaLabel={ariaLabel}
+        arbitrateTouchScroll
       />
     </section>
   );
