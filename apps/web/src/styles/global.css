@@ -993,8 +993,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   max-width: 330px;
 }
 
-.auth-password-recovery-code-form,
-.auth-password-reset-form {
+.auth-password-recovery-code-form {
   gap: 12px;
 }
 
@@ -1014,10 +1013,6 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-password-recovery-error {
   margin: -2px 0 -8px;
-}
-
-.auth-password-reset-submit {
-  margin-top: 2px;
 }
 
 .auth-screen--registration-method {
