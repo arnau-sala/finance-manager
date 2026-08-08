@@ -169,6 +169,9 @@ Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 `PASSWORD_AND_GOOGLE` and records Google's verified email when none existed.
 Adding email login to Google changes the provider to `PASSWORD_AND_GOOGLE`
 without replacing the stable Google subject.
+Removing Google clears `googleSubject` and restores provider `PASSWORD`. The
+email remains when `emailLoginEnabled` is true; otherwise it is removed because
+it was only the verified identity supplied by Google for a username account.
 
 `AccountRecoveryCode` keeps the active unique hash and temporary nullable fields
 for a pending replacement, its hashed activation token, expiry, and optional

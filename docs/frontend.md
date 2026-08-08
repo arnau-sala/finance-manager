@@ -189,9 +189,16 @@ Profile actions are grouped into `Account`, `Security`, and `Session` sections.
 Account always starts with profile editing, followed by available Google,
 email, and username links. Once at least two sign-in methods exist, every
 linked method also has a red-icon `Unlink` row after the remaining link rows;
-these unlink controls are intentionally non-functional until their secure
-server flows are implemented. A Google-only account omits `Security` because it
-has neither a password nor a recovery code.
+email and username unlinking remain non-functional until their secure server
+flows are implemented. A Google-only account omits `Security` because it has
+neither a password nor a recovery code.
+
+`Unlink Google` is functional when another password-based method remains. Its
+confirmation copy lists the exact methods and email association that will
+remain. Continuing opens Google's account chooser; cancellation restores the
+confirmation, an identity mismatch opens a warning with the required address,
+and success returns directly to the updated Profile. Email and username unlink
+rows remain disabled placeholders.
 
 ### Buttons
 

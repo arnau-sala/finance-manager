@@ -380,3 +380,25 @@ export async function startGoogleAccountLink() {
 
   return body.authorizationUrl;
 }
+
+export async function startGoogleAccountUnlink() {
+  const response = await fetch("/api/account/google/unlink/start", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to unlink your Google account."
+    );
+  }
+
+  const body = (await response.json()) as GoogleAuthorizationStartResponse;
+
+  if (!body.authorizationUrl) {
+    throw new ApiRequestError("Unable to verify your Google account.", 500);
+  }
+
+  return body.authorizationUrl;
+}

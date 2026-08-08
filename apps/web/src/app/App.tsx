@@ -47,7 +47,8 @@ import type {
 import {
   HomePage,
   type GoogleAccountDeletionFeedback,
-  type GoogleAccountLinkFeedback
+  type GoogleAccountLinkFeedback,
+  type GoogleAccountUnlinkFeedback
 } from "../features/home/HomePage";
 import { StartingNetWorthPage } from "../features/onboarding/StartingNetWorthPage";
 
@@ -133,6 +134,8 @@ export function App() {
     useState<GoogleAccountDeletionFeedback | null>(null);
   const [googleAccountLinkFeedback, setGoogleAccountLinkFeedback] =
     useState<GoogleAccountLinkFeedback | null>(null);
+  const [googleAccountUnlinkFeedback, setGoogleAccountUnlinkFeedback] =
+    useState<GoogleAccountUnlinkFeedback | null>(null);
   const [isLogoutTransitionActive, setIsLogoutTransitionActive] =
     useState(false);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
@@ -146,6 +149,7 @@ export function App() {
   const initialGoogleAuthRef = useRef<string | null | undefined>(undefined);
   const initialAccountDeletionRef = useRef<string | null | undefined>(undefined);
   const initialAccountLinkRef = useRef<string | null | undefined>(undefined);
+  const initialAccountUnlinkRef = useRef<string | null | undefined>(undefined);
   const logoutTransitionActiveRef = useRef(false);
   const logoutTransitionTimerRef = useRef<number | null>(null);
   const openSessionExpiredDialog = useCallback(() => {
@@ -174,6 +178,12 @@ export function App() {
     ).searchParams.get("accountLink");
   }
 
+  if (initialAccountUnlinkRef.current === undefined) {
+    initialAccountUnlinkRef.current = new URL(
+      window.location.href
+    ).searchParams.get("accountUnlink");
+  }
+
   function returnToLanding() {
     clearStoredPasswordRecovery();
     setLoginIdentifier("");
@@ -195,15 +205,18 @@ export function App() {
     const googleAuth = initialGoogleAuthRef.current ?? null;
     const accountDeletion = initialAccountDeletionRef.current;
     const accountLink = initialAccountLinkRef.current;
+    const accountUnlink = initialAccountUnlinkRef.current;
 
     if (
       url.searchParams.has("googleAuth") ||
       url.searchParams.has("accountDeletion") ||
-      url.searchParams.has("accountLink")
+      url.searchParams.has("accountLink") ||
+      url.searchParams.has("accountUnlink")
     ) {
       url.searchParams.delete("googleAuth");
       url.searchParams.delete("accountDeletion");
       url.searchParams.delete("accountLink");
+      url.searchParams.delete("accountUnlink");
       window.history.replaceState(
         window.history.state,
         "",
@@ -267,6 +280,14 @@ export function App() {
             accountLink === "cancelled"
           ) {
             setGoogleAccountLinkFeedback(accountLink);
+          }
+          if (
+            accountUnlink === "success" ||
+            accountUnlink === "mismatch" ||
+            accountUnlink === "failed" ||
+            accountUnlink === "cancelled"
+          ) {
+            setGoogleAccountUnlinkFeedback(accountUnlink);
           }
           setSessionStatus("authenticated");
           return;
@@ -380,6 +401,7 @@ export function App() {
       (sessionUser.startingNetWorth === null ||
         googleAccountDeletionFeedback !== null ||
         googleAccountLinkFeedback !== null ||
+        googleAccountUnlinkFeedback !== null ||
         isInitialHomeReady));
 
   useEffect(() => {
@@ -759,6 +781,10 @@ export function App() {
             googleAccountLinkFeedback={googleAccountLinkFeedback}
             onGoogleAccountLinkFeedbackHandled={() =>
               setGoogleAccountLinkFeedback(null)
+            }
+            googleAccountUnlinkFeedback={googleAccountUnlinkFeedback}
+            onGoogleAccountUnlinkFeedbackHandled={() =>
+              setGoogleAccountUnlinkFeedback(null)
             }
           />
         </div>

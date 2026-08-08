@@ -15,12 +15,20 @@ export function EmailLinkSuccessPage({
 }: EmailLinkSuccessPageProps) {
   const methods = [
     ...(user.username
-      ? [{ id: "username", label: `Username: ${user.username}`, icon: <AtSign /> }]
+      ? [{ id: "username", label: user.username, icon: <AtSign /> }]
       : []),
-    { id: "email", label: `Email: ${user.email}`, icon: <Mail /> },
+    { id: "email", label: user.email ?? "Email linked", icon: <Mail /> },
     ...(user.authProvider === "GOOGLE" ||
     user.authProvider === "PASSWORD_AND_GOOGLE"
-      ? [{ id: "google", label: "Google", icon: <GoogleIcon /> }]
+      ? [
+          {
+            id: "google",
+            label: user.emailLoginEnabled
+              ? "Google account linked"
+              : (user.email ?? "Google account linked"),
+            icon: <GoogleIcon />
+          }
+        ]
       : [])
   ];
 

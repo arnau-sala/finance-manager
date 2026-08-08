@@ -41,6 +41,7 @@ import {
   resetRecoveryCode,
   startGoogleAccountLink,
   startGoogleAccountDeletion,
+  startGoogleAccountUnlink,
   updateProfile,
   type RecoveryCodeResetResult,
   type UpdateProfileInput,
@@ -69,11 +70,19 @@ type ProfilePageProps = {
     | "cancelled"
     | null;
   onGoogleAccountLinkFeedbackHandled: () => void;
+  googleAccountUnlinkFeedback:
+    | "success"
+    | "mismatch"
+    | "failed"
+    | "cancelled"
+    | null;
+  onGoogleAccountUnlinkFeedbackHandled: () => void;
 };
 
 type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
 type DeleteVerificationMethod = "google" | "password";
 type GoogleLinkDialogMode = "confirm" | "success" | "mismatch" | "failed";
+type GoogleUnlinkDialogMode = "confirm" | "mismatch" | "failed";
 
 const deleteVerificationOptions = [
   { value: "google", label: "Google" },
@@ -113,6 +122,22 @@ function formatStartingNetWorthInput(value: string | null) {
   return Number.isFinite(amount) ? String(amount).replace(".", ",") : "0";
 }
 
+function getGoogleUnlinkDescription(
+  user: Pick<SessionUser, "email" | "emailLoginEnabled" | "username">
+) {
+  const googleEmail = user.email ?? "your linked Google account";
+
+  if (user.username && user.emailLoginEnabled) {
+    return `Google sign-in will be removed.\nYou can still sign in with your username or email and password.\nYour account will remain linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
+  }
+
+  if (user.username) {
+    return `Google sign-in will be removed.\nYou will only be able to sign in with your username and password.\nYour account will no longer be linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
+  }
+
+  return `Google sign-in will be removed.\nYou will only be able to sign in with your email and password.\nYour account will remain linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
+}
+
 export function ProfilePage({
   user,
   onProfileUpdated,
@@ -126,7 +151,9 @@ export function ProfilePage({
   googleAccountDeletionFeedback,
   onGoogleAccountDeletionFeedbackHandled,
   googleAccountLinkFeedback,
-  onGoogleAccountLinkFeedbackHandled
+  onGoogleAccountLinkFeedbackHandled,
+  googleAccountUnlinkFeedback,
+  onGoogleAccountUnlinkFeedbackHandled
 }: ProfilePageProps) {
   const profileScrollRef = useRef<HTMLElement>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
@@ -168,6 +195,17 @@ export function ProfilePage({
     );
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
+  const [googleUnlinkDialogMode, setGoogleUnlinkDialogMode] =
+    useState<GoogleUnlinkDialogMode | null>(
+      googleAccountUnlinkFeedback === "cancelled"
+        ? "confirm"
+        : googleAccountUnlinkFeedback === "mismatch" ||
+            googleAccountUnlinkFeedback === "failed"
+          ? googleAccountUnlinkFeedback
+          : null
+    );
+  const [isUnlinkingGoogle, setIsUnlinkingGoogle] = useState(false);
+  const [googleUnlinkError, setGoogleUnlinkError] = useState<string | null>(null);
   const [isGoogleInfoOpen, setIsGoogleInfoOpen] = useState(false);
   const [isRecoveryCodeDialogOpen, setIsRecoveryCodeDialogOpen] =
     useState(false);
@@ -192,6 +230,12 @@ export function ProfilePage({
     hasGoogleAccess && !user.emailLoginEnabled;
   const showsGoogleProviderBadge =
     hasGoogleAccess && user.emailLoginEnabled;
+
+  useEffect(() => {
+    if (googleAccountUnlinkFeedback === "success") {
+      onGoogleAccountUnlinkFeedbackHandled();
+    }
+  }, [googleAccountUnlinkFeedback, onGoogleAccountUnlinkFeedbackHandled]);
   const deletesWithGoogle =
     user.authProvider === "GOOGLE" ||
     (user.authProvider === "PASSWORD_AND_GOOGLE" &&
@@ -560,6 +604,47 @@ export function ProfilePage({
     }
   }
 
+  function closeGoogleUnlinkDialog() {
+    if (isUnlinkingGoogle) {
+      return;
+    }
+
+    setGoogleUnlinkDialogMode(null);
+    setGoogleUnlinkError(null);
+    onGoogleAccountUnlinkFeedbackHandled();
+  }
+
+  async function confirmGoogleAccountUnlink() {
+    if (
+      isUnlinkingGoogle ||
+      !hasGoogleAccess ||
+      !canUnlinkMethods
+    ) {
+      return;
+    }
+
+    setGoogleUnlinkError(null);
+    setIsUnlinkingGoogle(true);
+    prefetchScheduler.prioritizeUserRequest();
+
+    try {
+      const authorizationUrl = await startGoogleAccountUnlink();
+      window.location.assign(authorizationUrl);
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
+      setGoogleUnlinkError(
+        error instanceof Error
+          ? error.message
+          : "Unable to unlink your Google account."
+      );
+      setIsUnlinkingGoogle(false);
+    }
+  }
+
   function openRecoveryCodeDialog() {
     setSignOutOtherDevices(false);
     setRecoveryCodeResetError(null);
@@ -779,6 +864,10 @@ export function ProfilePage({
                   label="Unlink Google"
                   icon={<GoogleIcon className="profile-action__google-icon" />}
                   tone="unlink"
+                  onClick={() => {
+                    setGoogleUnlinkError(null);
+                    setGoogleUnlinkDialogMode("confirm");
+                  }}
                 />
               ) : null}
               {canUnlinkMethods && hasEmailAccess ? (
@@ -1029,6 +1118,41 @@ export function ProfilePage({
         error={googleLinkError}
         onCancel={closeGoogleLinkDialog}
         onConfirm={confirmGoogleAccountLink}
+      />
+
+      <ConfirmDialog
+        open={googleUnlinkDialogMode !== null}
+        title={
+          googleUnlinkDialogMode === "mismatch"
+            ? "Incorrect Google account"
+            : googleUnlinkDialogMode === "failed"
+              ? "Google account not unlinked"
+              : "Unlink Google?"
+        }
+        description={
+          googleUnlinkDialogMode === "mismatch"
+            ? `Nothing was unlinked. Choose ${user.email}, the Google account linked to this profile.`
+            : googleUnlinkDialogMode === "failed"
+              ? `Nothing was unlinked. We couldn't verify ${user.email}. Try again.`
+              : getGoogleUnlinkDescription(user)
+        }
+        confirmLabel={
+          googleUnlinkDialogMode === "confirm" ? "Continue" : "Try again"
+        }
+        confirmingLabel="Opening..."
+        icon={
+          googleUnlinkDialogMode === "confirm" ? (
+            <GoogleIcon />
+          ) : (
+            <TriangleAlert />
+          )
+        }
+        tone={googleUnlinkDialogMode === "confirm" ? "default" : "warning"}
+        confirmTone="danger"
+        isConfirming={isUnlinkingGoogle}
+        error={googleUnlinkError}
+        onCancel={closeGoogleUnlinkDialog}
+        onConfirm={confirmGoogleAccountUnlink}
       />
 
       <ConfirmDialog

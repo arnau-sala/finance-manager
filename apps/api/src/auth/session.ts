@@ -12,6 +12,7 @@ declare module "@fastify/secure-session" {
     googleAuthActionToken: string;
     googleAccountDeletionState: string;
     googleAccountLinkState: string;
+    googleAccountUnlinkState: string;
   }
 }
 

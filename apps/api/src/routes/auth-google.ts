@@ -5,6 +5,7 @@ import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 
 import { deleteUserAccount } from "../account/delete-account.js";
+import { unlinkGoogleIdentityFromUser } from "../account/unlink-google.js";
 import { supportsGoogleAuthentication } from "../auth/auth-provider.js";
 import {
   cancelPendingGoogleAuthAction,
@@ -142,6 +143,15 @@ function getAccountLinkRedirectUrl(
   return url.toString();
 }
 
+function getAccountUnlinkRedirectUrl(
+  config: Pick<GoogleOAuthConfig, "webAppUrl">,
+  result: string,
+) {
+  const url = new URL(config.webAppUrl);
+  url.searchParams.set("accountUnlink", result);
+  return url.toString();
+}
+
 type GoogleAccountLinkResult = "success" | "mismatch" | "failed";
 
 async function linkGoogleIdentityToUser(
@@ -264,6 +274,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("sessionVersion", 0);
       request.session.set("googleAccountDeletionState", "");
       request.session.set("googleAccountLinkState", "");
+      request.session.set("googleAccountUnlinkState", "");
       request.session.set("googleOAuthState", state);
       request.session.set("googleOAuthIntent", intent);
 
@@ -323,6 +334,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("googleOAuthState", "");
       request.session.set("googleOAuthIntent", "");
       request.session.set("googleAccountLinkState", "");
+      request.session.set("googleAccountUnlinkState", "");
       request.session.set("googleAccountDeletionState", state);
 
       return reply.send({
@@ -387,7 +399,76 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("googleOAuthState", "");
       request.session.set("googleOAuthIntent", "");
       request.session.set("googleAccountDeletionState", "");
+      request.session.set("googleAccountUnlinkState", "");
       request.session.set("googleAccountLinkState", state);
+
+      return reply.send({
+        authorizationUrl: client.generateAuthUrl({
+          scope: ["openid", "email", "profile"],
+          state,
+          prompt: "select_account",
+        }),
+      });
+    },
+  );
+
+  app.post(
+    "/account/google/unlink/start",
+    { config: { rateLimit: accountLinkRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const config = getGoogleOAuthConfig();
+
+      if (!config) {
+        return reply.code(503).send({
+          error: "Google sign-in is not configured.",
+        });
+      }
+
+      const user = await db.user.findUnique({
+        where: { id: userId, sessionVersion },
+        select: {
+          username: true,
+          passwordHash: true,
+          emailLoginEnabled: true,
+          authProvider: true,
+          googleSubject: true,
+          status: true,
+        },
+      });
+
+      if (!user || user.status !== "APPROVED") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (
+        !supportsGoogleAuthentication(user.authProvider) ||
+        !user.googleSubject ||
+        !user.passwordHash ||
+        (!user.emailLoginEnabled && !user.username)
+      ) {
+        return reply.code(409).send({
+          error: "Google unlinking is unavailable for this account.",
+        });
+      }
+
+      const state = randomBytes(32).toString("hex");
+      const client = createGoogleClient(config);
+
+      await clearPendingPublicGoogleAction(request);
+      request.session.set("googleOAuthState", "");
+      request.session.set("googleOAuthIntent", "");
+      request.session.set("googleAccountDeletionState", "");
+      request.session.set("googleAccountLinkState", "");
+      request.session.set("googleAccountUnlinkState", state);
 
       return reply.send({
         authorizationUrl: client.generateAuthUrl({
@@ -498,10 +579,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       );
       const deletionFailureUrl = getAccountDeletionRedirectUrl(config, "failed");
       const linkFailureUrl = getAccountLinkRedirectUrl(config, "failed");
+      const unlinkFailureUrl = getAccountUnlinkRedirectUrl(config, "failed");
       const expectedDeletionState = request.session.get(
         "googleAccountDeletionState",
       );
       const expectedLinkState = request.session.get("googleAccountLinkState");
+      const expectedUnlinkState = request.session.get(
+        "googleAccountUnlinkState",
+      );
 
       if (!parsedQuery.success) {
         if (expectedDeletionState) {
@@ -512,6 +597,11 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         if (expectedLinkState) {
           request.session.set("googleAccountLinkState", "");
           return reply.redirect(linkFailureUrl);
+        }
+
+        if (expectedUnlinkState) {
+          request.session.set("googleAccountUnlinkState", "");
+          return reply.redirect(unlinkFailureUrl);
         }
 
         request.session.set("googleOAuthState", "");
@@ -533,6 +623,13 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
           request.session.set("googleAccountLinkState", "");
           return reply.redirect(
             getAccountLinkRedirectUrl(config, "cancelled"),
+          );
+        }
+
+        if (expectedUnlinkState) {
+          request.session.set("googleAccountUnlinkState", "");
+          return reply.redirect(
+            getAccountUnlinkRedirectUrl(config, "cancelled"),
           );
         }
 
@@ -655,6 +752,66 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
           return reply.redirect(getAccountLinkRedirectUrl(config, result));
         } catch {
           return reply.redirect(linkFailureUrl);
+        }
+      }
+
+      if (expectedUnlinkState) {
+        request.session.set("googleAccountUnlinkState", "");
+
+        if (
+          !parsedQuery.data.code ||
+          !parsedQuery.data.state ||
+          parsedQuery.data.state !== expectedUnlinkState
+        ) {
+          return reply.redirect(unlinkFailureUrl);
+        }
+
+        try {
+          const client = createGoogleClient(config);
+          const identity = await getVerifiedGoogleIdentity(
+            client,
+            parsedQuery.data.code,
+            config.clientId,
+          );
+          const activeUserId = request.session.get("userId");
+          const activeSessionVersion = request.session.get("sessionVersion");
+
+          if (
+            !identity ||
+            !activeUserId ||
+            activeSessionVersion === undefined
+          ) {
+            return reply.redirect(unlinkFailureUrl);
+          }
+
+          const result = await unlinkGoogleIdentityFromUser({
+            identity,
+            userId: activeUserId,
+            sessionVersion: activeSessionVersion,
+          });
+
+          if (result.type === "mismatch") {
+            return reply.redirect(
+              getAccountUnlinkRedirectUrl(config, "mismatch"),
+            );
+          }
+
+          if (result.type !== "success") {
+            if (result.type === "unauthenticated") {
+              request.session.delete();
+            }
+
+            return reply.redirect(unlinkFailureUrl);
+          }
+
+          request.session.regenerate();
+          request.session.set("userId", activeUserId);
+          request.session.set("sessionVersion", result.sessionVersion);
+          return reply.redirect(
+            getAccountUnlinkRedirectUrl(config, "success"),
+          );
+        } catch {
+          return reply.redirect(unlinkFailureUrl);
         }
       }
 

@@ -70,6 +70,7 @@ Authentication:
 - `POST /account/email/link/resend`
 - `POST /account/email/link/verify`
 - `POST /account/google/link/start`
+- `POST /account/google/unlink/start`
 - `DELETE /account`
 - `POST /account/google/delete/start`
 
@@ -462,6 +463,19 @@ verified Google email becomes its first email. In both cases the one-use
 link-specific OAuth `state` must be valid and the Google `sub` and email must
 not belong to another user. Success keeps the password hash, stores the Google
 subject, and changes `authProvider` to `PASSWORD_AND_GOOGLE`.
+
+An account with another password-based sign-in method can remove Google after
+reauthenticating with the exact linked Google identity:
+
+```http
+POST /account/google/unlink/start
+```
+
+The callback removes the stable Google subject and changes the provider to
+`PASSWORD`. Verified email login remains attached; when Google supplied the
+address only as metadata for a username account, that address is removed too.
+The operation increments `sessionVersion`, keeps the current browser signed in,
+and invalidates older sessions and pending Google authentication actions.
 
 ## Logout
 

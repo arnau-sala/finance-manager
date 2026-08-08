@@ -152,6 +152,15 @@ Email-linking decisions:
 - Google linking may establish a username account's first email only after
   Google verifies it. Accounts with an existing email must select that exact
   email, and every Google subject remains globally unique.
+- Google unlinking requires a valid authenticated session, a separate random
+  one-use OAuth state, and reauthentication with both the exact Google subject
+  and verified email already attached to the user. The server rejects removal
+  unless a username or verified email login plus password remains.
+- Successful unlinking atomically removes the Google subject, invalidates
+  pending Google authentication actions, and increments `sessionVersion`.
+  The callback updates the current encrypted session to the new version, while
+  sessions on other devices stop working. Google-only metadata email is
+  removed; a verified email login is retained.
 
 Login security decisions:
 
