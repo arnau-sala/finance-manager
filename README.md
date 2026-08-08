@@ -70,6 +70,10 @@ Authentication:
 - `DELETE /account/email/link`
 - `POST /account/email/link/resend`
 - `POST /account/email/link/verify`
+- `POST /account/email/unlink`
+- `DELETE /account/email/unlink`
+- `POST /account/email/unlink/resend`
+- `POST /account/email/unlink/verify`
 - `POST /account/google/link/start`
 - `POST /account/google/unlink/start`
 - `DELETE /account`
@@ -409,6 +413,27 @@ password hash. Alternatively,
 `POST /account/google/link/start` can link Google; for an account without an
 email, Google's verified address becomes its email and both password and
 Google authentication remain available.
+
+An account with email/password sign-in can remove that method only while a
+username or Google remains. `POST /account/email/unlink` sends a six-digit code
+to the current verified address. The code expires after 10 minutes, permits
+five attempts, and can be resent after 60 seconds through
+`POST /account/email/unlink/resend`. Confirmation uses:
+
+```http
+POST /account/email/unlink/verify
+Content-Type: application/json
+
+{ "code": "123456" }
+```
+
+Verification atomically consumes the code, increments `sessionVersion`, keeps
+the current browser signed in, and invalidates other sessions. Username
+accounts retain password access and remove the address when Google is not
+linked. Google-capable accounts retain the address as their Google identity but
+disable email/password login; when Google is the only remaining method, the
+unused password hash is also removed. Closing the verification dialog calls
+`DELETE /account/email/unlink` to cancel the pending code.
 
 ## Continue With Google
 

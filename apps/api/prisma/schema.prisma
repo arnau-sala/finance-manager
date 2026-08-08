@@ -69,6 +69,7 @@ model User {
   transactions            Transaction[]
   recoveryCode            AccountRecoveryCode?
   pendingEmailLink        PendingEmailLink?
+  pendingEmailUnlink      PendingEmailUnlink?
   emailLinkConflictNotice EmailLinkConflictNotice?
   pendingPasswordReset    PendingPasswordReset?
   passwordResetGrant      PasswordResetGrant?
@@ -154,6 +155,21 @@ model PendingEmailLink {
   email                String   @unique
   verificationCodeHash String   @db.Char(64)
   passwordHash         String?
+  verificationAttempts Int      @default(0)
+  expiresAt            DateTime
+  lastSentAt           DateTime
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+}
+
+model PendingEmailUnlink {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  email                String
+  verificationCodeHash String   @db.Char(64)
   verificationAttempts Int      @default(0)
   expiresAt            DateTime
   lastSentAt           DateTime

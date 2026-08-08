@@ -153,6 +153,19 @@ Email-linking decisions:
 - Successful verification updates the existing user. Unique constraints and an
   atomic final claim prevent two accounts from taking the same address. Email,
   username, and Google credentials already present are preserved.
+- Email unlinking is available only to an approved authenticated user with
+  enabled email/password sign-in and at least one other method. The target
+  address always comes from the session user and is never accepted from the
+  request body.
+- Email unlink codes are sent only to that current verified address, use a
+  separate account-and-email-bound HMAC scope, expire after 10 minutes, permit
+  five attempts, and enforce a persistent 60-second resend cooldown.
+- Confirmation atomically consumes the pending code, rechecks the remaining
+  username or Google method, invalidates password-reset state, increments
+  `sessionVersion`, and regenerates the current encrypted session.
+- A remaining username keeps its password. A remaining Google identity keeps
+  its verified address as Google metadata but cannot use it for password login;
+  when Google is the sole method, the unused password hash is removed.
 - Google linking may establish a username account's first email only after
   Google verifies it. Accounts with an existing email must select that exact
   email, and every Google subject remains globally unique.
@@ -300,6 +313,8 @@ Current limits:
 | Google linking | 5/15min | session/IP |
 | Email linking | 5/15min | session/IP |
 | Verify linked email | 10/15min | session/IP |
+| Email unlinking | 5/15min | session/IP |
+| Verify email unlink | 10/15min | session/IP |
 | Password changes | 5/15min | session/IP |
 | Replace recovery code | 5/15min | session/IP |
 | Account deletion | 5/15min | session/IP |

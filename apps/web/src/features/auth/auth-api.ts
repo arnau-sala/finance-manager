@@ -358,6 +358,71 @@ export async function cancelEmailLink() {
   }
 }
 
+export async function beginEmailUnlink() {
+  const response = await fetch("/api/account/email/unlink", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to send the verification code"
+    );
+  }
+}
+
+export async function resendEmailUnlinkCode() {
+  const response = await fetch("/api/account/email/unlink/resend", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to resend the verification code"
+    );
+  }
+}
+
+export async function verifyEmailUnlinkCode(code: string) {
+  const response = await fetch("/api/account/email/unlink/verify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({ code })
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(response, "Unable to unlink email");
+  }
+
+  const body = (await response.json()) as Partial<UpdateProfileResponse>;
+
+  if (!body.user) {
+    throw new ApiRequestError("Invalid email unlink response", 500);
+  }
+
+  return body.user;
+}
+
+export async function cancelEmailUnlink() {
+  const response = await fetch("/api/account/email/unlink", {
+    method: "DELETE",
+    credentials: "include"
+  });
+
+  if (!response.ok && response.status !== 401) {
+    throw await createApiRequestError(
+      response,
+      "Unable to cancel email unlinking"
+    );
+  }
+}
+
 export async function startGoogleAccountDeletion() {
   const response = await fetch("/api/account/google/delete/start", {
     method: "POST",

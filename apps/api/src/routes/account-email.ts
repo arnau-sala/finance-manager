@@ -11,6 +11,11 @@ import {
   verifyAccountEmailLink,
 } from "../account/email-link.js";
 import {
+  beginAccountEmailUnlink,
+  resendAccountEmailUnlinkCode,
+  verifyAccountEmailUnlink,
+} from "../account/email-unlink.js";
+import {
   authenticatedUserSelect,
   toAuthenticatedUserResponse,
 } from "../auth/authenticated-user.js";
@@ -22,7 +27,10 @@ import {
 import { db } from "../db/client.js";
 import {
   accountEmailLinkVerifyRateLimit,
+  accountEmailUnlinkRateLimit,
+  accountEmailUnlinkVerifyRateLimit,
   accountLinkRateLimit,
+  accountWriteRateLimit,
 } from "../security/rate-limit.js";
 
 const emailSchema = z
@@ -51,7 +59,7 @@ const beginEmailLinkBodySchema = z.union([
     }),
   z.object({}).strict(),
 ]);
-const verifyEmailLinkBodySchema = z
+const verifyEmailCodeBodySchema = z
   .object({ code: z.string().trim().regex(/^\d{6}$/) })
   .strict();
 
@@ -227,7 +235,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(401).send({ error: "Authentication required." });
       }
 
-      const parsedBody = verifyEmailLinkBodySchema.safeParse(request.body);
+      const parsedBody = verifyEmailCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
@@ -282,6 +290,204 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
       return reply.send({
         message: "Email linked successfully.",
         user: toAuthenticatedUserResponse(user),
+      });
+    },
+  );
+
+  app.delete(
+    "/account/email/unlink",
+    { config: { rateLimit: accountWriteRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const user = await db.user.findUnique({
+        where: { id: userId, sessionVersion, status: "APPROVED" },
+        select: { id: true },
+      });
+
+      if (!user) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      await db.pendingEmailUnlink.deleteMany({ where: { userId } });
+      return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    "/account/email/unlink",
+    { config: { rateLimit: accountEmailUnlinkRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      try {
+        const result = await beginAccountEmailUnlink({
+          userId,
+          sessionVersion,
+        });
+
+        if (result.type === "unauthenticated") {
+          request.session.delete();
+          return reply.code(401).send({ error: "Authentication required." });
+        }
+
+        if (result.type === "unavailable") {
+          return reply.code(409).send({
+            error: "Email unlinking is unavailable for this account.",
+          });
+        }
+      } catch (error) {
+        if (error instanceof EmailConfigurationError) {
+          request.log.error(error, "Email verification is not configured.");
+          return reply.code(503).send({
+            error: "Email verification is not configured.",
+          });
+        }
+
+        if (error instanceof EmailDeliveryError) {
+          request.log.error(error, "Email unlink code delivery failed.");
+          return reply.code(503).send({
+            error: "Verification code could not be sent. Please try again.",
+          });
+        }
+
+        throw error;
+      }
+
+      return reply.code(202).send({
+        message: "A verification code has been sent to your email.",
+      });
+    },
+  );
+
+  app.post(
+    "/account/email/unlink/resend",
+    { config: { rateLimit: accountEmailUnlinkRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      try {
+        const result = await resendAccountEmailUnlinkCode({
+          userId,
+          sessionVersion,
+        });
+
+        if (result.type === "unauthenticated") {
+          request.session.delete();
+          return reply.code(401).send({ error: "Authentication required." });
+        }
+
+        if (result.type === "unavailable") {
+          return reply.code(409).send({
+            error: "Email unlinking is unavailable for this account.",
+          });
+        }
+      } catch (error) {
+        if (error instanceof EmailConfigurationError) {
+          request.log.error(error, "Email verification is not configured.");
+          return reply.code(503).send({
+            error: "Email verification is not configured.",
+          });
+        }
+
+        if (error instanceof EmailDeliveryError) {
+          request.log.error(error, "Email unlink code delivery failed.");
+          return reply.code(503).send({
+            error: "Verification code could not be sent. Please try again.",
+          });
+        }
+
+        throw error;
+      }
+
+      return reply.code(202).send({
+        message: "A verification code has been sent to your email.",
+      });
+    },
+  );
+
+  app.post(
+    "/account/email/unlink/verify",
+    { config: { rateLimit: accountEmailUnlinkVerifyRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = verifyEmailCodeBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid or expired verification code.",
+        });
+      }
+
+      let result;
+
+      try {
+        result = await verifyAccountEmailUnlink({
+          userId,
+          sessionVersion,
+          code: parsedBody.data.code,
+        });
+      } catch (error) {
+        if (error instanceof EmailConfigurationError) {
+          request.log.error(error, "Email verification is not configured.");
+          return reply.code(503).send({
+            error: "Email verification is not configured.",
+          });
+        }
+
+        throw error;
+      }
+
+      if (result.type === "invalid") {
+        return reply.code(400).send({
+          error: "Invalid or expired verification code.",
+        });
+      }
+
+      if (result.type === "unauthenticated") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (result.type === "unavailable") {
+        return reply.code(409).send({
+          error: "Email unlinking is unavailable for this account.",
+        });
+      }
+
+      request.session.regenerate();
+      request.session.set("userId", userId);
+      request.session.set("sessionVersion", result.user.sessionVersion);
+
+      return reply.send({
+        message: "Email unlinked successfully.",
+        user: toAuthenticatedUserResponse(result.user),
       });
     },
   );

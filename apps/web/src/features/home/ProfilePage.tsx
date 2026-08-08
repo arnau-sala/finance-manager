@@ -27,6 +27,7 @@ import {
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ActionButton } from "../../components/ui/ActionButton";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { formatErrorMessage } from "../../components/ui/error-message";
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { formatEuroAmount } from "../../money/format-euro";
@@ -37,18 +38,27 @@ import {
 } from "../../money/starting-net-worth-validation";
 import {
   ApiRequestError,
+  beginEmailUnlink,
+  cancelEmailUnlink,
   deleteAccount,
+  resendEmailUnlinkCode,
   resetRecoveryCode,
   startGoogleAccountLink,
   startGoogleAccountDeletion,
   startGoogleAccountUnlink,
   unlinkUsername,
   updateProfile,
+  verifyEmailUnlinkCode,
   type RecoveryCodeResetResult,
   type UpdateProfileInput,
   type SessionUser
 } from "../auth/auth-api";
 import { AuthPasswordField } from "../auth/AuthPasswordField";
+import {
+  EMAIL_VERIFICATION_CODE_LENGTH,
+  EmailVerificationCodeInput,
+  EmailVerificationResendButton
+} from "../auth/EmailVerificationCodeInput";
 import { validateAccountPassword } from "../auth/password-validation";
 import { validateUserName } from "../auth/user-name-validation";
 
@@ -84,6 +94,7 @@ type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
 type DeleteVerificationMethod = "google" | "password";
 type GoogleLinkDialogMode = "confirm" | "success" | "mismatch" | "failed";
 type GoogleUnlinkDialogMode = "confirm" | "mismatch" | "failed";
+type EmailUnlinkDialogMode = "confirm" | "code";
 
 const deleteVerificationOptions = [
   { value: "google", label: "Google" },
@@ -159,6 +170,23 @@ function getUsernameUnlinkDescription(
   return `Sign-in with your username and password will be removed.\nYou will only be able to sign in with Google as ${email}.\nYour recovery code will also stop working.`;
 }
 
+function getEmailUnlinkDescription(
+  user: Pick<SessionUser, "authProvider" | "email" | "username">
+) {
+  const email = user.email ?? "your linked email";
+  const hasGoogle = user.authProvider !== "PASSWORD";
+
+  if (user.username && hasGoogle) {
+    return `Sign-in with ${email} and password will be removed.\nYou can still sign in with your username and password or Google.\n${email} will remain linked to your Google sign-in.\n\nA confirmation code will be sent to ${email}.`;
+  }
+
+  if (user.username) {
+    return `Sign-in with ${email} and password will be removed.\nYou will only be able to sign in with your username and password.\nThe email address will be removed from this account.\n\nA confirmation code will be sent to ${email}.`;
+  }
+
+  return `Sign-in with ${email} and password will be removed.\nYou will only be able to sign in with Google as ${email}.\nYour Finance Manager password will also be removed.\n\nA confirmation code will be sent to ${email}.`;
+}
+
 export function ProfilePage({
   user,
   onProfileUpdated,
@@ -227,6 +255,16 @@ export function ProfilePage({
     );
   const [isUnlinkingGoogle, setIsUnlinkingGoogle] = useState(false);
   const [googleUnlinkError, setGoogleUnlinkError] = useState<string | null>(null);
+  const emailUnlinkCodeInputRef = useRef<HTMLInputElement>(null);
+  const [emailUnlinkDialogMode, setEmailUnlinkDialogMode] =
+    useState<EmailUnlinkDialogMode | null>(null);
+  const [isUnlinkingEmail, setIsUnlinkingEmail] = useState(false);
+  const [isCancellingEmailUnlink, setIsCancellingEmailUnlink] = useState(false);
+  const [isResendingEmailUnlinkCode, setIsResendingEmailUnlinkCode] =
+    useState(false);
+  const [emailUnlinkCode, setEmailUnlinkCode] = useState("");
+  const [emailUnlinkError, setEmailUnlinkError] = useState<string | null>(null);
+  const [emailUnlinkStatus, setEmailUnlinkStatus] = useState<string | null>(null);
   const [isUsernameUnlinkDialogOpen, setIsUsernameUnlinkDialogOpen] =
     useState(false);
   const [isUnlinkingUsername, setIsUnlinkingUsername] = useState(false);
@@ -673,6 +711,126 @@ export function ProfilePage({
     }
   }
 
+  function resetEmailUnlinkDialog() {
+    setEmailUnlinkDialogMode(null);
+    setEmailUnlinkCode("");
+    setEmailUnlinkError(null);
+    setEmailUnlinkStatus(null);
+    setIsCancellingEmailUnlink(false);
+    setIsResendingEmailUnlinkCode(false);
+  }
+
+  async function closeEmailUnlinkDialog() {
+    if (
+      isUnlinkingEmail ||
+      isCancellingEmailUnlink ||
+      isResendingEmailUnlinkCode
+    ) {
+      return;
+    }
+
+    if (emailUnlinkDialogMode === "code") {
+      setEmailUnlinkError(null);
+      setEmailUnlinkStatus("Cancelling...");
+      setIsCancellingEmailUnlink(true);
+
+      try {
+        await cancelEmailUnlink();
+      } catch (error) {
+        setEmailUnlinkError(
+          error instanceof Error
+            ? error.message
+            : "Unable to cancel email unlinking."
+        );
+        setIsCancellingEmailUnlink(false);
+        return;
+      }
+    }
+
+    resetEmailUnlinkDialog();
+  }
+
+  async function confirmEmailUnlink(event?: FormEvent) {
+    event?.preventDefault();
+
+    if (
+      isUnlinkingEmail ||
+      isCancellingEmailUnlink ||
+      isResendingEmailUnlinkCode ||
+      !canUnlinkMethods ||
+      !hasEmailAccess ||
+      !user.email
+    ) {
+      return;
+    }
+
+    if (
+      emailUnlinkDialogMode === "code" &&
+      emailUnlinkCode.length !== EMAIL_VERIFICATION_CODE_LENGTH
+    ) {
+      return;
+    }
+
+    setEmailUnlinkError(null);
+    setEmailUnlinkStatus(null);
+    setIsUnlinkingEmail(true);
+    prefetchScheduler.prioritizeUserRequest();
+
+    try {
+      if (emailUnlinkDialogMode === "confirm") {
+        await beginEmailUnlink();
+        setEmailUnlinkCode("");
+        setEmailUnlinkDialogMode("code");
+      } else if (emailUnlinkDialogMode === "code") {
+        const updatedUser = await verifyEmailUnlinkCode(emailUnlinkCode);
+        onProfileUpdated(updatedUser);
+        resetEmailUnlinkDialog();
+      }
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        resetEmailUnlinkDialog();
+        onSessionExpired();
+        return;
+      }
+
+      if (
+        emailUnlinkDialogMode === "code" &&
+        error instanceof ApiRequestError &&
+        error.status === 400
+      ) {
+        setEmailUnlinkCode("");
+        window.requestAnimationFrame(() => {
+          emailUnlinkCodeInputRef.current?.focus({ preventScroll: true });
+        });
+      }
+
+      setEmailUnlinkError(
+        error instanceof Error ? error.message : "Unable to unlink email."
+      );
+    } finally {
+      setIsUnlinkingEmail(false);
+    }
+  }
+
+  async function resendEmailUnlinkVerificationCode() {
+    prefetchScheduler.prioritizeUserRequest();
+    await resendEmailUnlinkCode();
+  }
+
+  function handleEmailUnlinkResendError(error: unknown) {
+    if (error instanceof ApiRequestError && error.status === 401) {
+      resetEmailUnlinkDialog();
+      onSessionExpired();
+      return;
+    }
+
+    setEmailUnlinkError(
+      error instanceof Error
+        ? error.message
+        : "Unable to resend the verification code."
+    );
+  }
+
   function closeUsernameUnlinkDialog() {
     if (isUnlinkingUsername) {
       return;
@@ -957,6 +1115,12 @@ export function ProfilePage({
                   label="Unlink email"
                   icon={<Mail />}
                   tone="unlink"
+                  onClick={() => {
+                    setEmailUnlinkCode("");
+                    setEmailUnlinkError(null);
+                    setEmailUnlinkStatus(null);
+                    setEmailUnlinkDialogMode("confirm");
+                  }}
                 />
               ) : null}
               {canUnlinkMethods && hasUsernameAccess ? (
@@ -1241,6 +1405,101 @@ export function ProfilePage({
         onCancel={closeGoogleUnlinkDialog}
         onConfirm={confirmGoogleAccountUnlink}
       />
+
+      <ConfirmDialog
+        open={emailUnlinkDialogMode !== null}
+        title={
+          emailUnlinkDialogMode === "code"
+            ? "Enter verification code"
+            : "Unlink email?"
+        }
+        description={
+          emailUnlinkDialogMode === "code"
+            ? `Enter the 6-digit code sent to\n${user.email}.`
+            : getEmailUnlinkDescription(user)
+        }
+        confirmLabel={
+          emailUnlinkDialogMode === "code" ? "Unlink email" : "Continue"
+        }
+        confirmingLabel={
+          emailUnlinkDialogMode === "code" ? "Unlinking..." : "Sending..."
+        }
+        icon={<Mail />}
+        tone="danger"
+        confirmTone="danger"
+        isConfirming={isUnlinkingEmail}
+        interactionLocked={
+          isCancellingEmailUnlink || isResendingEmailUnlinkCode
+        }
+        confirmDisabled={
+          emailUnlinkDialogMode === "code" &&
+          emailUnlinkCode.length !== EMAIL_VERIFICATION_CODE_LENGTH
+        }
+        error={
+          emailUnlinkDialogMode === "confirm" ? emailUnlinkError : null
+        }
+        onCancel={closeEmailUnlinkDialog}
+        onConfirm={confirmEmailUnlink}
+      >
+        {emailUnlinkDialogMode === "code" ? (
+          <form
+            className="confirm-dialog__form confirm-dialog__email-code-form"
+            noValidate
+            onSubmit={confirmEmailUnlink}
+          >
+            <EmailVerificationCodeInput
+              ref={emailUnlinkCodeInputRef}
+              id="unlink-email-code"
+              value={emailUnlinkCode}
+              invalid={emailUnlinkError !== null}
+              disabled={
+                isUnlinkingEmail ||
+                isCancellingEmailUnlink ||
+                isResendingEmailUnlinkCode
+              }
+              tone="danger"
+              describedBy="unlink-email-code-feedback"
+              onChange={(value) => {
+                setEmailUnlinkCode(value);
+                setEmailUnlinkError(null);
+                setEmailUnlinkStatus(null);
+              }}
+            />
+
+            <p className="auth-verification-expiry">
+              The code expires in 10 minutes
+            </p>
+
+            <p
+              id="unlink-email-code-feedback"
+              className={`auth-field-message auth-verification-feedback${
+                emailUnlinkError ? " auth-field-message--error" : ""
+              }`}
+              role={emailUnlinkError ? "alert" : "status"}
+              aria-live="polite"
+            >
+              {emailUnlinkError
+                ? formatErrorMessage(emailUnlinkError)
+                : (emailUnlinkStatus ?? "\u00a0")}
+            </p>
+
+            <EmailVerificationResendButton
+              disabled={isUnlinkingEmail || isCancellingEmailUnlink}
+              tone="danger"
+              onResend={resendEmailUnlinkVerificationCode}
+              onResendStart={() => {
+                setEmailUnlinkError(null);
+                setEmailUnlinkStatus(null);
+              }}
+              onResendSuccess={() =>
+                setEmailUnlinkStatus("A new code has been sent")
+              }
+              onResendError={handleEmailUnlinkResendError}
+              onBusyChange={setIsResendingEmailUnlinkCode}
+            />
+          </form>
+        ) : null}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={isUsernameUnlinkDialogOpen}

@@ -1704,6 +1704,13 @@ body.app-logout-transition .confirm-dialog-backdrop {
   box-shadow: none;
 }
 
+.auth-verification-code--danger.is-focused
+  .auth-verification-boxes
+  > span.is-active {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+
 .auth-verification-code.is-invalid .auth-verification-boxes > span {
   border-color: var(--color-danger);
 }
@@ -1740,6 +1747,14 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-verification-resend:disabled {
   color: var(--color-text-muted);
   cursor: default;
+}
+
+.auth-verification-resend--danger:not(:disabled) {
+  color: var(--color-danger);
+}
+
+.auth-verification-resend--danger:focus-visible {
+  outline-color: color-mix(in srgb, var(--color-danger) 25%, transparent);
 }
 
 .auth-screen--recovery-code {
@@ -7103,6 +7118,10 @@ button.transaction-row__content:focus-visible {
   gap: 7px;
   margin-top: 18px;
   text-align: left;
+}
+
+.confirm-dialog__email-code-form {
+  gap: 12px;
 }
 
 .confirm-dialog__verification-method {

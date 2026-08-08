@@ -150,6 +150,12 @@ Argon2id hash until verification. Successful verification deletes the row,
 assigns or confirms the email on the existing `User`, and enables email login
 rather than creating another account.
 
+`PendingEmailUnlink` stores at most one email-removal confirmation per user.
+It binds a six-digit code to the current user and email through a scoped HMAC,
+tracks its 10-minute expiry and five-attempt limit, and persists the 60-second
+resend cooldown. The row cascades on account deletion and is consumed
+atomically when email/password sign-in is removed.
+
 `EmailLinkConflictNotice` stores only the last conflict-notice delivery time
 for an existing user. Its unique user relation enforces a 24-hour target-level
 cooldown even when attempts come from different requesters, sessions, or IPs.
@@ -172,6 +178,11 @@ Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 `PASSWORD_AND_GOOGLE` and records Google's verified email when none existed.
 Adding email login to Google changes the provider to `PASSWORD_AND_GOOGLE`
 without replacing the stable Google subject.
+Removing email login requires another sign-in method and rotates the session
+version. A username-only remainder clears the email and keeps the password. A
+Google-capable remainder keeps the verified email for Google while disabling
+email login; if Google is the only remaining method, the unused password hash
+is cleared and the provider becomes `GOOGLE`.
 Removing Google clears `googleSubject` and restores provider `PASSWORD`. The
 email remains when `emailLoginEnabled` is true; otherwise it is removed because
 it was only the verified identity supplied by Google for a username account.

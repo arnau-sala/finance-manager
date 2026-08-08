@@ -1,8 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
+import {
+  EMAIL_VERIFICATION_CODE_LENGTH,
+  EmailVerificationCodeInput,
+  EmailVerificationResendButton
+} from "./EmailVerificationCodeInput";
 
 type EmailVerificationPageProps = {
   email: string;
@@ -15,19 +20,6 @@ type EmailVerificationPageProps = {
   onResendCode: () => void | Promise<void>;
 };
 
-const CODE_LENGTH = 6;
-const RESEND_COOLDOWN_MS = 60_000;
-
-function sanitizeCode(value: string) {
-  return value.replace(/\D/g, "").slice(0, CODE_LENGTH);
-}
-
-function formatCountdown(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-}
-
 export function EmailVerificationPage({
   email,
   idPrefix = "email-verification",
@@ -39,37 +31,18 @@ export function EmailVerificationPage({
   onResendCode
 }: EmailVerificationPageProps) {
   const [code, setCode] = useState("");
-  const [isCodeFocused, setIsCodeFocused] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [resendAvailableAt, setResendAvailableAt] = useState(
-    () => Date.now() + RESEND_COOLDOWN_MS
-  );
-  const [now, setNow] = useState(() => Date.now());
   const codeInputRef = useRef<HTMLInputElement>(null);
   const titleId = `${idPrefix}-title`;
   const codeInputId = `${idPrefix}-code`;
   const feedbackId = `${idPrefix}-feedback`;
-  const remainingSeconds = Math.max(
-    0,
-    Math.ceil((resendAvailableAt - now) / 1_000)
-  );
-
-  useEffect(() => {
-    if (remainingSeconds === 0) {
-      return;
-    }
-
-    const timer = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(timer);
-  }, [remainingSeconds]);
-
   async function handleVerify(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (isVerifying || code.length !== CODE_LENGTH) {
+    if (isVerifying || code.length !== EMAIL_VERIFICATION_CODE_LENGTH) {
       return;
     }
 
@@ -91,31 +64,6 @@ export function EmailVerificationPage({
       });
     } finally {
       setIsVerifying(false);
-    }
-  }
-
-  async function handleResend() {
-    if (isResending || remainingSeconds > 0) {
-      return;
-    }
-
-    setFormError(null);
-    setStatusMessage(null);
-    setIsResending(true);
-
-    try {
-      await onResendCode();
-      setResendAvailableAt(Date.now() + RESEND_COOLDOWN_MS);
-      setNow(Date.now());
-      setStatusMessage("A new code has been sent");
-    } catch (error) {
-      setFormError(
-        error instanceof Error
-          ? error.message
-          : "Unable to resend the code. Please try again"
-      );
-    } finally {
-      setIsResending(false);
     }
   }
 
@@ -161,56 +109,19 @@ export function EmailVerificationPage({
         </header>
 
         <form className="auth-verification-form" noValidate onSubmit={handleVerify}>
-          <label className="sr-only" htmlFor={codeInputId}>
-            Verification code
-          </label>
-          <div
-            className={`auth-verification-code${
-              isCodeFocused ? " is-focused" : ""
-            }${formError ? " is-invalid" : ""}`}
-          >
-            <input
-              ref={codeInputRef}
-              id={codeInputId}
-              name="one-time-code"
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              autoComplete="one-time-code"
-              enterKeyHint="done"
-              value={code}
-              maxLength={CODE_LENGTH}
-              aria-invalid={formError !== null}
-              aria-describedby={feedbackId}
-              onFocus={() => setIsCodeFocused(true)}
-              onBlur={() => setIsCodeFocused(false)}
-              onChange={(event) => {
-                setCode(sanitizeCode(event.target.value));
-                setFormError(null);
-                setStatusMessage(null);
-              }}
-            />
-
-            <div className="auth-verification-boxes" aria-hidden="true">
-              {Array.from({ length: CODE_LENGTH }, (_, index) => {
-                const digit = code[index] ?? "";
-                const isActive =
-                  isCodeFocused &&
-                  index === Math.min(code.length, CODE_LENGTH - 1);
-
-                return (
-                  <span
-                    key={index}
-                    className={`${digit ? "is-filled" : ""}${
-                      isActive ? " is-active" : ""
-                    }`}
-                  >
-                    {digit}
-                  </span>
-                );
-              })}
-            </div>
-          </div>
+          <EmailVerificationCodeInput
+            ref={codeInputRef}
+            id={codeInputId}
+            value={code}
+            invalid={formError !== null}
+            disabled={isVerifying || isResending}
+            describedBy={feedbackId}
+            onChange={(value) => {
+              setCode(value);
+              setFormError(null);
+              setStatusMessage(null);
+            }}
+          />
 
           <p className="auth-verification-expiry">
             The code expires in 10 minutes
@@ -232,23 +143,34 @@ export function EmailVerificationPage({
           <ActionButton
             className="auth-primary-button auth-verification-submit"
             type="submit"
-            disabled={isVerifying || code.length !== CODE_LENGTH}
+            disabled={
+              isVerifying ||
+              isResending ||
+              code.length !== EMAIL_VERIFICATION_CODE_LENGTH
+            }
           >
             {isVerifying ? verifyingLabel : verifyLabel}
           </ActionButton>
 
-          <button
-            className="auth-verification-resend"
-            type="button"
-            disabled={isResending || remainingSeconds > 0}
-            onClick={handleResend}
-          >
-            {isResending
-              ? "Sending..."
-              : remainingSeconds > 0
-                ? `Resend code in ${formatCountdown(remainingSeconds)}`
-                : "Resend code"}
-          </button>
+          <EmailVerificationResendButton
+            disabled={isVerifying}
+            onResend={onResendCode}
+            onResendStart={() => {
+              setFormError(null);
+              setStatusMessage(null);
+            }}
+            onResendSuccess={() =>
+              setStatusMessage("A new code has been sent")
+            }
+            onResendError={(error) =>
+              setFormError(
+                error instanceof Error
+                  ? error.message
+                  : "Unable to resend the code. Please try again"
+              )
+            }
+            onBusyChange={setIsResending}
+          />
         </form>
       </section>
     </main>

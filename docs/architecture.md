@@ -60,6 +60,7 @@ The active database models cover authentication and financial records:
 - `PendingRegistration`
 - `AccountRecoveryCode`
 - `PendingEmailLink`
+- `PendingEmailUnlink`
 - `EmailLinkConflictNotice`
 - `PendingPasswordReset`
 - `PasswordResetGrant`
@@ -189,6 +190,10 @@ claimed. Sessions last up to seven days, and logout deletes the current cookie.
 linking, recovery-code rotation, and password-confirmed deletion. `routes/account-email.ts` and
 `account/email-link.ts` own the authenticated six-digit flow that enables
 email/password sign-in for username, Google, or username-and-Google accounts.
+The same route module delegates email removal to `account/email-unlink.ts`,
+which issues a separately scoped code to the current verified address and
+atomically removes only the email/password method after another sign-in method
+has been rechecked.
 `routes/auth-google.ts` owns public Google sign-in plus authenticated account
 linking, unlinking, and Google-capable deletion reauthentication. Google unlink
 uses its own session-bound OAuth state and delegates the account mutation to

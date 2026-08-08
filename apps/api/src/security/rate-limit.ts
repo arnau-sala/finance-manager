@@ -147,6 +147,22 @@ export const accountEmailLinkVerifyRateLimit = {
     getSessionOrIpKey(request, "account-email-link-verify"),
 };
 
+export const accountEmailUnlinkRateLimit = {
+  hook: "preHandler" as const,
+  max: 5,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "account-email-unlink"),
+};
+
+export const accountEmailUnlinkVerifyRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "account-email-unlink-verify"),
+};
+
 export const passwordChangeRateLimit = {
   hook: "preHandler" as const,
   max: 5,

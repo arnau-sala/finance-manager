@@ -189,8 +189,8 @@ Profile actions are grouped into `Account`, `Security`, and `Session` sections.
 Account always starts with profile editing, followed by available Google,
 email, and username links. Once at least two sign-in methods exist, every
 linked method also has a red-icon `Unlink` row after the remaining link rows;
-email and username unlinking remain non-functional until their secure server
-flows are implemented. A Google-only account omits `Security` because it has
+all three unlink actions use secure server-confirmed flows. A Google-only
+account omits `Security` because it has
 neither a password nor a recovery code.
 
 `Unlink Google` is functional when another password-based method remains. Its
@@ -200,7 +200,11 @@ confirmation, an identity mismatch opens a warning with the required address,
 and success returns directly to the updated Profile. `Unlink username` uses the
 same password-confirmation field as account deletion, explains the remaining
 methods, and returns the updated Profile without a navigation. Email unlink
-remains a disabled placeholder.
+first explains which username and Google methods will remain, then sends a
+six-digit code to the current address. Its confirmation modal reuses the shared
+one-time-code cells, expiry, errors, and resend cooldown with destructive red
+accents. Success rotates sessions and returns the updated Profile without a
+navigation.
 
 ### Buttons
 
@@ -960,6 +964,10 @@ MVP content:
   create a password; username-and-Google accounts confirm the address and skip
   password creation. Every path reuses the six-cell verification screen and
   finishes with the complete list of available sign-in methods.
+- Accounts with another sign-in method can unlink email through two focused
+  dialogs. The first describes the exact remaining methods; Continue sends the
+  code. The second accepts the six-digit code, supports resend after 60 seconds,
+  and keeps the destructive controls and active code cell red.
 - Back removes only the current linking step with the reverse transition. The
   final confirmation has no Back action and returns to Profile through `Done`.
 - Confirmed logout.
