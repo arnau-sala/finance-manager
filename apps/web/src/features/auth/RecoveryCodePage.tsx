@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { Check, Copy, KeyRound, ShieldCheck } from "lucide-react";
 
 import { ActionButton } from "../../components/ui/ActionButton";
@@ -199,19 +199,26 @@ export function RecoveryCodePage({
             type="button"
             disabled={isContinuing}
             aria-disabled={!isContinueReady || isContinuing}
+            style={
+              {
+                "--recovery-code-ready-delay": `${continueDelayMs}ms`
+              } as CSSProperties
+            }
             onClick={handleContinue}
           >
-            {isContinuing
-              ? isPasswordReset
-                ? "Returning..."
-                : isRecoveryReset
-                  ? "Closing..."
-                : "Opening account..."
-              : isPasswordReset
-                ? "Back to sign in"
-                : isRecoveryReset
-                  ? "Done"
-                : "Continue"}
+            <span className="auth-recovery-code-continue__label">
+              {isContinuing
+                ? isPasswordReset
+                  ? "Returning..."
+                  : isRecoveryReset
+                    ? "Closing..."
+                    : "Opening account..."
+                : isPasswordReset
+                  ? "Back to sign in"
+                  : isRecoveryReset
+                    ? "Done"
+                    : "Continue"}
+            </span>
           </ActionButton>
 
           <p
