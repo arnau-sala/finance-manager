@@ -204,7 +204,9 @@ first explains which username and Google methods will remain, then sends a
 six-digit code to the current address. Its confirmation modal reuses the shared
 one-time-code cells, expiry, errors, and resend cooldown with destructive red
 accents. Success rotates sessions and returns the updated Profile without a
-navigation.
+navigation. Every successful Google, email, or username unlink then replaces
+its confirmation state with a matching informational dialog: a confirmation
+icon, concise removed-method message, and one `Done` action.
 
 ### Buttons
 

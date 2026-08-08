@@ -93,8 +93,9 @@ type ProfilePageProps = {
 type DeleteDialogMode = "confirm" | "mismatch" | "failed" | "rate-limited";
 type DeleteVerificationMethod = "google" | "password";
 type GoogleLinkDialogMode = "confirm" | "success" | "mismatch" | "failed";
-type GoogleUnlinkDialogMode = "confirm" | "mismatch" | "failed";
-type EmailUnlinkDialogMode = "confirm" | "code";
+type GoogleUnlinkDialogMode = "confirm" | "success" | "mismatch" | "failed";
+type EmailUnlinkDialogMode = "confirm" | "code" | "success";
+type UsernameUnlinkDialogMode = "confirm" | "success";
 
 const deleteVerificationOptions = [
   { value: "google", label: "Google" },
@@ -248,7 +249,8 @@ export function ProfilePage({
     useState<GoogleUnlinkDialogMode | null>(
       googleAccountUnlinkFeedback === "cancelled"
         ? "confirm"
-        : googleAccountUnlinkFeedback === "mismatch" ||
+        : googleAccountUnlinkFeedback === "success" ||
+            googleAccountUnlinkFeedback === "mismatch" ||
             googleAccountUnlinkFeedback === "failed"
           ? googleAccountUnlinkFeedback
           : null
@@ -265,8 +267,8 @@ export function ProfilePage({
   const [emailUnlinkCode, setEmailUnlinkCode] = useState("");
   const [emailUnlinkError, setEmailUnlinkError] = useState<string | null>(null);
   const [emailUnlinkStatus, setEmailUnlinkStatus] = useState<string | null>(null);
-  const [isUsernameUnlinkDialogOpen, setIsUsernameUnlinkDialogOpen] =
-    useState(false);
+  const [usernameUnlinkDialogMode, setUsernameUnlinkDialogMode] =
+    useState<UsernameUnlinkDialogMode | null>(null);
   const [isUnlinkingUsername, setIsUnlinkingUsername] = useState(false);
   const [usernameUnlinkPassword, setUsernameUnlinkPassword] = useState("");
   const [usernameUnlinkError, setUsernameUnlinkError] = useState<string | null>(
@@ -297,11 +299,6 @@ export function ProfilePage({
   const showsGoogleProviderBadge =
     hasGoogleAccess && user.emailLoginEnabled;
 
-  useEffect(() => {
-    if (googleAccountUnlinkFeedback === "success") {
-      onGoogleAccountUnlinkFeedbackHandled();
-    }
-  }, [googleAccountUnlinkFeedback, onGoogleAccountUnlinkFeedbackHandled]);
   const deletesWithGoogle =
     user.authProvider === "GOOGLE" ||
     (user.authProvider === "PASSWORD_AND_GOOGLE" &&
@@ -681,6 +678,11 @@ export function ProfilePage({
   }
 
   async function confirmGoogleAccountUnlink() {
+    if (googleUnlinkDialogMode === "success") {
+      closeGoogleUnlinkDialog();
+      return;
+    }
+
     if (
       isUnlinkingGoogle ||
       !hasGoogleAccess ||
@@ -753,6 +755,11 @@ export function ProfilePage({
   async function confirmEmailUnlink(event?: FormEvent) {
     event?.preventDefault();
 
+    if (emailUnlinkDialogMode === "success") {
+      resetEmailUnlinkDialog();
+      return;
+    }
+
     if (
       isUnlinkingEmail ||
       isCancellingEmailUnlink ||
@@ -784,7 +791,10 @@ export function ProfilePage({
       } else if (emailUnlinkDialogMode === "code") {
         const updatedUser = await verifyEmailUnlinkCode(emailUnlinkCode);
         onProfileUpdated(updatedUser);
-        resetEmailUnlinkDialog();
+        setEmailUnlinkCode("");
+        setEmailUnlinkError(null);
+        setEmailUnlinkStatus(null);
+        setEmailUnlinkDialogMode("success");
       }
     } catch (error) {
       if (error instanceof ApiRequestError && error.status === 401) {
@@ -836,13 +846,18 @@ export function ProfilePage({
       return;
     }
 
-    setIsUsernameUnlinkDialogOpen(false);
+    setUsernameUnlinkDialogMode(null);
     setUsernameUnlinkPassword("");
     setUsernameUnlinkError(null);
   }
 
   async function confirmUsernameUnlink(event?: FormEvent) {
     event?.preventDefault();
+
+    if (usernameUnlinkDialogMode === "success") {
+      closeUsernameUnlinkDialog();
+      return;
+    }
 
     if (isUnlinkingUsername || !canUnlinkMethods || !hasUsernameAccess) {
       return;
@@ -863,8 +878,8 @@ export function ProfilePage({
       const updatedUser = await unlinkUsername(parsedPassword.data);
       onProfileUpdated(updatedUser);
       setIsUnlinkingUsername(false);
-      setIsUsernameUnlinkDialogOpen(false);
       setUsernameUnlinkPassword("");
+      setUsernameUnlinkDialogMode("success");
     } catch (error) {
       if (
         error instanceof ApiRequestError &&
@@ -1131,7 +1146,7 @@ export function ProfilePage({
                   onClick={() => {
                     setUsernameUnlinkPassword("");
                     setUsernameUnlinkError(null);
-                    setIsUsernameUnlinkDialogOpen(true);
+                    setUsernameUnlinkDialogMode("confirm");
                   }}
                 />
               ) : null}
@@ -1374,32 +1389,50 @@ export function ProfilePage({
       <ConfirmDialog
         open={googleUnlinkDialogMode !== null}
         title={
-          googleUnlinkDialogMode === "mismatch"
-            ? "Incorrect Google account"
-            : googleUnlinkDialogMode === "failed"
-              ? "Google account not unlinked"
-              : "Unlink Google?"
+          googleUnlinkDialogMode === "success"
+            ? "Google account unlinked"
+            : googleUnlinkDialogMode === "mismatch"
+              ? "Incorrect Google account"
+              : googleUnlinkDialogMode === "failed"
+                ? "Google account not unlinked"
+                : "Unlink Google?"
         }
         description={
-          googleUnlinkDialogMode === "mismatch"
-            ? `Nothing was unlinked. Choose ${user.email}, the Google account linked to this profile.`
-            : googleUnlinkDialogMode === "failed"
-              ? `Nothing was unlinked. We couldn't verify ${user.email}. Try again.`
-              : getGoogleUnlinkDescription(user)
+          googleUnlinkDialogMode === "success"
+            ? "Google sign-in has been removed from your account."
+            : googleUnlinkDialogMode === "mismatch"
+              ? `Nothing was unlinked. Choose ${user.email}, the Google account linked to this profile.`
+              : googleUnlinkDialogMode === "failed"
+                ? `Nothing was unlinked. We couldn't verify ${user.email}. Try again.`
+                : getGoogleUnlinkDescription(user)
         }
         confirmLabel={
-          googleUnlinkDialogMode === "confirm" ? "Continue" : "Try again"
+          googleUnlinkDialogMode === "success"
+            ? "Done"
+            : googleUnlinkDialogMode === "confirm"
+              ? "Continue"
+              : "Try again"
         }
         confirmingLabel="Opening..."
         icon={
-          googleUnlinkDialogMode === "confirm" ? (
+          googleUnlinkDialogMode === "success" ? (
+            <CircleCheck />
+          ) : googleUnlinkDialogMode === "confirm" ? (
             <GoogleIcon />
           ) : (
             <TriangleAlert />
           )
         }
-        tone={googleUnlinkDialogMode === "confirm" ? "default" : "warning"}
-        confirmTone="danger"
+        tone={
+          googleUnlinkDialogMode === "mismatch" ||
+          googleUnlinkDialogMode === "failed"
+            ? "warning"
+            : "default"
+        }
+        confirmTone={
+          googleUnlinkDialogMode === "success" ? "default" : "danger"
+        }
+        showCancel={googleUnlinkDialogMode !== "success"}
         isConfirming={isUnlinkingGoogle}
         error={googleUnlinkError}
         onCancel={closeGoogleUnlinkDialog}
@@ -1409,24 +1442,37 @@ export function ProfilePage({
       <ConfirmDialog
         open={emailUnlinkDialogMode !== null}
         title={
-          emailUnlinkDialogMode === "code"
-            ? "Enter verification code"
-            : "Unlink email?"
+          emailUnlinkDialogMode === "success"
+            ? "Email unlinked"
+            : emailUnlinkDialogMode === "code"
+              ? "Enter verification code"
+              : "Unlink email?"
         }
         description={
-          emailUnlinkDialogMode === "code"
-            ? `Enter the 6-digit code sent to\n${user.email}.`
-            : getEmailUnlinkDescription(user)
+          emailUnlinkDialogMode === "success"
+            ? "Email sign-in with your password has been removed from your account."
+            : emailUnlinkDialogMode === "code"
+              ? `Enter the 6-digit code sent to\n${user.email}.`
+              : getEmailUnlinkDescription(user)
         }
         confirmLabel={
-          emailUnlinkDialogMode === "code" ? "Unlink email" : "Continue"
+          emailUnlinkDialogMode === "success"
+            ? "Done"
+            : emailUnlinkDialogMode === "code"
+              ? "Unlink email"
+              : "Continue"
         }
         confirmingLabel={
           emailUnlinkDialogMode === "code" ? "Unlinking..." : "Sending..."
         }
-        icon={<Mail />}
-        tone="danger"
-        confirmTone="danger"
+        icon={
+          emailUnlinkDialogMode === "success" ? <CircleCheck /> : <Mail />
+        }
+        tone={emailUnlinkDialogMode === "success" ? "default" : "danger"}
+        confirmTone={
+          emailUnlinkDialogMode === "success" ? "default" : "danger"
+        }
+        showCancel={emailUnlinkDialogMode !== "success"}
         isConfirming={isUnlinkingEmail}
         interactionLocked={
           isCancellingEmailUnlink || isResendingEmailUnlinkCode
@@ -1502,40 +1548,63 @@ export function ProfilePage({
       </ConfirmDialog>
 
       <ConfirmDialog
-        open={isUsernameUnlinkDialogOpen}
-        title="Unlink username?"
-        description={getUsernameUnlinkDescription(user)}
-        confirmLabel="Unlink username"
+        open={usernameUnlinkDialogMode !== null}
+        title={
+          usernameUnlinkDialogMode === "success"
+            ? "Username unlinked"
+            : "Unlink username?"
+        }
+        description={
+          usernameUnlinkDialogMode === "success"
+            ? "Username sign-in and its recovery code have been removed from your account."
+            : getUsernameUnlinkDescription(user)
+        }
+        confirmLabel={
+          usernameUnlinkDialogMode === "success" ? "Done" : "Unlink username"
+        }
         confirmingLabel="Unlinking..."
-        icon={<AtSign />}
-        tone="danger"
-        confirmTone="danger"
+        icon={
+          usernameUnlinkDialogMode === "success" ? <CircleCheck /> : <AtSign />
+        }
+        tone={usernameUnlinkDialogMode === "success" ? "default" : "danger"}
+        confirmTone={
+          usernameUnlinkDialogMode === "success" ? "default" : "danger"
+        }
+        showCancel={usernameUnlinkDialogMode !== "success"}
         isConfirming={isUnlinkingUsername}
-        confirmDisabled={!usernameUnlinkPassword}
-        error={usernameUnlinkError}
+        confirmDisabled={
+          usernameUnlinkDialogMode === "confirm" && !usernameUnlinkPassword
+        }
+        error={
+          usernameUnlinkDialogMode === "confirm"
+            ? usernameUnlinkError
+            : null
+        }
         onCancel={closeUsernameUnlinkDialog}
         onConfirm={confirmUsernameUnlink}
       >
-        <form
-          className="confirm-dialog__form"
-          onSubmit={confirmUsernameUnlink}
-        >
-          <AuthPasswordField
-            id="unlink-username-password"
-            label="Confirm your password"
-            name="unlinkUsernamePassword"
-            placeholder="Enter your password"
-            value={usernameUnlinkPassword}
-            invalid={usernameUnlinkError === "Incorrect password."}
-            autoComplete="current-password"
-            variant="dialog"
-            disabled={isUnlinkingUsername}
-            onChange={(value) => {
-              setUsernameUnlinkPassword(value);
-              setUsernameUnlinkError(null);
-            }}
-          />
-        </form>
+        {usernameUnlinkDialogMode === "confirm" ? (
+          <form
+            className="confirm-dialog__form"
+            onSubmit={confirmUsernameUnlink}
+          >
+            <AuthPasswordField
+              id="unlink-username-password"
+              label="Confirm your password"
+              name="unlinkUsernamePassword"
+              placeholder="Enter your password"
+              value={usernameUnlinkPassword}
+              invalid={usernameUnlinkError === "Incorrect password."}
+              autoComplete="current-password"
+              variant="dialog"
+              disabled={isUnlinkingUsername}
+              onChange={(value) => {
+                setUsernameUnlinkPassword(value);
+                setUsernameUnlinkError(null);
+              }}
+            />
+          </form>
+        ) : null}
       </ConfirmDialog>
 
       <ConfirmDialog
