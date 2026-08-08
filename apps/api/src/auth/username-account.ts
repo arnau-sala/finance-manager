@@ -3,6 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { db } from "../db/client.js";
+import { authenticatedUserSelect } from "./authenticated-user.js";
 import { hashPassword } from "./password.js";
 import { createAccountRecoveryCode } from "./recovery-code.js";
 
@@ -103,6 +104,122 @@ export async function registerUsernameAccount(
       error.code === "P2002"
     ) {
       return { type: "username-unavailable" };
+    }
+
+    throw error;
+  }
+}
+
+export async function linkUsernameToAccount(input: {
+  userId: string;
+  sessionVersion: number;
+  username: string;
+  password?: string;
+}) {
+  const currentUser = await db.user.findUnique({
+    where: { id: input.userId, sessionVersion: input.sessionVersion },
+    select: {
+      username: true,
+      passwordHash: true,
+      status: true,
+    },
+  });
+
+  if (!currentUser || currentUser.status !== "APPROVED") {
+    return { type: "unauthenticated" } as const;
+  }
+
+  if (currentUser.username) {
+    return { type: "unavailable" } as const;
+  }
+
+  if (!currentUser.passwordHash && !input.password) {
+    return { type: "password-required" } as const;
+  }
+
+  const newPasswordHash = currentUser.passwordHash
+    ? null
+    : await hashPassword(input.password!);
+  const recoveryCode = createAccountRecoveryCode();
+
+  try {
+    return await db.$transaction(async (transaction) => {
+      const [activeUser, usernameOwner] = await Promise.all([
+        transaction.user.findUnique({
+          where: {
+            id: input.userId,
+            sessionVersion: input.sessionVersion,
+          },
+          select: {
+            username: true,
+            passwordHash: true,
+            googleSubject: true,
+            status: true,
+            recoveryCode: { select: { id: true } },
+          },
+        }),
+        transaction.user.findUnique({
+          where: { username: input.username },
+          select: { id: true },
+        }),
+      ]);
+
+      if (!activeUser || activeUser.status !== "APPROVED") {
+        return { type: "unauthenticated" } as const;
+      }
+
+      if (activeUser.username || activeUser.recoveryCode) {
+        return { type: "unavailable" } as const;
+      }
+
+      if (usernameOwner) {
+        return { type: "username-unavailable" } as const;
+      }
+
+      const passwordHash = activeUser.passwordHash ?? newPasswordHash;
+
+      if (!passwordHash) {
+        return { type: "password-required" } as const;
+      }
+
+      const user = await transaction.user.update({
+        where: {
+          id: input.userId,
+          sessionVersion: input.sessionVersion,
+          status: "APPROVED",
+        },
+        data: {
+          username: input.username,
+          passwordHash,
+          authProvider: activeUser.googleSubject
+            ? "PASSWORD_AND_GOOGLE"
+            : "PASSWORD",
+          recoveryCode: {
+            create: { codeHash: recoveryCode.codeHash },
+          },
+        },
+        select: authenticatedUserSelect,
+      });
+
+      return {
+        type: "linked",
+        recoveryCode: recoveryCode.displayCode,
+        user,
+      } as const;
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return { type: "username-unavailable" } as const;
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return { type: "unauthenticated" } as const;
     }
 
     throw error;

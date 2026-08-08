@@ -39,6 +39,17 @@ export type BeginEmailLinkInput = {
   passwordConfirmation?: string;
 };
 
+export type LinkUsernameInput = {
+  username: string;
+  password?: string;
+  passwordConfirmation?: string;
+};
+
+export type UsernameLinkResult = {
+  user: SessionUser;
+  recoveryCode: string;
+};
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly retryAfter: string | null;
@@ -166,6 +177,35 @@ export async function updateProfile(input: UpdateProfileInput) {
 
   const body = (await response.json()) as UpdateProfileResponse;
   return body.user;
+}
+
+export async function linkUsername(
+  input: LinkUsernameInput,
+): Promise<UsernameLinkResult> {
+  const response = await fetch("/api/account/username/link", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(response, "Unable to link username");
+  }
+
+  const body = (await response.json()) as Partial<UsernameLinkResult>;
+
+  if (
+    typeof body.recoveryCode !== "string" ||
+    !body.user ||
+    typeof body.user.username !== "string"
+  ) {
+    throw new ApiRequestError("Invalid username linking response", 500);
+  }
+
+  return body as UsernameLinkResult;
 }
 
 export async function changePassword(input: ChangePasswordInput) {

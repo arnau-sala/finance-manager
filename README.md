@@ -62,6 +62,7 @@ Authentication:
 - `POST /account/onboarding/starting-net-worth`
 - `PATCH /account`
 - `PATCH /account/password`
+- `POST /account/username/link`
 - `POST /account/recovery-code`
 - `POST /account/recovery-code/activate`
 - `POST /account/email/link`
@@ -341,6 +342,25 @@ Profile. `POST /account/recovery-code` prepares a short-lived replacement while
 the current code remains valid. After the one-time screen has shown it,
 `POST /account/recovery-code/activate` atomically activates the replacement and
 can optionally revoke every other session while preserving the current device.
+
+## Link A Username
+
+An authenticated account without a username can add one to its existing user:
+
+```http
+POST /account/username/link
+Content-Type: application/json
+
+{ "username": "person" }
+```
+
+Email/password and email-plus-Google accounts already have a password, so they
+only submit the username. A Google-only account must create matching password
+fields in the same request. The endpoint validates the username and password
+again on the server, claims the username through its database unique constraint,
+and atomically stores a new recovery-code hash on the existing user. The
+plaintext 16-character Base58 recovery code is returned once in a no-store
+response and is presented before the user returns to Profile.
 
 ## Link An Email
 

@@ -136,6 +136,12 @@ The public registration UI first calls the indexed, rate-limited
 an advisory UX check; `POST /auth/register/username` remains the authoritative
 claim and handles concurrent attempts through the database unique constraint.
 
+Authenticated username linking follows the same ownership rule through
+`POST /account/username/link`. Email/password accounts reuse their existing
+password, while Google-only accounts must create one. The transaction assigns
+the username, creates its recovery-code row, and updates the provider on the
+same existing user. A unique-constraint race rolls the whole operation back.
+
 Login accepts one `identifier`, resolves it as an email or username, and reuses
 the password module to verify Argon2id hashes. Unknown identifiers are checked
 against a precomputed dummy hash so the endpoint follows the same expensive
@@ -177,8 +183,8 @@ claimed. Sessions last up to seven days, and logout deletes the current cookie.
 
 `routes/auth-me.ts` returns the public profile selected by the current secure session. It includes the required name, authentication provider, and `updatedAt` in addition to the fields shared with administrative user reads. The frontend uses the provider to offer Google linking only to password accounts.
 
-`routes/account.ts` owns owner-only profile updates, password changes, recovery
-code rotation, and password-confirmed deletion. `routes/account-email.ts` and
+`routes/account.ts` owns owner-only profile updates, password changes, username
+linking, recovery-code rotation, and password-confirmed deletion. `routes/account-email.ts` and
 `account/email-link.ts` own the authenticated six-digit flow that enables
 email/password sign-in for username, Google, or username-and-Google accounts.
 `routes/auth-google.ts` owns public Google sign-in plus authenticated account

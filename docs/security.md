@@ -51,6 +51,14 @@ Username account and recovery decisions:
   enforced by final registration.
 - Username ownership is checked before Argon2id hashing and rechecked inside the
   account-creation transaction.
+- Authenticated username linking derives the target user only from the secure
+  session. Its public availability check remains advisory; the write validates
+  again and relies on the unique constraint as the final concurrent claim.
+- Google-only users must create a server-validated Argon2id password when they
+  add a username. Existing password hashes are never accepted from or replaced
+  by the client during linking.
+- Username assignment and recovery-code creation are one transaction. A failure
+  cannot leave an account with a username but without its recovery credential.
 - Each new username account receives 16 unbiased Base58 characters from
   `randomBytes`, providing about 94 bits of entropy. The plaintext recovery
   code is returned only in the creation response.

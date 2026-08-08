@@ -55,6 +55,7 @@ type ProfilePageProps = {
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
   onLinkEmail: () => void;
+  onLinkUsername: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -117,6 +118,7 @@ export function ProfilePage({
   onProfileUpdated,
   onChangePassword,
   onLinkEmail,
+  onLinkUsername,
   onRecoveryCodeReset,
   onLogout,
   onAccountDeleted,
@@ -749,7 +751,13 @@ export function ProfilePage({
                   icon={<Key />}
                   onClick={openRecoveryCodeDialog}
                 />
-              ) : null}
+              ) : (
+                <ProfileActionButton
+                  label="Link username"
+                  icon={<AtSign />}
+                  onClick={onLinkUsername}
+                />
+              )}
               {!user.emailLoginEnabled ? (
                 <ProfileActionButton
                   label="Link email"

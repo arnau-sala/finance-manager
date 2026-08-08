@@ -178,6 +178,13 @@ confirmation characters. Every password field includes the persistent
 show/hide icon action. The `dialog` variant keeps the shared behavior while
 using the white 44px modal field surface.
 
+Profile offers `Link username` only while the authenticated user has no
+username. The full-screen account flow reuses the registration availability
+field and password assistance controls: Google-only accounts see username and
+password fields, while accounts with email/password sign-in see only username.
+Success slides to the shared one-time recovery-code screen, then returns to the
+updated Profile.
+
 ### Buttons
 
 Command buttons use the shared `ActionButton` component in

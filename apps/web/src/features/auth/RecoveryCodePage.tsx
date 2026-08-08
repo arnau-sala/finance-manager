@@ -6,7 +6,11 @@ import { formatErrorMessage } from "../../components/ui/error-message";
 type RecoveryCodePageProps = {
   username: string;
   recoveryCode: string;
-  context?: "registration" | "password-reset" | "recovery-reset";
+  context?:
+    | "registration"
+    | "password-reset"
+    | "recovery-reset"
+    | "username-link";
   onContinue: () => void | Promise<void>;
 };
 
@@ -55,6 +59,7 @@ export function RecoveryCodePage({
   const recoveryCodeGroups = recoveryCode.split("-");
   const isPasswordReset = context === "password-reset";
   const isRecoveryReset = context === "recovery-reset";
+  const isUsernameLink = context === "username-link";
   const isReplacement = isPasswordReset || isRecoveryReset;
 
   useEffect(() => {
@@ -209,14 +214,18 @@ export function RecoveryCodePage({
             <span className="auth-recovery-code-continue__label">
               {isContinuing
                 ? isPasswordReset
-                  ? "Returning..."
-                  : isRecoveryReset
-                    ? "Closing..."
-                    : "Opening account..."
+                ? "Returning..."
+                : isRecoveryReset
+                  ? "Closing..."
+                  : isUsernameLink
+                    ? "Finishing..."
+                  : "Opening account..."
                 : isPasswordReset
                   ? "Back to sign in"
                   : isRecoveryReset
                     ? "Done"
+                    : isUsernameLink
+                      ? "Done"
                     : "Continue"}
             </span>
           </ActionButton>

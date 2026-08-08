@@ -15,11 +15,14 @@ import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
 import {
   activateAccountRecoveryCodeRotation,
+  linkUsernameToAccount,
   prepareAccountRecoveryCodeRotation,
 } from "../auth/username-account.js";
+import { usernameSchema } from "../auth/username-validation.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
+  accountLinkRateLimit,
   accountRecoveryCodeRateLimit,
   accountWriteRateLimit,
   passwordChangeRateLimit,
@@ -74,6 +77,32 @@ const activateRecoveryCodeBodySchema = z
   })
   .strict();
 
+const linkUsernameBodySchema = z
+  .object({
+    username: usernameSchema,
+    password: passwordSchema.optional(),
+    passwordConfirmation: z.string().max(128).optional(),
+  })
+  .strict()
+  .superRefine(({ password, passwordConfirmation }, context) => {
+    if ((password === undefined) !== (passwordConfirmation === undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["passwordConfirmation"],
+        message: "Provide both password fields.",
+      });
+      return;
+    }
+
+    if (password !== undefined && password !== passwordConfirmation) {
+      context.addIssue({
+        code: "custom",
+        path: ["passwordConfirmation"],
+        message: "Passwords do not match.",
+      });
+    }
+  });
+
 const startingNetWorthBodySchema = z.discriminatedUnion("action", [
   z
     .object({
@@ -89,6 +118,69 @@ const startingNetWorthBodySchema = z.discriminatedUnion("action", [
 ]);
 
 export const accountRoutes: FastifyPluginAsync = async (app) => {
+  app.post(
+    "/account/username/link",
+    { config: { rateLimit: accountLinkRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = linkUsernameBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid username linking details.",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const result = await linkUsernameToAccount({
+        userId,
+        sessionVersion,
+        username: parsedBody.data.username,
+        ...(parsedBody.data.password
+          ? { password: parsedBody.data.password }
+          : {}),
+      });
+
+      if (result.type === "unauthenticated") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (result.type === "username-unavailable") {
+        return reply.code(409).send({ error: "Username is unavailable." });
+      }
+
+      if (result.type === "password-required") {
+        return reply.code(400).send({
+          error: "A valid password is required for this account.",
+        });
+      }
+
+      if (result.type === "unavailable") {
+        return reply.code(409).send({
+          error: "This account already has a username.",
+        });
+      }
+
+      reply.header("Cache-Control", "private, no-store");
+      return reply.code(201).send({
+        message: "Username linked successfully.",
+        user: toAuthenticatedUserResponse(result.user),
+        recoveryCode: result.recoveryCode,
+      });
+    },
+  );
+
   app.patch(
     "/account",
     { config: { rateLimit: accountWriteRateLimit } },
