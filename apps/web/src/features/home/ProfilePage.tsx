@@ -1062,9 +1062,9 @@ export function ProfilePage({
             : deleteDialogMode === "failed"
               ? `Nothing was deleted. We couldn't verify ${user.email}. Try again.`
               : user.authProvider === "PASSWORD_AND_GOOGLE"
-                ? "Permanently delete your account. Choose how to verify your identity.\nThis cannot be undone."
+                ? "Permanently delete your account.\nChoose how to verify your identity.\nThis cannot be undone."
                 : user.authProvider === "GOOGLE"
-                  ? "Permanently delete your account. Continue to verify with Google.\nThis cannot be undone."
+                  ? "Permanently delete your account.\nContinue to verify with Google.\nThis cannot be undone."
                   : "Permanently delete your account.\nThis cannot be undone."
         }
         confirmLabel={
