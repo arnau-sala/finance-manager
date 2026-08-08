@@ -1269,6 +1269,7 @@ export function ProfilePage({
             value={usernameUnlinkPassword}
             invalid={usernameUnlinkError === "Incorrect password."}
             autoComplete="current-password"
+            variant="dialog"
             disabled={isUnlinkingUsername}
             onChange={(value) => {
               setUsernameUnlinkPassword(value);
