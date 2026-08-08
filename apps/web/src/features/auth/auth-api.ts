@@ -208,6 +208,27 @@ export async function linkUsername(
   return body as UsernameLinkResult;
 }
 
+export async function unlinkUsername(password: string) {
+  const response = await fetch("/api/account/username/unlink", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ password })
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(response, "Unable to unlink username");
+  }
+
+  const body = (await response.json()) as { user?: SessionUser };
+
+  if (!body.user) {
+    throw new ApiRequestError("Invalid username unlink response", 500);
+  }
+
+  return body.user;
+}
+
 export async function changePassword(input: ChangePasswordInput) {
   const response = await fetch("/api/account/password", {
     method: "PATCH",

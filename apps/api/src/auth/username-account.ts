@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "../db/client.js";
 import { authenticatedUserSelect } from "./authenticated-user.js";
-import { hashPassword } from "./password.js";
+import { hashPassword, verifyPassword } from "./password.js";
 import { createAccountRecoveryCode } from "./recovery-code.js";
 
 type UsernameRegistrationInput = {
@@ -224,6 +224,93 @@ export async function linkUsernameToAccount(input: {
 
     throw error;
   }
+}
+
+export async function unlinkUsernameFromAccount(input: {
+  userId: string;
+  sessionVersion: number;
+  password: string;
+}) {
+  const currentUser = await db.user.findUnique({
+    where: { id: input.userId, sessionVersion: input.sessionVersion },
+    select: {
+      username: true,
+      passwordHash: true,
+      emailLoginEnabled: true,
+      googleSubject: true,
+      status: true,
+    },
+  });
+
+  if (!currentUser || currentUser.status !== "APPROVED") {
+    return { type: "unauthenticated" } as const;
+  }
+
+  if (
+    !currentUser.username ||
+    !currentUser.passwordHash ||
+    (!currentUser.emailLoginEnabled && !currentUser.googleSubject)
+  ) {
+    return { type: "unavailable" } as const;
+  }
+
+  if (!(await verifyPassword(currentUser.passwordHash, input.password))) {
+    return { type: "incorrect-password" } as const;
+  }
+
+  return db.$transaction(async (transaction) => {
+    const activeUser = await transaction.user.findUnique({
+      where: { id: input.userId, sessionVersion: input.sessionVersion },
+      select: {
+        username: true,
+        passwordHash: true,
+        emailLoginEnabled: true,
+        googleSubject: true,
+        status: true,
+      },
+    });
+
+    if (!activeUser || activeUser.status !== "APPROVED") {
+      return { type: "unauthenticated" } as const;
+    }
+
+    if (
+      !activeUser.username ||
+      activeUser.passwordHash !== currentUser.passwordHash ||
+      (!activeUser.emailLoginEnabled && !activeUser.googleSubject)
+    ) {
+      return { type: "unavailable" } as const;
+    }
+
+    await transaction.accountRecoveryCode.deleteMany({
+      where: { userId: input.userId },
+    });
+
+    const user = await transaction.user.update({
+      where: {
+        id: input.userId,
+        sessionVersion: input.sessionVersion,
+        status: "APPROVED",
+      },
+      data: {
+        username: null,
+        sessionVersion: { increment: 1 },
+        ...(activeUser.emailLoginEnabled
+          ? {
+              authProvider: activeUser.googleSubject
+                ? "PASSWORD_AND_GOOGLE"
+                : "PASSWORD",
+            }
+          : {
+              passwordHash: null,
+              authProvider: "GOOGLE",
+            }),
+      },
+      select: authenticatedUserSelect,
+    });
+
+    return { type: "unlinked", user } as const;
+  });
 }
 
 const recoveryCodeRotationLifetimeMs = 10 * 60 * 1000;

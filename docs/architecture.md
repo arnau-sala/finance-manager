@@ -141,6 +141,8 @@ Authenticated username linking follows the same ownership rule through
 password, while Google-only accounts must create one. The transaction assigns
 the username, creates its recovery-code row, and updates the provider on the
 same existing user. A unique-constraint race rolls the whole operation back.
+`POST /account/username/unlink` performs the inverse only after password
+verification and only when another sign-in method remains.
 
 Login accepts one `identifier`, resolves it as an email or username, and reuses
 the password module to verify Argon2id hashes. Unknown identifiers are checked

@@ -197,8 +197,10 @@ neither a password nor a recovery code.
 confirmation copy lists the exact methods and email association that will
 remain. Continuing opens Google's account chooser; cancellation restores the
 confirmation, an identity mismatch opens a warning with the required address,
-and success returns directly to the updated Profile. Email and username unlink
-rows remain disabled placeholders.
+and success returns directly to the updated Profile. `Unlink username` uses the
+same password-confirmation field as account deletion, explains the remaining
+methods, and returns the updated Profile without a navigation. Email unlink
+remains a disabled placeholder.
 
 ### Buttons
 

@@ -42,6 +42,7 @@ import {
   startGoogleAccountLink,
   startGoogleAccountDeletion,
   startGoogleAccountUnlink,
+  unlinkUsername,
   updateProfile,
   type RecoveryCodeResetResult,
   type UpdateProfileInput,
@@ -138,6 +139,26 @@ function getGoogleUnlinkDescription(
   return `Google sign-in will be removed.\nYou will only be able to sign in with your email and password.\nYour account will remain linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
 }
 
+function getUsernameUnlinkDescription(
+  user: Pick<
+    SessionUser,
+    "authProvider" | "email" | "emailLoginEnabled"
+  >
+) {
+  const email = user.email ?? "your Google account";
+  const hasGoogle = user.authProvider !== "PASSWORD";
+
+  if (user.emailLoginEnabled && hasGoogle) {
+    return `Sign-in with your username and password will be removed.\nYou can still sign in with ${email} and password or Google.\nYour recovery code will also stop working.`;
+  }
+
+  if (user.emailLoginEnabled) {
+    return `Sign-in with your username and password will be removed.\nYou will only be able to sign in with ${email} and password.\nYour recovery code will also stop working.`;
+  }
+
+  return `Sign-in with your username and password will be removed.\nYou will only be able to sign in with Google as ${email}.\nYour recovery code will also stop working.`;
+}
+
 export function ProfilePage({
   user,
   onProfileUpdated,
@@ -206,6 +227,13 @@ export function ProfilePage({
     );
   const [isUnlinkingGoogle, setIsUnlinkingGoogle] = useState(false);
   const [googleUnlinkError, setGoogleUnlinkError] = useState<string | null>(null);
+  const [isUsernameUnlinkDialogOpen, setIsUsernameUnlinkDialogOpen] =
+    useState(false);
+  const [isUnlinkingUsername, setIsUnlinkingUsername] = useState(false);
+  const [usernameUnlinkPassword, setUsernameUnlinkPassword] = useState("");
+  const [usernameUnlinkError, setUsernameUnlinkError] = useState<string | null>(
+    null
+  );
   const [isGoogleInfoOpen, setIsGoogleInfoOpen] = useState(false);
   const [isRecoveryCodeDialogOpen, setIsRecoveryCodeDialogOpen] =
     useState(false);
@@ -645,6 +673,60 @@ export function ProfilePage({
     }
   }
 
+  function closeUsernameUnlinkDialog() {
+    if (isUnlinkingUsername) {
+      return;
+    }
+
+    setIsUsernameUnlinkDialogOpen(false);
+    setUsernameUnlinkPassword("");
+    setUsernameUnlinkError(null);
+  }
+
+  async function confirmUsernameUnlink(event?: FormEvent) {
+    event?.preventDefault();
+
+    if (isUnlinkingUsername || !canUnlinkMethods || !hasUsernameAccess) {
+      return;
+    }
+
+    const parsedPassword = validateAccountPassword(usernameUnlinkPassword);
+
+    if (!parsedPassword.success) {
+      setUsernameUnlinkError("Incorrect password.");
+      return;
+    }
+
+    setUsernameUnlinkError(null);
+    setIsUnlinkingUsername(true);
+    prefetchScheduler.prioritizeUserRequest();
+
+    try {
+      const updatedUser = await unlinkUsername(parsedPassword.data);
+      onProfileUpdated(updatedUser);
+      setIsUnlinkingUsername(false);
+      setIsUsernameUnlinkDialogOpen(false);
+      setUsernameUnlinkPassword("");
+    } catch (error) {
+      if (
+        error instanceof ApiRequestError &&
+        error.status === 401
+      ) {
+        onSessionExpired();
+        return;
+      }
+
+      setUsernameUnlinkError(
+        error instanceof ApiRequestError && error.status === 403
+          ? "Incorrect password."
+          : error instanceof Error
+            ? error.message
+            : "Unable to unlink username."
+      );
+      setIsUnlinkingUsername(false);
+    }
+  }
+
   function openRecoveryCodeDialog() {
     setSignOutOtherDevices(false);
     setRecoveryCodeResetError(null);
@@ -882,6 +964,11 @@ export function ProfilePage({
                   label="Unlink username"
                   icon={<AtSign />}
                   tone="unlink"
+                  onClick={() => {
+                    setUsernameUnlinkPassword("");
+                    setUsernameUnlinkError(null);
+                    setIsUsernameUnlinkDialogOpen(true);
+                  }}
                 />
               ) : null}
             </div>
@@ -1154,6 +1241,42 @@ export function ProfilePage({
         onCancel={closeGoogleUnlinkDialog}
         onConfirm={confirmGoogleAccountUnlink}
       />
+
+      <ConfirmDialog
+        open={isUsernameUnlinkDialogOpen}
+        title="Unlink username?"
+        description={getUsernameUnlinkDescription(user)}
+        confirmLabel="Unlink username"
+        confirmingLabel="Unlinking..."
+        icon={<AtSign />}
+        tone="danger"
+        confirmTone="danger"
+        isConfirming={isUnlinkingUsername}
+        confirmDisabled={!usernameUnlinkPassword}
+        error={usernameUnlinkError}
+        onCancel={closeUsernameUnlinkDialog}
+        onConfirm={confirmUsernameUnlink}
+      >
+        <form
+          className="confirm-dialog__form"
+          onSubmit={confirmUsernameUnlink}
+        >
+          <AuthPasswordField
+            id="unlink-username-password"
+            label="Confirm your password"
+            name="unlinkUsernamePassword"
+            placeholder="Enter your password"
+            value={usernameUnlinkPassword}
+            invalid={usernameUnlinkError === "Incorrect password."}
+            autoComplete="current-password"
+            disabled={isUnlinkingUsername}
+            onChange={(value) => {
+              setUsernameUnlinkPassword(value);
+              setUsernameUnlinkError(null);
+            }}
+          />
+        </form>
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={isLogoutDialogOpen}

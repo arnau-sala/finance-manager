@@ -59,6 +59,10 @@ Username account and recovery decisions:
   by the client during linking.
 - Username assignment and recovery-code creation are one transaction. A failure
   cannot leave an account with a username but without its recovery credential.
+- Username unlinking requires the current Argon2id password and another usable
+  sign-in method. It atomically removes the username and recovery code and
+  rotates `sessionVersion`; when only Google remains, it also removes the now
+  unusable password hash.
 - Each new username account receives 16 unbiased Base58 characters from
   `randomBytes`, providing about 94 bits of entropy. The plaintext recovery
   code is returned only in the creation response.

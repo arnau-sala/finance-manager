@@ -165,6 +165,9 @@ and name, leave email fields null, and create their recovery code atomically.
 Linking a username updates that same user and creates its first recovery-code
 row in one transaction. Existing password accounts preserve their hash;
 Google-only accounts first create a password and become `PASSWORD_AND_GOOGLE`.
+Unlinking it deletes the recovery-code row in the same transaction. The
+password remains for email login, or is removed when Google is the only method
+left.
 Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 `PASSWORD_AND_GOOGLE` and records Google's verified email when none existed.
 Adding email login to Google changes the provider to `PASSWORD_AND_GOOGLE`

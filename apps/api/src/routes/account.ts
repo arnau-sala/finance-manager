@@ -17,6 +17,7 @@ import {
   activateAccountRecoveryCodeRotation,
   linkUsernameToAccount,
   prepareAccountRecoveryCodeRotation,
+  unlinkUsernameFromAccount,
 } from "../auth/username-account.js";
 import { usernameSchema } from "../auth/username-validation.js";
 import { db } from "../db/client.js";
@@ -103,6 +104,10 @@ const linkUsernameBodySchema = z
     }
   });
 
+const unlinkUsernameBodySchema = z
+  .object({ password: passwordSchema })
+  .strict();
+
 const startingNetWorthBodySchema = z.discriminatedUnion("action", [
   z
     .object({
@@ -118,6 +123,56 @@ const startingNetWorthBodySchema = z.discriminatedUnion("action", [
 ]);
 
 export const accountRoutes: FastifyPluginAsync = async (app) => {
+  app.post(
+    "/account/username/unlink",
+    { config: { rateLimit: accountLinkRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = unlinkUsernameBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({ error: "Incorrect password." });
+      }
+
+      const result = await unlinkUsernameFromAccount({
+        userId,
+        sessionVersion,
+        password: parsedBody.data.password,
+      });
+
+      if (result.type === "unauthenticated") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (result.type === "incorrect-password") {
+        return reply.code(403).send({ error: "Incorrect password." });
+      }
+
+      if (result.type === "unavailable") {
+        return reply.code(409).send({
+          error: "Username unlinking is unavailable for this account.",
+        });
+      }
+
+      request.session.regenerate();
+      request.session.set("userId", result.user.id);
+      request.session.set("sessionVersion", result.user.sessionVersion);
+      reply.header("Cache-Control", "private, no-store");
+      return reply.send({
+        message: "Username unlinked successfully.",
+        user: toAuthenticatedUserResponse(result.user),
+      });
+    },
+  );
+
   app.post(
     "/account/username/link",
     { config: { rateLimit: accountLinkRateLimit } },

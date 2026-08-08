@@ -63,6 +63,7 @@ Authentication:
 - `PATCH /account`
 - `PATCH /account/password`
 - `POST /account/username/link`
+- `POST /account/username/unlink`
 - `POST /account/recovery-code`
 - `POST /account/recovery-code/activate`
 - `POST /account/email/link`
@@ -362,6 +363,11 @@ again on the server, claims the username through its database unique constraint,
 and atomically stores a new recovery-code hash on the existing user. The
 plaintext 16-character Base58 recovery code is returned once in a no-store
 response and is presented before the user returns to Profile.
+
+An authenticated username account can remove that sign-in method with
+`POST /account/username/unlink` and its current password. The operation is
+allowed only when verified email login or Google remains, removes the recovery
+code atomically, rotates sessions, and returns the updated user.
 
 ## Link An Email
 
