@@ -25,6 +25,7 @@ import type { TransactionPreview } from "../transactions/transaction-api";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import { ChangePasswordPage } from "./ChangePasswordPage";
+import { EmailLinkFlow } from "./EmailLinkFlow";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 import { RecoveryCodeResetPage } from "./RecoveryCodeResetPage";
@@ -53,6 +54,7 @@ type HomeSectionProps = {
   user: SessionUser;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
+  onLinkEmail: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -121,6 +123,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onProfileUpdated,
     onChangePassword,
+    onLinkEmail,
     onRecoveryCodeReset,
     onLogout,
     onAccountDeleted,
@@ -134,6 +137,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       user={user}
       onProfileUpdated={onProfileUpdated}
       onChangePassword={onChangePassword}
+      onLinkEmail={onLinkEmail}
       onRecoveryCodeReset={onRecoveryCodeReset}
       onLogout={onLogout}
       onAccountDeleted={onAccountDeleted}
@@ -170,6 +174,7 @@ export function HomePage({
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
   const [recoveryCodeReset, setRecoveryCodeReset] =
     useState<RecoveryCodeResetResult | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
@@ -182,6 +187,7 @@ export function HomePage({
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
     isChangePasswordOpen ||
+    isEmailLinkOpen ||
     recoveryCodeReset !== null ||
     isTransactionComposerOpen ||
     selectedTransaction !== null;
@@ -235,7 +241,7 @@ export function HomePage({
     <main className="home-screen">
       <div
         className={`home-main-layer${
-          isChangePasswordOpen || recoveryCodeReset
+          isChangePasswordOpen || isEmailLinkOpen || recoveryCodeReset
             ? " is-account-page-open"
             : ""
         }`}
@@ -248,6 +254,10 @@ export function HomePage({
           onChangePassword: () => {
             prefetchScheduler.prioritizeUserRequest();
             setIsChangePasswordOpen(true);
+          },
+          onLinkEmail: () => {
+            prefetchScheduler.prioritizeUserRequest();
+            setIsEmailLinkOpen(true);
           },
           onRecoveryCodeReset: setRecoveryCodeReset,
           onLogout,
@@ -274,6 +284,14 @@ export function HomePage({
       <ChangePasswordPage
         open={isChangePasswordOpen}
         onBack={() => setIsChangePasswordOpen(false)}
+      />
+
+      <EmailLinkFlow
+        open={isEmailLinkOpen}
+        user={user}
+        onProfileUpdated={finishProfileUpdate}
+        onClose={() => setIsEmailLinkOpen(false)}
+        onSessionExpired={onSessionExpired}
       />
 
       <RecoveryCodeResetPage

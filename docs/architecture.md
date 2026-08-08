@@ -178,12 +178,11 @@ claimed. Sessions last up to seven days, and logout deletes the current cookie.
 
 `routes/account.ts` owns owner-only profile updates, password changes, recovery
 code rotation, and password-confirmed deletion. `routes/account-email.ts` and
-`account/email-link.ts` own the authenticated six-digit verification flow that
-adds an email to the existing username user. `routes/auth-google.ts` owns public
-Google sign-in plus authenticated account linking and Google-capable deletion
-reauthentication. A username account may link its first verified Google email;
-an account that already has an email must select that exact address. Both paths
-preserve the password credential and operate on the same `User` row.
+`account/email-link.ts` own the authenticated six-digit flow that enables
+email/password sign-in for username, Google, or username-and-Google accounts.
+`routes/auth-google.ts` owns public Google sign-in plus authenticated account
+linking and Google-capable deletion reauthentication. Every path preserves
+existing credentials and operates on the same `User` row.
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views. The financial day is stored as `occurredOn` using PostgreSQL `DATE`; the public API exposes it as `date: "YYYY-MM-DD"`, while `createdAt` remains the exact technical timestamp.
 

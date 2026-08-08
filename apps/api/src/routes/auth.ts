@@ -140,6 +140,7 @@ async function authenticatePasswordUser(
       id: true,
       passwordHash: true,
       authProvider: true,
+      emailLoginEnabled: true,
       status: true,
       sessionVersion: true,
     },
@@ -148,6 +149,7 @@ async function authenticatePasswordUser(
   const userCanUsePassword =
     user !== null &&
     supportsPasswordAuthentication(user.authProvider) &&
+    (!normalizedIdentifier.includes("@") || user.emailLoginEnabled) &&
     Boolean(user.passwordHash);
   const passwordMatches = await verifyPassword(
     userCanUsePassword ? user.passwordHash! : dummyPasswordHash,

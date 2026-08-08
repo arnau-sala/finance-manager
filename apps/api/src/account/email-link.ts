@@ -8,6 +8,7 @@ import {
   EmailConfigurationError,
 } from "../email/brevo.js";
 import { sendAccountEmailVerificationEmail } from "../email/account-email-verification.js";
+import { hashPassword } from "../auth/password.js";
 
 const EMAIL_LINK_CODE_TTL_MINUTES = 10;
 const EMAIL_LINK_CODE_TTL_MS = EMAIL_LINK_CODE_TTL_MINUTES * 60 * 1_000;
@@ -18,6 +19,7 @@ export const MAX_EMAIL_LINK_ATTEMPTS = 5;
 type PendingEmailLinkSnapshot = {
   email: string;
   verificationCodeHash: string;
+  passwordHash: string | null;
   verificationAttempts: number;
   expiresAt: Date;
   lastSentAt: Date;
@@ -101,7 +103,8 @@ export const genericEmailLinkResponse = {
 export async function beginAccountEmailLink(input: {
   userId: string;
   sessionVersion: number;
-  email: string;
+  email?: string;
+  password?: string;
 }) {
   assertTransactionalEmailConfigured();
   getVerificationSecret();
@@ -109,18 +112,50 @@ export async function beginAccountEmailLink(input: {
   const now = new Date();
   await cleanStaleEmailLinks(now);
 
-  const [user, emailOwner, pendingRegistration, existingEmailLink] =
+  const user = await db.user.findUnique({
+    where: { id: input.userId, sessionVersion: input.sessionVersion },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+      name: true,
+      passwordHash: true,
+      emailLoginEnabled: true,
+      status: true,
+    },
+  });
+
+  if (!user || user.status !== "APPROVED") {
+    return { type: "unauthenticated" } as const;
+  }
+
+  if (user.emailLoginEnabled) {
+    return { type: "unavailable" } as const;
+  }
+
+  const targetEmail = user.email ?? input.email;
+
+  if (
+    !targetEmail ||
+    (!user.email && (!user.username || !user.passwordHash)) ||
+    (user.email && input.email && input.email !== user.email) ||
+    (!user.passwordHash && !input.password)
+  ) {
+    return { type: "invalid-request" } as const;
+  }
+
+  const pendingPasswordHash = user.passwordHash
+    ? null
+    : await hashPassword(input.password!);
+
+  const [emailOwner, pendingRegistration, existingEmailLink] =
     await Promise.all([
       db.user.findUnique({
-        where: { id: input.userId, sessionVersion: input.sessionVersion },
-        select: { id: true, email: true, name: true, status: true },
-      }),
-      db.user.findUnique({
-        where: { email: input.email },
+        where: { email: targetEmail },
         select: { id: true },
       }),
       db.pendingRegistration.findUnique({
-        where: { email: input.email },
+        where: { email: targetEmail },
         select: { id: true },
       }),
       db.pendingEmailLink.findUnique({
@@ -129,28 +164,32 @@ export async function beginAccountEmailLink(input: {
       }),
     ]);
 
-  if (!user || user.status !== "APPROVED") {
-    return { type: "unauthenticated" } as const;
-  }
-
-  if (user.email) {
-    return { type: "unavailable" } as const;
+  if (
+    (emailOwner && emailOwner.id !== user.id) ||
+    (!user.email && pendingRegistration)
+  ) {
+    return { type: "accepted" } as const;
   }
 
   if (
-    emailOwner ||
-    pendingRegistration ||
-    (existingEmailLink?.email === input.email &&
-      existingEmailLink.lastSentAt.getTime() >
-        now.getTime() - EMAIL_LINK_RESEND_COOLDOWN_MS)
+    existingEmailLink?.email === targetEmail &&
+    existingEmailLink.lastSentAt.getTime() >
+      now.getTime() - EMAIL_LINK_RESEND_COOLDOWN_MS
   ) {
+    if (pendingPasswordHash) {
+      await db.pendingEmailLink.updateMany({
+        where: { userId: user.id, email: targetEmail },
+        data: { passwordHash: pendingPasswordHash },
+      });
+    }
+
     return { type: "accepted" } as const;
   }
 
   const code = createVerificationCode();
   const verificationCodeHash = hashVerificationCode(
     user.id,
-    input.email,
+    targetEmail,
     code,
   );
   const expiresAt = new Date(now.getTime() + EMAIL_LINK_CODE_TTL_MS);
@@ -164,32 +203,43 @@ export async function beginAccountEmailLink(input: {
           sessionVersion: input.sessionVersion,
           status: "APPROVED",
         },
-        select: { email: true },
+        select: {
+          email: true,
+          username: true,
+          passwordHash: true,
+          emailLoginEnabled: true,
+        },
       });
 
-      if (!activeUser || activeUser.email) {
+      if (
+        !activeUser ||
+        activeUser.emailLoginEnabled ||
+        activeUser.email !== user.email ||
+        activeUser.username !== user.username ||
+        activeUser.passwordHash !== user.passwordHash
+      ) {
         return false;
       }
 
       const [currentEmailOwner, currentRegistration, emailLinkOwner] =
         await Promise.all([
           transaction.user.findUnique({
-            where: { email: input.email },
+            where: { email: targetEmail },
             select: { id: true },
           }),
           transaction.pendingRegistration.findUnique({
-            where: { email: input.email },
+            where: { email: targetEmail },
             select: { id: true },
           }),
           transaction.pendingEmailLink.findUnique({
-            where: { email: input.email },
+            where: { email: targetEmail },
             select: { userId: true },
           }),
         ]);
 
       if (
-        currentEmailOwner ||
-        currentRegistration ||
+        (currentEmailOwner && currentEmailOwner.id !== user.id) ||
+        (!activeUser.email && currentRegistration) ||
         (emailLinkOwner && emailLinkOwner.userId !== user.id)
       ) {
         return false;
@@ -200,6 +250,7 @@ export async function beginAccountEmailLink(input: {
         select: {
           email: true,
           verificationCodeHash: true,
+          passwordHash: true,
           verificationAttempts: true,
           expiresAt: true,
           lastSentAt: true,
@@ -207,7 +258,7 @@ export async function beginAccountEmailLink(input: {
       });
 
       if (
-        currentLink?.email === input.email &&
+        currentLink?.email === targetEmail &&
         currentLink.lastSentAt.getTime() >
           now.getTime() - EMAIL_LINK_RESEND_COOLDOWN_MS
       ) {
@@ -220,14 +271,16 @@ export async function beginAccountEmailLink(input: {
         where: { userId: user.id },
         create: {
           userId: user.id,
-          email: input.email,
+          email: targetEmail,
           verificationCodeHash,
+          passwordHash: pendingPasswordHash,
           expiresAt,
           lastSentAt: now,
         },
         update: {
-          email: input.email,
+          email: targetEmail,
           verificationCodeHash,
+          passwordHash: pendingPasswordHash,
           verificationAttempts: 0,
           expiresAt,
           lastSentAt: now,
@@ -253,8 +306,9 @@ export async function beginAccountEmailLink(input: {
 
   try {
     await sendAccountEmailVerificationEmail({
-      email: input.email,
+      email: targetEmail,
       name: user.name,
+      username: user.username,
       code,
       expiresInMinutes: EMAIL_LINK_CODE_TTL_MINUTES,
     });
@@ -283,13 +337,21 @@ export async function resendAccountEmailLinkCode(input: {
   const [user, link] = await Promise.all([
     db.user.findUnique({
       where: { id: input.userId, sessionVersion: input.sessionVersion },
-      select: { email: true, name: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        emailLoginEnabled: true,
+        status: true,
+      },
     }),
     db.pendingEmailLink.findUnique({
       where: { userId: input.userId },
       select: {
         email: true,
         verificationCodeHash: true,
+        passwordHash: true,
         verificationAttempts: true,
         expiresAt: true,
         lastSentAt: true,
@@ -301,7 +363,11 @@ export async function resendAccountEmailLinkCode(input: {
     return { type: "unauthenticated" } as const;
   }
 
-  if (user.email || !link) {
+  if (
+    user.emailLoginEnabled ||
+    !link ||
+    (user.email !== null && user.email !== link.email)
+  ) {
     return { type: "accepted" } as const;
   }
 
@@ -320,7 +386,10 @@ export async function resendAccountEmailLinkCode(input: {
     }),
   ]);
 
-  if (emailOwner || pendingRegistration) {
+  if (
+    (emailOwner && emailOwner.id !== user.id) ||
+    (!user.email && pendingRegistration)
+  ) {
     return { type: "accepted" } as const;
   }
 
@@ -355,6 +424,7 @@ export async function resendAccountEmailLinkCode(input: {
     await sendAccountEmailVerificationEmail({
       email: link.email,
       name: user.name,
+      username: user.username,
       code,
       expiresInMinutes: EMAIL_LINK_CODE_TTL_MINUTES,
     });
@@ -395,7 +465,12 @@ export async function verifyAccountEmailLink(input: {
             sessionVersion: input.sessionVersion,
             status: "APPROVED",
           },
-          select: { email: true },
+          select: {
+            email: true,
+            passwordHash: true,
+            googleSubject: true,
+            emailLoginEnabled: true,
+          },
         }),
       ]);
 
@@ -403,7 +478,10 @@ export async function verifyAccountEmailLink(input: {
         return { type: "unauthenticated" } as const;
       }
 
-      if (activeUser.email) {
+      if (
+        activeUser.emailLoginEnabled ||
+        (activeUser.email !== null && activeUser.email !== link?.email)
+      ) {
         return { type: "unavailable" } as const;
       }
 
@@ -435,6 +513,21 @@ export async function verifyAccountEmailLink(input: {
         return { type: "invalid" } as const;
       }
 
+      const emailOwner = await transaction.user.findUnique({
+        where: { email: link.email },
+        select: { id: true },
+      });
+
+      if (emailOwner && emailOwner.id !== input.userId) {
+        return { type: "unavailable" } as const;
+      }
+
+      const passwordHash = activeUser.passwordHash ?? link.passwordHash;
+
+      if (!passwordHash) {
+        return { type: "unavailable" } as const;
+      }
+
       const claim = await transaction.pendingEmailLink.deleteMany({
         where: {
           id: link.id,
@@ -449,15 +542,6 @@ export async function verifyAccountEmailLink(input: {
         return { type: "invalid" } as const;
       }
 
-      const emailOwner = await transaction.user.findUnique({
-        where: { email: link.email },
-        select: { id: true },
-      });
-
-      if (emailOwner) {
-        return { type: "unavailable" } as const;
-      }
-
       await transaction.pendingRegistration.deleteMany({
         where: { email: link.email },
       });
@@ -469,6 +553,11 @@ export async function verifyAccountEmailLink(input: {
         },
         data: {
           email: link.email,
+          passwordHash,
+          authProvider: activeUser.googleSubject
+            ? "PASSWORD_AND_GOOGLE"
+            : "PASSWORD",
+          emailLoginEnabled: true,
           emailVerifiedAt: new Date(),
         },
       });

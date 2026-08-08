@@ -126,6 +126,7 @@ export function EmailVerificationPage({
         className="auth-back-button"
         type="button"
         onClick={onBack}
+        disabled={isVerifying || isResending}
         aria-label="Go back"
       >
         <ChevronLeft aria-hidden="true" strokeWidth={1.8} />

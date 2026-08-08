@@ -392,6 +392,7 @@ export async function verifyPasswordRegistration(
         name: registration.name,
         passwordHash: registration.passwordHash,
         authProvider: "PASSWORD",
+        emailLoginEnabled: true,
         role: "USER",
         status: "APPROVED",
         emailVerifiedAt: new Date(),

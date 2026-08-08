@@ -17,6 +17,7 @@ export const publicUserSelect = {
 export const authenticatedUserSelect = {
   ...publicUserSelect,
   authProvider: true,
+  emailLoginEnabled: true,
   sessionVersion: true,
   startingNetWorthCents: true,
   updatedAt: true
@@ -33,6 +34,7 @@ export function toAuthenticatedUserResponse(user: AuthenticatedUser) {
     username: user.username,
     name: user.name,
     authProvider: user.authProvider,
+    emailLoginEnabled: user.emailLoginEnabled,
     role: user.role,
     status: user.status,
     startingNetWorth:

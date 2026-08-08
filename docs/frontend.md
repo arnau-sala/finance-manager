@@ -930,6 +930,14 @@ MVP content:
   email mismatch, cancellation, and failure return directly to Profile with
   focused feedback. The mismatch dialog identifies the required session email
   and offers a retry.
+- Accounts without verified email/password sign-in show `Link email` with the
+  shared Mail icon. It opens a full-screen stack from the right. Username-only
+  accounts enter an address; Google-only accounts confirm Google's address and
+  create a password; username-and-Google accounts confirm the address and skip
+  password creation. Every path reuses the six-cell verification screen and
+  finishes with the complete list of available sign-in methods.
+- Back removes only the current linking step with the reverse transition. The
+  final confirmation has no Back action and returns to Profile through `Done`.
 - Confirmed logout.
 - Irreversible account deletion confirmed by password or fresh Google account selection. Hybrid accounts choose either method in a compact, click-only selector; Google is selected by default.
 

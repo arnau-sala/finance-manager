@@ -99,6 +99,12 @@ credentials and can use either sign-in flow.
 required for `PASSWORD` and `PASSWORD_AND_GOOGLE` users and null for
 Google-only users.
 
+`User.emailLoginEnabled` distinguishes an email stored as part of a Google
+identity from a verified email/password sign-in method. Email registrations
+set it immediately; Google registrations leave it false. Password login and
+email password recovery require it when the identifier is an email, while
+username login remains independent.
+
 `User.sessionVersion` starts at `1` and increments after a password change. Authenticated cookies carry the matching version, allowing the API to reject sessions created before a credentials change without storing individual sessions in PostgreSQL.
 
 `User.startingNetWorthCents` stores the financial baseline as signed integer
@@ -139,8 +145,10 @@ cascade on user deletion.
 `PendingEmailLink` stores one active email-link attempt per user and reserves
 one candidate email per attempt. It uses an account-and-email-bound HMAC hash,
 10-minute expiry, five-attempt limit, 60-second send cooldown, and cascading
-deletion. Successful verification deletes the row and assigns the email to the
-existing `User` rather than creating another account.
+deletion. For Google-only accounts it also holds the new password only as an
+Argon2id hash until verification. Successful verification deletes the row,
+assigns or confirms the email on the existing `User`, and enables email login
+rather than creating another account.
 
 New email/password registrations require a verified code and a name, then
 explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. New Google
@@ -151,6 +159,8 @@ Username registrations also use provider `PASSWORD`, store a required username
 and name, leave email fields null, and create their recovery code atomically.
 Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 `PASSWORD_AND_GOOGLE` and records Google's verified email when none existed.
+Adding email login to Google changes the provider to `PASSWORD_AND_GOOGLE`
+without replacing the stable Google subject.
 
 `AccountRecoveryCode` keeps the active unique hash and temporary nullable fields
 for a pending replacement, its hashed activation token, expiry, and optional

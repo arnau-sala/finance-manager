@@ -33,6 +33,12 @@ export type UpdateProfileInput = {
   startingNetWorth?: string;
 };
 
+export type BeginEmailLinkInput = {
+  email?: string;
+  password?: string;
+  passwordConfirmation?: string;
+};
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly retryAfter: string | null;
@@ -51,6 +57,7 @@ export type SessionUser = {
   username: string | null;
   name: string;
   authProvider: "PASSWORD" | "GOOGLE" | "PASSWORD_AND_GOOGLE";
+  emailLoginEnabled: boolean;
   role: "USER" | "ADMIN";
   status: "APPROVED" | "SUSPENDED";
   startingNetWorth: string | null;
@@ -221,6 +228,72 @@ export async function activateRecoveryCodeReset(rotationToken: string) {
       response,
       "Unable to activate the recovery code"
     );
+  }
+}
+
+export async function beginEmailLink(input: BeginEmailLinkInput) {
+  const response = await fetch("/api/account/email/link", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(response, "Unable to link this email");
+  }
+}
+
+export async function resendEmailLinkCode() {
+  const response = await fetch("/api/account/email/link/resend", {
+    method: "POST",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to resend the verification code"
+    );
+  }
+}
+
+export async function verifyEmailLinkCode(code: string) {
+  const response = await fetch("/api/account/email/link/verify", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({ code })
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to verify the email"
+    );
+  }
+
+  const body = (await response.json()) as Partial<UpdateProfileResponse>;
+
+  if (!body.user) {
+    throw new ApiRequestError("Invalid email link response", 500);
+  }
+
+  return body.user;
+}
+
+export async function cancelEmailLink() {
+  const response = await fetch("/api/account/email/link", {
+    method: "DELETE",
+    credentials: "include"
+  });
+
+  if (!response.ok && response.status !== 401) {
+    throw await createApiRequestError(response, "Unable to cancel email linking");
   }
 }
 

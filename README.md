@@ -65,6 +65,7 @@ Authentication:
 - `POST /account/recovery-code`
 - `POST /account/recovery-code/activate`
 - `POST /account/email/link`
+- `DELETE /account/email/link`
 - `POST /account/email/link/resend`
 - `POST /account/email/link/verify`
 - `POST /account/google/link/start`
@@ -343,8 +344,8 @@ can optionally revoke every other session while preserving the current device.
 
 ## Link An Email
 
-An authenticated account created with a username can add a normal verified
-email without losing username login:
+Any authenticated account without email/password sign-in can enable it on the
+existing user. Username-only accounts submit the address they want to add:
 
 ```http
 POST /account/email/link
@@ -353,10 +354,14 @@ Content-Type: application/json
 { "email": "person@example.com" }
 ```
 
-The API sends a six-digit code with the same 10-minute expiry, five-attempt
-limit, 60-second resend cooldown, neutral responses, and Brevo delivery
-rollback used by registration. Resend with `POST /account/email/link/resend`
-and verify with:
+Google-only accounts keep Google's verified address and first submit a new
+password. Username-and-Google accounts already have a password, so an empty
+body confirms the existing Google address. The API announces delivery before
+it sends a specialized six-digit linking email.
+
+The code has the same 10-minute expiry, five-attempt limit, 60-second resend
+cooldown, neutral responses, and Brevo delivery rollback used by registration.
+Resend with `POST /account/email/link/resend` and verify with:
 
 ```http
 POST /account/email/link/verify
@@ -365,9 +370,11 @@ Content-Type: application/json
 { "code": "123456" }
 ```
 
-Verification assigns the email to the existing user and records
-`emailVerifiedAt`; it never creates a second account. Email and username can
-then both be used as the login identifier. Alternatively,
+Verification assigns or confirms the email, records `emailVerifiedAt`, and
+enables email/password login; it never creates a second account. Any username
+and Google credentials remain available. Cancelling the screen calls
+`DELETE /account/email/link`, which removes the pending code and any pending
+password hash. Alternatively,
 `POST /account/google/link/start` can link Google; for an account without an
 email, Google's verified address becomes its email and both password and
 Google authentication remain available.

@@ -109,17 +109,22 @@ the current code. Starting or resending registration always uses a neutral
 `202` response when the input is valid, so it does not reveal whether an email
 already has an account.
 
-## Link An Email To A Username Account
+## Link Email Sign-In To An Account
 
-The same Brevo configuration also supports authenticated username accounts
-that later add an email. Start with `POST /account/email/link` and an `email`
-body, resend with `POST /account/email/link/resend`, and submit the six-digit
-code to `POST /account/email/link/verify`.
+The same Brevo configuration supports authenticated accounts that do not yet
+have email/password sign-in. Username-only accounts start with an `email` body.
+Google-only accounts submit matching new-password fields and verify Google's
+existing address. Username-and-Google accounts submit an empty body because
+both the address and password already exist. Resend with
+`POST /account/email/link/resend`, submit the six-digit code to
+`POST /account/email/link/verify`, and cancel an unfinished flow with
+`DELETE /account/email/link`.
 
 This flow has its own pending table and HMAC scope, so a registration code
-cannot be reused as an account-link code. Verification updates the current
-`User` row and preserves username/password login. It does not create a second
-account.
+cannot be reused as an account-link code. Google-only password creation is
+stored only as a pending Argon2id hash. Verification updates the current
+`User`, preserves every existing credential, and enables email login. It does
+not create a second account.
 
 ## Failure Behavior
 

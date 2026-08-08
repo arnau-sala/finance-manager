@@ -118,16 +118,23 @@ Password-reset security decisions:
 
 Email-linking decisions:
 
-- Only an approved authenticated user without an email can start the normal
-  email-link flow; the target user ID never comes from the request body.
+- Only an approved authenticated user without enabled email/password sign-in
+  can start the email-link flow; the target user ID never comes from the body.
+- `emailLoginEnabled` separates a Google-verified address from an address that
+  is allowed to authenticate with the account password. Password login and
+  email reset both enforce this flag.
 - Candidate addresses are normalized and checked against users, pending email
   registrations, and other pending links before delivery and before assignment.
 - Codes use a scoped HMAC binding the user ID, candidate email, and code, so a
   code from another registration or account cannot be replayed.
 - The flow has the same 10-minute expiry, five-attempt limit, 60-second resend
   cooldown, neutral issuance response, and delivery rollback as registration.
+- A Google-only account must submit a policy-compliant password before the
+  email is sent. Only its Argon2id hash enters `PendingEmailLink`; cancellation
+  or expiry removes it without changing the account.
 - Successful verification updates the existing user. Unique constraints and an
-  atomic final claim prevent two accounts from taking the same address.
+  atomic final claim prevent two accounts from taking the same address. Email,
+  username, and Google credentials already present are preserved.
 - Google linking may establish a username account's first email only after
   Google verifies it. Accounts with an existing email must select that exact
   email, and every Google subject remains globally unique.

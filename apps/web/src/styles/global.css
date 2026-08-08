@@ -209,7 +209,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
   position: absolute;
 }
 
-.password-recovery-stage {
+.password-recovery-stage,
+.email-link-stage {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -219,7 +220,8 @@ body.app-logout-transition .confirm-dialog-backdrop {
   backface-visibility: hidden;
 }
 
-.password-recovery-stage > .auth-screen {
+.password-recovery-stage > .auth-screen,
+.email-link-stage > .auth-screen {
   position: absolute;
 }
 
@@ -227,6 +229,20 @@ body.app-logout-transition .confirm-dialog-backdrop {
   animation: password-recovery-stage-enter 460ms
     cubic-bezier(0.32, 0.72, 0, 1) both;
   box-shadow: var(--shadow-screen-transition);
+  will-change: transform;
+}
+
+.email-link-stage.is-entering {
+  animation: email-link-stage-enter 460ms
+    cubic-bezier(0.32, 0.72, 0, 1) both;
+  box-shadow: var(--shadow-screen-transition);
+  will-change: transform;
+}
+
+.email-link-stage.is-leaving {
+  pointer-events: none;
+  animation: email-link-stage-leave 460ms
+    cubic-bezier(0.32, 0.72, 0, 1) both;
   will-change: transform;
 }
 
@@ -514,6 +530,26 @@ body.app-logout-transition .confirm-dialog-backdrop {
   font-variant-ligatures: none;
   font-feature-settings: "kern" 0, "liga" 0, "calt" 0;
   text-rendering: auto;
+}
+
+@keyframes email-link-stage-enter {
+  from {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes email-link-stage-leave {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(100%, 0, 0);
+  }
 }
 
 @keyframes auth-email-autofill {
@@ -1005,6 +1041,136 @@ body.app-logout-transition .confirm-dialog-backdrop {
 
 .auth-password-recovery-error {
   margin: -2px 0 -8px;
+}
+
+.email-link-panel {
+  gap: 28px;
+}
+
+.email-link-form {
+  gap: 12px;
+}
+
+.email-link-address-card {
+  width: 100%;
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  padding: 12px 20px;
+  color: var(--color-primary);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--text-field-radius);
+}
+
+.email-link-address-card > svg {
+  width: 20px;
+  height: 20px;
+}
+
+.email-link-address-card > div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.email-link-address-card span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.email-link-address-card strong {
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.email-link-notice {
+  max-width: 340px;
+  justify-self: center;
+  margin: -6px 18px 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 300;
+  line-height: 1.45;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.email-link-inline-address {
+  display: block;
+  max-width: 100%;
+  margin-top: 3px;
+  color: var(--color-text);
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.email-link-primary-action {
+  margin-top: 0;
+}
+
+.email-link-success {
+  gap: 28px;
+}
+
+.email-link-methods {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+}
+
+.email-link-methods h2 {
+  margin: 0 0 2px 20px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.email-link-methods > div {
+  display: grid;
+  padding: 0 20px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+}
+
+.email-link-method {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.email-link-method + .email-link-method {
+  border-top: 1px solid var(--color-border);
+}
+
+.email-link-method > span {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+}
+
+.email-link-method svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
 }
 
 .auth-screen--registration-method {
@@ -7679,6 +7845,11 @@ button.transaction-row__content:focus-visible {
   }
 
   .password-recovery-stage.is-entering {
+    animation-duration: 1ms;
+  }
+
+  .email-link-stage.is-entering,
+  .email-link-stage.is-leaving {
     animation-duration: 1ms;
   }
 

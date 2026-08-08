@@ -127,6 +127,7 @@ export async function beginEmailPasswordReset(
       email: true,
       name: true,
       authProvider: true,
+      emailLoginEnabled: true,
       status: true,
     },
   });
@@ -136,7 +137,9 @@ export async function beginEmailPasswordReset(
   }
 
   const userEmail = user.email;
-  const canResetPassword = supportsPasswordAuthentication(user.authProvider);
+  const canResetPassword =
+    user.emailLoginEnabled &&
+    supportsPasswordAuthentication(user.authProvider);
   const kind = canResetPassword
     ? PasswordResetEmailKind.RESET_CODE
     : PasswordResetEmailKind.GOOGLE_GUIDANCE;
@@ -258,6 +261,7 @@ export async function verifyEmailPasswordResetCode(
             email: true,
             username: true,
             authProvider: true,
+            emailLoginEnabled: true,
             status: true,
           },
         },
@@ -276,6 +280,7 @@ export async function verifyEmailPasswordResetCode(
       pending.verificationAttempts < MAX_EMAIL_CODE_ATTEMPTS &&
       pending.user.email === email &&
       pending.user.status === "APPROVED" &&
+      pending.user.emailLoginEnabled &&
       supportsPasswordAuthentication(pending.user.authProvider) &&
       matches;
 
@@ -421,6 +426,7 @@ export async function completePasswordReset(input: {
           name: true,
           passwordHash: true,
           authProvider: true,
+          emailLoginEnabled: true,
           status: true,
         },
       },
@@ -433,6 +439,8 @@ export async function completePasswordReset(input: {
     grant.expiresAt.getTime() <= now.getTime() ||
     grant.user.status !== "APPROVED" ||
     !grant.user.passwordHash ||
+    (grant.method === PasswordResetMethod.EMAIL_CODE &&
+      !grant.user.emailLoginEnabled) ||
     !supportsPasswordAuthentication(grant.user.authProvider)
   ) {
     return { type: "invalid" };
@@ -488,6 +496,9 @@ export async function completePasswordReset(input: {
           id: grant.userId,
           status: "APPROVED",
           authProvider: { in: ["PASSWORD", "PASSWORD_AND_GOOGLE"] },
+          ...(grant.method === PasswordResetMethod.EMAIL_CODE
+            ? { emailLoginEnabled: true }
+            : {}),
         },
         data: {
           passwordHash,
