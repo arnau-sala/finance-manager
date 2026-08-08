@@ -71,8 +71,17 @@ Username account and recovery decisions:
   a replacement recovery-code hash. Concurrent reuse cannot succeed.
 - Invalid usernames, codes, and code-only lookups share one response. Verification
   is rate limited by IP so raw recovery secrets never become rate-limit keys.
-- Authenticated rotation requires the current password and invalidates the old
-  recovery code immediately.
+- Authenticated rotation is available only to a valid session whose user has a
+  username. Preparation stores a short-lived pending hash while the current
+  recovery code remains valid; the plaintext replacement exists only in the
+  no-store response and React memory.
+- Activation requires the random rotation token returned with that pending
+  code. It atomically promotes the pending hash and invalidates the old one only
+  after the user has seen the replacement screen. The pending code expires
+  after 10 minutes if the handoff is abandoned.
+- The optional sign-out setting increments `sessionVersion` during activation,
+  invalidating other devices, then regenerates the current secure session with
+  the new version so this device stays signed in.
 - During registration, the semantic form remains mounted only until
   server-confirmed account creation. Final confirmation submits it to the
   rate-limited `POST /auth/login/browser` endpoint, which repeats normal

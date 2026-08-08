@@ -6,7 +6,7 @@ import { formatErrorMessage } from "../../components/ui/error-message";
 type RecoveryCodePageProps = {
   username: string;
   recoveryCode: string;
-  context?: "registration" | "password-reset";
+  context?: "registration" | "password-reset" | "recovery-reset";
   onContinue: () => void | Promise<void>;
 };
 
@@ -54,6 +54,8 @@ export function RecoveryCodePage({
   const copyFeedbackTimerRef = useRef<number | null>(null);
   const recoveryCodeGroups = recoveryCode.split("-");
   const isPasswordReset = context === "password-reset";
+  const isRecoveryReset = context === "recovery-reset";
+  const isReplacement = isPasswordReset || isRecoveryReset;
 
   useEffect(() => {
     const continueTimer = window.setTimeout(() => {
@@ -140,9 +142,11 @@ export function RecoveryCodePage({
             <p className="auth-recovery-code-eyebrow">@{username}</p>
             <h1 id="recovery-code-title">Save your recovery code</h1>
             <p className="auth-subtitle auth-recovery-code-subtitle">
-              {isPasswordReset
-                ? "Your previous code no longer works. Save this replacement"
-                : "Use this code to recover your account if you forget your password"}
+              {isRecoveryReset
+                ? "This code will replace your current one when you finish"
+                : isReplacement
+                  ? "Your previous code no longer works. Save this replacement"
+                  : "Use this code to recover your account if you forget your password"}
             </p>
           </div>
         </header>
@@ -200,9 +204,13 @@ export function RecoveryCodePage({
             {isContinuing
               ? isPasswordReset
                 ? "Returning..."
+                : isRecoveryReset
+                  ? "Closing..."
                 : "Opening account..."
               : isPasswordReset
                 ? "Back to sign in"
+                : isRecoveryReset
+                  ? "Done"
                 : "Continue"}
           </ActionButton>
 

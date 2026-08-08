@@ -133,7 +133,9 @@ export function ChangePasswordPage({
 
   return (
     <div
-      className={`change-password-layer${open ? " is-open" : ""}`}
+      className={`account-flow-layer change-password-layer${
+        open ? " is-open" : ""
+      }`}
       aria-hidden={!open}
       inert={!open}
     >

@@ -1,8 +1,9 @@
+import { createHash, randomBytes } from "node:crypto";
+
 import { Prisma } from "@prisma/client";
 
 import { db } from "../db/client.js";
-import { supportsPasswordAuthentication } from "./auth-provider.js";
-import { hashPassword, verifyPassword } from "./password.js";
+import { hashPassword } from "./password.js";
 import { createAccountRecoveryCode } from "./recovery-code.js";
 
 type UsernameRegistrationInput = {
@@ -108,51 +109,207 @@ export async function registerUsernameAccount(
   }
 }
 
-export async function rotateAccountRecoveryCode(input: {
+const recoveryCodeRotationLifetimeMs = 10 * 60 * 1000;
+
+function hashRotationToken(token: string) {
+  return createHash("sha256").update(token, "utf8").digest("hex");
+}
+
+export async function prepareAccountRecoveryCodeRotation(input: {
   userId: string;
   sessionVersion: number;
-  currentPassword: string;
+  signOutOtherDevices: boolean;
 }) {
-  const user = await db.user.findUnique({
-    where: { id: input.userId, sessionVersion: input.sessionVersion },
-    select: {
-      id: true,
-      username: true,
-      passwordHash: true,
-      authProvider: true,
-      status: true,
-    },
-  });
-
-  if (!user || user.status !== "APPROVED") {
-    return { type: "unauthenticated" } as const;
-  }
-
-  if (
-    !user.username ||
-    !user.passwordHash ||
-    !supportsPasswordAuthentication(user.authProvider)
-  ) {
-    return { type: "unavailable" } as const;
-  }
-
-  if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
-    return { type: "incorrect-password" } as const;
-  }
-
   const recoveryCode = createAccountRecoveryCode();
+  const rotationToken = randomBytes(32).toString("base64url");
+  const rotationTokenHash = hashRotationToken(rotationToken);
+  const rotationExpiresAt = new Date(
+    Date.now() + recoveryCodeRotationLifetimeMs,
+  );
 
-  await db.accountRecoveryCode.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      codeHash: recoveryCode.codeHash,
-    },
-    update: {
-      codeHash: recoveryCode.codeHash,
-      createdAt: new Date(),
-    },
-  });
+  try {
+    return await db.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: { id: input.userId, sessionVersion: input.sessionVersion },
+        select: {
+          id: true,
+          username: true,
+          status: true,
+          sessionVersion: true,
+          recoveryCode: {
+            select: {
+              id: true,
+              codeHash: true,
+            },
+          },
+        },
+      });
 
-  return { type: "rotated", recoveryCode: recoveryCode.displayCode } as const;
+      if (!user || user.status !== "APPROVED") {
+        return { type: "unauthenticated" } as const;
+      }
+
+      if (!user.username || !user.recoveryCode) {
+        return { type: "unavailable" } as const;
+      }
+
+      const preparedCode = await transaction.accountRecoveryCode.updateMany({
+        where: {
+          id: user.recoveryCode.id,
+          userId: user.id,
+          codeHash: user.recoveryCode.codeHash,
+        },
+        data: {
+          pendingCodeHash: recoveryCode.codeHash,
+          pendingRotationTokenHash: rotationTokenHash,
+          pendingRotationExpiresAt: rotationExpiresAt,
+          pendingSignOutOtherDevices: input.signOutOtherDevices,
+        },
+      });
+
+      if (preparedCode.count !== 1) {
+        throw new RecoveryCodeRotationConflictError();
+      }
+
+      return {
+        type: "prepared",
+        recoveryCode: recoveryCode.displayCode,
+        rotationToken,
+        username: user.username,
+      } as const;
+    });
+  } catch (error) {
+    if (error instanceof RecoveryCodeRotationConflictError) {
+      return { type: "conflict" } as const;
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return { type: "unauthenticated" } as const;
+    }
+
+    throw error;
+  }
 }
+
+export async function activateAccountRecoveryCodeRotation(input: {
+  userId: string;
+  sessionVersion: number;
+  rotationToken: string;
+}) {
+  const rotationTokenHash = hashRotationToken(input.rotationToken);
+  const activatedAt = new Date();
+
+  try {
+    return await db.$transaction(async (transaction) => {
+      const user = await transaction.user.findUnique({
+        where: { id: input.userId, sessionVersion: input.sessionVersion },
+        select: {
+          id: true,
+          username: true,
+          status: true,
+          sessionVersion: true,
+          recoveryCode: {
+            select: {
+              id: true,
+              pendingCodeHash: true,
+              pendingRotationTokenHash: true,
+              pendingRotationExpiresAt: true,
+              pendingSignOutOtherDevices: true,
+            },
+          },
+        },
+      });
+
+      if (!user || user.status !== "APPROVED") {
+        return { type: "unauthenticated" } as const;
+      }
+
+      const pendingRotation = user.recoveryCode;
+
+      if (
+        !user.username ||
+        !pendingRotation?.pendingCodeHash ||
+        !pendingRotation.pendingRotationTokenHash ||
+        !pendingRotation.pendingRotationExpiresAt ||
+        pendingRotation.pendingRotationTokenHash !== rotationTokenHash
+      ) {
+        return { type: "unavailable" } as const;
+      }
+
+      if (pendingRotation.pendingRotationExpiresAt <= activatedAt) {
+        await transaction.accountRecoveryCode.update({
+          where: { id: pendingRotation.id },
+          data: {
+            pendingCodeHash: null,
+            pendingRotationTokenHash: null,
+            pendingRotationExpiresAt: null,
+            pendingSignOutOtherDevices: false,
+          },
+        });
+        return { type: "expired" } as const;
+      }
+
+      const activatedCode = await transaction.accountRecoveryCode.updateMany({
+        where: {
+          id: pendingRotation.id,
+          userId: user.id,
+          pendingCodeHash: pendingRotation.pendingCodeHash,
+          pendingRotationTokenHash: rotationTokenHash,
+        },
+        data: {
+          codeHash: pendingRotation.pendingCodeHash,
+          createdAt: activatedAt,
+          pendingCodeHash: null,
+          pendingRotationTokenHash: null,
+          pendingRotationExpiresAt: null,
+          pendingSignOutOtherDevices: false,
+        },
+      });
+
+      if (activatedCode.count !== 1) {
+        throw new RecoveryCodeRotationConflictError();
+      }
+
+      let sessionVersion = user.sessionVersion;
+
+      if (pendingRotation.pendingSignOutOtherDevices) {
+        const updatedUser = await transaction.user.update({
+          where: {
+            id: user.id,
+            status: "APPROVED",
+            sessionVersion: user.sessionVersion,
+          },
+          data: {
+            sessionVersion: { increment: 1 },
+          },
+          select: { sessionVersion: true },
+        });
+        sessionVersion = updatedUser.sessionVersion;
+      }
+
+      return {
+        type: "activated",
+        sessionVersion,
+        signedOutOtherDevices: pendingRotation.pendingSignOutOtherDevices,
+      } as const;
+    });
+  } catch (error) {
+    if (error instanceof RecoveryCodeRotationConflictError) {
+      return { type: "conflict" } as const;
+    }
+
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return { type: "unauthenticated" } as const;
+    }
+
+    throw error;
+  }
+}
+
+class RecoveryCodeRotationConflictError extends Error {}

@@ -522,6 +522,13 @@ Behavior:
   existing first-account flow then opens Starting Net Worth setup.
 - Do not provide a back action after account creation, because returning to the
   form would hide the only plaintext copy of the recovery code.
+- Profile shows `Reset recovery code` only when the session user has a username,
+  regardless of linked email or Google access. Its confirmation dialog offers
+  an off-by-default option to sign out other devices.
+- Reuse this recovery-code page for the reset handoff. The reset request only
+  prepares the code; pressing `Done` after the enforced reading delay activates
+  it and returns to Profile. The old code remains valid if preparation or
+  activation fails.
 
 ### 5. Email Verification
 

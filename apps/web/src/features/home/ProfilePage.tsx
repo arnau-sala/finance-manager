@@ -9,9 +9,11 @@ import {
 import {
   AtSign,
   CalendarDays,
+  Check,
   ChevronRight,
   CircleCheck,
   Clock3,
+  Key,
   KeyRound,
   Landmark,
   LogOut,
@@ -36,9 +38,11 @@ import {
 import {
   ApiRequestError,
   deleteAccount,
+  resetRecoveryCode,
   startGoogleAccountLink,
   startGoogleAccountDeletion,
   updateProfile,
+  type RecoveryCodeResetResult,
   type UpdateProfileInput,
   type SessionUser
 } from "../auth/auth-api";
@@ -50,8 +54,10 @@ type ProfilePageProps = {
   user: SessionUser;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
+  onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
+  onSessionExpired: () => void;
   googleAccountDeletionFeedback: "mismatch" | "failed" | "cancelled" | null;
   onGoogleAccountDeletionFeedbackHandled: () => void;
   googleAccountLinkFeedback:
@@ -109,8 +115,10 @@ export function ProfilePage({
   user,
   onProfileUpdated,
   onChangePassword,
+  onRecoveryCodeReset,
   onLogout,
   onAccountDeleted,
+  onSessionExpired,
   googleAccountDeletionFeedback,
   onGoogleAccountDeletionFeedbackHandled,
   googleAccountLinkFeedback,
@@ -157,6 +165,14 @@ export function ProfilePage({
   const [isLinkingGoogle, setIsLinkingGoogle] = useState(false);
   const [googleLinkError, setGoogleLinkError] = useState<string | null>(null);
   const [isGoogleInfoOpen, setIsGoogleInfoOpen] = useState(false);
+  const [isRecoveryCodeDialogOpen, setIsRecoveryCodeDialogOpen] =
+    useState(false);
+  const [signOutOtherDevices, setSignOutOtherDevices] = useState(false);
+  const [isResettingRecoveryCode, setIsResettingRecoveryCode] =
+    useState(false);
+  const [recoveryCodeResetError, setRecoveryCodeResetError] = useState<
+    string | null
+  >(null);
   const hasGoogleAccess = user.authProvider !== "PASSWORD";
   const deletesWithGoogle =
     user.authProvider === "GOOGLE" ||
@@ -526,6 +542,63 @@ export function ProfilePage({
     }
   }
 
+  function openRecoveryCodeDialog() {
+    setSignOutOtherDevices(false);
+    setRecoveryCodeResetError(null);
+    setIsRecoveryCodeDialogOpen(true);
+  }
+
+  function closeRecoveryCodeDialog() {
+    if (isResettingRecoveryCode) {
+      return;
+    }
+
+    setIsRecoveryCodeDialogOpen(false);
+    setSignOutOtherDevices(false);
+    setRecoveryCodeResetError(null);
+  }
+
+  async function confirmRecoveryCodeReset() {
+    if (isResettingRecoveryCode || !user.username) {
+      return;
+    }
+
+    setRecoveryCodeResetError(null);
+    setIsResettingRecoveryCode(true);
+    prefetchScheduler.prioritizeUserRequest();
+
+    try {
+      const result = await resetRecoveryCode(signOutOtherDevices);
+      setIsRecoveryCodeDialogOpen(false);
+      setSignOutOtherDevices(false);
+      setIsResettingRecoveryCode(false);
+      onRecoveryCodeReset(result);
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 401) {
+        setIsRecoveryCodeDialogOpen(false);
+        setIsResettingRecoveryCode(false);
+        onSessionExpired();
+        return;
+      }
+
+      if (error instanceof ApiRequestError && error.status === 429) {
+        setRecoveryCodeResetError(
+          `Too many recovery code resets. Try again in ${
+            error.retryAfter ?? "15 minutes"
+          }`
+        );
+      } else {
+        setRecoveryCodeResetError(
+          error instanceof Error
+            ? error.message
+            : "Unable to reset the recovery code"
+        );
+      }
+
+      setIsResettingRecoveryCode(false);
+    }
+  }
+
   return (
     <>
       <section
@@ -660,17 +733,24 @@ export function ProfilePage({
                     icon={<KeyRound />}
                     onClick={onChangePassword}
                   />
-                  {user.authProvider === "PASSWORD" ? (
-                    <ProfileActionButton
-                      label="Link Google account"
-                      icon={<GoogleIcon />}
-                      onClick={() => {
-                        setGoogleLinkError(null);
-                        setGoogleLinkDialogMode("confirm");
-                      }}
-                    />
-                  ) : null}
                 </>
+              ) : null}
+              {user.username ? (
+                <ProfileActionButton
+                  label="Reset recovery code"
+                  icon={<Key />}
+                  onClick={openRecoveryCodeDialog}
+                />
+              ) : null}
+              {user.authProvider === "PASSWORD" ? (
+                <ProfileActionButton
+                  label="Link Google account"
+                  icon={<GoogleIcon />}
+                  onClick={() => {
+                    setGoogleLinkError(null);
+                    setGoogleLinkDialogMode("confirm");
+                  }}
+                />
               ) : null}
             </div>
           </section>
@@ -778,6 +858,43 @@ export function ProfilePage({
             />
           </div>
         </form>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={isRecoveryCodeDialogOpen}
+        title="Reset recovery code?"
+        description={
+          "A new recovery code will replace your current one. The old code stops working only when the replacement is ready"
+        }
+        confirmLabel="Reset code"
+        confirmingLabel="Creating..."
+        icon={<Key />}
+        isConfirming={isResettingRecoveryCode}
+        error={recoveryCodeResetError}
+        onCancel={closeRecoveryCodeDialog}
+        onConfirm={confirmRecoveryCodeReset}
+      >
+        <label className="recovery-code-reset-option">
+          <input
+            type="checkbox"
+            checked={signOutOtherDevices}
+            disabled={isResettingRecoveryCode}
+            onChange={(event) => {
+              setSignOutOtherDevices(event.target.checked);
+              setRecoveryCodeResetError(null);
+            }}
+          />
+          <span
+            className="recovery-code-reset-option__checkbox"
+            aria-hidden="true"
+          >
+            <Check />
+          </span>
+          <span className="recovery-code-reset-option__copy">
+            <strong>Sign out other devices</strong>
+            <span>This device stays signed in</span>
+          </span>
+        </label>
       </ConfirmDialog>
 
       <ConfirmDialog

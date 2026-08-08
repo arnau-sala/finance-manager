@@ -94,6 +94,12 @@ invalidation, and atomic recovery-code rotation. Verification and completion
 are separate by design: neither an email code nor a recovery code can be used as
 a normal authenticated session.
 
+Authenticated recovery-code replacement uses a separate two-phase contract in
+`routes/account.ts` and `auth/username-account.ts`. Preparation leaves the
+current hash active and stores a short-lived pending hash plus a hashed rotation
+token. Activation promotes that hash atomically and optionally rotates the
+session version while reissuing the current session.
+
 `PendingRegistration` has one row per normalized email. It stores the required
 name, Argon2id password hash, HMAC-SHA256 verification-code hash, failed-attempt
 count, expiry, and last-send timestamp. The plaintext password and code are

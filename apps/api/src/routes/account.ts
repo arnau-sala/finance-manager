@@ -13,7 +13,10 @@ import { supportsPasswordAuthentication } from "../auth/auth-provider.js";
 import { hashPassword, verifyPassword } from "../auth/password.js";
 import { passwordSchema } from "../auth/password-validation.js";
 import { userNameSchema } from "../auth/user-validation.js";
-import { rotateAccountRecoveryCode } from "../auth/username-account.js";
+import {
+  activateAccountRecoveryCodeRotation,
+  prepareAccountRecoveryCodeRotation,
+} from "../auth/username-account.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
@@ -61,7 +64,13 @@ const changePasswordBodySchema = z
 
 const rotateRecoveryCodeBodySchema = z
   .object({
-    currentPassword: z.string().min(1).max(128),
+    signOutOtherDevices: z.boolean().default(false),
+  })
+  .strict();
+
+const activateRecoveryCodeBodySchema = z
+  .object({
+    rotationToken: z.string().min(32).max(128),
   })
   .strict();
 
@@ -321,13 +330,13 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       const parsedBody = rotateRecoveryCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Current password is required." });
+        return reply.code(400).send({ error: "Invalid recovery code options." });
       }
 
-      const result = await rotateAccountRecoveryCode({
+      const result = await prepareAccountRecoveryCodeRotation({
         userId,
         sessionVersion,
-        currentPassword: parsedBody.data.currentPassword,
+        signOutOtherDevices: parsedBody.data.signOutOtherDevices,
       });
 
       if (result.type === "unauthenticated") {
@@ -341,13 +350,81 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      if (result.type === "incorrect-password") {
-        return reply.code(401).send({ error: "Incorrect current password." });
+      if (result.type === "conflict") {
+        return reply.code(409).send({
+          error: "Recovery code changed. Please try again.",
+        });
       }
 
+      reply.header("Cache-Control", "private, no-store");
+      return reply.send({
+        message: "Recovery code prepared successfully.",
+        recoveryCode: result.recoveryCode,
+        rotationToken: result.rotationToken,
+        username: result.username,
+      });
+    },
+  );
+
+  app.post(
+    "/account/recovery-code/activate",
+    { config: { rateLimit: accountRecoveryCodeRateLimit } },
+    async (request, reply) => {
+      const userId = request.session.get("userId");
+      const sessionVersion = request.session.get("sessionVersion");
+
+      if (!userId || sessionVersion === undefined) {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      const parsedBody = activateRecoveryCodeBodySchema.safeParse(request.body);
+
+      if (!parsedBody.success) {
+        return reply
+          .code(400)
+          .send({ error: "Invalid recovery code activation." });
+      }
+
+      const result = await activateAccountRecoveryCodeRotation({
+        userId,
+        sessionVersion,
+        rotationToken: parsedBody.data.rotationToken,
+      });
+
+      if (result.type === "unauthenticated") {
+        request.session.delete();
+        return reply.code(401).send({ error: "Authentication required." });
+      }
+
+      if (result.type === "unavailable") {
+        return reply.code(409).send({
+          error: "This recovery code can no longer be activated.",
+        });
+      }
+
+      if (result.type === "expired") {
+        return reply.code(409).send({
+          error: "This recovery code has expired. Create a new one.",
+        });
+      }
+
+      if (result.type === "conflict") {
+        return reply.code(409).send({
+          error: "Recovery code changed. Please try again.",
+        });
+      }
+
+      if (result.signedOutOtherDevices) {
+        request.session.regenerate();
+        request.session.set("userId", userId);
+        request.session.set("sessionVersion", result.sessionVersion);
+      }
+
+      reply.header("Cache-Control", "private, no-store");
       return reply.send({
         message: "Recovery code replaced successfully.",
-        recoveryCode: result.recoveryCode,
+        signedOutOtherDevices: result.signedOutOtherDevices,
       });
     },
   );

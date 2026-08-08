@@ -9,6 +9,12 @@ type ChangePasswordInput = {
   newPasswordConfirmation: string;
 };
 
+export type RecoveryCodeResetResult = {
+  username: string;
+  recoveryCode: string;
+  rotationToken: string;
+};
+
 type ApiErrorResponse = {
   error?: string;
   retryAfter?: string;
@@ -167,6 +173,54 @@ export async function changePassword(input: ChangePasswordInput) {
 
   if (!response.ok) {
     throw await createApiRequestError(response, "Unable to change password.");
+  }
+}
+
+export async function resetRecoveryCode(signOutOtherDevices: boolean) {
+  const response = await fetch("/api/account/recovery-code", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({ signOutOtherDevices })
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to reset the recovery code"
+    );
+  }
+
+  const body = (await response.json()) as Partial<RecoveryCodeResetResult>;
+
+  if (
+    typeof body.username !== "string" ||
+    typeof body.recoveryCode !== "string" ||
+    typeof body.rotationToken !== "string"
+  ) {
+    throw new ApiRequestError("Invalid recovery code response", 500);
+  }
+
+  return body as RecoveryCodeResetResult;
+}
+
+export async function activateRecoveryCodeReset(rotationToken: string) {
+  const response = await fetch("/api/account/recovery-code/activate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({ rotationToken })
+  });
+
+  if (!response.ok) {
+    throw await createApiRequestError(
+      response,
+      "Unable to activate the recovery code"
+    );
   }
 }
 

@@ -62,7 +62,8 @@
 - Accept email or username through one login identifier.
 - Generate a 16-character Base58 recovery code and store only its hash.
 - Make recovery codes single-use and return a replacement after recovery.
-- Allow authenticated recovery-code rotation with the current password.
+- Allow authenticated username accounts to rotate their recovery code with a
+  two-phase handoff and optional revocation of other sessions.
 - Allow username accounts to add a verified normal email or Google identity
   without creating a second user.
 

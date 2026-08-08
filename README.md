@@ -63,6 +63,7 @@ Authentication:
 - `PATCH /account`
 - `PATCH /account/password`
 - `POST /account/recovery-code`
+- `POST /account/recovery-code/activate`
 - `POST /account/email/link`
 - `POST /account/email/link/resend`
 - `POST /account/email/link/verify`
@@ -334,8 +335,11 @@ email notification when the account has an email. Recovery-code resets also
 rotate and return the replacement code. No reset automatically signs the user
 in. `/auth/password-reset/cancel` revokes an unfinished grant.
 
-An authenticated username account can still rotate its recovery code through
-`POST /account/recovery-code` by providing its current password.
+An authenticated account with a username can rotate its recovery code from
+Profile. `POST /account/recovery-code` prepares a short-lived replacement while
+the current code remains valid. After the one-time screen has shown it,
+`POST /account/recovery-code/activate` atomically activates the replacement and
+can optionally revoke every other session while preserving the current device.
 
 ## Link An Email
 

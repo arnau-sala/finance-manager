@@ -230,7 +230,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   will-change: transform;
 }
 
-.change-password-layer {
+.account-flow-layer {
   position: fixed;
   inset: 0;
   z-index: 60;
@@ -245,13 +245,13 @@ body.app-logout-transition .confirm-dialog-backdrop {
   will-change: transform;
 }
 
-.change-password-layer.is-open {
+.account-flow-layer.is-open {
   pointer-events: auto;
   transform: translate3d(0, 0, 0);
   box-shadow: var(--shadow-screen-transition);
 }
 
-.change-password-layer > .auth-screen {
+.account-flow-layer > .auth-screen {
   position: absolute;
 }
 
@@ -2147,7 +2147,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   will-change: transform;
 }
 
-.home-main-layer.is-password-page-open {
+.home-main-layer.is-account-page-open {
   transform: translate3d(-18%, 0, 0);
 }
 
@@ -6915,6 +6915,87 @@ button.transaction-row__content:focus-visible {
   margin-top: 18px;
 }
 
+.recovery-code-reset-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--button-radius-card);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.recovery-code-reset-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.recovery-code-reset-option__checkbox {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.recovery-code-reset-option__checkbox svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.2;
+}
+
+.recovery-code-reset-option input:checked + .recovery-code-reset-option__checkbox {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.recovery-code-reset-option input:focus-visible + .recovery-code-reset-option__checkbox {
+  outline: 2px solid var(--color-primary-border);
+  outline-offset: 2px;
+}
+
+.recovery-code-reset-option:has(input:disabled) {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.recovery-code-reset-option__copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.recovery-code-reset-option__copy strong {
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+.recovery-code-reset-option__copy span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
 .confirm-dialog__form--password,
 .confirm-dialog__form--profile {
   gap: 14px;
@@ -7568,7 +7649,7 @@ button.transaction-row__content:focus-visible {
     animation-duration: 1ms;
   }
 
-  .change-password-layer,
+  .account-flow-layer,
   .home-main-layer {
     transition-duration: 1ms;
   }

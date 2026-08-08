@@ -5,7 +5,10 @@ import {
   invalidateAfterTransactionWrite
 } from "../../cache/financial-cache";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
-import type { SessionUser } from "../auth/auth-api";
+import type {
+  RecoveryCodeResetResult,
+  SessionUser
+} from "../auth/auth-api";
 import { StatsPage } from "../statistics/StatsPage";
 import {
   createInitialMovesPageState,
@@ -24,6 +27,7 @@ import { HomeOverviewPage } from "./HomeOverviewPage";
 import { ChangePasswordPage } from "./ChangePasswordPage";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
+import { RecoveryCodeResetPage } from "./RecoveryCodeResetPage";
 
 export type GoogleAccountDeletionFeedback = "mismatch" | "failed" | "cancelled";
 export type GoogleAccountLinkFeedback =
@@ -49,6 +53,7 @@ type HomeSectionProps = {
   user: SessionUser;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
+  onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
@@ -116,8 +121,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onProfileUpdated,
     onChangePassword,
+    onRecoveryCodeReset,
     onLogout,
     onAccountDeleted,
+    onSessionExpired,
     googleAccountDeletionFeedback,
     onGoogleAccountDeletionFeedbackHandled,
     googleAccountLinkFeedback,
@@ -127,8 +134,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       user={user}
       onProfileUpdated={onProfileUpdated}
       onChangePassword={onChangePassword}
+      onRecoveryCodeReset={onRecoveryCodeReset}
       onLogout={onLogout}
       onAccountDeleted={onAccountDeleted}
+      onSessionExpired={onSessionExpired}
       googleAccountDeletionFeedback={googleAccountDeletionFeedback}
       onGoogleAccountDeletionFeedbackHandled={
         onGoogleAccountDeletionFeedbackHandled
@@ -161,6 +170,8 @@ export function HomePage({
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [recoveryCodeReset, setRecoveryCodeReset] =
+    useState<RecoveryCodeResetResult | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionPreview | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
@@ -171,6 +182,7 @@ export function HomePage({
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
     isChangePasswordOpen ||
+    recoveryCodeReset !== null ||
     isTransactionComposerOpen ||
     selectedTransaction !== null;
 
@@ -223,7 +235,9 @@ export function HomePage({
     <main className="home-screen">
       <div
         className={`home-main-layer${
-          isChangePasswordOpen ? " is-password-page-open" : ""
+          isChangePasswordOpen || recoveryCodeReset
+            ? " is-account-page-open"
+            : ""
         }`}
         aria-hidden={isOverlayOpen}
         inert={isOverlayOpen}
@@ -235,6 +249,7 @@ export function HomePage({
             prefetchScheduler.prioritizeUserRequest();
             setIsChangePasswordOpen(true);
           },
+          onRecoveryCodeReset: setRecoveryCodeReset,
           onLogout,
           onAccountDeleted,
           onSessionExpired,
@@ -259,6 +274,12 @@ export function HomePage({
       <ChangePasswordPage
         open={isChangePasswordOpen}
         onBack={() => setIsChangePasswordOpen(false)}
+      />
+
+      <RecoveryCodeResetPage
+        result={recoveryCodeReset}
+        onDone={() => setRecoveryCodeReset(null)}
+        onSessionExpired={onSessionExpired}
       />
 
       <TransactionComposer

@@ -89,11 +89,15 @@ model PendingRegistration {
 }
 
 model AccountRecoveryCode {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  codeHash  String   @unique @db.Char(64)
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                         String    @id @default(cuid())
+  userId                     String    @unique
+  codeHash                   String    @unique @db.Char(64)
+  createdAt                  DateTime  @default(now())
+  pendingCodeHash            String?   @unique @db.Char(64)
+  pendingRotationTokenHash   String?   @unique @db.Char(64)
+  pendingRotationExpiresAt   DateTime?
+  pendingSignOutOtherDevices Boolean   @default(false)
+  user                       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PendingPasswordReset {

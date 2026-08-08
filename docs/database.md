@@ -152,6 +152,11 @@ and name, leave email fields null, and create their recovery code atomically.
 Adding a normal email keeps provider `PASSWORD`; adding Google changes it to
 `PASSWORD_AND_GOOGLE` and records Google's verified email when none existed.
 
+`AccountRecoveryCode` keeps the active unique hash and temporary nullable fields
+for a pending replacement, its hashed activation token, expiry, and optional
+other-session revocation choice. This lets Profile show a newly generated code
+before an activation transaction replaces the currently valid hash.
+
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
 Deleting a user removes transactions, recovery code, pending email link,
