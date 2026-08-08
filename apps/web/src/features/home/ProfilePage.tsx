@@ -841,13 +841,11 @@ export function ProfilePage({
                   setLogoutError(null);
                   setIsLogoutDialogOpen(true);
                 }}
-                centered
               />
               <ProfileActionButton
                 label="Delete account"
                 icon={<Trash2 />}
                 tone="danger"
-                centered
                 onClick={() => {
                   setDeleteError(null);
                   setDeletePassword("");
@@ -1150,7 +1148,6 @@ type ProfileActionButtonProps = {
   label: string;
   icon: ReactNode;
   tone?: "default" | "danger" | "unlink";
-  centered?: boolean;
   onClick?: () => void;
 };
 
@@ -1158,14 +1155,11 @@ function ProfileActionButton({
   label,
   icon,
   tone = "default",
-  centered = false,
   onClick
 }: ProfileActionButtonProps) {
   return (
     <ActionButton
-      className={`profile-action profile-action--${tone}${
-        centered ? " profile-action--centered" : ""
-      }`}
+      className={`profile-action profile-action--${tone}`}
       type="button"
       onClick={onClick}
       disabled={!onClick}
@@ -1174,9 +1168,7 @@ function ProfileActionButton({
         {icon}
       </span>
       <span className="profile-action__label">{label}</span>
-      {centered ? null : (
-        <ChevronRight className="profile-action__chevron" aria-hidden="true" />
-      )}
+      <ChevronRight className="profile-action__chevron" aria-hidden="true" />
     </ActionButton>
   );
 }

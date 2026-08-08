@@ -6945,12 +6945,7 @@ button.transaction-row__content:focus-visible {
 .profile-action--danger {
   color: var(--color-danger);
   background: var(--color-danger-soft);
-  border-color: transparent;
-}
-
-.profile-action--centered {
-  display: flex;
-  justify-content: center;
+  border-color: var(--color-border);
 }
 
 .profile-action:not(:disabled) {
