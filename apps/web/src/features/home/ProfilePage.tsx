@@ -178,6 +178,16 @@ export function ProfilePage({
     string | null
   >(null);
   const hasGoogleAccess = user.authProvider !== "PASSWORD";
+  const hasEmailAccess = user.emailLoginEnabled;
+  const hasUsernameAccess = user.username !== null;
+  const linkedMethodCount = [
+    hasGoogleAccess,
+    hasEmailAccess,
+    hasUsernameAccess
+  ].filter(Boolean).length;
+  const canUnlinkMethods = linkedMethodCount > 1;
+  const hasSecurityActions =
+    user.authProvider !== "GOOGLE" || hasUsernameAccess;
   const showsGoogleAccountDetail =
     hasGoogleAccess && !user.emailLoginEnabled;
   const showsGoogleProviderBadge =
@@ -718,8 +728,11 @@ export function ProfilePage({
             </dl>
           </section>
 
-          <section className="profile-section" aria-labelledby="profile-actions-title">
-            <h2 id="profile-actions-title">Actions</h2>
+          <section
+            className="profile-section"
+            aria-labelledby="profile-account-title"
+          >
+            <h2 id="profile-account-title">Account</h2>
 
             <div className="profile-action-list">
               <ProfileActionButton
@@ -736,38 +749,9 @@ export function ProfilePage({
                   setIsEditDialogOpen(true);
                 }}
               />
-              {user.authProvider !== "GOOGLE" ? (
-                <>
-                  <ProfileActionButton
-                    label="Change password"
-                    icon={<KeyRound />}
-                    onClick={onChangePassword}
-                  />
-                </>
-              ) : null}
-              {user.username ? (
+              {!hasGoogleAccess ? (
                 <ProfileActionButton
-                  label="Reset recovery code"
-                  icon={<Key />}
-                  onClick={openRecoveryCodeDialog}
-                />
-              ) : (
-                <ProfileActionButton
-                  label="Link username"
-                  icon={<AtSign />}
-                  onClick={onLinkUsername}
-                />
-              )}
-              {!user.emailLoginEnabled ? (
-                <ProfileActionButton
-                  label="Link email"
-                  icon={<Mail />}
-                  onClick={onLinkEmail}
-                />
-              ) : null}
-              {user.authProvider === "PASSWORD" ? (
-                <ProfileActionButton
-                  label="Link Google account"
+                  label="Link Google"
                   icon={<GoogleIcon />}
                   onClick={() => {
                     setGoogleLinkError(null);
@@ -775,34 +759,106 @@ export function ProfilePage({
                   }}
                 />
               ) : null}
+              {!hasEmailAccess ? (
+                <ProfileActionButton
+                  label="Link email"
+                  icon={<Mail />}
+                  onClick={onLinkEmail}
+                />
+              ) : null}
+              {!hasUsernameAccess ? (
+                <ProfileActionButton
+                  label="Link username"
+                  icon={<AtSign />}
+                  onClick={onLinkUsername}
+                />
+              ) : null}
+
+              {canUnlinkMethods && hasGoogleAccess ? (
+                <ProfileActionButton
+                  label="Unlink Google"
+                  icon={<GoogleIcon className="profile-action__google-icon" />}
+                  tone="unlink"
+                />
+              ) : null}
+              {canUnlinkMethods && hasEmailAccess ? (
+                <ProfileActionButton
+                  label="Unlink email"
+                  icon={<Mail />}
+                  tone="unlink"
+                />
+              ) : null}
+              {canUnlinkMethods && hasUsernameAccess ? (
+                <ProfileActionButton
+                  label="Unlink username"
+                  icon={<AtSign />}
+                  tone="unlink"
+                />
+              ) : null}
             </div>
           </section>
 
-          <div className="profile-session-actions" aria-label="Session and account actions">
-            <ProfileActionButton
-              label="Log out"
-              icon={<LogOut />}
-              onClick={() => {
-                setLogoutError(null);
-                setIsLogoutDialogOpen(true);
-              }}
-              centered
-            />
-            <ProfileActionButton
-              label="Delete account"
-              icon={<Trash2 />}
-              tone="danger"
-              centered
-              onClick={() => {
-                setDeleteError(null);
-                setDeletePassword("");
-                setDeleteVerificationMethod(
-                  user.authProvider === "PASSWORD" ? "password" : "google"
-                );
-                setDeleteDialogMode("confirm");
-              }}
-            />
-          </div>
+          {hasSecurityActions ? (
+            <section
+              className="profile-section"
+              aria-labelledby="profile-security-title"
+            >
+              <h2 id="profile-security-title">Security</h2>
+
+              <div className="profile-action-list">
+                {user.authProvider !== "GOOGLE" ? (
+                  <ProfileActionButton
+                    label="Change password"
+                    icon={<KeyRound />}
+                    onClick={onChangePassword}
+                  />
+                ) : null}
+                {hasUsernameAccess ? (
+                  <ProfileActionButton
+                    label="Reset recovery code"
+                    icon={<Key />}
+                    onClick={openRecoveryCodeDialog}
+                  />
+                ) : null}
+              </div>
+            </section>
+          ) : null}
+
+          <section
+            className="profile-section"
+            aria-labelledby="profile-session-title"
+          >
+            <h2 id="profile-session-title">Session</h2>
+
+            <div
+              className="profile-action-list profile-session-actions"
+              aria-label="Session and account actions"
+            >
+              <ProfileActionButton
+                label="Log out"
+                icon={<LogOut />}
+                onClick={() => {
+                  setLogoutError(null);
+                  setIsLogoutDialogOpen(true);
+                }}
+                centered
+              />
+              <ProfileActionButton
+                label="Delete account"
+                icon={<Trash2 />}
+                tone="danger"
+                centered
+                onClick={() => {
+                  setDeleteError(null);
+                  setDeletePassword("");
+                  setDeleteVerificationMethod(
+                    user.authProvider === "PASSWORD" ? "password" : "google"
+                  );
+                  setDeleteDialogMode("confirm");
+                }}
+              />
+            </div>
+          </section>
         </div>
       </section>
 
@@ -1093,7 +1149,7 @@ export function ProfilePage({
 type ProfileActionButtonProps = {
   label: string;
   icon: ReactNode;
-  tone?: "default" | "danger";
+  tone?: "default" | "danger" | "unlink";
   centered?: boolean;
   onClick?: () => void;
 };

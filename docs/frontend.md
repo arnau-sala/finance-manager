@@ -185,6 +185,14 @@ password fields, while accounts with email/password sign-in see only username.
 Success slides to the shared one-time recovery-code screen, then returns to the
 updated Profile.
 
+Profile actions are grouped into `Account`, `Security`, and `Session` sections.
+Account always starts with profile editing, followed by available Google,
+email, and username links. Once at least two sign-in methods exist, every
+linked method also has a red-icon `Unlink` row after the remaining link rows;
+these unlink controls are intentionally non-functional until their secure
+server flows are implemented. A Google-only account omits `Security` because it
+has neither a password nor a recovery code.
+
 ### Buttons
 
 Command buttons use the shared `ActionButton` component in
