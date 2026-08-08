@@ -176,6 +176,10 @@ export function ProfilePage({
     string | null
   >(null);
   const hasGoogleAccess = user.authProvider !== "PASSWORD";
+  const showsGoogleAccountDetail =
+    hasGoogleAccess && !user.emailLoginEnabled;
+  const showsGoogleProviderBadge =
+    hasGoogleAccess && user.emailLoginEnabled;
   const deletesWithGoogle =
     user.authProvider === "GOOGLE" ||
     (user.authProvider === "PASSWORD_AND_GOOGLE" &&
@@ -640,19 +644,27 @@ export function ProfilePage({
               {user.email ? (
                 <div
                   className={`profile-detail profile-detail--email${
-                    hasGoogleAccess ? " profile-detail--with-provider" : ""
+                    showsGoogleProviderBadge
+                      ? " profile-detail--with-provider"
+                      : ""
                   }`}
                 >
                   <span className="profile-detail__icon" aria-hidden="true">
-                    <Mail />
+                    {showsGoogleAccountDetail ? (
+                      <GoogleIcon />
+                    ) : (
+                      <Mail />
+                    )}
                   </span>
                   <div>
-                    <dt>Email</dt>
+                    <dt>
+                      {showsGoogleAccountDetail ? "Google account" : "Email"}
+                    </dt>
                     <dd ref={profileEmailRef} className="profile-detail__email">
                       {user.email}
                     </dd>
                   </div>
-                  {hasGoogleAccess ? (
+                  {showsGoogleProviderBadge ? (
                     <div ref={googleInfoRef} className="profile-detail__provider-anchor">
                       <button
                         type="button"
@@ -671,15 +683,9 @@ export function ProfilePage({
                           className="profile-google-info"
                           role="note"
                         >
-                          <strong>
-                            {user.authProvider === "PASSWORD_AND_GOOGLE"
-                              ? "Google linked"
-                              : "Google sign-in"}
-                          </strong>
+                          <strong>Google sign in activated</strong>
                           <p>
-                            {user.authProvider === "PASSWORD_AND_GOOGLE"
-                              ? `Sign in with Google as ${user.email}, or keep using your password.`
-                              : `This account signs in with Google as ${user.email} and does not use a password.`}
+                            {`You can sign in with Google as ${user.email}, or use your email and password.`}
                           </p>
                         </div>
                       ) : null}
