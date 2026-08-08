@@ -60,6 +60,7 @@ The active database models cover authentication and financial records:
 - `PendingRegistration`
 - `AccountRecoveryCode`
 - `PendingEmailLink`
+- `EmailLinkConflictNotice`
 - `PendingPasswordReset`
 - `PasswordResetGrant`
 - `Category`

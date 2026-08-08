@@ -129,6 +129,12 @@ Email-linking decisions:
   code from another registration or account cannot be replayed.
 - The flow has the same 10-minute expiry, five-attempt limit, 60-second resend
   cooldown, neutral issuance response, and delivery rollback as registration.
+- When a candidate address already belongs to another user, its owner receives
+  an informational notice that contains no requester identity. A persistent
+  per-owner 24-hour cooldown prevents notification abuse across sessions or IPs.
+- Successful code and conflict-notice branches share the same `202` body and a
+  timing-normalized response window, preventing account discovery through the
+  response payload, status, or a fast no-send branch.
 - A Google-only account must submit a policy-compliant password before the
   email is sent. Only its Argon2id hash enters `PendingEmailLink`; cancellation
   or expiry removes it without changing the account.

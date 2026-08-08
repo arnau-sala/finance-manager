@@ -7,13 +7,17 @@ import {
   assertTransactionalEmailConfigured,
   EmailConfigurationError,
 } from "../email/brevo.js";
-import { sendAccountEmailVerificationEmail } from "../email/account-email-verification.js";
+import {
+  sendAccountEmailVerificationEmail,
+  sendEmailLinkConflictNotice,
+} from "../email/account-email-verification.js";
 import { hashPassword } from "../auth/password.js";
 
 const EMAIL_LINK_CODE_TTL_MINUTES = 10;
 const EMAIL_LINK_CODE_TTL_MS = EMAIL_LINK_CODE_TTL_MINUTES * 60 * 1_000;
 const EMAIL_LINK_RESEND_COOLDOWN_MS = 60 * 1_000;
 const EMAIL_LINK_RETENTION_MS = 24 * 60 * 60 * 1_000;
+const EMAIL_LINK_CONFLICT_NOTICE_COOLDOWN_MS = 24 * 60 * 60 * 1_000;
 export const MAX_EMAIL_LINK_ATTEMPTS = 5;
 
 type PendingEmailLinkSnapshot = {
@@ -23,6 +27,11 @@ type PendingEmailLinkSnapshot = {
   verificationAttempts: number;
   expiresAt: Date;
   lastSentAt: Date;
+};
+
+type ConflictNoticeClaim = {
+  sentAt: Date;
+  previousSentAt: Date | null;
 };
 
 function getVerificationSecret() {
@@ -96,6 +105,96 @@ async function rollBackUndeliveredEmailLink(
   });
 }
 
+async function claimEmailLinkConflictNotice(
+  targetUserId: string,
+  now: Date,
+): Promise<ConflictNoticeClaim | null> {
+  try {
+    return await db.$transaction(async (transaction) => {
+      const existing = await transaction.emailLinkConflictNotice.findUnique({
+        where: { userId: targetUserId },
+        select: { lastSentAt: true },
+      });
+      const cooldownStartedAt = new Date(
+        now.getTime() - EMAIL_LINK_CONFLICT_NOTICE_COOLDOWN_MS,
+      );
+
+      if (existing && existing.lastSentAt > cooldownStartedAt) {
+        return null;
+      }
+
+      if (existing) {
+        const update = await transaction.emailLinkConflictNotice.updateMany({
+          where: {
+            userId: targetUserId,
+            lastSentAt: existing.lastSentAt,
+          },
+          data: { lastSentAt: now },
+        });
+
+        return update.count === 1
+          ? { sentAt: now, previousSentAt: existing.lastSentAt }
+          : null;
+      }
+
+      await transaction.emailLinkConflictNotice.create({
+        data: { userId: targetUserId, lastSentAt: now },
+      });
+
+      return { sentAt: now, previousSentAt: null };
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      (error.code === "P2002" || error.code === "P2003")
+    ) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+async function rollBackEmailLinkConflictNotice(
+  targetUserId: string,
+  claim: ConflictNoticeClaim,
+) {
+  if (claim.previousSentAt === null) {
+    await db.emailLinkConflictNotice.deleteMany({
+      where: { userId: targetUserId, lastSentAt: claim.sentAt },
+    });
+    return;
+  }
+
+  await db.emailLinkConflictNotice.updateMany({
+    where: { userId: targetUserId, lastSentAt: claim.sentAt },
+    data: { lastSentAt: claim.previousSentAt },
+  });
+}
+
+async function notifyExistingEmailOwner(input: {
+  userId: string;
+  email: string;
+  name: string;
+  now: Date;
+}) {
+  const claim = await claimEmailLinkConflictNotice(input.userId, input.now);
+
+  if (!claim) {
+    return;
+  }
+
+  try {
+    await sendEmailLinkConflictNotice({
+      email: input.email,
+      name: input.name,
+    });
+  } catch (error) {
+    await rollBackEmailLinkConflictNotice(input.userId, claim);
+    throw error;
+  }
+}
+
 export const genericEmailLinkResponse = {
   message: "If this email can be linked, a verification code has been sent.",
 };
@@ -152,7 +251,7 @@ export async function beginAccountEmailLink(input: {
     await Promise.all([
       db.user.findUnique({
         where: { email: targetEmail },
-        select: { id: true },
+        select: { id: true, name: true },
       }),
       db.pendingRegistration.findUnique({
         where: { email: targetEmail },
@@ -164,10 +263,17 @@ export async function beginAccountEmailLink(input: {
       }),
     ]);
 
-  if (
-    (emailOwner && emailOwner.id !== user.id) ||
-    (!user.email && pendingRegistration)
-  ) {
+  if (emailOwner && emailOwner.id !== user.id) {
+    await notifyExistingEmailOwner({
+      userId: emailOwner.id,
+      email: targetEmail,
+      name: emailOwner.name,
+      now,
+    });
+    return { type: "accepted" } as const;
+  }
+
+  if (!user.email && pendingRegistration) {
     return { type: "accepted" } as const;
   }
 

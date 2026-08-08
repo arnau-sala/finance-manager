@@ -1,3 +1,6 @@
+import { randomInt } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
+
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
@@ -52,6 +55,20 @@ const verifyEmailLinkBodySchema = z
   .object({ code: z.string().trim().regex(/^\d{6}$/) })
   .strict();
 
+const NEUTRAL_EMAIL_LINK_RESPONSE_MIN_MS = 850;
+const NEUTRAL_EMAIL_LINK_RESPONSE_JITTER_MS = 150;
+
+async function waitForNeutralEmailLinkResponse(startedAt: number) {
+  const targetDuration =
+    NEUTRAL_EMAIL_LINK_RESPONSE_MIN_MS +
+    randomInt(NEUTRAL_EMAIL_LINK_RESPONSE_JITTER_MS + 1);
+  const remaining = targetDuration - (Date.now() - startedAt);
+
+  if (remaining > 0) {
+    await delay(remaining);
+  }
+}
+
 export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
   app.delete(
     "/account/email/link",
@@ -97,6 +114,8 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
       if (!parsedBody.success) {
         return reply.code(400).send({ error: "Invalid email linking details." });
       }
+
+      const neutralResponseStartedAt = Date.now();
 
       try {
         const result = await beginAccountEmailLink({
@@ -144,6 +163,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
         throw error;
       }
 
+      await waitForNeutralEmailLinkResponse(neutralResponseStartedAt);
       return reply.code(202).send(genericEmailLinkResponse);
     },
   );
@@ -159,6 +179,8 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
         request.session.delete();
         return reply.code(401).send({ error: "Authentication required." });
       }
+
+      const neutralResponseStartedAt = Date.now();
 
       try {
         const result = await resendAccountEmailLinkCode({
@@ -188,6 +210,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
         throw error;
       }
 
+      await waitForNeutralEmailLinkResponse(neutralResponseStartedAt);
       return reply.code(202).send(genericEmailLinkResponse);
     },
   );

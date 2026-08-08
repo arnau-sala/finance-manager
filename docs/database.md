@@ -150,6 +150,11 @@ Argon2id hash until verification. Successful verification deletes the row,
 assigns or confirms the email on the existing `User`, and enables email login
 rather than creating another account.
 
+`EmailLinkConflictNotice` stores only the last conflict-notice delivery time
+for an existing user. Its unique user relation enforces a 24-hour target-level
+cooldown even when attempts come from different requesters, sessions, or IPs.
+It contains no requester identity and cascades when the user is deleted.
+
 New email/password registrations require a verified code and a name, then
 explicitly receive role `USER`, status `APPROVED`, and provider `PASSWORD`. New Google
 identities store Google's verified profile name and receive provider `GOOGLE`,
@@ -170,6 +175,7 @@ before an activation transaction replaces the currently valid hash.
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
 Deleting a user removes transactions, recovery code, pending email link,
+email-link conflict-notice state,
 pending password reset, password-reset grant, and referenced Google auth
 actions through `ON DELETE CASCADE`, and explicitly removes any matching
 `PendingRegistration` when the user has an email.

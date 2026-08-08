@@ -33,3 +33,29 @@ export async function sendAccountEmailVerificationEmail(input: {
 </html>`,
   });
 }
+
+export async function sendEmailLinkConflictNotice(input: {
+  email: string;
+  name: string;
+}) {
+  await sendTransactionalEmail({
+    to: {
+      email: input.email,
+      name: input.name,
+    },
+    subject: "Email linking attempt on Finance Manager",
+    tag: "account-email-link-conflict",
+    htmlContent: `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background:#f7f8fa;color:#111827;font-family:Arial,sans-serif;">
+    <div style="max-width:520px;margin:0 auto;padding:40px 24px;">
+      <div style="background:#ffffff;border:1px solid #d9dee7;border-radius:8px;padding:32px;">
+        <p style="margin:0 0 18px;font-size:20px;color:#0f766e;">Finance Manager</p>
+        <h1 style="margin:0 0 12px;font-size:24px;font-weight:500;">Email already linked</h1>
+        <p style="margin:0;color:#667085;line-height:1.5;">Someone tried to link another Finance Manager account to this email address, but this email already belongs to an existing account. No changes were made. If this was you, sign in to the account that already uses this email.</p>
+      </div>
+    </div>
+  </body>
+</html>`,
+  });
+}

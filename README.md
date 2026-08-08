@@ -361,6 +361,10 @@ it sends a specialized six-digit linking email.
 
 The code has the same 10-minute expiry, five-attempt limit, 60-second resend
 cooldown, neutral responses, and Brevo delivery rollback used by registration.
+If the address already belongs to another account, that owner receives a
+rate-limited security notice without any requester identity. The requester
+still receives the same timing-normalized `202` response and no code is stored,
+so the endpoint does not disclose whether the address is already registered.
 Resend with `POST /account/email/link/resend` and verify with:
 
 ```http

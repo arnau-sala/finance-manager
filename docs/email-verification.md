@@ -126,6 +126,12 @@ stored only as a pending Argon2id hash. Verification updates the current
 `User`, preserves every existing credential, and enables email login. It does
 not create a second account.
 
+An address already assigned to another account receives an informational
+security notice instead of a verification code. The message never identifies
+the requester, and a persistent 24-hour per-owner cooldown prevents repeated
+delivery. Both outcomes return the same timing-normalized neutral `202`
+response, so callers cannot use this endpoint to enumerate accounts.
+
 ## Failure Behavior
 
 Missing Brevo configuration returns `503 Email verification is not
