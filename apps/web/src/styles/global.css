@@ -6304,6 +6304,7 @@ button.transaction-row__content:focus-visible {
   --transaction-composer-content-gap: 18px;
   --transaction-composer-control-height: 46px;
   --transaction-category-option-height: 56px;
+  --transaction-category-grid-gap: 8px;
   position: fixed;
   inset: 0;
   z-index: 40;
@@ -6420,7 +6421,11 @@ button.transaction-row__content:focus-visible {
 .transaction-composer__content {
   width: min(100%, 440px);
   min-width: 0;
+  min-height: 100%;
+  box-sizing: border-box;
   display: grid;
+  grid-template-rows: repeat(5, auto);
+  align-content: space-between;
   gap: var(--transaction-composer-content-gap);
   margin: 0 auto;
   padding:
@@ -6428,6 +6433,13 @@ button.transaction-row__content:focus-visible {
     max(20px, env(safe-area-inset-right))
     20px
     max(20px, env(safe-area-inset-left));
+}
+
+.transaction-composer--income .transaction-composer__content {
+  padding-bottom: calc(
+    20px + var(--transaction-category-option-height) +
+      var(--transaction-category-grid-gap)
+  );
 }
 
 .transaction-composer__amount-section {
@@ -6640,7 +6652,7 @@ button.transaction-row__content:focus-visible {
 .transaction-category-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--transaction-category-grid-gap);
 }
 
 .transaction-category-option {
@@ -6873,8 +6885,6 @@ button.transaction-row__content:focus-visible {
 
 .profile-detail-list {
   margin: 0;
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .profile-detail {
@@ -6894,10 +6904,6 @@ button.transaction-row__content:focus-visible {
 .profile-detail--email {
   height: auto;
   min-height: 65px;
-}
-
-.profile-detail + .profile-detail {
-  border-top: 1px solid var(--color-border);
 }
 
 .profile-detail > div {
@@ -7625,6 +7631,7 @@ button.transaction-row__content:focus-visible {
     --transaction-composer-content-gap: 12px;
     --transaction-composer-control-height: 44px;
     --transaction-category-option-height: 50px;
+    --transaction-category-grid-gap: 4px;
   }
 
   .transaction-composer__header {
@@ -7652,6 +7659,13 @@ button.transaction-row__content:focus-visible {
       max(20px, env(safe-area-inset-left));
   }
 
+  .transaction-composer--income .transaction-composer__content {
+    padding-bottom: calc(
+      12px + var(--transaction-category-option-height) +
+        var(--transaction-category-grid-gap)
+    );
+  }
+
   .transaction-composer__amount-entry,
   .transaction-composer__amount-value {
     min-height: 44px;
@@ -7670,7 +7684,7 @@ button.transaction-row__content:focus-visible {
   }
 
   .transaction-category-grid {
-    gap: 4px;
+    gap: var(--transaction-category-grid-gap);
   }
 
   .transaction-category-option {
