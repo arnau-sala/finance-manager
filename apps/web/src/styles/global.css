@@ -5462,6 +5462,7 @@ button.transaction-row__content:focus-visible {
   min-height: 42px;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 10px 0 6px;
   color: var(--color-text-muted);
   user-select: none;
