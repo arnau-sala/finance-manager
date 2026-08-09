@@ -40,6 +40,7 @@ const registerBodySchema = z
     name: userNameSchema,
     password: passwordSchema,
     passwordConfirmation: z.string(),
+    legalAccepted: z.literal(true),
   })
   .strict()
   .superRefine(({ password, passwordConfirmation }, context) => {
@@ -65,6 +66,7 @@ const usernameRegisterBodySchema = z
     name: userNameSchema,
     password: passwordSchema,
     passwordConfirmation: z.string().max(128),
+    legalAccepted: z.literal(true),
   })
   .strict()
   .superRefine(({ password, passwordConfirmation }, context) => {
@@ -214,13 +216,14 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const { email, name, password } = parsedBody.data;
+      const { email, name, password, legalAccepted } = parsedBody.data;
 
       try {
         await beginPasswordRegistration({
           email,
           name,
           password,
+          legalAccepted,
         });
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
@@ -260,11 +263,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         });
       }
 
-      const { username, name, password } = parsedBody.data;
+      const { username, name, password, legalAccepted } = parsedBody.data;
       const result = await registerUsernameAccount({
         username,
         name,
         password,
+        legalAccepted,
       });
 
       if (result.type === "username-unavailable") {

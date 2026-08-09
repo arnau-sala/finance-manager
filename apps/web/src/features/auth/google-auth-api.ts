@@ -32,6 +32,21 @@ export function getGoogleAuthStartUrl(intent: GoogleAuthIntent) {
   return `/api/auth/google/start?intent=${intent}`;
 }
 
+export async function acceptGoogleRegistrationLegalTerms() {
+  const response = await fetch("/api/auth/google/register/legal-acceptance", {
+    method: "POST",
+    credentials: "include",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw await createGoogleAuthError(
+      response,
+      "Unable to prepare Google registration"
+    );
+  }
+}
+
 export async function getGoogleAuthAction() {
   const response = await fetch("/api/auth/google/action", {
     credentials: "include",
@@ -63,10 +78,16 @@ export async function getGoogleAuthAction() {
   return body.action;
 }
 
-export async function confirmGoogleAuthAction() {
+export async function confirmGoogleAuthAction(input?: {
+  legalAccepted?: boolean;
+}) {
   const response = await fetch("/api/auth/google/action/confirm", {
     method: "POST",
-    credentials: "include"
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify(input ?? {})
   });
 
   if (!response.ok) {

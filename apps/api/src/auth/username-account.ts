@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "../db/client.js";
 import { authenticatedUserSelect } from "./authenticated-user.js";
+import { createLegalAcceptance } from "./legal-acceptance.js";
 import { hashPassword, verifyPassword } from "./password.js";
 import { createAccountRecoveryCode } from "./recovery-code.js";
 
@@ -11,6 +12,7 @@ type UsernameRegistrationInput = {
   username: string;
   name: string;
   password: string;
+  legalAccepted: true;
 };
 
 export type UsernameRegistrationResult =
@@ -63,6 +65,7 @@ export async function registerUsernameAccount(
           name: input.name,
           passwordHash,
           authProvider: "PASSWORD",
+          ...createLegalAcceptance(),
           role: "USER",
           status: "APPROVED",
           emailVerifiedAt: null,

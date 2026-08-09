@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 
@@ -232,7 +233,7 @@ export function LegalNoticeScreen({
   onClose,
   onClosed
 }: LegalNoticeScreenProps) {
-  return (
+  return createPortal(
     <aside
       className={`auth-legal-screen${closing ? " is-closing" : ""}`}
       aria-labelledby="auth-legal-title"
@@ -294,6 +295,7 @@ export function LegalNoticeScreen({
           </section>
         </div>
       </div>
-    </aside>
+    </aside>,
+    document.body
   );
 }

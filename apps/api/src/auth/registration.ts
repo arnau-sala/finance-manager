@@ -9,6 +9,7 @@ import {
   EmailDeliveryError,
 } from "../email/brevo.js";
 import { sendRegistrationVerificationEmail } from "../email/registration-verification.js";
+import { createLegalAcceptance } from "./legal-acceptance.js";
 import { hashPassword } from "./password.js";
 
 const VERIFICATION_CODE_TTL_MINUTES = 10;
@@ -22,6 +23,8 @@ type PendingRegistrationSnapshot = {
   passwordHash: string;
   verificationCodeHash: string;
   verificationAttempts: number;
+  legalAcceptedAt: Date;
+  legalAcceptedVersion: string;
   expiresAt: Date;
   lastSentAt: Date;
 };
@@ -105,6 +108,7 @@ export async function beginPasswordRegistration(input: {
   email: string;
   name: string;
   password: string;
+  legalAccepted: true;
 }) {
   assertTransactionalEmailConfigured();
   getVerificationSecret();
@@ -133,6 +137,7 @@ export async function beginPasswordRegistration(input: {
   }
 
   const passwordHash = await hashPassword(input.password);
+  const legalAcceptance = createLegalAcceptance();
   const code = createVerificationCode();
   const verificationCodeHash = hashVerificationCode(input.email, code);
   const expiresAt = new Date(now.getTime() + VERIFICATION_CODE_TTL_MS);
@@ -159,6 +164,8 @@ export async function beginPasswordRegistration(input: {
             passwordHash: true,
             verificationCodeHash: true,
             verificationAttempts: true,
+            legalAcceptedAt: true,
+            legalAcceptedVersion: true,
             expiresAt: true,
             lastSentAt: true,
           },
@@ -179,6 +186,7 @@ export async function beginPasswordRegistration(input: {
             passwordHash,
             verificationCodeHash,
             verificationAttempts: 0,
+            ...legalAcceptance,
             expiresAt,
             lastSentAt: now,
           },
@@ -198,6 +206,7 @@ export async function beginPasswordRegistration(input: {
           name: input.name,
           passwordHash,
           verificationCodeHash,
+          ...legalAcceptance,
           expiresAt,
           lastSentAt: now,
         },
@@ -261,6 +270,8 @@ export async function resendPasswordRegistrationCode(email: string) {
         passwordHash: true,
         verificationCodeHash: true,
         verificationAttempts: true,
+        legalAcceptedAt: true,
+        legalAcceptedVersion: true,
         expiresAt: true,
         lastSentAt: true,
       },
@@ -393,6 +404,8 @@ export async function verifyPasswordRegistration(
         passwordHash: registration.passwordHash,
         authProvider: "PASSWORD",
         emailLoginEnabled: true,
+        legalAcceptedAt: registration.legalAcceptedAt,
+        legalAcceptedVersion: registration.legalAcceptedVersion,
         role: "USER",
         status: "APPROVED",
         emailVerifiedAt: new Date(),

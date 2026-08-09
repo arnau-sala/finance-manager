@@ -1,6 +1,10 @@
+import { useEffect, useState } from "react";
+
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import type { GoogleAuthAction } from "./google-auth-api";
+import { LegalAcceptanceCheckbox } from "./LegalAcceptanceCheckbox";
+import { LegalNoticeScreen } from "./LegalNoticeScreen";
 
 type GoogleAuthActionDialogProps = {
   action: GoogleAuthAction | null;
@@ -46,25 +50,68 @@ export function GoogleAuthActionDialog({
   onCancel,
   onConfirm
 }: GoogleAuthActionDialogProps) {
+  const [hasAcceptedLegal, setHasAcceptedLegal] = useState(false);
+  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
+  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
+
+  useEffect(() => {
+    setHasAcceptedLegal(false);
+    setIsLegalScreenOpen(false);
+    setIsLegalScreenClosing(false);
+  }, [action?.email, action?.action]);
+
   if (!action) {
     return null;
   }
 
   const content = getDialogContent(action);
+  const createsAccount = action.action === "create-account";
+
+  function openLegalScreen() {
+    setIsLegalScreenClosing(false);
+    setIsLegalScreenOpen(true);
+  }
+
+  function closeLegalScreen() {
+    setIsLegalScreenClosing(true);
+  }
 
   return (
-    <ConfirmDialog
-      open
-      title={content.title}
-      description={content.description}
-      confirmLabel={content.confirmLabel}
-      confirmingLabel={content.confirmingLabel}
-      icon={<GoogleIcon />}
-      isConfirming={isConfirming}
-      interactionLocked={isCancelling}
-      error={error}
-      onCancel={onCancel}
-      onConfirm={onConfirm}
-    />
+    <>
+      <ConfirmDialog
+        open
+        title={content.title}
+        description={content.description}
+        confirmLabel={content.confirmLabel}
+        confirmingLabel={content.confirmingLabel}
+        icon={<GoogleIcon />}
+        isConfirming={isConfirming}
+        interactionLocked={isCancelling}
+        confirmDisabled={createsAccount && !hasAcceptedLegal}
+        error={error}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+      >
+        {createsAccount ? (
+          <LegalAcceptanceCheckbox
+            id="google-action-legal-acceptance"
+            checked={hasAcceptedLegal}
+            onChange={setHasAcceptedLegal}
+            onOpenLegal={openLegalScreen}
+          />
+        ) : null}
+      </ConfirmDialog>
+
+      {isLegalScreenOpen ? (
+        <LegalNoticeScreen
+          closing={isLegalScreenClosing}
+          onClose={closeLegalScreen}
+          onClosed={() => {
+            setIsLegalScreenOpen(false);
+            setIsLegalScreenClosing(false);
+          }}
+        />
+      ) : null}
+    </>
   );
 }

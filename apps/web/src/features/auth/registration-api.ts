@@ -6,6 +6,7 @@ export type UsernameRegistrationInput = {
   name: string;
   password: string;
   passwordConfirmation: string;
+  legalAccepted: true;
 };
 
 export type UsernameRegistrationResult = {
@@ -61,7 +62,9 @@ async function postRegistrationRequest(
   }
 }
 
-export async function startRegistration(input: RegistrationInput) {
+export async function startRegistration(
+  input: RegistrationInput & { legalAccepted: true }
+) {
   await postRegistrationRequest(
     "/api/auth/register",
     input,

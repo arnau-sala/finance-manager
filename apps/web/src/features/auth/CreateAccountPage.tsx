@@ -15,6 +15,8 @@ import {
 } from "./AuthPasswordField";
 import { copyTextToClipboard } from "./clipboard";
 import { validateEmail } from "./email-validation";
+import { LegalAcceptanceCheckbox } from "./LegalAcceptanceCheckbox";
+import { LegalNoticeScreen } from "./LegalNoticeScreen";
 import { PasswordSecuritySummary } from "./PasswordSecuritySummary";
 import {
   checkUsernameAvailability,
@@ -99,6 +101,9 @@ export function CreateAccountPage({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingPassword, setIsGeneratingPassword] = useState(false);
   const [isAppGeneratedPassword, setIsAppGeneratedPassword] = useState(false);
+  const [hasAcceptedLegal, setHasAcceptedLegal] = useState(false);
+  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
+  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const passwordGenerationRunRef = useRef(0);
   const usernameAvailabilityRequestRef = useRef(0);
@@ -131,7 +136,8 @@ export function CreateAccountPage({
     identifierComplete &&
     name.trim().length > 0 &&
     passwordPairComplete &&
-    isAccountPasswordComplete(passwordConfirmation);
+    isAccountPasswordComplete(passwordConfirmation) &&
+    hasAcceptedLegal;
 
   useEffect(() => {
     return () => {
@@ -470,10 +476,24 @@ export function CreateAccountPage({
     );
   }
 
+  function openLegalScreen() {
+    setIsLegalScreenClosing(false);
+    setIsLegalScreenOpen(true);
+  }
+
+  function closeLegalScreen() {
+    setIsLegalScreenClosing(true);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (isSubmitting) {
+      return;
+    }
+
+    if (!hasAcceptedLegal) {
+      setFormError("Accept Privacy & Terms to create your account");
       return;
     }
 
@@ -525,7 +545,8 @@ export function CreateAccountPage({
           username: parsedUsername.data,
           name: parsedName.data,
           password,
-          passwordConfirmation
+          passwordConfirmation,
+          legalAccepted: true
         });
 
         onUsernameRegistrationCreated(registration);
@@ -584,7 +605,7 @@ export function CreateAccountPage({
     setIsSubmitting(true);
 
     try {
-      await startRegistration(result.data);
+      await startRegistration({ ...result.data, legalAccepted: true });
       onRegistrationStarted(result.data.email);
     } catch (error) {
       setFormError(
@@ -915,6 +936,13 @@ export function CreateAccountPage({
             requirementsId="register-password-requirements"
           />
 
+          <LegalAcceptanceCheckbox
+            id="register-legal-acceptance"
+            checked={hasAcceptedLegal}
+            onChange={setHasAcceptedLegal}
+            onOpenLegal={openLegalScreen}
+          />
+
           <p
             id="register-form-error"
             className="auth-field-message auth-field-message--error auth-register-error"
@@ -937,6 +965,17 @@ export function CreateAccountPage({
           </ActionButton>
         </form>
       </section>
+
+      {isLegalScreenOpen ? (
+        <LegalNoticeScreen
+          closing={isLegalScreenClosing}
+          onClose={closeLegalScreen}
+          onClosed={() => {
+            setIsLegalScreenOpen(false);
+            setIsLegalScreenClosing(false);
+          }}
+        />
+      ) : null}
     </main>
   );
 }

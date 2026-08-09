@@ -15,6 +15,7 @@ import {
   type PublicGoogleAuthIntent,
   type VerifiedGoogleIdentity,
 } from "../auth/google-auth-flow.js";
+import { currentLegalVersion } from "../auth/legal-acceptance.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
@@ -36,6 +37,12 @@ const googleStartQuerySchema = z
     intent: z.enum(["login", "register"]).default("login"),
   })
   .passthrough();
+
+const googleActionConfirmBodySchema = z
+  .object({
+    legalAccepted: z.boolean().optional(),
+  })
+  .strict();
 
 type GoogleOAuthConfig = {
   clientId: string;
@@ -247,6 +254,23 @@ async function clearPendingPublicGoogleAction(request: FastifyRequest) {
 }
 
 export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
+  app.post(
+    "/auth/google/register/legal-acceptance",
+    { config: { rateLimit: authGoogleRateLimit } },
+    async (request, reply) => {
+      request.session.set(
+        "googleRegistrationLegalAcceptedAt",
+        new Date().toISOString(),
+      );
+      request.session.set(
+        "googleRegistrationLegalAcceptedVersion",
+        currentLegalVersion,
+      );
+      reply.header("Cache-Control", "no-store");
+      return reply.code(204).send();
+    },
+  );
+
   app.get(
     "/auth/google/start",
     { config: { rateLimit: authGoogleRateLimit } },
@@ -266,6 +290,21 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       }
 
       await clearPendingPublicGoogleAction(request);
+
+      if (intent === "register") {
+        const legalAcceptedAt = request.session.get(
+          "googleRegistrationLegalAcceptedAt",
+        );
+        const legalAcceptedVersion = request.session.get(
+          "googleRegistrationLegalAcceptedVersion",
+        );
+
+        if (!legalAcceptedAt || legalAcceptedVersion !== currentLegalVersion) {
+          return reply.redirect(
+            getPublicGoogleRedirectUrl(config, "failed", intent),
+          );
+        }
+      }
 
       const state = randomBytes(32).toString("hex");
       const client = createGoogleClient(config);
@@ -508,14 +547,22 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
     { config: { rateLimit: authGoogleActionRateLimit } },
     async (request, reply) => {
       const token = request.session.get("googleAuthActionToken");
+      const parsedBody = googleActionConfirmBodySchema.safeParse(request.body);
 
       reply.header("Cache-Control", "no-store");
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({ error: "Invalid Google action" });
+      }
 
       if (!token) {
         return reply.code(401).send({ error: "Google action expired" });
       }
 
-      const result = await confirmPendingGoogleAuthAction(token);
+      const result = await confirmPendingGoogleAuthAction(
+        token,
+        parsedBody.data.legalAccepted === true,
+      );
       request.session.set("googleAuthActionToken", "");
 
       if (result.type === "invalid") {
@@ -815,6 +862,11 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         }
       }
 
+      const googleRegistrationLegalAccepted =
+        Boolean(request.session.get("googleRegistrationLegalAcceptedAt")) &&
+        request.session.get("googleRegistrationLegalAcceptedVersion") ===
+          currentLegalVersion;
+
       request.session.set("googleOAuthState", "");
       request.session.set("googleOAuthIntent", "");
 
@@ -842,7 +894,11 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         const result = await resolveGoogleIdentity(
           identity,
           expectedPublicIntent,
+          googleRegistrationLegalAccepted,
         );
+
+        request.session.set("googleRegistrationLegalAcceptedAt", "");
+        request.session.set("googleRegistrationLegalAcceptedVersion", "");
 
         if (result.type === "authenticated") {
           request.session.regenerate();

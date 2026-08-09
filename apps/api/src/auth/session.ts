@@ -10,6 +10,8 @@ declare module "@fastify/secure-session" {
     googleOAuthState: string;
     googleOAuthIntent: string;
     googleAuthActionToken: string;
+    googleRegistrationLegalAcceptedAt: string;
+    googleRegistrationLegalAcceptedVersion: string;
     googleAccountDeletionState: string;
     googleAccountLinkState: string;
     googleAccountUnlinkState: string;

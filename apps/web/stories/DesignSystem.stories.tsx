@@ -17,6 +17,8 @@ import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
 } from "../src/components/ui/SlidingSegmentedControl";
+import { LegalAcceptanceCheckbox } from "../src/features/auth/LegalAcceptanceCheckbox";
+import { LegalNoticeScreen } from "../src/features/auth/LegalNoticeScreen";
 
 const meta = {
   title: "Design System/Overview",
@@ -96,6 +98,41 @@ function ConfirmDialogExample() {
   );
 }
 
+function LegalAcceptanceExample() {
+  const [checked, setChecked] = useState(false);
+  const [legalOpen, setLegalOpen] = useState(false);
+  const [legalClosing, setLegalClosing] = useState(false);
+
+  const closeLegal = () => {
+    setLegalClosing(true);
+  };
+
+  return (
+    <div className="storybook-section">
+      <h2>Legal acceptance</h2>
+      <LegalAcceptanceCheckbox
+        id="storybook-legal-acceptance"
+        checked={checked}
+        onChange={setChecked}
+        onOpenLegal={() => {
+          setLegalClosing(false);
+          setLegalOpen(true);
+        }}
+      />
+      {legalOpen ? (
+        <LegalNoticeScreen
+          closing={legalClosing}
+          onClose={closeLegal}
+          onClosed={() => {
+            setLegalOpen(false);
+            setLegalClosing(false);
+          }}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export const Components: Story = {
   render: () => (
     <main className="storybook-mobile-frame">
@@ -157,6 +194,8 @@ export const Components: Story = {
         </section>
 
         <ConfirmDialogExample />
+
+        <LegalAcceptanceExample />
       </div>
     </main>
   )

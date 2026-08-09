@@ -22,6 +22,7 @@ import {
 } from "../features/auth/auth-api";
 import { GoogleAuthActionDialog } from "../features/auth/GoogleAuthActionDialog";
 import {
+  acceptGoogleRegistrationLegalTerms,
   cancelGoogleAuthAction,
   confirmGoogleAuthAction,
   getGoogleAuthAction,
@@ -513,7 +514,7 @@ export function App() {
 
   function openRegistrationForm(method: RegistrationMethod) {
     if (method === "google") {
-      startGoogleAuth("register");
+      void startGoogleAuth("register");
       return;
     }
 
@@ -557,16 +558,32 @@ export function App() {
     setActiveScreen("register-form");
   }
 
-  function startGoogleAuth(intent: GoogleAuthIntent) {
+  async function startGoogleAuth(intent: GoogleAuthIntent) {
     setLandingError(null);
     setGoogleAuthAction(null);
     setGoogleAuthActionError(null);
     setGoogleAuthNotice(null);
+
+    if (intent === "register") {
+      try {
+        await acceptGoogleRegistrationLegalTerms();
+      } catch (error) {
+        setGoogleAuthNotice({
+          title: "Unable to continue",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Unable to prepare Google registration"
+        });
+        return;
+      }
+    }
+
     window.location.assign(getGoogleAuthStartUrl(intent));
   }
 
   function continueWithGoogle() {
-    startGoogleAuth("login");
+    void startGoogleAuth("login");
   }
 
   async function cancelCurrentGoogleAuthAction() {
@@ -596,7 +613,9 @@ export function App() {
     setIsGoogleAuthActionConfirming(true);
 
     try {
-      const result = await confirmGoogleAuthAction();
+      const result = await confirmGoogleAuthAction({
+        legalAccepted: googleAuthAction.action === "create-account" || undefined
+      });
 
       if (result.status === "password-required") {
         setGoogleAuthAction(null);

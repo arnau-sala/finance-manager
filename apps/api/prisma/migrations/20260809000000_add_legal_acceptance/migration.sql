@@ -1,0 +1,11 @@
+ALTER TABLE "User"
+ADD COLUMN "legalAcceptedAt" TIMESTAMP(3),
+ADD COLUMN "legalAcceptedVersion" VARCHAR(20);
+
+ALTER TABLE "PendingRegistration"
+ADD COLUMN "legalAcceptedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ADD COLUMN "legalAcceptedVersion" VARCHAR(20) NOT NULL DEFAULT '2026-08-09';
+
+ALTER TABLE "PendingRegistration"
+ALTER COLUMN "legalAcceptedAt" DROP DEFAULT,
+ALTER COLUMN "legalAcceptedVersion" DROP DEFAULT;

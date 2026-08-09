@@ -8,6 +8,7 @@ import {
 
 import { db } from "../db/client.js";
 import { supportsGoogleAuthentication } from "./auth-provider.js";
+import { createLegalAcceptance } from "./legal-acceptance.js";
 
 const GOOGLE_ACTION_TTL_MS = 10 * 60 * 1_000;
 
@@ -117,6 +118,7 @@ async function claimAction(
 export async function resolveGoogleIdentity(
   identity: VerifiedGoogleIdentity,
   intent: PublicGoogleAuthIntent,
+  legalAccepted: boolean,
 ): Promise<GoogleIdentityResolution> {
   const now = new Date();
 
@@ -219,6 +221,10 @@ export async function resolveGoogleIdentity(
         return { type: "pending", token } as const;
       }
 
+      if (!legalAccepted) {
+        return { type: "failed" } as const;
+      }
+
       await transaction.pendingRegistration.deleteMany({
         where: { email: identity.email },
       });
@@ -230,6 +236,7 @@ export async function resolveGoogleIdentity(
           passwordHash: null,
           authProvider: "GOOGLE",
           googleSubject: identity.googleSubject,
+          ...createLegalAcceptance(),
           role: "USER",
           status: "APPROVED",
           emailVerifiedAt: now,
@@ -291,6 +298,7 @@ export async function cancelPendingGoogleAuthAction(token: string) {
 
 export async function confirmPendingGoogleAuthAction(
   token: string,
+  legalAccepted: boolean,
 ): Promise<ConfirmGoogleAuthActionResult> {
   const tokenHash = hashActionToken(token);
   const now = new Date();
@@ -436,6 +444,10 @@ export async function confirmPendingGoogleAuthAction(
         throw new InvalidGoogleAuthActionError();
       }
 
+      if (!legalAccepted) {
+        throw new InvalidGoogleAuthActionError();
+      }
+
       await claimAction(transaction, action, now);
       await transaction.pendingRegistration.deleteMany({
         where: { email: action.email },
@@ -448,6 +460,7 @@ export async function confirmPendingGoogleAuthAction(
           passwordHash: null,
           authProvider: "GOOGLE",
           googleSubject: action.googleSubject,
+          ...createLegalAcceptance(),
           role: "USER",
           status: "APPROVED",
           emailVerifiedAt: now,

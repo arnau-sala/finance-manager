@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { ArrowRight, AtSign, Check, ChevronLeft, Mail } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ActionButton } from "../../components/ui/ActionButton";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { LegalAcceptanceCheckbox } from "./LegalAcceptanceCheckbox";
+import { LegalNoticeScreen } from "./LegalNoticeScreen";
 import type { RegistrationMethod } from "./registration-method";
 
 type RegistrationMethodPageProps = {
@@ -46,6 +50,26 @@ export function RegistrationMethodPage({
   onBack,
   onSelect,
 }: RegistrationMethodPageProps) {
+  const [isGoogleLegalDialogOpen, setIsGoogleLegalDialogOpen] =
+    useState(false);
+  const [hasAcceptedGoogleLegal, setHasAcceptedGoogleLegal] = useState(false);
+  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
+  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
+
+  function openLegalScreen() {
+    setIsLegalScreenClosing(false);
+    setIsLegalScreenOpen(true);
+  }
+
+  function closeLegalScreen() {
+    setIsLegalScreenClosing(true);
+  }
+
+  function closeGoogleLegalDialog() {
+    setIsGoogleLegalDialogOpen(false);
+    setHasAcceptedGoogleLegal(false);
+  }
+
   return (
     <main className="auth-screen auth-screen--static auth-screen--login auth-screen--registration-method">
       <ActionButton
@@ -98,7 +122,14 @@ export function RegistrationMethodPage({
                 shape="card"
                 className="auth-registration-method-option"
                 type="button"
-                onClick={() => onSelect(method.value)}
+                onClick={() => {
+                  if (method.value === "google") {
+                    setIsGoogleLegalDialogOpen(true);
+                    return;
+                  }
+
+                  onSelect(method.value);
+                }}
               >
                 <span
                   className="auth-registration-method-option__icon"
@@ -136,6 +167,40 @@ export function RegistrationMethodPage({
               Link the others later
         </p>
       </section>
+
+      <ConfirmDialog
+        open={isGoogleLegalDialogOpen}
+        title="Create with Google"
+        description={
+          "You will choose a Google account\nAccept Privacy & Terms before creating your account"
+        }
+        confirmLabel="Continue"
+        icon={<GoogleIcon />}
+        confirmDisabled={!hasAcceptedGoogleLegal}
+        onCancel={closeGoogleLegalDialog}
+        onConfirm={() => {
+          setIsGoogleLegalDialogOpen(false);
+          onSelect("google");
+        }}
+      >
+        <LegalAcceptanceCheckbox
+          id="google-register-legal-acceptance"
+          checked={hasAcceptedGoogleLegal}
+          onChange={setHasAcceptedGoogleLegal}
+          onOpenLegal={openLegalScreen}
+        />
+      </ConfirmDialog>
+
+      {isLegalScreenOpen ? (
+        <LegalNoticeScreen
+          closing={isLegalScreenClosing}
+          onClose={closeLegalScreen}
+          onClosed={() => {
+            setIsLegalScreenOpen(false);
+            setIsLegalScreenClosing(false);
+          }}
+        />
+      ) : null}
     </main>
   );
 }

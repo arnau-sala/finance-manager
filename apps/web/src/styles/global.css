@@ -1038,7 +1038,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
 .auth-legal-screen {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 10000;
   width: 100%;
   height: 100%;
   display: grid;
@@ -7737,6 +7737,102 @@ button.transaction-row__content:focus-visible {
   font-size: 12px;
   line-height: 1.3;
   font-weight: 400;
+}
+
+.auth-legal-acceptance {
+  position: relative;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  margin: 0;
+  padding: 11px 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--button-radius-card);
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-register-form > .auth-legal-acceptance {
+  margin-top: 2px;
+  background: var(--color-surface-muted);
+}
+
+.confirm-dialog .auth-legal-acceptance {
+  margin-top: 18px;
+}
+
+.auth-legal-acceptance input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-legal-acceptance__checkbox {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  transition:
+    color 150ms ease,
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.auth-legal-acceptance__checkbox svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 2.2;
+}
+
+.auth-legal-acceptance input:checked + .auth-legal-acceptance__checkbox {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.auth-legal-acceptance input:focus-visible + .auth-legal-acceptance__checkbox {
+  outline: 2px solid var(--color-primary-border);
+  outline-offset: 2px;
+}
+
+.auth-legal-acceptance__copy {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 5px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.auth-legal-acceptance__link {
+  padding: 0;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-legal-acceptance__link:focus-visible {
+  outline: 2px solid var(--color-primary-border);
+  outline-offset: 2px;
 }
 
 .confirm-dialog__form--password {
