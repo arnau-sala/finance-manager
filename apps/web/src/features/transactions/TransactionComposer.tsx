@@ -427,6 +427,12 @@ export function TransactionComposer({
           className="transaction-composer__scroll-area"
         >
           <div className="transaction-composer__content">
+            <TransactionTypeSwitch
+              value={type}
+              disabled={isSubmitting}
+              onChange={selectType}
+            />
+
             <div className="transaction-composer__amount-section">
               <label className="sr-only" htmlFor="transaction-amount">
                 Amount
@@ -456,12 +462,6 @@ export function TransactionComposer({
                 <span aria-hidden="true">€</span>
               </div>
             </div>
-
-            <TransactionTypeSwitch
-              value={type}
-              disabled={isSubmitting}
-              onChange={selectType}
-            />
 
             <div className="transaction-composer__field">
               <div className="transaction-composer__field-heading">
