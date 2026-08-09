@@ -2769,10 +2769,6 @@ button.transaction-row__content:focus-visible {
   text-align: center;
 }
 
-.transaction-row + .transaction-row {
-  border-top: 1px solid var(--color-border);
-}
-
 .transaction-row__icon {
   width: 36px;
   height: 36px;
