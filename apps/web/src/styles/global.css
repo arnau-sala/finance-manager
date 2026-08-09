@@ -2548,8 +2548,7 @@ body.anchored-picker-open .home-content--moves {
 
 .home-balance {
   margin: 0;
-  padding: 0 0 21px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0 0 8px;
 }
 
 .home-balance__label {
@@ -2720,7 +2719,6 @@ body.anchored-picker-open .home-content--moves {
   padding: 0;
   list-style: none;
   border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .transaction-row {
@@ -5546,16 +5544,17 @@ button.transaction-row__content:focus-visible {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
 }
 
 .home-activity__item {
+  position: relative;
   width: 100%;
   min-width: 0;
   min-height: 64px;
   display: grid;
-  grid-template-columns: 21px minmax(0, 1fr);
+  grid-template-columns: 21px minmax(0, max-content);
   align-items: center;
+  justify-content: center;
   gap: 5px;
   padding: 9px 7px;
   border: 0;
@@ -5579,8 +5578,15 @@ button.transaction-row__content:focus-visible {
   outline-offset: -2px;
 }
 
-.home-activity__item + .home-activity__item {
-  border-left: 1px solid var(--color-border);
+.home-activity__item + .home-activity__item::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  transform: translateY(-50%);
 }
 
 .home-activity__item--expense > svg {
@@ -5602,6 +5608,7 @@ button.transaction-row__content:focus-visible {
   min-width: 0;
   display: grid;
   gap: 2px;
+  max-width: 72px;
 }
 
 .home-activity__item small {
