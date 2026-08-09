@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
   ChevronRight,
+  Eye,
+  EyeClosed,
   Plus,
   RefreshCw,
   Scale
@@ -36,6 +38,21 @@ type HomeOverviewPageProps = {
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
 };
+
+function getNetWorthVisibilityStorageKey(userId: string) {
+  return `finance-manager:home-net-worth-hidden:${userId}`;
+}
+
+function readStoredNetWorthHidden(userId: string) {
+  try {
+    return (
+      window.localStorage.getItem(getNetWorthVisibilityStorageKey(userId)) ===
+      "true"
+    );
+  } catch {
+    return false;
+  }
+}
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -171,6 +188,13 @@ export function HomeOverviewPage({
 }: HomeOverviewPageProps) {
   const overviewQuery = useQuery(homeOverviewQueryOptions(user.id));
   const overview = overviewQuery.data ?? null;
+  const [isNetWorthHidden, setIsNetWorthHidden] = useState(() =>
+    readStoredNetWorthHidden(user.id)
+  );
+
+  useEffect(() => {
+    setIsNetWorthHidden(readStoredNetWorthHidden(user.id));
+  }, [user.id]);
 
   useEffect(() => {
     if (
@@ -238,6 +262,7 @@ export function HomeOverviewPage({
 
   const latestMoves = overview.latestMoves;
   const hasStartingNetWorth = overview.balance.currentNetWorth !== null;
+  const balanceLabel = hasStartingNetWorth ? "Net worth" : "Tracked balance";
   const TopExpenseIcon = getCategoryIcon(
     overview.activity.topExpenseCategory?.id,
     "EXPENSE"
@@ -264,13 +289,49 @@ export function HomeOverviewPage({
           <div className="home-balance__label">
             <Scale aria-hidden="true" />
             <h2 id="home-balance-title">
-              {hasStartingNetWorth ? "Net worth" : "Tracked balance"}
+              {balanceLabel}
             </h2>
+            <button
+              className="home-balance__visibility-toggle"
+              type="button"
+              aria-label={
+                isNetWorthHidden ? `Show ${balanceLabel}` : `Hide ${balanceLabel}`
+              }
+              aria-pressed={isNetWorthHidden}
+              onClick={() => {
+                setIsNetWorthHidden((currentValue) => {
+                  const nextValue = !currentValue;
+
+                  try {
+                    window.localStorage.setItem(
+                      getNetWorthVisibilityStorageKey(user.id),
+                      String(nextValue)
+                    );
+                  } catch {
+                    // Ignore storage failures; the current session still updates.
+                  }
+
+                  return nextValue;
+                });
+              }}
+            >
+              {isNetWorthHidden ? (
+                <Eye aria-hidden="true" />
+              ) : (
+                <EyeClosed aria-hidden="true" />
+              )}
+            </button>
           </div>
-          <p className="home-balance__amount">
-            {formatEuroAmount(
-              overview.balance.currentNetWorth ?? overview.balance.totalBalance
-            )}
+          <p
+            className="home-balance__amount"
+            aria-hidden={isNetWorthHidden}
+          >
+            {isNetWorthHidden
+              ? "\u00a0"
+              : formatEuroAmount(
+                  overview.balance.currentNetWorth ??
+                    overview.balance.totalBalance
+                )}
           </p>
         </section>
 

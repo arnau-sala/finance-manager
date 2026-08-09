@@ -2613,6 +2613,34 @@ body.anchored-picker-open .home-content--moves {
   font-weight: 400;
 }
 
+.home-balance__visibility-toggle {
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.home-balance__visibility-toggle svg {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+  stroke-width: 1.8;
+  transform: none;
+}
+
+.home-balance__visibility-toggle:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--color-primary) 45%, transparent);
+  outline-offset: 2px;
+}
+
 .home-balance__amount {
   margin: 8px 0 2px;
   color: var(--color-text);
