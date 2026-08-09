@@ -19,6 +19,8 @@ type TransactionTypeSwitchProps = {
   compact?: boolean;
   disabled?: boolean;
   label?: string;
+  externalDragOffset?: number;
+  externalDragging?: boolean;
 };
 
 const TRANSACTION_TYPE_OPTIONS: readonly SlidingSegmentOption<TransactionTypeSelection>[] = [
@@ -36,7 +38,9 @@ export function TransactionTypeSwitch({
   includeAll = false,
   compact = false,
   disabled = false,
-  label = "Transaction type"
+  label = "Transaction type",
+  externalDragOffset,
+  externalDragging = false
 }: TransactionTypeSwitchProps) {
   const tone =
     value === "EXPENSE" ? "expense" : value === "INCOME" ? "income" : "primary";
@@ -51,6 +55,8 @@ export function TransactionTypeSwitch({
       tone={tone}
       compact={compact}
       disabled={disabled}
+      externalDragOffset={externalDragOffset}
+      externalDragging={externalDragging}
     />
   );
 }

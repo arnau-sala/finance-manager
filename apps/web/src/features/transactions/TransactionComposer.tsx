@@ -1,5 +1,7 @@
 import {
   type FormEvent,
+  type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -42,6 +44,14 @@ type TransactionComposerProps = {
 
 type InvalidFields = Partial<Record<CreateTransactionField, boolean>>;
 
+type TypeDragGesture = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  startIndex: number;
+  maxDistance: number;
+};
+
 const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
   "amount",
   "type",
@@ -49,6 +59,9 @@ const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
   "categoryId",
   "date"
 ];
+
+const TYPE_DRAG_THRESHOLD = 14;
+const TYPE_DRAG_OPTIONS: readonly TransactionType[] = ["INCOME", "EXPENSE"];
 
 function isCreateTransactionField(
   field: unknown
@@ -141,10 +154,14 @@ export function TransactionComposer({
   const [invalidFields, setInvalidFields] = useState<InvalidFields>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [typeDragOffset, setTypeDragOffset] = useState(0);
+  const [isTypeDragging, setIsTypeDragging] = useState(false);
   const amountInput = useRef<HTMLInputElement>(null);
   const nameInput = useRef<HTMLTextAreaElement>(null);
   const scrollArea = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLElement>(null);
+  const typeDrag = useRef<TypeDragGesture | null>(null);
+  const suppressNextComposerClick = useRef(false);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
 
@@ -271,6 +288,131 @@ export function TransactionComposer({
     clearFieldError("categoryId");
   }
 
+  function getTypeSegmentMaxDistance() {
+    const switchElement =
+      composerRef.current?.querySelector<HTMLElement>(
+        ".transaction-type-switch"
+      ) ?? null;
+
+    if (!switchElement) {
+      return 0;
+    }
+
+    return Math.max(0, switchElement.clientWidth / TYPE_DRAG_OPTIONS.length - 4);
+  }
+
+  function startTypeDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (
+      isSubmitting ||
+      !open ||
+      (event.pointerType === "mouse" && event.button !== 0)
+    ) {
+      return;
+    }
+
+    const target = event.target instanceof Element ? event.target : null;
+
+    if (
+      target?.closest(".transaction-composer__footer") ||
+      target?.closest(".transaction-type-switch")
+    ) {
+      return;
+    }
+
+    const startIndex = TYPE_DRAG_OPTIONS.indexOf(type);
+    const maxDistance = getTypeSegmentMaxDistance();
+
+    if (startIndex < 0 || maxDistance <= 0) {
+      return;
+    }
+
+    typeDrag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startIndex,
+      maxDistance
+    };
+    setIsTypeDragging(true);
+    setTypeDragOffset(0);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function moveTypeDrag(event: ReactPointerEvent<HTMLElement>) {
+    const currentDrag = typeDrag.current;
+
+    if (!currentDrag || currentDrag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const distance = event.clientX - currentDrag.startX;
+    const minimumOffset =
+      currentDrag.startIndex > 0 ? -currentDrag.maxDistance : 0;
+    const maximumOffset =
+      currentDrag.startIndex < TYPE_DRAG_OPTIONS.length - 1
+        ? currentDrag.maxDistance
+        : 0;
+
+    setTypeDragOffset(Math.min(Math.max(distance, minimumOffset), maximumOffset));
+  }
+
+  function finishTypeDrag(event: ReactPointerEvent<HTMLElement>) {
+    const currentDrag = typeDrag.current;
+
+    if (!currentDrag || currentDrag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const horizontalDistance = event.clientX - currentDrag.startX;
+    const verticalDistance = event.clientY - currentDrag.startY;
+    const direction = horizontalDistance > 0 ? 1 : -1;
+    const nextIndex = currentDrag.startIndex + direction;
+    const canMove = nextIndex >= 0 && nextIndex < TYPE_DRAG_OPTIONS.length;
+    const hasHorizontalIntent =
+      Math.abs(horizontalDistance) > Math.abs(verticalDistance);
+    const shouldHandleGesture =
+      hasHorizontalIntent && Math.abs(horizontalDistance) >= TYPE_DRAG_THRESHOLD;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    typeDrag.current = null;
+    setIsTypeDragging(false);
+    setTypeDragOffset(0);
+
+    if (shouldHandleGesture) {
+      suppressNextComposerClick.current = true;
+      window.setTimeout(() => {
+        suppressNextComposerClick.current = false;
+      }, 0);
+    }
+
+    if (canMove && shouldHandleGesture) {
+      selectType(TYPE_DRAG_OPTIONS[nextIndex]);
+    }
+  }
+
+  function cancelTypeDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (typeDrag.current?.pointerId !== event.pointerId) {
+      return;
+    }
+
+    typeDrag.current = null;
+    setIsTypeDragging(false);
+    setTypeDragOffset(0);
+  }
+
+  function handleComposerClickCapture(event: ReactMouseEvent<HTMLElement>) {
+    if (!suppressNextComposerClick.current) {
+      return;
+    }
+
+    suppressNextComposerClick.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function updateAmount(value: string) {
     const normalizedValue = normalizeAmountInput(value);
 
@@ -393,6 +535,11 @@ export function TransactionComposer({
       aria-hidden={!open}
       inert={!open}
       tabIndex={-1}
+      onClickCapture={handleComposerClickCapture}
+      onPointerDown={startTypeDrag}
+      onPointerMove={moveTypeDrag}
+      onPointerUp={finishTypeDrag}
+      onPointerCancel={cancelTypeDrag}
     >
       <header className="transaction-composer__header">
         <div className="transaction-composer__header-inner">
@@ -431,6 +578,8 @@ export function TransactionComposer({
               value={type}
               disabled={isSubmitting}
               onChange={selectType}
+              externalDragOffset={isTypeDragging ? typeDragOffset : undefined}
+              externalDragging={isTypeDragging}
             />
 
             <div className="transaction-composer__amount-section">

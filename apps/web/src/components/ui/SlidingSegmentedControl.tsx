@@ -24,6 +24,8 @@ type SlidingSegmentedControlProps<Value extends string> = {
   iconOnly?: boolean;
   allowDrag?: boolean;
   disabled?: boolean;
+  externalDragOffset?: number;
+  externalDragging?: boolean;
 };
 
 type SegmentDrag = {
@@ -46,7 +48,9 @@ export function SlidingSegmentedControl<Value extends string>({
   compact = false,
   iconOnly = false,
   allowDrag = true,
-  disabled = false
+  disabled = false,
+  externalDragOffset,
+  externalDragging = false
 }: SlidingSegmentedControlProps<Value>) {
   const selectedIndex = Math.max(
     0,
@@ -58,6 +62,8 @@ export function SlidingSegmentedControl<Value extends string>({
   const drag = useRef<SegmentDrag | null>(null);
   const suppressClick = useRef(false);
   const optionCount = Math.max(options.length, 1);
+  const displayedDragOffset = externalDragOffset ?? dragOffset;
+  const displayedDragging = isDragging || externalDragging;
 
   function select(nextValue: Value) {
     const nextOption = options.find((option) => option.value === nextValue);
@@ -179,7 +185,7 @@ export function SlidingSegmentedControl<Value extends string>({
       }${iconOnly ? " sliding-segmented-control--icon-only" : ""}${
         allowDrag ? "" : " sliding-segmented-control--click-only"
       }${
-        isDragging ? " is-dragging" : ""
+        displayedDragging ? " is-dragging" : ""
       }${className ? ` ${className}` : ""}`}
       style={
         {
@@ -188,7 +194,7 @@ export function SlidingSegmentedControl<Value extends string>({
             6 / optionCount
           }px)`,
           "--segmented-position": `${selectedIndex * 100}%`,
-          "--segmented-drag-offset": `${dragOffset}px`
+          "--segmented-drag-offset": `${displayedDragOffset}px`
         } as CSSProperties
       }
       role="radiogroup"
