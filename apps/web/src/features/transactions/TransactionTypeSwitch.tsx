@@ -22,8 +22,8 @@ type TransactionTypeSwitchProps = {
 };
 
 const TRANSACTION_TYPE_OPTIONS: readonly SlidingSegmentOption<TransactionTypeSelection>[] = [
-  { value: "EXPENSE", label: "Expense", icon: ArrowDownRight },
-  { value: "INCOME", label: "Income", icon: ArrowUpRight }
+  { value: "INCOME", label: "Income", icon: ArrowUpRight },
+  { value: "EXPENSE", label: "Expense", icon: ArrowDownRight }
 ];
 const FILTER_TYPE_OPTIONS: readonly SlidingSegmentOption<TransactionTypeSelection>[] = [
   { value: "ALL", label: "All", icon: ArrowRightLeft },
