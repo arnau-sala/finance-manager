@@ -4421,12 +4421,12 @@ button.transaction-row__content:focus-visible {
 .stats-money__content::after {
   content: "";
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: 50%;
   left: var(--stats-money-divider-x, 50%);
   width: 1px;
+  height: 70px;
   background: var(--color-border);
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
