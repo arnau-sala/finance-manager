@@ -5708,12 +5708,14 @@ button.transaction-row__content:focus-visible {
 }
 
 .transaction-detail-backdrop.is-open {
-  background: transparent;
+  background: color-mix(
+    in srgb,
+    var(--color-surface) 72%,
+    transparent
+  );
   visibility: visible;
   pointer-events: auto;
   transition-delay: 0s;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
 }
 
 .transaction-detail-sheet {
