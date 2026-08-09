@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
   ChevronRight,
   Eye,
   EyeClosed,
+  EyeOff,
   Plus,
   RefreshCw,
   Scale
@@ -188,13 +189,24 @@ export function HomeOverviewPage({
 }: HomeOverviewPageProps) {
   const overviewQuery = useQuery(homeOverviewQueryOptions(user.id));
   const overview = overviewQuery.data ?? null;
+  const netWorthAnimationTimeout = useRef<number | null>(null);
   const [isNetWorthHidden, setIsNetWorthHidden] = useState(() =>
     readStoredNetWorthHidden(user.id)
   );
+  const [isNetWorthAnimating, setIsNetWorthAnimating] = useState(false);
 
   useEffect(() => {
     setIsNetWorthHidden(readStoredNetWorthHidden(user.id));
+    setIsNetWorthAnimating(false);
   }, [user.id]);
+
+  useEffect(() => {
+    return () => {
+      if (netWorthAnimationTimeout.current !== null) {
+        window.clearTimeout(netWorthAnimationTimeout.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (
@@ -263,6 +275,9 @@ export function HomeOverviewPage({
   const latestMoves = overview.latestMoves;
   const hasStartingNetWorth = overview.balance.currentNetWorth !== null;
   const balanceLabel = hasStartingNetWorth ? "Net worth" : "Tracked balance";
+  const balanceAmount = formatEuroAmount(
+    overview.balance.currentNetWorth ?? overview.balance.totalBalance
+  );
   const TopExpenseIcon = getCategoryIcon(
     overview.activity.topExpenseCategory?.id,
     "EXPENSE"
@@ -294,11 +309,21 @@ export function HomeOverviewPage({
             <button
               className="home-balance__visibility-toggle"
               type="button"
+              disabled={isNetWorthAnimating}
               aria-label={
                 isNetWorthHidden ? `Show ${balanceLabel}` : `Hide ${balanceLabel}`
               }
               aria-pressed={isNetWorthHidden}
               onClick={() => {
+                if (isNetWorthAnimating) {
+                  return;
+                }
+
+                if (netWorthAnimationTimeout.current !== null) {
+                  window.clearTimeout(netWorthAnimationTimeout.current);
+                }
+
+                setIsNetWorthAnimating(true);
                 setIsNetWorthHidden((currentValue) => {
                   const nextValue = !currentValue;
 
@@ -313,6 +338,10 @@ export function HomeOverviewPage({
 
                   return nextValue;
                 });
+                netWorthAnimationTimeout.current = window.setTimeout(() => {
+                  setIsNetWorthAnimating(false);
+                  netWorthAnimationTimeout.current = null;
+                }, 260);
               }}
             >
               {isNetWorthHidden ? (
@@ -323,15 +352,15 @@ export function HomeOverviewPage({
             </button>
           </div>
           <p
-            className="home-balance__amount"
+            className={`home-balance__amount${
+              isNetWorthHidden ? " is-hidden" : ""
+            }${isNetWorthAnimating ? " is-animating" : ""}`}
             aria-hidden={isNetWorthHidden}
           >
-            {isNetWorthHidden
-              ? "\u00a0"
-              : formatEuroAmount(
-                  overview.balance.currentNetWorth ??
-                    overview.balance.totalBalance
-                )}
+            <span className="home-balance__amount-value">{balanceAmount}</span>
+            <span className="home-balance__amount-hidden-icon">
+              <EyeOff aria-hidden="true" />
+            </span>
           </p>
         </section>
 

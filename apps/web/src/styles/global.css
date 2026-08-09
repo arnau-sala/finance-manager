@@ -2628,6 +2628,10 @@ body.anchored-picker-open .home-content--moves {
   touch-action: manipulation;
 }
 
+.home-balance__visibility-toggle:disabled {
+  cursor: default;
+}
+
 .home-balance__visibility-toggle svg {
   width: 16px;
   height: 16px;
@@ -2643,12 +2647,57 @@ body.anchored-picker-open .home-content--moves {
 
 .home-balance__amount {
   margin: 8px 0 2px;
+  min-height: 40px;
+  display: inline-grid;
+  place-items: center;
+  position: relative;
   color: var(--color-text);
   font-size: 35px;
   line-height: 1.12;
   font-weight: 300;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
+}
+
+.home-balance__amount-value,
+.home-balance__amount-hidden-icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity 220ms ease,
+    transform 260ms ease;
+}
+
+.home-balance__amount-value {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.home-balance__amount-hidden-icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  justify-self: center;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transform: scale(0.68);
+  pointer-events: none;
+}
+
+.home-balance__amount-hidden-icon svg {
+  width: 27px;
+  height: 27px;
+  stroke-width: 1.55;
+}
+
+.home-balance__amount.is-hidden .home-balance__amount-value {
+  opacity: 0;
+  transform: scale(0.78);
+}
+
+.home-balance__amount.is-hidden .home-balance__amount-hidden-icon {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .home-overview-skeleton__balance {
