@@ -10,6 +10,7 @@ export type SlidingSegmentOption<Value extends string> = {
   value: Value;
   label: string;
   icon?: LucideIcon;
+  disabled?: boolean;
 };
 
 type SlidingSegmentedControlProps<Value extends string> = {
@@ -59,6 +60,12 @@ export function SlidingSegmentedControl<Value extends string>({
   const optionCount = Math.max(options.length, 1);
 
   function select(nextValue: Value) {
+    const nextOption = options.find((option) => option.value === nextValue);
+
+    if (nextOption?.disabled) {
+      return;
+    }
+
     if (nextValue !== value) {
       onChange(nextValue);
     }
@@ -195,7 +202,7 @@ export function SlidingSegmentedControl<Value extends string>({
           <button
             key={option.value}
             type="button"
-            disabled={disabled}
+            disabled={disabled || option.disabled}
             role="radio"
             aria-checked={value === option.value}
             aria-label={iconOnly ? option.label : undefined}

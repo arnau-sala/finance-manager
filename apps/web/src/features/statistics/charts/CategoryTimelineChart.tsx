@@ -6,11 +6,7 @@ import {
   useState,
   type CSSProperties
 } from "react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import {
-  SlidingSegmentedControl,
-  type SlidingSegmentOption
-} from "../../../components/ui/SlidingSegmentedControl";
+import { SlidingSegmentedControl } from "../../../components/ui/SlidingSegmentedControl";
 import { formatEuroAmount } from "../../../money/format-euro";
 import {
   getCategoryIcon,
@@ -21,6 +17,7 @@ import {
   getVisibleCategoryBreakdown,
   type CategoryBreakdownItem
 } from "../statistics-categories";
+import { createCategoryTypeOptions } from "../statistics-category-switch";
 import type {
   StatisticsCharts,
   StatisticsPeriodMode
@@ -62,10 +59,6 @@ type TimelineRow = {
 
 const INTENSITY_LEVELS = [1, 2, 3, 4, 5] as const;
 const TIMELINE_CELL_SIZE = 20;
-const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
-  { value: "INCOME", label: "Income", icon: ArrowUpRight },
-  { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
-];
 const periodDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
   month: "short",
@@ -200,6 +193,10 @@ export default function CategoryTimelineChart({
   const [type, setType] = useState<TransactionType>(defaultType);
   const [selectedCellKey, setSelectedCellKey] = useState<string | null>(
     null
+  );
+  const categoryTypeOptions = useMemo(
+    () => createCategoryTypeOptions(sourceCategories),
+    [sourceCategories]
   );
   const intervals = useMemo(
     () => createIntervals(mode, timeline.intervals),

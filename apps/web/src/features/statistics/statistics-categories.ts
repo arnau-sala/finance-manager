@@ -13,24 +13,26 @@ type TypedCategoryBreakdownItem = CategoryBreakdownItem & {
   type: TransactionType;
 };
 
+export function hasCategoryTypeData(
+  categories: readonly TypedCategoryBreakdownItem[],
+  type: TransactionType
+) {
+  return categories.some(
+    (category) =>
+      category.type === type &&
+      category.transactionCount > 0 &&
+      category.amount > 0
+  );
+}
+
 export function getDefaultCategoryType(
   categories: readonly TypedCategoryBreakdownItem[]
 ): TransactionType {
-  const hasIncome = categories.some(
-    (category) =>
-      category.type === "INCOME" && category.transactionCount > 0
-  );
-
-  if (hasIncome) {
+  if (hasCategoryTypeData(categories, "INCOME")) {
     return "INCOME";
   }
 
-  const hasExpenses = categories.some(
-    (category) =>
-      category.type === "EXPENSE" && category.transactionCount > 0
-  );
-
-  return hasExpenses ? "EXPENSE" : "INCOME";
+  return hasCategoryTypeData(categories, "EXPENSE") ? "EXPENSE" : "INCOME";
 }
 
 export function getVisibleCategoryBreakdown(

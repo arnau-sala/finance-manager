@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import {
-  SlidingSegmentedControl,
-  type SlidingSegmentOption
-} from "../../../components/ui/SlidingSegmentedControl";
+import { SlidingSegmentedControl } from "../../../components/ui/SlidingSegmentedControl";
 import { formatEuroAmount } from "../../../money/format-euro";
 import {
   getCategoryIcon,
@@ -14,6 +10,7 @@ import {
   getVisibleCategoryBreakdown,
   type CategoryBreakdownItem
 } from "../statistics-categories";
+import { createCategoryTypeOptions } from "../statistics-category-switch";
 import type { StatisticsPeriodMode } from "../statistics-api";
 
 type CategoryBreakdownChartProps = {
@@ -71,11 +68,6 @@ const AREA_ERROR_SECONDARY_WEIGHT = 100_000;
 const NON_SQUARE_PENALTY = 10_000;
 const COMPACTNESS_PENALTY_WEIGHT = 20;
 const HORIZONTAL_STRIP_PENALTY = 500;
-
-const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
-  { value: "INCOME", label: "Income", icon: ArrowUpRight },
-  { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
-];
 
 const periodDateFormatter = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -463,6 +455,10 @@ export default function CategoryBreakdownChart({
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     string | null
   >(null);
+  const categoryTypeOptions = useMemo(
+    () => createCategoryTypeOptions(sourceCategories),
+    [sourceCategories]
+  );
   const categories = useMemo(
     () =>
       createMatrixCategories(

@@ -52,7 +52,11 @@ import {
   type StatisticsPeriodMode,
   type StatisticsPeriodRequest
 } from "./statistics-api";
-import type { CategoryBreakdownItem } from "./statistics-categories";
+import {
+  getDefaultCategoryType,
+  type CategoryBreakdownItem
+} from "./statistics-categories";
+import { createCategoryTypeOptions } from "./statistics-category-switch";
 import {
   StatsChartsSkeleton,
   StatsInitialSkeleton,
@@ -119,11 +123,6 @@ const periodOptions: readonly SlidingSegmentOption<StatisticsPeriodMode>[] = [
 const statsViewOptions: readonly SlidingSegmentOption<StatsViewMode>[] = [
   { value: "OVERVIEW", label: "Show overview", icon: List },
   { value: "CHARTS", label: "Show charts", icon: ChartPie }
-];
-
-const categoryTypeOptions: readonly SlidingSegmentOption<TransactionType>[] = [
-  { value: "INCOME", label: "Income", icon: ArrowUpRight },
-  { value: "EXPENSE", label: "Expenses", icon: ArrowDownRight }
 ];
 
 const shortDateFormatter = new Intl.DateTimeFormat("en-GB", {
@@ -724,6 +723,10 @@ function StatsOverviewContent({
   const categories = overview.categories.filter(
     (category) => category.type === categoryType
   );
+  const categoryTypeOptions = useMemo(
+    () => createCategoryTypeOptions(overview.categories),
+    [overview.categories]
+  );
   const insightRows = createInsightRows(overview);
   const expenseItems = createExpenseItems(overview);
   const periodLabel = formatOverviewPeriodLabel(overview.period);
@@ -931,6 +934,24 @@ export function StatsPage({
     ],
     [availableMonths]
   );
+
+  useEffect(() => {
+    if (!overview) {
+      return;
+    }
+
+    const defaultCategoryType = getDefaultCategoryType(overview.categories);
+
+    if (categoryType !== defaultCategoryType) {
+      const currentOption = createCategoryTypeOptions(
+        overview.categories
+      ).find((option) => option.value === categoryType);
+
+      if (currentOption?.disabled) {
+        setCategoryType(defaultCategoryType);
+      }
+    }
+  }, [categoryType, overview]);
   const yearNavigationValues = useMemo(
     () => [...new Set([...availableYears, currentYear])].sort(),
     [availableYears, currentYear]
