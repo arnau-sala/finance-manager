@@ -203,6 +203,7 @@ function PasswordDialogField({
         name={id}
         placeholder="Enter your password"
         value={value}
+        invalid={false}
         autoComplete="current-password"
         variant="dialog"
         onChange={onChange}
@@ -409,6 +410,7 @@ function ModalRenderer({
             <EmailVerificationCodeInput
               id="storybook-unlink-email-code"
               value={emailCode}
+              invalid={false}
               tone="danger"
               onChange={setEmailCode}
             />
@@ -418,6 +420,7 @@ function ModalRenderer({
             <EmailVerificationResendButton
               tone="danger"
               onResend={() => undefined}
+              onResendError={() => undefined}
             />
           </form>
         )

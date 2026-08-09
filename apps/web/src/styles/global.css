@@ -837,6 +837,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   touch-action: manipulation;
   user-select: none;
   -webkit-appearance: none;
+  appearance: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   font-size: 11px;
@@ -1398,6 +1399,7 @@ body.app-logout-transition .confirm-dialog-backdrop {
   touch-action: manipulation;
   user-select: none;
   -webkit-appearance: none;
+  appearance: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   white-space: nowrap;
