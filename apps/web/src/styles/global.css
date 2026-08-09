@@ -4367,7 +4367,7 @@ button.transaction-row__content:focus-visible {
   min-height: 17px;
   display: flex;
   justify-content: center;
-  margin: 0 0 8px;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.4;
@@ -5036,7 +5036,7 @@ button.transaction-row__content:focus-visible {
   top: 64px;
   display: grid;
   gap: 9px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
   padding: 10px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -5394,7 +5394,7 @@ button.transaction-row__content:focus-visible {
 
 .moves-active-filters {
   min-width: 0;
-  margin: 3px 0 8px;
+  margin: 3px 0 0;
 }
 
 .moves-active-filters__tags {
@@ -5506,9 +5506,23 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-transaction-list {
-  margin: 5px 0 0;
+  margin: 0;
   padding: 0;
   list-style: none;
+}
+
+.moves-results-separator {
+  display: grid;
+  align-items: center;
+  padding-block: 10px;
+}
+
+.moves-results-separator::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: var(--color-border);
 }
 
 .moves-month-divider {

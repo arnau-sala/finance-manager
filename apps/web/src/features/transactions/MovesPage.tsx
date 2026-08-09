@@ -533,6 +533,11 @@ export function MovesPage({
           />
         ) : null}
 
+        {isLoadingFilteredResults ||
+        (loadingState === "ready" && transactions.length > 0) ? (
+          <div className="moves-results-separator" aria-hidden="true" />
+        ) : null}
+
         {isLoadingFilteredResults ? (
           <TransactionResultsSkeleton />
         ) : loadingState === "ready" && transactions.length > 0 ? (
