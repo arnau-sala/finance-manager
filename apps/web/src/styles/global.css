@@ -6127,6 +6127,9 @@ button.transaction-row__content:focus-visible {
 .transaction-detail-section {
   margin-top: 23px;
   padding-top: 15px;
+}
+
+.transaction-detail-context {
   border-top: 1px solid var(--color-border);
 }
 
@@ -6222,8 +6225,6 @@ button.transaction-row__content:focus-visible {
   margin: 12px 0 0;
   padding: 20px;
   color: var(--color-danger);
-  border-top: 1px solid var(--color-border);
-  border-bottom: 1px solid var(--color-border);
   font-size: 12px;
   line-height: 1.4;
   font-weight: 400;
@@ -6233,7 +6234,6 @@ button.transaction-row__content:focus-visible {
 .transaction-detail-context__rows {
   margin: 12px 0 0;
   padding: 0;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .transaction-detail-context__rows > div {
@@ -6243,7 +6243,6 @@ button.transaction-row__content:focus-visible {
   align-items: center;
   gap: 18px;
   padding: 10px 1px;
-  border-top: 1px solid var(--color-border);
 }
 
 .transaction-detail-context__rows dt {
