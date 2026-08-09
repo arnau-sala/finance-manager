@@ -36,6 +36,29 @@ body::before {
   display: none;
 }
 
+.browser-placeholder-screen {
+  width: 100%;
+  min-height: 100dvh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    max(24px, env(safe-area-inset-right))
+    max(24px, env(safe-area-inset-bottom))
+    max(24px, env(safe-area-inset-left));
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+
+.browser-placeholder-screen p {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
 button,
 input,
 textarea,
