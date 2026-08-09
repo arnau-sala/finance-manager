@@ -401,7 +401,6 @@ export function MovesPage({
           <header className="moves-page__header">
             <h1 id="moves-page-title">Transactions</h1>
             <div className="moves-page__header-actions">
-              <p aria-live="polite">0 transactions</p>
               <ActionButton
                 shape="icon"
                 className="moves-new-transaction-button"
@@ -435,20 +434,6 @@ export function MovesPage({
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
           <div className="moves-page__header-actions">
-            {isLoadingFilteredResults ? (
-              <SkeletonBlock
-                className="moves-results-skeleton__count"
-                width={82}
-                height={12}
-              />
-            ) : (
-              <p aria-live="polite">
-                {getResultLabel(
-                  totalResults,
-                  normalizedQuery.length > 0 || activeFilterCount > 0
-                )}
-              </p>
-            )}
             <ActionButton
               shape="icon"
               className="moves-new-transaction-button"
@@ -511,6 +496,23 @@ export function MovesPage({
               </span>
             ) : null}
           </ActionButton>
+        </div>
+
+        <div className="moves-results-count">
+          {isLoadingFilteredResults ? (
+            <SkeletonBlock
+              className="moves-results-skeleton__count"
+              width={82}
+              height={12}
+            />
+          ) : (
+            <p aria-live="polite">
+              {getResultLabel(
+                totalResults,
+                normalizedQuery.length > 0 || activeFilterCount > 0
+              )}
+            </p>
+          )}
         </div>
 
         {isFilterPanelOpen ? (

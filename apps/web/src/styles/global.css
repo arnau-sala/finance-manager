@@ -4371,8 +4371,20 @@ button.transaction-row__content:focus-visible {
   position: static;
 }
 
-.moves-results-skeleton__count {
-  margin-bottom: 4px;
+.moves-results-count {
+  min-height: 17px;
+  display: flex;
+  justify-content: center;
+  margin: 0 0 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 400;
+  text-align: center;
+}
+
+.moves-results-count p {
+  margin: 0;
 }
 
 .transaction-row-skeleton__details {
