@@ -31,13 +31,16 @@ import {
 
 const updateProfileBodySchema = z
   .object({
+    username: usernameSchema.optional(),
     name: userNameSchema.optional(),
     startingNetWorth: startingNetWorthSchema.optional(),
   })
   .strict()
   .refine(
     (profile) =>
-      profile.name !== undefined || profile.startingNetWorth !== undefined,
+      profile.username !== undefined ||
+      profile.name !== undefined ||
+      profile.startingNetWorth !== undefined,
     {
       message: "Provide at least one profile field to update.",
     },
@@ -261,6 +264,46 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
+        const currentUser = await db.user.findFirst({
+          where: {
+            id: userId,
+            status: "APPROVED",
+            sessionVersion,
+          },
+          select: {
+            id: true,
+            username: true,
+          },
+        });
+
+        if (!currentUser) {
+          request.session.delete();
+          return reply.code(401).send({ error: "Authentication required." });
+        }
+
+        if (
+          parsedBody.data.username !== undefined &&
+          currentUser.username === null
+        ) {
+          return reply.code(409).send({
+            error: "This account does not have a username.",
+          });
+        }
+
+        if (
+          parsedBody.data.username !== undefined &&
+          parsedBody.data.username !== currentUser.username
+        ) {
+          const existingUser = await db.user.findUnique({
+            where: { username: parsedBody.data.username },
+            select: { id: true },
+          });
+
+          if (existingUser && existingUser.id !== userId) {
+            return reply.code(409).send({ error: "Username is unavailable." });
+          }
+        }
+
         const user = await db.user.update({
           where: {
             id: userId,
@@ -268,6 +311,9 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
             sessionVersion,
           },
           data: {
+            ...(parsedBody.data.username !== undefined
+              ? { username: parsedBody.data.username }
+              : {}),
             ...(parsedBody.data.name !== undefined
               ? { name: parsedBody.data.name }
               : {}),
@@ -292,6 +338,13 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         ) {
           request.session.delete();
           return reply.code(401).send({ error: "Authentication required." });
+        }
+
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === "P2002"
+        ) {
+          return reply.code(409).send({ error: "Username is unavailable." });
         }
 
         throw error;

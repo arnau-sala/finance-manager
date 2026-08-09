@@ -29,6 +29,7 @@ type UpdateProfileResponse = {
 };
 
 export type UpdateProfileInput = {
+  username?: string;
   name?: string;
   startingNetWorth?: string;
 };

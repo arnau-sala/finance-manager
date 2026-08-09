@@ -25,6 +25,7 @@ import type { TransactionPreview } from "../transactions/transaction-api";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import { ChangePasswordPage } from "./ChangePasswordPage";
+import { EditProfilePage } from "./EditProfilePage";
 import { EmailLinkFlow } from "./EmailLinkFlow";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
@@ -61,6 +62,7 @@ type HomePageProps = {
 type HomeSectionProps = {
   user: SessionUser;
   onProfileUpdated: (user: SessionUser) => void;
+  onEditProfile: () => void;
   onChangePassword: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
@@ -133,6 +135,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   profile: ({
     user,
     onProfileUpdated,
+    onEditProfile,
     onChangePassword,
     onLinkEmail,
     onLinkUsername,
@@ -149,6 +152,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   }) => (
     <ProfilePage
       user={user}
+      onEditProfile={onEditProfile}
       onProfileUpdated={onProfileUpdated}
       onChangePassword={onChangePassword}
       onLinkEmail={onLinkEmail}
@@ -196,6 +200,7 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
   const [isUsernameLinkOpen, setIsUsernameLinkOpen] = useState(false);
@@ -210,6 +215,7 @@ export function HomePage({
   );
   const ActiveSection = homeSections[activeSection];
   const isOverlayOpen =
+    isEditProfileOpen ||
     isChangePasswordOpen ||
     isEmailLinkOpen ||
     isUsernameLinkOpen ||
@@ -267,6 +273,7 @@ export function HomePage({
       <div
         className={`home-main-layer${
           isChangePasswordOpen ||
+          isEditProfileOpen ||
           isEmailLinkOpen ||
           isUsernameLinkOpen ||
           recoveryCodeReset
@@ -279,6 +286,10 @@ export function HomePage({
         {ActiveSection({
           user,
           onProfileUpdated: finishProfileUpdate,
+          onEditProfile: () => {
+            prefetchScheduler.prioritizeUserRequest();
+            setIsEditProfileOpen(true);
+          },
           onChangePassword: () => {
             prefetchScheduler.prioritizeUserRequest();
             setIsChangePasswordOpen(true);
@@ -318,6 +329,14 @@ export function HomePage({
       <ChangePasswordPage
         open={isChangePasswordOpen}
         onBack={() => setIsChangePasswordOpen(false)}
+      />
+
+      <EditProfilePage
+        open={isEditProfileOpen}
+        user={user}
+        onBack={() => setIsEditProfileOpen(false)}
+        onProfileUpdated={finishProfileUpdate}
+        onSessionExpired={onSessionExpired}
       />
 
       <EmailLinkFlow

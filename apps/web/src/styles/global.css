@@ -276,6 +276,30 @@ body.app-logout-transition .confirm-dialog-backdrop {
   margin-top: 0;
 }
 
+.edit-profile-money-field {
+  position: relative;
+}
+
+.edit-profile-money-field .edit-profile-money-field__input {
+  padding-right: 64px;
+}
+
+.edit-profile-money-field__currency {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  bottom: 0;
+  right: 9px;
+  width: 44px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 400;
+  pointer-events: none;
+}
+
 @keyframes password-recovery-stage-enter {
   from {
     transform: translate3d(100%, 0, 0);
@@ -7380,8 +7404,7 @@ button.transaction-row__content:focus-visible {
   font-weight: 400;
 }
 
-.confirm-dialog__form--password,
-.confirm-dialog__form--profile {
+.confirm-dialog__form--password {
   gap: 14px;
 }
 

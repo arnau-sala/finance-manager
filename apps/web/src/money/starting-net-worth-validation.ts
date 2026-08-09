@@ -4,7 +4,7 @@ const EDITABLE_STARTING_NET_WORTH_PATTERN =
   /^-?\d{0,8}(?:[.,]\d{0,2})?$/;
 
 export const STARTING_NET_WORTH_ERROR =
-  "Enter a valid amount between -10M€ and 10M€.";
+  "Use -10M€ to 10M€";
 
 function decimalToCents(amount: string) {
   const isNegative = amount.startsWith("-");

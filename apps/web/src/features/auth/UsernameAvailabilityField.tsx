@@ -21,6 +21,7 @@ type UsernameAvailability =
 type UsernameAvailabilityFieldProps = {
   idPrefix: string;
   value: string;
+  currentUsername?: string | null;
   disabled?: boolean;
   serverUnavailableUsername?: string | null;
   onChange: (value: string) => void;
@@ -32,6 +33,7 @@ const availabilityDelayMs = 250;
 export function UsernameAvailabilityField({
   idPrefix,
   value,
+  currentUsername = null,
   disabled = false,
   serverUnavailableUsername = null,
   onChange,
@@ -60,6 +62,7 @@ export function UsernameAvailabilityField({
   const displayedError = localError ?? remoteError;
   const isAvailable =
     isAvailabilityVisible && availability === "available";
+  const normalizedCurrentUsername = currentUsername?.trim().toLowerCase() ?? null;
 
   useEffect(() => {
     return () => {
@@ -84,6 +87,22 @@ export function UsernameAvailabilityField({
     onValidUsernameChange(null);
   }, [onValidUsernameChange, serverUnavailableUsername, value]);
 
+  useEffect(() => {
+    const result = validateUsername(value);
+
+    if (!result.success || normalizedCurrentUsername !== result.data) {
+      return;
+    }
+
+    cancelAvailabilityCheck();
+    setLocalError(null);
+    setAvailabilityError(null);
+    setAvailability("available");
+    setIsAvailabilityVisible(false);
+    setIsCopied(false);
+    onValidUsernameChange(result.data);
+  }, [normalizedCurrentUsername, onValidUsernameChange, value]);
+
   function cancelAvailabilityCheck() {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
@@ -99,6 +118,14 @@ export function UsernameAvailabilityField({
     normalizedUsername: string,
     requestId: number,
   ) {
+    if (normalizedCurrentUsername === normalizedUsername) {
+      setAvailability("available");
+      onValidUsernameChange(
+        availabilityVisibleRef.current ? normalizedUsername : null,
+      );
+      return;
+    }
+
     const controller = new AbortController();
     abortRef.current = controller;
     timerRef.current = null;
@@ -169,6 +196,12 @@ export function UsernameAvailabilityField({
     }
 
     setLocalError(null);
+
+    if (normalizedCurrentUsername === result.data) {
+      setAvailability("available");
+      return;
+    }
+
     const requestId = requestRef.current;
     timerRef.current = window.setTimeout(() => {
       void runAvailabilityCheck(result.data, requestId);
@@ -191,6 +224,12 @@ export function UsernameAvailabilityField({
     availabilityVisibleRef.current = true;
     setIsAvailabilityVisible(true);
     setAvailabilityRevealId((current) => current + 1);
+
+    if (normalizedCurrentUsername === result.data) {
+      setAvailability("available");
+      onValidUsernameChange(result.data);
+      return;
+    }
 
     if (availability === "available") {
       onValidUsernameChange(result.data);

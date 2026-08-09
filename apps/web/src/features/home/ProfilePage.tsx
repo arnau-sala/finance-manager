@@ -32,11 +32,6 @@ import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedCon
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { formatEuroAmount } from "../../money/format-euro";
 import {
-  isEditableStartingNetWorth,
-  parseStartingNetWorth,
-  STARTING_NET_WORTH_ERROR
-} from "../../money/starting-net-worth-validation";
-import {
   ApiRequestError,
   beginEmailUnlink,
   cancelEmailUnlink,
@@ -47,10 +42,8 @@ import {
   startGoogleAccountDeletion,
   startGoogleAccountUnlink,
   unlinkUsername,
-  updateProfile,
   verifyEmailUnlinkCode,
   type RecoveryCodeResetResult,
-  type UpdateProfileInput,
   type SessionUser
 } from "../auth/auth-api";
 import { AuthPasswordField } from "../auth/AuthPasswordField";
@@ -60,10 +53,10 @@ import {
   EmailVerificationResendButton
 } from "../auth/EmailVerificationCodeInput";
 import { validateAccountPassword } from "../auth/password-validation";
-import { validateUserName } from "../auth/user-name-validation";
 
 type ProfilePageProps = {
   user: SessionUser;
+  onEditProfile: () => void;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
   onLinkEmail: () => void;
@@ -126,15 +119,6 @@ function formatStartingNetWorth(value: string | null) {
   });
 }
 
-function formatStartingNetWorthInput(value: string | null) {
-  if (value === null) {
-    return "0";
-  }
-
-  const amount = Number(value);
-  return Number.isFinite(amount) ? String(amount).replace(".", ",") : "0";
-}
-
 function getGoogleUnlinkDescription(
   user: Pick<SessionUser, "email" | "emailLoginEnabled" | "username">
 ) {
@@ -190,6 +174,7 @@ function getEmailUnlinkDescription(
 
 export function ProfilePage({
   user,
+  onEditProfile,
   onProfileUpdated,
   onChangePassword,
   onLinkEmail,
@@ -225,16 +210,6 @@ export function ProfilePage({
     );
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteRetryAfter, setDeleteRetryAfter] = useState("15 minutes");
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
-  const [profileName, setProfileName] = useState("");
-  const [profileStartingNetWorth, setProfileStartingNetWorth] = useState("");
-  const [hasProfileNameBlurred, setHasProfileNameBlurred] = useState(false);
-  const [
-    hasProfileStartingNetWorthBlurred,
-    setHasProfileStartingNetWorthBlurred
-  ] = useState(false);
-  const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
   const [googleLinkDialogMode, setGoogleLinkDialogMode] =
     useState<GoogleLinkDialogMode | null>(
       googleAccountLinkFeedback === "cancelled"
@@ -302,32 +277,6 @@ export function ProfilePage({
     user.authProvider === "GOOGLE" ||
     (user.authProvider === "PASSWORD_AND_GOOGLE" &&
       deleteVerificationMethod === "google");
-  const parsedProfileName = validateUserName(profileName);
-  const isProfileNameInputValid = parsedProfileName.success;
-  const isProfileNameChanged =
-    parsedProfileName.success &&
-    parsedProfileName.data !== user.name;
-  const profileNameValidationError =
-    hasProfileNameBlurred && !parsedProfileName.success
-      ? (parsedProfileName.error.issues[0]?.message ?? "Enter a valid name.")
-      : null;
-  const parsedProfileStartingNetWorth = parseStartingNetWorth(
-    profileStartingNetWorth
-  );
-  const isProfileStartingNetWorthInputValid =
-    parsedProfileStartingNetWorth !== null;
-  const isProfileStartingNetWorthChanged =
-    parsedProfileStartingNetWorth !== null &&
-    Number(parsedProfileStartingNetWorth) !== Number(user.startingNetWorth ?? 0);
-  const profileStartingNetWorthValidationError =
-    hasProfileStartingNetWorthBlurred &&
-    parsedProfileStartingNetWorth === null
-      ? STARTING_NET_WORTH_ERROR
-      : null;
-  const canUpdateProfile =
-    isProfileNameInputValid &&
-    isProfileStartingNetWorthInputValid &&
-    (isProfileNameChanged || isProfileStartingNetWorthChanged);
 
   useEffect(() => {
     if (!isSummaryGoogleInfoOpen) {
@@ -440,63 +389,6 @@ export function ProfilePage({
     } catch {
       setLogoutError("We couldn't log you out. Please try again.");
       setIsLoggingOut(false);
-    }
-  }
-
-  function closeEditDialog() {
-    if (isUpdatingProfile) return;
-    setIsEditDialogOpen(false);
-    setProfileName("");
-    setProfileStartingNetWorth("");
-    setHasProfileNameBlurred(false);
-    setHasProfileStartingNetWorthBlurred(false);
-    setProfileUpdateError(null);
-  }
-
-  async function confirmProfileUpdate(event?: FormEvent) {
-    event?.preventDefault();
-    if (isUpdatingProfile) return;
-
-    if (!canUpdateProfile) return;
-
-    const input: UpdateProfileInput = {};
-
-    if (isProfileNameChanged && parsedProfileName.success) {
-      input.name = parsedProfileName.data;
-    }
-
-    if (
-      isProfileStartingNetWorthChanged &&
-      parsedProfileStartingNetWorth !== null
-    ) {
-      input.startingNetWorth = parsedProfileStartingNetWorth;
-    }
-
-    setProfileUpdateError(null);
-    setIsUpdatingProfile(true);
-    prefetchScheduler.prioritizeUserRequest();
-
-    try {
-      const updatedUser = await updateProfile(input);
-      onProfileUpdated(updatedUser);
-      setIsUpdatingProfile(false);
-      setIsEditDialogOpen(false);
-      setProfileName("");
-      setProfileStartingNetWorth("");
-      setHasProfileNameBlurred(false);
-      setHasProfileStartingNetWorthBlurred(false);
-    } catch (error) {
-      if (error instanceof ApiRequestError && error.status === 429) {
-        setProfileUpdateError(
-          `Too many profile updates. Try again in ${error.retryAfter ?? "15 minutes"}.`
-        );
-      } else {
-        setProfileUpdateError(
-          error instanceof Error ? error.message : "Unable to update profile."
-        );
-      }
-
-      setIsUpdatingProfile(false);
     }
   }
 
@@ -1026,16 +918,7 @@ export function ProfilePage({
               <ProfileActionButton
                 label="Edit profile"
                 icon={<Pencil />}
-                onClick={() => {
-                  setProfileName(user.name);
-                  setProfileStartingNetWorth(
-                    formatStartingNetWorthInput(user.startingNetWorth)
-                  );
-                  setHasProfileNameBlurred(false);
-                  setHasProfileStartingNetWorthBlurred(false);
-                  setProfileUpdateError(null);
-                  setIsEditDialogOpen(true);
-                }}
+                onClick={onEditProfile}
               />
               {!hasGoogleAccess ? (
                 <ProfileActionButton
@@ -1162,83 +1045,6 @@ export function ProfilePage({
           </section>
         </div>
       </section>
-
-      <ConfirmDialog
-        open={isEditDialogOpen}
-        title="Edit profile"
-        description="Update your name or starting net worth."
-        confirmLabel="Continue"
-        confirmingLabel="Saving..."
-        icon={<Pencil />}
-        isConfirming={isUpdatingProfile}
-        confirmDisabled={!canUpdateProfile}
-        error={
-          profileUpdateError ??
-          profileNameValidationError ??
-          profileStartingNetWorthValidationError
-        }
-        onCancel={closeEditDialog}
-        onConfirm={confirmProfileUpdate}
-      >
-        <form
-          className="confirm-dialog__form confirm-dialog__form--profile"
-          onSubmit={confirmProfileUpdate}
-        >
-          <div className="confirm-dialog__field">
-            <label className="text-field-label" htmlFor="profile-name">
-              Name
-            </label>
-            <input
-              id="profile-name"
-              className="text-field text-field--dialog"
-              type="text"
-              autoComplete="name"
-              value={profileName}
-              aria-invalid={Boolean(profileNameValidationError)}
-              onFocus={() => setHasProfileNameBlurred(false)}
-              onBlur={() => setHasProfileNameBlurred(true)}
-              onChange={(event) => {
-                setProfileName(event.target.value);
-                setProfileUpdateError(null);
-              }}
-              disabled={isUpdatingProfile}
-            />
-          </div>
-
-          <div className="confirm-dialog__field">
-            <label
-              className="text-field-label"
-              htmlFor="profile-starting-net-worth"
-            >
-              Starting net worth
-            </label>
-            <input
-              id="profile-starting-net-worth"
-              className="text-field text-field--dialog"
-              type="text"
-              inputMode="decimal"
-              enterKeyHint="done"
-              autoComplete="off"
-              maxLength={12}
-              value={profileStartingNetWorth}
-              aria-invalid={Boolean(
-                profileStartingNetWorthValidationError
-              )}
-              onFocus={() => setHasProfileStartingNetWorthBlurred(false)}
-              onBlur={() => setHasProfileStartingNetWorthBlurred(true)}
-              onChange={(event) => {
-                const nextValue = event.target.value;
-
-                if (isEditableStartingNetWorth(nextValue)) {
-                  setProfileStartingNetWorth(nextValue);
-                  setProfileUpdateError(null);
-                }
-              }}
-              disabled={isUpdatingProfile}
-            />
-          </div>
-        </form>
-      </ConfirmDialog>
 
       <ConfirmDialog
         open={isRecoveryCodeDialogOpen}
