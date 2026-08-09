@@ -3113,7 +3113,7 @@ button.transaction-row__content:focus-visible {
 .month-picker-backdrop,
 .year-picker-backdrop {
   position: fixed;
-  z-index: 35;
+  z-index: 90;
   inset: 0;
   background: transparent;
   overscroll-behavior: contain;
@@ -6762,34 +6762,26 @@ button.transaction-row__content:focus-visible {
 
 .transaction-composer__date-control {
   max-width: 100%;
-  overflow: hidden;
-}
-
-.transaction-composer__date-control input[type="date"] {
-  display: block;
-  color: var(--color-text-muted);
-  text-align: center;
-}
-
-.transaction-composer__date-control.is-selected input[type="date"] {
-  color: var(--color-text);
-}
-
-.transaction-composer__date-control input[type="date"]::-webkit-date-and-time-value {
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 0;
-  margin: 0;
-  color: inherit;
-  -webkit-text-fill-color: currentColor;
-  opacity: 1;
+  overflow: hidden;
+  color: var(--color-text-muted);
   text-align: center;
+  cursor: pointer;
 }
 
-.transaction-composer__date-control input[type="date"]:focus {
-  outline: none;
+.transaction-composer__date-control.is-selected {
+  color: var(--color-text);
+}
+
+.transaction-composer__date-control.is-picker-open {
+  border-color: var(--color-primary);
+}
+
+.transaction-composer__date-control:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .transaction-composer__footer {

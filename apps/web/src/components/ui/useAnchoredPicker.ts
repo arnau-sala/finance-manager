@@ -24,6 +24,7 @@ type UseAnchoredPickerOptions = {
   onClose: () => void;
   positionKey?: string | number;
   anchorGap?: number;
+  placement?: "above" | "below";
 };
 
 export function useAnchoredPicker({
@@ -31,7 +32,8 @@ export function useAnchoredPicker({
   anchorRef,
   onClose,
   positionKey,
-  anchorGap = popoverGap
+  anchorGap = popoverGap,
+  placement = "below"
 }: UseAnchoredPickerOptions) {
   const [isClosing, setIsClosing] = useState(false);
   const [position, setPosition] = useState<PickerPopoverPosition | null>(null);
@@ -101,8 +103,12 @@ export function useAnchoredPicker({
         (window.innerWidth - dialogWidth) / 2
       );
       const maximumTop = window.innerHeight - dialogHeight - viewportMargin;
+      const requestedTop =
+        placement === "above"
+          ? anchorRect.top - dialogHeight - anchorGap
+          : anchorRect.bottom + anchorGap;
       const top = Math.min(
-        Math.max(anchorRect.bottom + anchorGap, viewportMargin),
+        Math.max(requestedTop, viewportMargin),
         Math.max(viewportMargin, maximumTop)
       );
       const originX = Math.min(
@@ -125,7 +131,7 @@ export function useAnchoredPicker({
     updatePosition();
     window.addEventListener("resize", updatePosition);
     return () => window.removeEventListener("resize", updatePosition);
-  }, [anchorGap, anchorRef, open, positionKey]);
+  }, [anchorGap, anchorRef, open, placement, positionKey]);
 
   useEffect(() => {
     if (!open) {

@@ -60,6 +60,7 @@ type CalendarDatePickerProps = {
   maximumDate: string;
   onSelect: (date: string) => boolean | void;
   onClose: () => void;
+  placement?: "above" | "below";
 };
 
 function getDateParts(value: string) {
@@ -153,7 +154,8 @@ export function CalendarDatePicker({
   minimumDate,
   maximumDate,
   onSelect,
-  onClose
+  onClose,
+  placement = "below"
 }: CalendarDatePickerProps) {
   const minimumParts = getRequiredDateParts(minimumDate);
   const maximumParts = getRequiredDateParts(maximumDate);
@@ -216,7 +218,8 @@ export function CalendarDatePicker({
     anchorRef,
     onClose,
     positionKey: view,
-    anchorGap: 14
+    anchorGap: 14,
+    placement
   });
 
   useLayoutEffect(() => {

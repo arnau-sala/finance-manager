@@ -62,6 +62,7 @@ const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
 
 const TYPE_DRAG_THRESHOLD = 14;
 const TYPE_DRAG_OPTIONS: readonly TransactionType[] = ["INCOME", "EXPENSE"];
+const MINIMUM_TRANSACTION_DATE = "2026-01-01";
 
 function isCreateTransactionField(
   field: unknown
@@ -180,6 +181,7 @@ export function TransactionComposer({
     selectedCategoryId !== null &&
     date.length > 0 &&
     hasChanges;
+  const maximumTransactionDate = getTodayDateOnly();
 
   useEffect(() => {
     if (open && !wasOpen.current) {
@@ -676,6 +678,8 @@ export function TransactionComposer({
               name="date"
               label="Date"
               value={date}
+              minimumDate={MINIMUM_TRANSACTION_DATE}
+              maximumDate={maximumTransactionDate}
               selected={hasSelectedDate}
               disabled={isSubmitting}
               invalid={invalidFields.date === true}

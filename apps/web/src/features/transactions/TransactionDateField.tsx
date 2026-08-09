@@ -1,7 +1,14 @@
+import { useRef, useState } from "react";
+
+import { CalendarDatePicker } from "../../components/ui/CalendarDatePicker";
+import { formatFilterDateValue } from "./moves-filter-summary";
+
 type TransactionDateFieldProps = {
   id: string;
   label: string;
   value: string;
+  minimumDate: string;
+  maximumDate: string;
   onChange: (value: string) => void;
   name?: string;
   disabled?: boolean;
@@ -14,13 +21,16 @@ export function TransactionDateField({
   id,
   label,
   value,
+  minimumDate,
+  maximumDate,
   onChange,
-  name,
   disabled = false,
   selected = value.length > 0,
   invalid = false,
   describedBy
 }: TransactionDateFieldProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const labelId = `${id}-label`;
 
   return (
@@ -28,24 +38,38 @@ export function TransactionDateField({
       <span className="text-field-label" id={labelId}>
         {label}
       </span>
-      <div
+      <button
+        ref={buttonRef}
+        id={id}
         className={`text-field-shell text-field--composer transaction-composer__date-control${
           selected ? " is-selected" : ""
+        }${isPickerOpen ? " is-picker-open" : ""
         }${invalid ? " is-invalid" : ""}`}
+        type="button"
+        disabled={disabled}
+        aria-labelledby={labelId}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        aria-haspopup="dialog"
+        aria-expanded={isPickerOpen}
+        onClick={() => setIsPickerOpen(true)}
       >
-        <input
-          id={id}
-          className="text-field-shell__input"
-          name={name}
-          type="date"
-          value={value}
-          disabled={disabled}
-          aria-labelledby={labelId}
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </div>
+        {value ? formatFilterDateValue(value) : "Select date"}
+      </button>
+
+      <CalendarDatePicker
+        open={isPickerOpen}
+        anchorRef={buttonRef}
+        value={value}
+        initialDate={value || maximumDate}
+        minimumDate={minimumDate}
+        maximumDate={maximumDate}
+        onSelect={(nextDate) => {
+          onChange(nextDate);
+        }}
+        onClose={() => setIsPickerOpen(false)}
+        placement="above"
+      />
     </div>
   );
 }
