@@ -107,6 +107,8 @@ export function App() {
   const [loginIdentifier, setLoginIdentifier] = useState("");
   const [passwordRecoveryStart, setPasswordRecoveryStart] =
     useState<PasswordRecoveryStart | null>(null);
+  const [passwordRecoveryReturnTarget, setPasswordRecoveryReturnTarget] =
+    useState<"landing" | "login">("login");
   const [passwordRecoveryVersion, setPasswordRecoveryVersion] = useState(0);
   const [registrationMethod, setRegistrationMethod] =
     useState<CredentialRegistrationMethod>("email");
@@ -482,6 +484,7 @@ export function App() {
 
   function startPasswordRecovery(start: PasswordRecoveryStart) {
     setPasswordRecoveryStart(start);
+    setPasswordRecoveryReturnTarget(activeScreen === "landing" ? "landing" : "login");
     setPasswordRecoveryVersion((version) => version + 1);
     setActiveScreen("password-recovery");
   }
@@ -492,6 +495,13 @@ export function App() {
     setLoginIdentifier(identifier);
     setLoginVersion((version) => version + 1);
     setActiveScreen("login");
+  }
+
+  function returnToLandingFromRecovery() {
+    clearStoredPasswordRecovery();
+    setPasswordRecoveryStart(null);
+    setLandingError(null);
+    setActiveScreen("landing");
   }
 
   function openRegistration() {
@@ -844,6 +854,8 @@ export function App() {
         <PasswordRecoveryFlow
           key={passwordRecoveryVersion}
           start={passwordRecoveryStart}
+          returnTarget={passwordRecoveryReturnTarget}
+          onReturnToLanding={returnToLandingFromRecovery}
           onReturnToLogin={returnToLoginFromRecovery}
         />
       </div>

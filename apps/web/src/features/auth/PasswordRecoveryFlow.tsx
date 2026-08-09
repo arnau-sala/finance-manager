@@ -125,11 +125,15 @@ function stageFromStart(start: PasswordRecoveryStart | null) {
 
 type PasswordRecoveryFlowProps = {
   start: PasswordRecoveryStart | null;
+  returnTarget: "landing" | "login";
+  onReturnToLanding: () => void;
   onReturnToLogin: (identifier: string) => void;
 };
 
 export function PasswordRecoveryFlow({
   start,
+  returnTarget,
+  onReturnToLanding,
   onReturnToLogin
 }: PasswordRecoveryFlowProps) {
   const [stage, setStage] = useState<PasswordRecoveryStage | null>(() =>
@@ -147,6 +151,12 @@ export function PasswordRecoveryFlow({
     clearStoredPasswordRecovery();
     void cancelPasswordReset().catch(() => undefined);
     onReturnToLogin(identifier);
+  }
+
+  function leaveRecoveryToLanding() {
+    clearStoredPasswordRecovery();
+    void cancelPasswordReset().catch(() => undefined);
+    onReturnToLanding();
   }
 
   function showNextStage(nextStage: PasswordRecoveryStage) {
@@ -218,7 +228,14 @@ export function PasswordRecoveryFlow({
     return renderStage(
       <PasswordRecoveryCodePage
         username={currentStage.username}
-        onBack={() => leaveRecovery(currentStage.username ?? "")}
+        onBack={() => {
+          if (currentStage.username === null && returnTarget === "landing") {
+            leaveRecoveryToLanding();
+            return;
+          }
+
+          leaveRecovery(currentStage.username ?? "");
+        }}
         onVerified={(username) => {
           showNextStage({
             type: "new-password",
