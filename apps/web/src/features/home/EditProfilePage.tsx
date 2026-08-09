@@ -27,6 +27,9 @@ type EditProfilePageProps = {
   onSessionExpired: () => void;
 };
 
+const userNameMaxLength = 20;
+const userNameCharacterCountRevealLength = 15;
+
 function formatStartingNetWorthInput(value: string | null) {
   if (value === null) {
     return "0";
@@ -215,17 +218,27 @@ export function EditProfilePage({
                 <span className="text-field-label" id="edit-profile-name-label">
                   Name
                 </span>
-                {nameError ? (
-                  <p
-                    id="edit-profile-name-error"
-                    className="auth-register-field-error"
-                    role="alert"
-                    aria-live="polite"
-                  >
-                    <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
-                    <span>{formatErrorMessage(nameError)}</span>
-                  </p>
-                ) : null}
+                <span className="auth-register-field-actions">
+                  {name.length >= userNameCharacterCountRevealLength ? (
+                    <span
+                      className="transaction-composer__character-count"
+                      aria-live="polite"
+                    >
+                      {name.length}/{userNameMaxLength}
+                    </span>
+                  ) : null}
+                  {nameError ? (
+                    <p
+                      id="edit-profile-name-error"
+                      className="auth-register-field-error"
+                      role="alert"
+                      aria-live="polite"
+                    >
+                      <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                      <span>{formatErrorMessage(nameError)}</span>
+                    </p>
+                  ) : null}
+                </span>
               </div>
               <input
                 id="edit-profile-name"
@@ -235,7 +248,7 @@ export function EditProfilePage({
                 autoComplete="name"
                 placeholder="Enter your name"
                 value={name}
-                maxLength={100}
+                maxLength={userNameMaxLength}
                 aria-invalid={Boolean(nameError)}
                 aria-describedby={nameError ? "edit-profile-name-error" : undefined}
                 disabled={isSubmitting}

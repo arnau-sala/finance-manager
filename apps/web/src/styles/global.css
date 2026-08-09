@@ -1369,6 +1369,20 @@ body.app-logout-transition .confirm-dialog-backdrop {
   gap: 12px;
 }
 
+.auth-register-field-actions {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+  padding-right: var(--text-field-padding, 20px);
+}
+
+.auth-register-field-actions .auth-field-copy-action {
+  margin-right: 0;
+}
+
 .auth-field-copy-action {
   width: 24px;
   height: 24px;
@@ -6762,10 +6776,15 @@ button.transaction-row__content:focus-visible {
   font-weight: 400;
 }
 
-.transaction-composer__field-heading
-  .transaction-composer__character-count {
+.transaction-composer__field-heading .transaction-composer__character-count,
+.auth-register-field-heading .transaction-composer__character-count {
+  color: var(--color-text-muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
+}
+
+.transaction-composer__field-heading .transaction-composer__character-count {
+  margin-right: var(--text-field-padding, 20px);
 }
 
 .transaction-composer__field > span svg {

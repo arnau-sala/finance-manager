@@ -29,6 +29,8 @@ type UsernameAvailabilityFieldProps = {
 };
 
 const availabilityDelayMs = 250;
+const usernameMaxLength = 15;
+const usernameCharacterCountRevealLength = 10;
 
 export function UsernameAvailabilityField({
   idPrefix,
@@ -63,6 +65,7 @@ export function UsernameAvailabilityField({
   const isAvailable =
     isAvailabilityVisible && availability === "available";
   const normalizedCurrentUsername = currentUsername?.trim().toLowerCase() ?? null;
+  const showCharacterCount = value.length >= usernameCharacterCountRevealLength;
 
   useEffect(() => {
     return () => {
@@ -266,7 +269,16 @@ export function UsernameAvailabilityField({
         <span className="text-field-label" id={`${idPrefix}-label`}>
           Username
         </span>
-        {displayedError ? (
+        <span className="auth-register-field-actions">
+          {showCharacterCount ? (
+            <span
+              className="transaction-composer__character-count"
+              aria-live="polite"
+            >
+              {value.length}/{usernameMaxLength}
+            </span>
+          ) : null}
+          {displayedError ? (
           <p
             id={`${idPrefix}-error`}
             className="auth-register-field-error"
@@ -276,14 +288,15 @@ export function UsernameAvailabilityField({
             <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
             <span>{formatErrorMessage(displayedError)}</span>
           </p>
-        ) : isAvailable ? (
+          ) : isAvailable ? (
           <FieldCopyButton
             label="username"
             copied={isCopied}
             disabled={disabled}
             onCopy={() => void copyUsername()}
           />
-        ) : null}
+          ) : null}
+        </span>
       </div>
 
       <div className="auth-input-with-action auth-username-input">
@@ -300,7 +313,7 @@ export function UsernameAvailabilityField({
           spellCheck={false}
           placeholder="Choose a username"
           value={value}
-          maxLength={15}
+          maxLength={usernameMaxLength}
           aria-invalid={displayedError !== null}
           aria-describedby={displayedError ? `${idPrefix}-error` : undefined}
           disabled={disabled}

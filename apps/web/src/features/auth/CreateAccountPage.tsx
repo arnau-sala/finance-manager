@@ -61,6 +61,10 @@ type UsernameAvailability =
 const generatedPasswordCharacterDelayMs = 11;
 const generatedPasswordFieldDelayMs = 24;
 const usernameAvailabilityDelayMs = 250;
+const usernameMaxLength = 15;
+const usernameCharacterCountRevealLength = 10;
+const userNameMaxLength = 20;
+const userNameCharacterCountRevealLength = 15;
 
 export function CreateAccountPage({
   method,
@@ -706,24 +710,34 @@ export function CreateAccountPage({
                 <span className="text-field-label" id="register-username-label">
                   Username
                 </span>
-                {usernameDisplayedError ? (
-                  <p
-                    id="register-username-error"
-                    className="auth-register-field-error"
-                    role="alert"
-                    aria-live="polite"
-                  >
-                    <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
-                    <span>{formatErrorMessage(usernameDisplayedError)}</span>
-                  </p>
-                ) : isUsernameAvailabilityVisible &&
-                  usernameAvailability === "available" ? (
-                  <FieldCopyButton
-                    label="username"
-                    copied={copiedField === "username"}
-                    onCopy={() => handleCopyField("username", username)}
-                  />
-                ) : null}
+                <span className="auth-register-field-actions">
+                  {username.length >= usernameCharacterCountRevealLength ? (
+                    <span
+                      className="transaction-composer__character-count"
+                      aria-live="polite"
+                    >
+                      {username.length}/{usernameMaxLength}
+                    </span>
+                  ) : null}
+                  {usernameDisplayedError ? (
+                    <p
+                      id="register-username-error"
+                      className="auth-register-field-error"
+                      role="alert"
+                      aria-live="polite"
+                    >
+                      <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                      <span>{formatErrorMessage(usernameDisplayedError)}</span>
+                    </p>
+                  ) : isUsernameAvailabilityVisible &&
+                    usernameAvailability === "available" ? (
+                    <FieldCopyButton
+                      label="username"
+                      copied={copiedField === "username"}
+                      onCopy={() => handleCopyField("username", username)}
+                    />
+                  ) : null}
+                </span>
               </div>
               <div className="auth-input-with-action auth-username-input">
                 <input
@@ -739,7 +753,7 @@ export function CreateAccountPage({
                   spellCheck={false}
                   placeholder="Choose a username"
                   value={username}
-                  maxLength={15}
+                  maxLength={usernameMaxLength}
                   aria-invalid={
                     invalidFields.username === true ||
                     usernameRemoteError !== null
@@ -779,13 +793,23 @@ export function CreateAccountPage({
               <span className="text-field-label" id="register-name-label">
                 Name
               </span>
-              {copyReadyFields.name ? (
-                <FieldCopyButton
-                  label="name"
-                  copied={copiedField === "name"}
-                  onCopy={() => handleCopyField("name", name)}
-                />
-              ) : null}
+              <span className="auth-register-field-actions">
+                {name.length >= userNameCharacterCountRevealLength ? (
+                  <span
+                    className="transaction-composer__character-count"
+                    aria-live="polite"
+                  >
+                    {name.length}/{userNameMaxLength}
+                  </span>
+                ) : null}
+                {copyReadyFields.name ? (
+                  <FieldCopyButton
+                    label="name"
+                    copied={copiedField === "name"}
+                    onCopy={() => handleCopyField("name", name)}
+                  />
+                ) : null}
+              </span>
             </div>
             <input
               id="register-name"
@@ -796,7 +820,7 @@ export function CreateAccountPage({
               autoComplete="name"
               placeholder="Enter your name"
               value={name}
-              maxLength={100}
+              maxLength={userNameMaxLength}
               aria-invalid={invalidFields.name === true}
               aria-describedby={formError ? "register-form-error" : undefined}
               onChange={(event) => {
