@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   lazy,
   Suspense,
   useEffect,
@@ -724,6 +725,15 @@ function StatsOverviewContent({
   const moneyContentRef = useRef<HTMLDivElement | null>(null);
   const moneyBalanceRef = useRef<HTMLDivElement | null>(null);
   const moneyBreakdownRef = useRef<HTMLDivElement | null>(null);
+  const moneyBalanceMeasureRef = useRef<HTMLElement | null>(null);
+  const [balanceFontSize, setBalanceFontSize] = useState(30);
+  const incomeRowRef = useRef<HTMLDivElement | null>(null);
+  const expenseRowRef = useRef<HTMLDivElement | null>(null);
+  const incomeLabelRef = useRef<HTMLSpanElement | null>(null);
+  const expenseLabelRef = useRef<HTMLSpanElement | null>(null);
+  const incomeMeasureRef = useRef<HTMLElement | null>(null);
+  const expenseMeasureRef = useRef<HTMLElement | null>(null);
+  const [breakdownFontSize, setBreakdownFontSize] = useState(16);
   const categories = overview.categories.filter(
     (category) => category.type === categoryType
   );
@@ -734,6 +744,12 @@ function StatsOverviewContent({
   const insightRows = createInsightRows(overview);
   const expenseItems = createExpenseItems(overview);
   const periodLabel = formatOverviewPeriodLabel(overview.period);
+  const balanceLabel = formatEuroAmount(money.balance, {
+    showSign: money.balance !== 0,
+    fractionDigits: 0
+  });
+  const incomeLabel = formatEuroAmount(money.income, { fractionDigits: 0 });
+  const expensesLabel = formatEuroAmount(money.expenses, { fractionDigits: 0 });
 
   useLayoutEffect(() => {
     const content = moneyContentRef.current;
@@ -769,6 +785,128 @@ function StatsOverviewContent({
     };
   }, [money.balance, money.expenses, money.income, money.savingsPercentage]);
 
+  useLayoutEffect(() => {
+    const content = moneyContentRef.current;
+    const balance = moneyBalanceRef.current;
+    const measure = moneyBalanceMeasureRef.current;
+
+    if (!content || !balance || !measure) {
+      return;
+    }
+
+    const updateBalanceFontSize = () => {
+      const balanceStyles = window.getComputedStyle(balance);
+      const horizontalPadding =
+        Number.parseFloat(balanceStyles.paddingLeft) +
+        Number.parseFloat(balanceStyles.paddingRight);
+      const availableWidth = Math.max(0, content.clientWidth / 2 - horizontalPadding);
+      const measuredWidth = measure.scrollWidth;
+      const baseFontSize = 30;
+      const minimumFontSize = 16;
+
+      if (measuredWidth <= 0 || availableWidth <= 0) {
+        setBalanceFontSize(baseFontSize);
+        return;
+      }
+
+      const nextFontSize = Math.max(
+        minimumFontSize,
+        Math.min(baseFontSize, Math.floor((availableWidth / measuredWidth) * baseFontSize))
+      );
+
+      setBalanceFontSize((currentFontSize) =>
+        currentFontSize === nextFontSize ? currentFontSize : nextFontSize
+      );
+    };
+
+    updateBalanceFontSize();
+
+    const resizeObserver = new ResizeObserver(updateBalanceFontSize);
+    resizeObserver.observe(content);
+    resizeObserver.observe(balance);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [balanceLabel]);
+
+  useLayoutEffect(() => {
+    const incomeRow = incomeRowRef.current;
+    const expenseRow = expenseRowRef.current;
+    const incomeLabelElement = incomeLabelRef.current;
+    const expenseLabelElement = expenseLabelRef.current;
+    const incomeMeasure = incomeMeasureRef.current;
+    const expenseMeasure = expenseMeasureRef.current;
+
+    if (
+      !incomeRow ||
+      !expenseRow ||
+      !incomeLabelElement ||
+      !expenseLabelElement ||
+      !incomeMeasure ||
+      !expenseMeasure
+    ) {
+      return;
+    }
+
+    const updateBreakdownFontSize = () => {
+      const baseFontSize = 16;
+      const minimumFontSize = 12;
+      const safetyGap = 8;
+      const getAvailableValueWidth = (
+        row: HTMLDivElement,
+        label: HTMLSpanElement
+      ) => {
+        const rowStyles = window.getComputedStyle(row);
+        const horizontalPadding =
+          Number.parseFloat(rowStyles.paddingLeft) +
+          Number.parseFloat(rowStyles.paddingRight);
+
+        return Math.max(
+          0,
+          row.clientWidth - horizontalPadding - label.offsetWidth - safetyGap
+        );
+      };
+      const incomeAvailableWidth = Math.max(
+        0,
+        getAvailableValueWidth(incomeRow, incomeLabelElement)
+      );
+      const expenseAvailableWidth = Math.max(
+        0,
+        getAvailableValueWidth(expenseRow, expenseLabelElement)
+      );
+      const incomeRatio =
+        incomeMeasure.scrollWidth > 0
+          ? incomeAvailableWidth / incomeMeasure.scrollWidth
+          : 1;
+      const expenseRatio =
+        expenseMeasure.scrollWidth > 0
+          ? expenseAvailableWidth / expenseMeasure.scrollWidth
+          : 1;
+      const limitingRatio = Math.min(1, incomeRatio, expenseRatio);
+      const nextFontSize = Math.max(
+        minimumFontSize,
+        Math.min(baseFontSize, Math.floor(limitingRatio * baseFontSize))
+      );
+
+      setBreakdownFontSize((currentFontSize) =>
+        currentFontSize === nextFontSize ? currentFontSize : nextFontSize
+      );
+    };
+
+    updateBreakdownFontSize();
+
+    const resizeObserver = new ResizeObserver(updateBreakdownFontSize);
+    resizeObserver.observe(incomeRow);
+    resizeObserver.observe(expenseRow);
+    resizeObserver.observe(incomeLabelElement);
+    resizeObserver.observe(expenseLabelElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [expensesLabel, incomeLabel]);
+
   return (
     <div className="stats-sections">
       <section className="stats-money" aria-labelledby="stats-money-title">
@@ -777,17 +915,30 @@ function StatsOverviewContent({
           <span>{periodLabel}</span>
         </header>
 
-        <div className="stats-money__content" ref={moneyContentRef}>
+        <div
+          className="stats-money__content"
+          ref={moneyContentRef}
+          style={
+            {
+              "--stats-money-balance-font-size": `${balanceFontSize}px`,
+              "--stats-money-breakdown-font-size": `${breakdownFontSize}px`
+            } as CSSProperties
+          }
+        >
           <div className="stats-money__balance" ref={moneyBalanceRef}>
             <span>
               <Scale aria-hidden="true" />
               Net balance
             </span>
             <strong className={getValueTone(money.balance)}>
-              {formatEuroAmount(money.balance, {
-                showSign: money.balance !== 0,
-                fractionDigits: 0
-              })}
+              {balanceLabel}
+            </strong>
+            <strong
+              aria-hidden="true"
+              className="stats-money__balance-measure"
+              ref={moneyBalanceMeasureRef}
+            >
+              {balanceLabel}
             </strong>
             <p
               className="stats-money__saved-rate"
@@ -809,22 +960,36 @@ function StatsOverviewContent({
           </div>
 
           <div className="stats-money__breakdown" ref={moneyBreakdownRef}>
-            <div>
-              <span>
+            <div ref={incomeRowRef}>
+              <span ref={incomeLabelRef}>
                 <ArrowUpRight aria-hidden="true" />
                 Income
               </span>
               <strong className="stats-value--positive">
-                {formatEuroAmount(money.income, { fractionDigits: 0 })}
+                {incomeLabel}
+              </strong>
+              <strong
+                aria-hidden="true"
+                className="stats-money__breakdown-measure"
+                ref={incomeMeasureRef}
+              >
+                {incomeLabel}
               </strong>
             </div>
-            <div>
-              <span>
+            <div ref={expenseRowRef}>
+              <span ref={expenseLabelRef}>
                 <ArrowDownRight aria-hidden="true" />
                 Expenses
               </span>
               <strong className="stats-value--negative">
-                {formatEuroAmount(money.expenses, { fractionDigits: 0 })}
+                {expensesLabel}
+              </strong>
+              <strong
+                aria-hidden="true"
+                className="stats-money__breakdown-measure"
+                ref={expenseMeasureRef}
+              >
+                {expensesLabel}
               </strong>
             </div>
           </div>
