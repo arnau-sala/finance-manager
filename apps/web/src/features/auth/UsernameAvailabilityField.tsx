@@ -300,7 +300,7 @@ export function UsernameAvailabilityField({
           spellCheck={false}
           placeholder="Choose a username"
           value={value}
-          maxLength={30}
+          maxLength={15}
           aria-invalid={displayedError !== null}
           aria-describedby={displayedError ? `${idPrefix}-error` : undefined}
           disabled={disabled}

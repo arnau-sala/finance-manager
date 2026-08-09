@@ -20,7 +20,7 @@ export const usernameSchema = z
   .trim()
   .toLowerCase()
   .min(3, "At least 3 characters")
-  .max(30, "Maximum 30 characters")
+  .max(15, "Maximum 15 characters")
   .regex(
     /^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])$/,
     "Start and end with a letter or number",

@@ -739,7 +739,7 @@ export function CreateAccountPage({
                   spellCheck={false}
                   placeholder="Choose a username"
                   value={username}
-                  maxLength={30}
+                  maxLength={15}
                   aria-invalid={
                     invalidFields.username === true ||
                     usernameRemoteError !== null
