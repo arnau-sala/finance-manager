@@ -56,6 +56,7 @@ import {
 } from "./statistics-api";
 import {
   getDefaultCategoryType,
+  hasCategoryTypeData,
   type CategoryBreakdownItem
 } from "./statistics-categories";
 import { createCategoryTypeOptions } from "./statistics-category-switch";
@@ -181,6 +182,15 @@ function formatOverviewPeriodLabel(
   return firstMonth === lastMonth
     ? formatMonthKey(firstMonth)
     : `${formatMonthKey(firstMonth)} - ${formatMonthKey(lastMonth)}`;
+}
+
+function getOverviewPeriodCacheKey(period: StatisticsOverview["period"]) {
+  return [
+    period.mode,
+    period.key,
+    period.startDate,
+    period.endDate
+  ].join(":");
 }
 
 function getMonthParts(month: string) {
@@ -737,6 +747,9 @@ function StatsOverviewContent({
   const categories = overview.categories.filter(
     (category) => category.type === categoryType
   );
+  const hasAnyCategoryData =
+    hasCategoryTypeData(overview.categories, "INCOME") ||
+    hasCategoryTypeData(overview.categories, "EXPENSE");
   const categoryTypeOptions = useMemo(
     () => createCategoryTypeOptions(overview.categories),
     [overview.categories]
@@ -996,32 +1009,34 @@ function StatsOverviewContent({
         </div>
       </section>
 
-      <section
-        className="stats-categories"
-        aria-labelledby="stats-categories-title"
-      >
-        <header className="stats-overview-section__header">
-          <h2 id="stats-categories-title">Categories</h2>
-          <span>{periodLabel}</span>
-        </header>
+      {hasAnyCategoryData ? (
+        <section
+          className="stats-categories"
+          aria-labelledby="stats-categories-title"
+        >
+          <header className="stats-overview-section__header">
+            <h2 id="stats-categories-title">Categories</h2>
+            <span>{periodLabel}</span>
+          </header>
 
-        <SlidingSegmentedControl
-          className="stats-category-type"
-          value={categoryType}
-          options={categoryTypeOptions}
-          onChange={onCategoryTypeChange}
-          label="Category type"
-          tone={categoryType === "INCOME" ? "income" : "expense"}
-          compact
-        />
+          <SlidingSegmentedControl
+            className="stats-category-type"
+            value={categoryType}
+            options={categoryTypeOptions}
+            onChange={onCategoryTypeChange}
+            label="Category type"
+            tone={categoryType === "INCOME" ? "income" : "expense"}
+            compact
+          />
 
-        <StatsCategoryList
-          type={categoryType}
-          categories={categories}
-          valueMode={categoryValueMode}
-          onToggleValueMode={onToggleCategoryValueMode}
-        />
-      </section>
+          <StatsCategoryList
+            type={categoryType}
+            categories={categories}
+            valueMode={categoryValueMode}
+            onToggleValueMode={onToggleCategoryValueMode}
+          />
+        </section>
+      ) : null}
 
       <section
         className="stats-insights"
@@ -1083,6 +1098,10 @@ export function StatsPage({
     useState<CategoryValueMode>("AMOUNT");
   const [categoryType, setCategoryType] =
     useState<TransactionType>("INCOME");
+  const categoryTypeByPeriodRef = useRef<Map<string, TransactionType>>(
+    new Map()
+  );
+  const categoryTypePeriodKeyRef = useRef<string | null>(null);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
   const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
 
@@ -1143,18 +1162,52 @@ export function StatsPage({
       return;
     }
 
+    const categoryTypePeriodKey = getOverviewPeriodCacheKey(
+      overview.period
+    );
     const defaultCategoryType = getDefaultCategoryType(overview.categories);
+    const categoryTypeOptions = createCategoryTypeOptions(
+      overview.categories
+    );
+    const cachedCategoryType =
+      categoryTypeByPeriodRef.current.get(categoryTypePeriodKey);
+    const cachedOption = categoryTypeOptions.find(
+      (option) => option.value === cachedCategoryType
+    );
 
-    if (categoryType !== defaultCategoryType) {
-      const currentOption = createCategoryTypeOptions(
-        overview.categories
-      ).find((option) => option.value === categoryType);
+    setCategoryType((currentCategoryType) => {
+      const isNewPeriod =
+        categoryTypePeriodKeyRef.current !== categoryTypePeriodKey;
+      const currentOption = categoryTypeOptions.find(
+        (option) => option.value === currentCategoryType
+      );
+
+      if (isNewPeriod) {
+        return cachedCategoryType && !cachedOption?.disabled
+          ? cachedCategoryType
+          : defaultCategoryType;
+      }
 
       if (currentOption?.disabled) {
-        setCategoryType(defaultCategoryType);
+        return defaultCategoryType;
       }
+
+      return currentCategoryType;
+    });
+
+    categoryTypePeriodKeyRef.current = categoryTypePeriodKey;
+  }, [overview]);
+
+  function changeCategoryType(nextCategoryType: TransactionType) {
+    if (overview) {
+      categoryTypeByPeriodRef.current.set(
+        getOverviewPeriodCacheKey(overview.period),
+        nextCategoryType
+      );
     }
-  }, [categoryType, overview]);
+
+    setCategoryType(nextCategoryType);
+  }
   const yearNavigationValues = useMemo(
     () => [...new Set([...availableYears, currentYear])].sort(),
     [availableYears, currentYear]
@@ -1247,6 +1300,9 @@ export function StatsPage({
     }
 
     prefetchScheduler.prioritizeUserRequest();
+    categoryTypeByPeriodRef.current.clear();
+    categoryTypePeriodKeyRef.current = null;
+    setCategoryType("INCOME");
     setMode(nextMode);
   }
 
@@ -1447,7 +1503,7 @@ export function StatsPage({
               <StatsOverviewContent
                 overview={overview}
                 categoryType={categoryType}
-                onCategoryTypeChange={setCategoryType}
+                onCategoryTypeChange={changeCategoryType}
                 categoryValueMode={categoryValueMode}
                 onToggleCategoryValueMode={toggleCategoryValueMode}
                 onTransactionSelect={onTransactionSelect}

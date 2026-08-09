@@ -186,6 +186,9 @@ export default function CategoryTimelineChart({
   timeline
 }: CategoryTimelineChartProps) {
   const interactionRef = useRef<HTMLDivElement>(null);
+  const typeByPeriodRef = useRef<Map<string, TransactionType>>(new Map());
+  const previousModeRef = useRef<StatisticsPeriodMode>(mode);
+  const periodCacheKey = `${mode}:${periodStart}:${periodEnd}`;
   const defaultType = useMemo(
     () => getDefaultCategoryType(sourceCategories),
     [sourceCategories]
@@ -236,8 +239,32 @@ export default function CategoryTimelineChart({
   } as CSSProperties;
 
   useEffect(() => {
-    setType(defaultType);
-  }, [defaultType, periodEnd, periodStart]);
+    if (previousModeRef.current !== mode) {
+      typeByPeriodRef.current.clear();
+      previousModeRef.current = mode;
+    }
+
+    const cachedType = typeByPeriodRef.current.get(periodCacheKey);
+    const cachedOption = categoryTypeOptions.find(
+      (option) => option.value === cachedType
+    );
+
+    setType((currentType) => {
+      const currentOption = categoryTypeOptions.find(
+        (option) => option.value === currentType
+      );
+
+      if (cachedType && !cachedOption?.disabled) {
+        return cachedType;
+      }
+
+      if (currentOption?.disabled || currentType !== defaultType) {
+        return defaultType;
+      }
+
+      return currentType;
+    });
+  }, [categoryTypeOptions, defaultType, mode, periodCacheKey]);
 
   useEffect(() => {
     setSelectedCellKey(null);
@@ -280,6 +307,11 @@ export default function CategoryTimelineChart({
     );
   }
 
+  function changeType(nextType: TransactionType) {
+    typeByPeriodRef.current.set(periodCacheKey, nextType);
+    setType(nextType);
+  }
+
   return (
     <section
       className="stats-chart-section stats-category-timeline"
@@ -296,7 +328,7 @@ export default function CategoryTimelineChart({
         className="stats-category-timeline__type"
         value={type}
         options={categoryTypeOptions}
-        onChange={setType}
+        onChange={changeType}
         label="Category type"
         tone={type === "INCOME" ? "income" : "expense"}
         compact
