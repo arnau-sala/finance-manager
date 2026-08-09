@@ -207,8 +207,6 @@ export function ProfilePage({
 }: ProfilePageProps) {
   const profileScrollRef = useRef<HTMLElement>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
-  const profileEmailRef = useRef<HTMLElement>(null);
-  const googleInfoRef = useRef<HTMLDivElement>(null);
   const [isProfileScrollable, setIsProfileScrollable] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -274,7 +272,8 @@ export function ProfilePage({
   const [usernameUnlinkError, setUsernameUnlinkError] = useState<string | null>(
     null
   );
-  const [isGoogleInfoOpen, setIsGoogleInfoOpen] = useState(false);
+  const summaryGoogleInfoRef = useRef<HTMLDivElement>(null);
+  const [isSummaryGoogleInfoOpen, setIsSummaryGoogleInfoOpen] = useState(false);
   const [isRecoveryCodeDialogOpen, setIsRecoveryCodeDialogOpen] =
     useState(false);
   const [signOutOtherDevices, setSignOutOtherDevices] = useState(false);
@@ -331,19 +330,19 @@ export function ProfilePage({
     (isProfileNameChanged || isProfileStartingNetWorthChanged);
 
   useEffect(() => {
-    if (!isGoogleInfoOpen) {
+    if (!isSummaryGoogleInfoOpen) {
       return;
     }
 
     function handlePointerDown(event: PointerEvent) {
-      if (!googleInfoRef.current?.contains(event.target as Node)) {
-        setIsGoogleInfoOpen(false);
+      if (!summaryGoogleInfoRef.current?.contains(event.target as Node)) {
+        setIsSummaryGoogleInfoOpen(false);
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsGoogleInfoOpen(false);
+        setIsSummaryGoogleInfoOpen(false);
       }
     }
 
@@ -354,74 +353,7 @@ export function ProfilePage({
       document.removeEventListener("pointerdown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isGoogleInfoOpen]);
-
-  useLayoutEffect(() => {
-    const email = profileEmailRef.current;
-
-    if (!email) {
-      return;
-    }
-
-    const minimumFontSize = 12;
-    let animationFrame = 0;
-    const fitEmail = () => {
-      window.cancelAnimationFrame(animationFrame);
-      animationFrame = window.requestAnimationFrame(() => {
-        email.classList.remove("is-wrapped");
-        email.style.removeProperty("font-size");
-
-        const availableWidth = email.clientWidth;
-        const maximumFontSize = Number.parseFloat(
-          window.getComputedStyle(email).fontSize
-        );
-
-        if (
-          availableWidth <= 0 ||
-          !Number.isFinite(maximumFontSize) ||
-          email.scrollWidth <= availableWidth
-        ) {
-          return;
-        }
-
-        email.style.fontSize = `${minimumFontSize}px`;
-
-        if (email.scrollWidth > availableWidth) {
-          email.classList.add("is-wrapped");
-          return;
-        }
-
-        let smallestFit = minimumFontSize;
-        let largestOverflow = maximumFontSize;
-
-        for (let iteration = 0; iteration < 8; iteration += 1) {
-          const candidate = (smallestFit + largestOverflow) / 2;
-          email.style.fontSize = `${candidate}px`;
-
-          if (email.scrollWidth <= availableWidth) {
-            smallestFit = candidate;
-          } else {
-            largestOverflow = candidate;
-          }
-        }
-
-        email.style.fontSize = `${smallestFit}px`;
-      });
-    };
-
-    fitEmail();
-
-    const resizeObserver = new ResizeObserver(fitEmail);
-    if (email.parentElement) {
-      resizeObserver.observe(email.parentElement);
-    }
-    void document.fonts.ready.then(fitEmail);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      resizeObserver.disconnect();
-    };
-  }, [user.email, hasGoogleAccess]);
+  }, [isSummaryGoogleInfoOpen]);
 
   useLayoutEffect(() => {
     const scrollContainer = profileScrollRef.current;
@@ -967,105 +899,121 @@ export function ProfilePage({
         aria-label="Profile"
       >
         <div ref={profileContentRef} className="profile-page">
-          <section className="profile-section" aria-labelledby="profile-details-title">
-            <h2 id="profile-details-title">Account details</h2>
+          <section
+            className="profile-section profile-summary-section"
+            aria-label="Account summary"
+          >
+            <div className="profile-summary-card">
+              <div className="profile-summary-card__body">
+                {user.email ? (
+                  <div
+                    className={`profile-summary-card__item profile-summary-card__item--email${
+                      showsGoogleProviderBadge
+                        ? " profile-summary-card__item--with-provider"
+                        : ""
+                    }`}
+                  >
+                    <span
+                      className={`profile-summary-card__item-icon${
+                        showsGoogleAccountDetail
+                          ? " profile-summary-card__item-icon--google"
+                          : ""
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {showsGoogleAccountDetail ? <GoogleIcon /> : <Mail />}
+                    </span>
+                    <div>
+                      <span>
+                        {showsGoogleAccountDetail ? "Google account" : "Email"}
+                      </span>
+                      <strong>{user.email}</strong>
+                    </div>
+                    {showsGoogleProviderBadge ? (
+                      <div
+                        ref={summaryGoogleInfoRef}
+                        className="profile-summary-card__provider-anchor"
+                      >
+                        <button
+                          type="button"
+                          className="profile-summary-card__provider"
+                          aria-label="View Google sign-in details"
+                          aria-expanded={isSummaryGoogleInfoOpen}
+                          aria-controls="profile-summary-google-info"
+                          onClick={() =>
+                            setIsSummaryGoogleInfoOpen((isOpen) => !isOpen)
+                          }
+                        >
+                          <GoogleIcon />
+                        </button>
 
-            <dl className="profile-detail-list">
-              <div className="profile-detail">
-                <span className="profile-detail__icon" aria-hidden="true">
-                  <UserRound />
-                </span>
-                <div>
-                  <dt>Name</dt>
-                  <dd>{user.name}</dd>
-                </div>
-              </div>
-
-              {user.username ? (
-                <div className="profile-detail">
-                  <span className="profile-detail__icon" aria-hidden="true">
-                    <AtSign />
-                  </span>
-                  <div>
-                    <dt>Username</dt>
-                    <dd>{user.username}</dd>
+                        {isSummaryGoogleInfoOpen ? (
+                          <div
+                            id="profile-summary-google-info"
+                            className="profile-summary-card__google-info"
+                            role="note"
+                          >
+                            <strong>Google sign in activated</strong>
+                            <p>
+                              {`You can sign in with Google as ${user.email}, or use your email and password.`}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {user.email ? (
                 <div
-                  className={`profile-detail profile-detail--email${
-                    showsGoogleProviderBadge
-                      ? " profile-detail--with-provider"
-                      : ""
+                  className={`profile-summary-card__identity${
+                    user.username ? "" : " profile-summary-card__identity--single"
                   }`}
                 >
-                  <span className="profile-detail__icon" aria-hidden="true">
-                    {showsGoogleAccountDetail ? (
-                      <GoogleIcon />
-                    ) : (
-                      <Mail />
-                    )}
-                  </span>
-                  <div>
-                    <dt>
-                      {showsGoogleAccountDetail ? "Google account" : "Email"}
-                    </dt>
-                    <dd ref={profileEmailRef} className="profile-detail__email">
-                      {user.email}
-                    </dd>
+                  <div className="profile-summary-card__item">
+                    <span className="profile-summary-card__item-icon" aria-hidden="true">
+                      <UserRound />
+                    </span>
+                    <div>
+                      <span>Name</span>
+                      <strong>{user.name}</strong>
+                    </div>
                   </div>
-                  {showsGoogleProviderBadge ? (
-                    <div ref={googleInfoRef} className="profile-detail__provider-anchor">
-                      <button
-                        type="button"
-                        className="profile-detail__provider"
-                        aria-label="View Google sign-in details"
-                        aria-expanded={isGoogleInfoOpen}
-                        aria-controls="profile-google-info"
-                        onClick={() => setIsGoogleInfoOpen((isOpen) => !isOpen)}
-                      >
-                        <GoogleIcon />
-                      </button>
 
-                      {isGoogleInfoOpen ? (
-                        <div
-                          id="profile-google-info"
-                          className="profile-google-info"
-                          role="note"
-                        >
-                          <strong>Google sign in activated</strong>
-                          <p>
-                            {`You can sign in with Google as ${user.email}, or use your email and password.`}
-                          </p>
-                        </div>
-                      ) : null}
+                  {user.username ? (
+                    <div className="profile-summary-card__item">
+                      <span className="profile-summary-card__item-icon" aria-hidden="true">
+                        <AtSign />
+                      </span>
+                      <div>
+                        <span>Username</span>
+                        <strong>@{user.username}</strong>
+                      </div>
                     </div>
                   ) : null}
                 </div>
-              ) : null}
 
-              <div className="profile-detail">
-                <span className="profile-detail__icon" aria-hidden="true">
-                  <CalendarDays />
-                </span>
-                <div>
-                  <dt>Date created</dt>
-                  <dd>{formatCreationDate(user.createdAt)}</dd>
+                <div className="profile-summary-card__meta">
+                  <div className="profile-summary-card__item">
+                    <span className="profile-summary-card__item-icon" aria-hidden="true">
+                      <CalendarDays />
+                    </span>
+                    <div>
+                      <span>Created</span>
+                      <strong>{formatCreationDate(user.createdAt)}</strong>
+                    </div>
+                  </div>
+                  <div className="profile-summary-card__item">
+                    <span className="profile-summary-card__item-icon" aria-hidden="true">
+                      <Landmark />
+                    </span>
+                    <div>
+                      <span>Starting net worth</span>
+                      <strong>{formatStartingNetWorth(user.startingNetWorth)}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
-
-              <div className="profile-detail">
-                <span className="profile-detail__icon" aria-hidden="true">
-                  <Landmark />
-                </span>
-                <div>
-                  <dt>Starting net worth</dt>
-                  <dd>{formatStartingNetWorth(user.startingNetWorth)}</dd>
-                </div>
-              </div>
-            </dl>
+            </div>
           </section>
 
           <section
