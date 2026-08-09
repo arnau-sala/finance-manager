@@ -2,6 +2,7 @@ import {
   lazy,
   Suspense,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -720,6 +721,9 @@ function StatsOverviewContent({
   onTransactionSelect: (transaction: TransactionPreview) => void;
 }) {
   const { money } = overview;
+  const moneyContentRef = useRef<HTMLDivElement | null>(null);
+  const moneyBalanceRef = useRef<HTMLDivElement | null>(null);
+  const moneyBreakdownRef = useRef<HTMLDivElement | null>(null);
   const categories = overview.categories.filter(
     (category) => category.type === categoryType
   );
@@ -731,6 +735,40 @@ function StatsOverviewContent({
   const expenseItems = createExpenseItems(overview);
   const periodLabel = formatOverviewPeriodLabel(overview.period);
 
+  useLayoutEffect(() => {
+    const content = moneyContentRef.current;
+    const balance = moneyBalanceRef.current;
+    const breakdown = moneyBreakdownRef.current;
+
+    if (!content || !balance || !breakdown) {
+      return;
+    }
+
+    const updateDividerPosition = () => {
+      const contentRect = content.getBoundingClientRect();
+      const balanceRect = balance.getBoundingClientRect();
+      const breakdownRect = breakdown.getBoundingClientRect();
+      const midpoint =
+        balanceRect.right + (breakdownRect.left - balanceRect.right) / 2;
+
+      content.style.setProperty(
+        "--stats-money-divider-x",
+        `${midpoint - contentRect.left}px`
+      );
+    };
+
+    updateDividerPosition();
+
+    const resizeObserver = new ResizeObserver(updateDividerPosition);
+    resizeObserver.observe(content);
+    resizeObserver.observe(balance);
+    resizeObserver.observe(breakdown);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [money.balance, money.expenses, money.income, money.savingsPercentage]);
+
   return (
     <div className="stats-sections">
       <section className="stats-money" aria-labelledby="stats-money-title">
@@ -739,8 +777,8 @@ function StatsOverviewContent({
           <span>{periodLabel}</span>
         </header>
 
-        <div className="stats-money__content">
-          <div className="stats-money__balance">
+        <div className="stats-money__content" ref={moneyContentRef}>
+          <div className="stats-money__balance" ref={moneyBalanceRef}>
             <span>
               <Scale aria-hidden="true" />
               Net balance
@@ -770,7 +808,7 @@ function StatsOverviewContent({
             </p>
           </div>
 
-          <div className="stats-money__breakdown">
+          <div className="stats-money__breakdown" ref={moneyBreakdownRef}>
             <div>
               <span>
                 <ArrowUpRight aria-hidden="true" />

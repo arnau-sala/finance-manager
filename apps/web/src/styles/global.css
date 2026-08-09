@@ -4418,11 +4418,26 @@ button.transaction-row__content:focus-visible {
   margin-top: calc((var(--stats-section-line-gap) * 2) + 1px);
 }
 
+.stats-money__content::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--stats-money-divider-x, 50%);
+  width: 1px;
+  background: var(--color-border);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .stats-money__balance {
   min-width: 0;
   min-height: 104px;
+  width: fit-content;
+  max-width: 100%;
   display: grid;
   align-content: center;
+  justify-self: start;
   gap: 7px;
   padding: 8px 10px;
 }
@@ -4461,8 +4476,10 @@ button.transaction-row__content:focus-visible {
 
 .stats-money__breakdown {
   min-width: 0;
+  width: 100%;
   display: grid;
   grid-template-rows: repeat(2, minmax(0, 1fr));
+  justify-self: stretch;
 }
 
 .stats-money__breakdown > div {
