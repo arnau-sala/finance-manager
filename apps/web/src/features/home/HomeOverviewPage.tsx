@@ -7,6 +7,7 @@ import {
   EyeClosed,
   EyeOff,
   Plus,
+  ReceiptEuro,
   RefreshCw,
   Scale
 } from "lucide-react";
@@ -414,7 +415,24 @@ export function HomeOverviewPage({
               );
             })}
             {latestMoves.length === 0 ? (
-              <li className="home-move-list__status">No movements yet.</li>
+              <li className="home-move-list__empty">
+                <ReceiptEuro aria-hidden="true" />
+                <span>
+                  <strong>No transactions yet</strong>
+                  <small>Add your first transaction to start tracking your money</small>
+                </span>
+                <ActionButton
+                  className="home-new-transaction home-move-list__empty-action"
+                  type="button"
+                  onClick={onNewTransaction}
+                >
+                  <span className="home-new-transaction__icon" aria-hidden="true">
+                    <Plus />
+                  </span>
+                  <span>New transaction</span>
+                  <ChevronRight aria-hidden="true" />
+                </ActionButton>
+              </li>
             ) : null}
           </ul>
         </section>

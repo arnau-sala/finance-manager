@@ -416,7 +416,7 @@ export function MovesPage({
 
           <FirstTransactionEmptyState
             headingId="moves-empty-title"
-            description="Add your first transaction to start building your history."
+            description="Add your first transaction to start building your financial history"
             onNewTransaction={onNewTransaction}
           />
         </div>

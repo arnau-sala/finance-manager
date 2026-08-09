@@ -1363,7 +1363,7 @@ export function StatsPage({
 
           <FirstTransactionEmptyState
             headingId="stats-empty-title"
-            description="Add your first transaction to unlock your financial insights."
+            description="Add your first transaction to unlock your financial insights"
             onNewTransaction={onNewTransaction}
           />
         </div>
