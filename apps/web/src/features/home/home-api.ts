@@ -46,7 +46,7 @@ export async function getHomeOverview(signal?: AbortSignal) {
   });
 
   if (!response.ok) {
-    throw new HomeApiError("Unable to load your overview.", response.status);
+    throw new HomeApiError("Unable to load your overview", response.status);
   }
 
   return (await response.json()) as HomeOverview;

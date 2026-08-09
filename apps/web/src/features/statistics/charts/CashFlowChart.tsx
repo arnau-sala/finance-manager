@@ -218,7 +218,7 @@ function createChartOption(
     aria: {
       enabled: true,
       description:
-        "Layered column chart comparing income, expenses and balance for each interval."
+        "Layered column chart comparing income, expenses and balance for each interval"
     },
     grid: {
       top: 18,
@@ -606,7 +606,7 @@ export default function CashFlowChart({
       ),
     [mode, intervals, selectedIntervalIndex, metricPhases]
   );
-  const ariaLabel = `Cash flow from ${displayedPeriod}. ${intervals.length} intervals shown.`;
+  const ariaLabel = `Cash flow from ${displayedPeriod}\n${intervals.length} intervals shown`;
 
   return (
     <section

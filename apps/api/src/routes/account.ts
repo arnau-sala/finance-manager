@@ -42,7 +42,7 @@ const updateProfileBodySchema = z
       profile.name !== undefined ||
       profile.startingNetWorth !== undefined,
     {
-      message: "Provide at least one profile field to update.",
+      message: "Provide at least one profile field to update",
     },
   );
 
@@ -64,7 +64,7 @@ const changePasswordBodySchema = z
       context.addIssue({
         code: "custom",
         path: ["newPasswordConfirmation"],
-        message: "Passwords do not match.",
+        message: "Passwords do not match",
       });
     }
   });
@@ -93,7 +93,7 @@ const linkUsernameBodySchema = z
       context.addIssue({
         code: "custom",
         path: ["passwordConfirmation"],
-        message: "Provide both password fields.",
+        message: "Provide both password fields",
       });
       return;
     }
@@ -102,7 +102,7 @@ const linkUsernameBodySchema = z
       context.addIssue({
         code: "custom",
         path: ["passwordConfirmation"],
-        message: "Passwords do not match.",
+        message: "Passwords do not match",
       });
     }
   });
@@ -135,13 +135,13 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = unlinkUsernameBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Incorrect password." });
+        return reply.code(400).send({ error: "Incorrect password" });
       }
 
       const result = await unlinkUsernameFromAccount({
@@ -152,16 +152,16 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "unauthenticated") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (result.type === "incorrect-password") {
-        return reply.code(403).send({ error: "Incorrect password." });
+        return reply.code(403).send({ error: "Incorrect password" });
       }
 
       if (result.type === "unavailable") {
         return reply.code(409).send({
-          error: "Username unlinking is unavailable for this account.",
+          error: "Username unlinking is unavailable for this account",
         });
       }
 
@@ -170,7 +170,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("sessionVersion", result.user.sessionVersion);
       reply.header("Cache-Control", "private, no-store");
       return reply.send({
-        message: "Username unlinked successfully.",
+        message: "Username unlinked successfully",
         user: toAuthenticatedUserResponse(result.user),
       });
     },
@@ -185,14 +185,14 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = linkUsernameBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid username linking details.",
+          error: "Invalid username linking details",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -211,28 +211,28 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "unauthenticated") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (result.type === "username-unavailable") {
-        return reply.code(409).send({ error: "Username is unavailable." });
+        return reply.code(409).send({ error: "Username is unavailable" });
       }
 
       if (result.type === "password-required") {
         return reply.code(400).send({
-          error: "A valid password is required for this account.",
+          error: "A valid password is required for this account",
         });
       }
 
       if (result.type === "unavailable") {
         return reply.code(409).send({
-          error: "This account already has a username.",
+          error: "This account already has a username",
         });
       }
 
       reply.header("Cache-Control", "private, no-store");
       return reply.code(201).send({
-        message: "Username linked successfully.",
+        message: "Username linked successfully",
         user: toAuthenticatedUserResponse(result.user),
         recoveryCode: result.recoveryCode,
       });
@@ -248,14 +248,14 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = updateProfileBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid profile data.",
+          error: "Invalid profile data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -278,7 +278,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
         if (!currentUser) {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         if (
@@ -286,7 +286,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
           currentUser.username === null
         ) {
           return reply.code(409).send({
-            error: "This account does not have a username.",
+            error: "This account does not have a username",
           });
         }
 
@@ -300,7 +300,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
           });
 
           if (existingUser && existingUser.id !== userId) {
-            return reply.code(409).send({ error: "Username is unavailable." });
+            return reply.code(409).send({ error: "Username is unavailable" });
           }
         }
 
@@ -328,7 +328,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         });
 
         return reply.send({
-          message: "Profile updated successfully.",
+          message: "Profile updated successfully",
           user: toAuthenticatedUserResponse(user),
         });
       } catch (error) {
@@ -337,14 +337,14 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
           error.code === "P2025"
         ) {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === "P2002"
         ) {
-          return reply.code(409).send({ error: "Username is unavailable." });
+          return reply.code(409).send({ error: "Username is unavailable" });
         }
 
         throw error;
@@ -359,7 +359,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       const user = await getAuthenticatedUser(request);
 
       if (!user) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = startingNetWorthBodySchema.safeParse(request.body);
@@ -367,7 +367,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       if (!parsedBody.success) {
         return reply.code(400).send({
           error:
-            "Starting net worth must be between -10,000,000 and 10,000,000.",
+            "Starting net worth must be between -10,000,000 and 10,000,000",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -394,8 +394,8 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
         return reply.send({
           message: shouldSetNetWorth
-            ? "Starting net worth saved successfully."
-            : "Starting net worth setup skipped.",
+          ? "Starting net worth saved successfully"
+          : "Starting net worth setup skipped",
           user: toAuthenticatedUserResponse(updatedUser),
         });
       } catch (error) {
@@ -404,7 +404,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
           error.code === "P2025"
         ) {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         throw error;
@@ -421,14 +421,14 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = changePasswordBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid password data.",
+          error: "Invalid password data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -452,7 +452,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (
@@ -460,7 +460,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         !user.passwordHash
       ) {
         return reply.code(400).send({
-          error: "Password changes are unavailable for Google accounts.",
+          error: "Password changes are unavailable for Google accounts",
         });
       }
 
@@ -471,12 +471,12 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       );
 
       if (!currentPasswordMatches) {
-        return reply.code(401).send({ error: "Incorrect current password." });
+        return reply.code(401).send({ error: "Incorrect current password" });
       }
 
       if (newPassword === currentPassword) {
         return reply.code(400).send({
-          error: "New password must be different from current password.",
+          error: "New password must be different from current password",
         });
       }
 
@@ -500,14 +500,14 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         request.session.set("userId", user.id);
         request.session.set("sessionVersion", updatedUser.sessionVersion);
 
-        return reply.send({ message: "Password changed successfully." });
+        return reply.send({ message: "Password changed successfully" });
       } catch (error) {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
           error.code === "P2025"
         ) {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         throw error;
@@ -524,13 +524,13 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = rotateRecoveryCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Invalid recovery code options." });
+        return reply.code(400).send({ error: "Invalid recovery code options" });
       }
 
       const result = await prepareAccountRecoveryCodeRotation({
@@ -541,24 +541,24 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "unauthenticated") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (result.type === "unavailable") {
         return reply.code(400).send({
-          error: "Recovery codes are unavailable for this account.",
+          error: "Recovery codes are unavailable for this account",
         });
       }
 
       if (result.type === "conflict") {
         return reply.code(409).send({
-          error: "Recovery code changed. Please try again.",
+          error: "Recovery code changed\nPlease try again",
         });
       }
 
       reply.header("Cache-Control", "private, no-store");
       return reply.send({
-        message: "Recovery code prepared successfully.",
+        message: "Recovery code prepared successfully",
         recoveryCode: result.recoveryCode,
         rotationToken: result.rotationToken,
         username: result.username,
@@ -575,7 +575,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = activateRecoveryCodeBodySchema.safeParse(request.body);
@@ -583,7 +583,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       if (!parsedBody.success) {
         return reply
           .code(400)
-          .send({ error: "Invalid recovery code activation." });
+          .send({ error: "Invalid recovery code activation" });
       }
 
       const result = await activateAccountRecoveryCodeRotation({
@@ -594,24 +594,24 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "unauthenticated") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (result.type === "unavailable") {
         return reply.code(409).send({
-          error: "This recovery code can no longer be activated.",
+          error: "This recovery code can no longer be activated",
         });
       }
 
       if (result.type === "expired") {
         return reply.code(409).send({
-          error: "This recovery code has expired. Create a new one.",
+          error: "This recovery code has expired\nCreate a new one",
         });
       }
 
       if (result.type === "conflict") {
         return reply.code(409).send({
-          error: "Recovery code changed. Please try again.",
+          error: "Recovery code changed\nPlease try again",
         });
       }
 
@@ -623,7 +623,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       reply.header("Cache-Control", "private, no-store");
       return reply.send({
-        message: "Recovery code replaced successfully.",
+        message: "Recovery code replaced successfully",
         signedOutOtherDevices: result.signedOutOtherDevices,
       });
     },
@@ -638,13 +638,13 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = deleteAccountBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Password is required." });
+        return reply.code(400).send({ error: "Password is required" });
       }
 
       const user = await db.user.findUnique({
@@ -659,7 +659,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (
@@ -667,7 +667,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
         !user.passwordHash
       ) {
         return reply.code(400).send({
-          error: "Password confirmation is unavailable for Google accounts.",
+          error: "Password confirmation is unavailable for Google accounts",
         });
       }
 
@@ -677,7 +677,7 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
       );
 
       if (!passwordMatches) {
-        return reply.code(401).send({ error: "Incorrect password." });
+        return reply.code(401).send({ error: "Incorrect password" });
       }
 
       const accountDeleted = await db.$transaction((transaction) =>
@@ -686,12 +686,12 @@ export const accountRoutes: FastifyPluginAsync = async (app) => {
 
       if (!accountDeleted) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       request.session.delete();
 
-      return reply.send({ message: "Account deleted successfully." });
+      return reply.send({ message: "Account deleted successfully" });
     },
   );
 };

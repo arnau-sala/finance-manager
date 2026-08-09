@@ -247,7 +247,7 @@ function createChartOption(
     aria: {
       enabled: true,
       description:
-        "Line chart showing the evolution of net worth throughout the selected period."
+        "Line chart showing the evolution of net worth throughout the selected period"
     },
     grid: {
       top: 18,
@@ -410,10 +410,10 @@ function ReadyNetWorthChart({
       ? `${formatDate(firstPoint.date)} - ${formatDate(finalPoint.date)}`
       : "";
   const finalValue = finalPoint?.value ?? netWorth.openingAmount;
-  const ariaLabel = `Net worth evolution. Final value ${formatEuroAmount(
+  const ariaLabel = `Net worth evolution\nFinal value ${formatEuroAmount(
     finalValue,
     { fractionDigits: 0 }
-  )}. Displayed period ${displayedPeriod}.`;
+  )}\nDisplayed period ${displayedPeriod}`;
 
   return (
     <section
@@ -460,7 +460,7 @@ export default function NetWorthEvolutionChart({
 
       <div className="stats-chart-unavailable">
         <strong>Starting net worth required</strong>
-        <span>This chart will appear after your starting net worth is set.</span>
+        <span>This chart will appear after your starting net worth is set</span>
       </div>
     </section>
   );

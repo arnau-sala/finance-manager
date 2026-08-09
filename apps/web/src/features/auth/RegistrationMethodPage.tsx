@@ -132,7 +132,8 @@ export function RegistrationMethodPage({
         </div>
 
         <p className="auth-registration-method-note">
-          Start with one method. Link the others later
+              Start with one method
+              Link the others later
         </p>
       </section>
     </main>

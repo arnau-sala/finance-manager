@@ -156,7 +156,7 @@ export function createTransactionListRequest(
 
 async function createTransactionApiError(
   response: Response,
-  fallback = "Unable to add the transaction. Please try again."
+  fallback = "Unable to add the transaction\nPlease try again"
 ) {
   let body: TransactionApiErrorBody = {};
 
@@ -168,7 +168,7 @@ async function createTransactionApiError(
 
   if (response.status === 429) {
     return new TransactionApiError(
-      "Too many attempts. Please wait a minute and try again.",
+      "Too many attempts\nPlease wait a minute and try again",
       response.status
     );
   }
@@ -258,7 +258,7 @@ async function getTransactionsPage(
     }
 
     throw new TransactionApiError(
-      "Unable to connect. Check your connection and try again.",
+      "Unable to connect\nCheck your connection and try again",
       0
     );
   }
@@ -266,7 +266,7 @@ async function getTransactionsPage(
   if (!response.ok) {
     throw await createTransactionApiError(
       response,
-      "Unable to load transactions. Please try again."
+      "Unable to load transactions\nPlease try again"
     );
   }
 
@@ -278,7 +278,7 @@ async function getTransactionsPage(
     page.pagination.offset !== offset ||
     (offset === 0 && !page.metadata)
   ) {
-    throw new TransactionApiError("Invalid transactions response.", 500);
+    throw new TransactionApiError("Invalid transactions response", 500);
   }
 
   return page;
@@ -330,7 +330,7 @@ export async function createTransaction(input: CreateTransactionInput) {
     });
   } catch {
     throw new TransactionApiError(
-      "Unable to connect. Check your connection and try again.",
+      "Unable to connect\nCheck your connection and try again",
       0
     );
   }
@@ -360,7 +360,7 @@ export async function updateTransaction(
     );
   } catch {
     throw new TransactionApiError(
-      "Unable to connect. Check your connection and try again.",
+      "Unable to connect\nCheck your connection and try again",
       0
     );
   }
@@ -368,7 +368,7 @@ export async function updateTransaction(
   if (!response.ok) {
     throw await createTransactionApiError(
       response,
-      "Unable to update the transaction. Please try again."
+      "Unable to update the transaction\nPlease try again"
     );
   }
 }
@@ -386,7 +386,7 @@ export async function deleteTransaction(transactionId: string) {
     );
   } catch {
     throw new TransactionApiError(
-      "Unable to connect. Check your connection and try again.",
+      "Unable to connect\nCheck your connection and try again",
       0
     );
   }
@@ -394,7 +394,7 @@ export async function deleteTransaction(transactionId: string) {
   if (!response.ok) {
     throw await createTransactionApiError(
       response,
-      "Unable to delete the transaction. Please try again."
+      "Unable to delete the transaction\nPlease try again"
     );
   }
 }
@@ -421,7 +421,7 @@ export async function getTransactionDetail(
     }
 
     throw new TransactionApiError(
-      "Unable to connect. Check your connection and try again.",
+      "Unable to connect\nCheck your connection and try again",
       0
     );
   }
@@ -429,7 +429,7 @@ export async function getTransactionDetail(
   if (!response.ok) {
     throw await createTransactionApiError(
       response,
-      "Unable to load the transaction details. Please try again."
+      "Unable to load the transaction details\nPlease try again"
     );
   }
 
@@ -443,7 +443,7 @@ export async function getTransactionDetail(
     !detail.contexts?.all
   ) {
     throw new TransactionApiError(
-      "Invalid transaction detail response.",
+      "Invalid transaction detail response",
       500
     );
   }

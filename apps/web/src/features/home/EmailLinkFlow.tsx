@@ -201,7 +201,7 @@ export function EmailLinkFlow({
           idPrefix="account-email-link"
           title="Verify your email"
           verifyLabel="Link email"
-          verifyingLabel="Linking..."
+          verifyingLabel="Linking"
           onBack={popStage}
           onVerifyCode={verifyCode}
           onResendCode={resendCode}

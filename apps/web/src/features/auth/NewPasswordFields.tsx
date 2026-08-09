@@ -168,7 +168,7 @@ export function NewPasswordFields({
         copyFeedbackTimeoutRef.current = null;
       }, 1400);
     } catch {
-      onError("Unable to copy this field. Please try again");
+      onError("Unable to copy this field\nPlease try again");
     }
   }
 

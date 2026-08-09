@@ -19,14 +19,14 @@ export const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(3, "Username must contain at least 3 characters.")
-  .max(15, "Username must contain at most 15 characters.")
+  .min(3, "Username must contain at least 3 characters")
+  .max(15, "Username must contain at most 15 characters")
   .regex(
     /^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])$/,
-    "Username can contain lowercase letters, numbers, dots, hyphens, and underscores, and must start and end with a letter or number.",
+      "Username can contain lowercase letters, numbers, dots, hyphens, and underscores, and must start and end with a letter or number",
   )
   .refine((username) => !reservedUsernames.has(username), {
-    message: "This username is reserved.",
+    message: "This username is reserved",
   });
 
 export function normalizeLoginIdentifier(identifier: string) {

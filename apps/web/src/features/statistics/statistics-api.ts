@@ -275,7 +275,7 @@ export async function getStatisticsAvailability(
   const rawResponse = await getJson(
     "/api/statistics/months",
     signal,
-    "Unable to load available statistics periods."
+        "Unable to load available statistics periods"
   );
   return availabilityResponseSchema.parse(rawResponse);
 }
@@ -289,7 +289,7 @@ export async function getStatisticsOverview(
   const rawResponse = await getJson(
     `/api/statistics/overview?${periodQuery}`,
     signal,
-    "Unable to load your statistics."
+        "Unable to load your statistics"
   );
   return overviewResponseSchema.parse(rawResponse).overview;
 }
@@ -303,7 +303,7 @@ export async function getStatisticsCharts(
   const rawResponse = await getJson(
     `/api/statistics/charts?${periodQuery}`,
     signal,
-    "Unable to load your charts."
+        "Unable to load your charts"
   );
   return chartsResponseSchema.parse(rawResponse).charts;
 }

@@ -102,8 +102,8 @@ export function EmailLinkIntroPage({
         >
           {isContinuing
             ? requiresPassword
-              ? "Opening..."
-              : "Sending..."
+              ? "Opening"
+              : "Sending"
             : "Continue"}
         </ActionButton>
       </section>

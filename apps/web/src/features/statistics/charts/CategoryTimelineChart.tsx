@@ -344,7 +344,7 @@ export default function CategoryTimelineChart({
               className="stats-category-timeline__matrix"
               style={matrixStyle}
               role="grid"
-              aria-label={`${type === "INCOME" ? "Income" : "Expense"} category intensity from ${displayedPeriod}.`}
+              aria-label={`${type === "INCOME" ? "Income" : "Expense"} category intensity from ${displayedPeriod}`}
             >
               <span aria-hidden="true" />
               {rows.map((row) => {

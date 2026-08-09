@@ -199,7 +199,7 @@ export function CreateAccountPage({
         copyFeedbackTimeoutRef.current = null;
       }, 1400);
     } catch {
-      setFormError("Unable to copy this field. Please try again.");
+      setFormError("Unable to copy this field\nPlease try again");
     }
   }
 
@@ -288,7 +288,7 @@ export function CreateAccountPage({
       setFormError(
         error instanceof Error
           ? error.message
-          : "Unable to generate a secure password."
+          : "Unable to generate a secure password"
       );
     }
   }
@@ -533,9 +533,9 @@ export function CreateAccountPage({
         const message =
           error instanceof Error
             ? error.message
-            : "Unable to create your account. Please try again.";
+            : "Unable to create your account\nPlease try again";
 
-        if (message === "Username is unavailable.") {
+        if (message === "Username is unavailable") {
           setUsernameAvailability("unavailable");
           setIsUsernameAvailabilityVisible(true);
           setInvalidFields((current) => ({ ...current, username: true }));
@@ -574,7 +574,7 @@ export function CreateAccountPage({
 
       setInvalidFields(nextInvalidFields);
       setFormError(
-        result.error.issues[0]?.message ?? "Check the information you entered."
+        result.error.issues[0]?.message ?? "Check the information you entered"
       );
       return;
     }
@@ -590,7 +590,7 @@ export function CreateAccountPage({
       setFormError(
         error instanceof Error
           ? error.message
-          : "Unable to start registration. Please try again."
+          : "Unable to start registration\nPlease try again"
       );
     } finally {
       setIsSubmitting(false);
@@ -931,8 +931,8 @@ export function CreateAccountPage({
           >
             {isSubmitting
               ? method === "email"
-                ? "Sending code..."
-                : "Creating account..."
+                ? "Sending code"
+                : "Creating account"
               : "Continue"}
           </ActionButton>
         </form>

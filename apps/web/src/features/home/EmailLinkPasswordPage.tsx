@@ -120,7 +120,7 @@ export function EmailLinkPasswordPage({
             type="submit"
             disabled={!canSubmit || isSubmitting}
           >
-            {isSubmitting ? "Sending..." : "Continue"}
+            {isSubmitting ? "Sending" : "Continue"}
           </ActionButton>
         </form>
       </section>

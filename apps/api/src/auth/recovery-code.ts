@@ -17,7 +17,7 @@ export const recoveryCodeSchema = z
   .min(recoveryCodeLength)
   .max(128)
   .transform(normalizeRecoveryCode)
-  .refine((code) => recoveryCodePattern.test(code), "Invalid recovery code.");
+  .refine((code) => recoveryCodePattern.test(code), "Invalid recovery code");
 
 export function normalizeRecoveryCode(code: string) {
   return code.replace(/[^A-Za-z0-9]/g, "");

@@ -125,14 +125,14 @@ function getGoogleUnlinkDescription(
   const googleEmail = user.email ?? "your linked Google account";
 
   if (user.username && user.emailLoginEnabled) {
-    return `Google sign-in will be removed.\nYou can still sign in with your username or email and password.\nYour account will remain linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
+    return `Google sign-in will be removed\nYou can still sign in with your username or email and password\nYour account will remain linked to ${googleEmail}\n\nContinue and choose ${googleEmail} to verify this change`;
   }
 
   if (user.username) {
-    return `Google sign-in will be removed.\nYou will only be able to sign in with your username and password.\nYour account will no longer be linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
+    return `Google sign-in will be removed\nYou will only be able to sign in with your username and password\nYour account will no longer be linked to ${googleEmail}\n\nContinue and choose ${googleEmail} to verify this change`;
   }
 
-  return `Google sign-in will be removed.\nYou will only be able to sign in with your email and password.\nYour account will remain linked to ${googleEmail}.\n\nContinue and choose ${googleEmail} to verify this change.`;
+  return `Google sign-in will be removed\nYou will only be able to sign in with your email and password\nYour account will remain linked to ${googleEmail}\n\nContinue and choose ${googleEmail} to verify this change`;
 }
 
 function getUsernameUnlinkDescription(
@@ -145,14 +145,14 @@ function getUsernameUnlinkDescription(
   const hasGoogle = user.authProvider !== "PASSWORD";
 
   if (user.emailLoginEnabled && hasGoogle) {
-    return `Sign-in with your username and password will be removed.\nYou can still sign in with ${email} and password or Google.\nYour recovery code will also stop working.`;
+    return `Sign-in with your username and password will be removed\nYou can still sign in with ${email} and password or Google\nYour recovery code will also stop working`;
   }
 
   if (user.emailLoginEnabled) {
-    return `Sign-in with your username and password will be removed.\nYou will only be able to sign in with ${email} and password.\nYour recovery code will also stop working.`;
+    return `Sign-in with your username and password will be removed\nYou will only be able to sign in with ${email} and password\nYour recovery code will also stop working`;
   }
 
-  return `Sign-in with your username and password will be removed.\nYou will only be able to sign in with Google as ${email}.\nYour recovery code will also stop working.`;
+  return `Sign-in with your username and password will be removed\nYou will only be able to sign in with Google as ${email}\nYour recovery code will also stop working`;
 }
 
 function getEmailUnlinkDescription(
@@ -162,14 +162,14 @@ function getEmailUnlinkDescription(
   const hasGoogle = user.authProvider !== "PASSWORD";
 
   if (user.username && hasGoogle) {
-    return `Sign-in with ${email} and password will be removed.\nYou can still sign in with your username and password or Google.\n${email} will remain linked to your Google sign-in.\n\nA confirmation code will be sent to ${email}.`;
+    return `Sign-in with ${email} and password will be removed\nYou can still sign in with your username and password or Google\n${email} will remain linked to your Google sign-in\n\nA confirmation code will be sent to ${email}`;
   }
 
   if (user.username) {
-    return `Sign-in with ${email} and password will be removed.\nYou will only be able to sign in with your username and password.\nThe email address will be removed from this account.\n\nA confirmation code will be sent to ${email}.`;
+    return `Sign-in with ${email} and password will be removed\nYou will only be able to sign in with your username and password\nThe email address will be removed from this account\n\nA confirmation code will be sent to ${email}`;
   }
 
-  return `Sign-in with ${email} and password will be removed.\nYou will only be able to sign in with Google as ${email}.\nYour Finance Manager password will also be removed.\n\nA confirmation code will be sent to ${email}.`;
+  return `Sign-in with ${email} and password will be removed\nYou will only be able to sign in with Google as ${email}\nYour Finance Manager password will also be removed\n\nA confirmation code will be sent to ${email}`;
 }
 
 export function ProfilePage({
@@ -387,7 +387,7 @@ export function ProfilePage({
     try {
       await onLogout();
     } catch {
-      setLogoutError("We couldn't log you out. Please try again.");
+      setLogoutError("We couldn't log you out\nPlease try again");
       setIsLoggingOut(false);
     }
   }
@@ -427,7 +427,7 @@ export function ProfilePage({
 
     const parsedPassword = validateAccountPassword(deletePassword);
     if (!parsedPassword.success) {
-      setDeleteError("Incorrect password.");
+      setDeleteError("Incorrect password");
       return;
     }
 
@@ -450,7 +450,7 @@ export function ProfilePage({
       setDeleteDialogMode("rate-limited");
     } else {
       setDeleteError(
-        error instanceof Error ? error.message : "Unable to delete account."
+        error instanceof Error ? error.message : "Unable to delete account"
       );
     }
 
@@ -485,7 +485,7 @@ export function ProfilePage({
       setGoogleLinkError(
         error instanceof Error
           ? error.message
-          : "Unable to link your Google account."
+          : "Unable to link your Google account"
       );
       setIsLinkingGoogle(false);
     }
@@ -531,7 +531,7 @@ export function ProfilePage({
       setGoogleUnlinkError(
         error instanceof Error
           ? error.message
-          : "Unable to unlink your Google account."
+          : "Unable to unlink your Google account"
       );
       setIsUnlinkingGoogle(false);
     }
@@ -557,7 +557,7 @@ export function ProfilePage({
 
     if (emailUnlinkDialogMode === "code") {
       setEmailUnlinkError(null);
-      setEmailUnlinkStatus("Cancelling...");
+      setEmailUnlinkStatus("Cancelling");
       setIsCancellingEmailUnlink(true);
 
       try {
@@ -566,7 +566,7 @@ export function ProfilePage({
         setEmailUnlinkError(
           error instanceof Error
             ? error.message
-            : "Unable to cancel email unlinking."
+            : "Unable to cancel email unlinking"
         );
         setIsCancellingEmailUnlink(false);
         return;
@@ -639,7 +639,7 @@ export function ProfilePage({
       }
 
       setEmailUnlinkError(
-        error instanceof Error ? error.message : "Unable to unlink email."
+        error instanceof Error ? error.message : "Unable to unlink email"
       );
     } finally {
       setIsUnlinkingEmail(false);
@@ -661,7 +661,7 @@ export function ProfilePage({
     setEmailUnlinkError(
       error instanceof Error
         ? error.message
-        : "Unable to resend the verification code."
+        : "Unable to resend the verification code"
     );
   }
 
@@ -690,7 +690,7 @@ export function ProfilePage({
     const parsedPassword = validateAccountPassword(usernameUnlinkPassword);
 
     if (!parsedPassword.success) {
-      setUsernameUnlinkError("Incorrect password.");
+      setUsernameUnlinkError("Incorrect password");
       return;
     }
 
@@ -715,10 +715,10 @@ export function ProfilePage({
 
       setUsernameUnlinkError(
         error instanceof ApiRequestError && error.status === 403
-          ? "Incorrect password."
+          ? "Incorrect password"
           : error instanceof Error
             ? error.message
-            : "Unable to unlink username."
+            : "Unable to unlink username"
       );
       setIsUnlinkingUsername(false);
     }
@@ -765,7 +765,7 @@ export function ProfilePage({
 
       if (error instanceof ApiRequestError && error.status === 429) {
         setRecoveryCodeResetError(
-          `Too many recovery code resets. Try again in ${
+          `Too many recovery code resets\nTry again in ${
             error.retryAfter ?? "15 minutes"
           }`
         );
@@ -847,7 +847,7 @@ export function ProfilePage({
                           >
                             <strong>Google sign in activated</strong>
                             <p>
-                              {`You can sign in with Google as ${user.email}, or use your email and password.`}
+                              {`You can sign in with Google as ${user.email}, or use your email and password`}
                             </p>
                           </div>
                         ) : null}
@@ -1050,10 +1050,10 @@ export function ProfilePage({
         open={isRecoveryCodeDialogOpen}
         title="Reset recovery code?"
         description={
-          "A new recovery code will replace your current one. The old code stops working only when the replacement is ready"
+          "A new recovery code will replace your current one\nThe old code stops working only when the replacement is ready"
         }
         confirmLabel="Reset code"
-        confirmingLabel="Creating..."
+        confirmingLabel="Creating"
         icon={<Key />}
         isConfirming={isResettingRecoveryCode}
         error={recoveryCodeResetError}
@@ -1096,18 +1096,18 @@ export function ProfilePage({
         }
         description={
           googleLinkDialogMode === "success"
-            ? "You can now sign in with your password or Google."
+            ? "You can now sign in with your password or Google"
             : googleLinkDialogMode === "mismatch"
               ? user.email
-                ? `Nothing was linked. Choose ${user.email}, the email used by this account.`
-                : "Nothing was linked. Choose a Google account that is not used elsewhere."
+                ? `Nothing was linked\nChoose ${user.email}, the email used by this account`
+                : "Nothing was linked\nChoose a Google account that is not used elsewhere"
               : googleLinkDialogMode === "failed"
                 ? user.email
-                  ? `We couldn't link Google. Try again and choose ${user.email}.`
-                  : "We couldn't link that Google account. Please try again."
+                  ? `We couldn't link Google\nTry again and choose ${user.email}`
+                  : "We couldn't link that Google account\nPlease try again"
                 : user.email
-                  ? `Keep password access and add Google sign-in. Continue and choose ${user.email}.`
-                  : "Keep password access and add Google sign-in. Its verified email will be added to this account."
+                  ? `Add Google sign-in and keep password\nContinue and choose ${user.email}`
+                  : "Add Google sign-in and keep password\nIts verified email will be added to this account"
         }
         confirmLabel={
           googleLinkDialogMode === "success"
@@ -1116,7 +1116,7 @@ export function ProfilePage({
               ? "Continue"
               : "Try again"
         }
-        confirmingLabel="Opening..."
+        confirmingLabel="Opening"
         icon={
           googleLinkDialogMode === "success" ? (
             <CircleCheck />
@@ -1153,11 +1153,11 @@ export function ProfilePage({
         }
         description={
           googleUnlinkDialogMode === "success"
-            ? "Google sign-in has been removed from your account."
+            ? "Google sign-in has been removed from your account"
             : googleUnlinkDialogMode === "mismatch"
-              ? `Nothing was unlinked. Choose ${user.email}, the Google account linked to this profile.`
+              ? `Nothing was unlinked\nChoose ${user.email}, the Google account linked to this profile`
               : googleUnlinkDialogMode === "failed"
-                ? `Nothing was unlinked. We couldn't verify ${user.email}. Try again.`
+                ? `Nothing was unlinked\nWe couldn't verify ${user.email}\nTry again`
                 : getGoogleUnlinkDescription(user)
         }
         confirmLabel={
@@ -1167,7 +1167,7 @@ export function ProfilePage({
               ? "Continue"
               : "Try again"
         }
-        confirmingLabel="Opening..."
+        confirmingLabel="Opening"
         icon={
           googleUnlinkDialogMode === "success" ? (
             <CircleCheck />
@@ -1204,9 +1204,9 @@ export function ProfilePage({
         }
         description={
           emailUnlinkDialogMode === "success"
-            ? "Email sign-in with your password has been removed from your account."
+            ? "Email sign-in with your password has been removed from your account"
             : emailUnlinkDialogMode === "code"
-              ? `Enter the 6-digit code sent to\n${user.email}.`
+              ? `Enter the 6-digit code sent to\n${user.email}`
               : getEmailUnlinkDescription(user)
         }
         confirmLabel={
@@ -1217,7 +1217,7 @@ export function ProfilePage({
               : "Continue"
         }
         confirmingLabel={
-          emailUnlinkDialogMode === "code" ? "Unlinking..." : "Sending..."
+          emailUnlinkDialogMode === "code" ? "Unlinking" : "Sending"
         }
         icon={
           emailUnlinkDialogMode === "success" ? <CircleCheck /> : <Mail />
@@ -1310,13 +1310,13 @@ export function ProfilePage({
         }
         description={
           usernameUnlinkDialogMode === "success"
-            ? "Username sign-in and its recovery code have been removed from your account."
+            ? "Username sign-in and its recovery code have been removed from your account"
             : getUsernameUnlinkDescription(user)
         }
         confirmLabel={
           usernameUnlinkDialogMode === "success" ? "Done" : "Unlink username"
         }
-        confirmingLabel="Unlinking..."
+        confirmingLabel="Unlinking"
         icon={
           usernameUnlinkDialogMode === "success" ? <CircleCheck /> : <AtSign />
         }
@@ -1348,7 +1348,7 @@ export function ProfilePage({
               name="unlinkUsernamePassword"
               placeholder="Enter your password"
               value={usernameUnlinkPassword}
-              invalid={usernameUnlinkError === "Incorrect password."}
+              invalid={usernameUnlinkError === "Incorrect password"}
               autoComplete="current-password"
               variant="dialog"
               disabled={isUnlinkingUsername}
@@ -1364,7 +1364,7 @@ export function ProfilePage({
       <ConfirmDialog
         open={isLogoutDialogOpen}
         title="Log out?"
-        description="You'll need to sign in again."
+        description="You'll need to sign in again"
         confirmLabel="Log out"
         icon={<LogOut />}
         isConfirming={isLoggingOut}
@@ -1386,16 +1386,16 @@ export function ProfilePage({
         }
         description={
           deleteDialogMode === "mismatch"
-            ? `Nothing was deleted. Choose the Google account linked to ${user.email}.`
+            ? `Nothing was deleted\nChoose the Google account linked to ${user.email}`
             : deleteDialogMode === "rate-limited"
-              ? `Too many deletion attempts. Try again in ${deleteRetryAfter}.`
+              ? `Too many deletion attempts\nTry again in ${deleteRetryAfter}`
             : deleteDialogMode === "failed"
-              ? `Nothing was deleted. We couldn't verify ${user.email}. Try again.`
+              ? `Nothing was deleted\nWe couldn't verify ${user.email}\nTry again`
               : user.authProvider === "PASSWORD_AND_GOOGLE"
-                ? "Permanently delete your account.\nChoose how to verify your identity.\nThis cannot be undone."
+                ? "Permanently delete your account\nChoose how to verify your identity\nThis cannot be undone"
                 : user.authProvider === "GOOGLE"
-                  ? "Permanently delete your account.\nContinue to verify with Google.\nThis cannot be undone."
-                  : "Permanently delete your account.\nThis cannot be undone."
+                  ? "Permanently delete your account\nContinue to verify with Google\nThis cannot be undone"
+                  : "Permanently delete your account\nThis cannot be undone"
         }
         confirmLabel={
           deleteDialogMode === "rate-limited"
@@ -1407,7 +1407,7 @@ export function ProfilePage({
             : "Delete account"
         }
         confirmingLabel={
-          deletesWithGoogle ? "Opening..." : "Deleting..."
+          deletesWithGoogle ? "Opening" : "Deleting"
         }
         icon={
           deleteDialogMode === "confirm" ? (

@@ -139,7 +139,7 @@ function createChartOption(
     aria: {
       enabled: true,
       description:
-        "Bar chart showing average spending for each displayed weekday."
+      "Bar chart showing average spending for each displayed weekday"
     },
     grid: {
       top: 18,
@@ -332,7 +332,7 @@ export default function WeekdaySpendingChart({
       <EChart
         className="stats-weekday-spending__chart"
         option={option}
-        ariaLabel={`Weekday average spending from ${displayedPeriod}.`}
+        ariaLabel={`Weekday average spending from ${displayedPeriod}`}
         toggleItemSelectionOnClick
         highlightSelectedItemOnClick={false}
         onItemSelectionChange={setSelectedIntervalIndex}

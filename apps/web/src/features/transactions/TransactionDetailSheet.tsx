@@ -348,7 +348,7 @@ export function TransactionDetailSheet({
     detailQuery.isError && transactionId === renderedTransaction?.id
       ? detailQuery.error instanceof Error
         ? detailQuery.error.message
-        : "Unable to load the transaction details."
+        : "Unable to load the transaction details"
       : null;
   const displayedTransaction =
     matchingDetail?.transaction ?? renderedTransaction;
@@ -677,7 +677,7 @@ export function TransactionDetailSheet({
       setDeleteError(
         error instanceof Error
           ? error.message
-          : "Unable to delete the transaction. Please try again."
+          : "Unable to delete the transaction\nPlease try again"
       );
     } finally {
       setIsDeleting(false);
@@ -715,13 +715,13 @@ export function TransactionDetailSheet({
       }
 
       if (result === "copied") {
-        showShareNotice("success", "Transaction copied to clipboard.");
+        showShareNotice("success", "Transaction copied to clipboard");
       }
     } catch {
       setActionsOpen(false);
       showShareNotice(
         "error",
-        "Unable to share this transaction. Please try again."
+        "Unable to share this transaction\nPlease try again"
       );
     } finally {
       setIsSharing(false);
@@ -932,7 +932,7 @@ export function TransactionDetailSheet({
                     disabled={isDeleting}
                     onClick={confirmDeleteTransaction}
                   >
-                    {isDeleting ? "Deleting..." : "Delete"}
+                    {isDeleting ? "Deleting" : "Delete"}
                   </ActionButton>
                 </div>
               </div>

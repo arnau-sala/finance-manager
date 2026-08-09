@@ -29,8 +29,8 @@ export const accountPasswordRequirements = [
 
 const loginPasswordSchema = z
   .string()
-  .min(1, "Enter your password.")
-  .max(128, "Password must be 128 characters or fewer.");
+  .min(1, "Enter your password")
+  .max(128, "Password must be 128 characters or fewer");
 
 export function validateLoginPassword(password: string) {
   return loginPasswordSchema.safeParse(password);
@@ -38,13 +38,13 @@ export function validateLoginPassword(password: string) {
 
 export const accountPasswordSchema = z
   .string()
-  .min(9, "Password must contain more than 8 characters.")
-  .max(128, "Password must contain at most 128 characters.")
-  .regex(uppercasePattern, "Password must contain at least one uppercase letter.")
-  .regex(digitPattern, "Password must contain at least one digit.")
+  .min(9, "Password must contain more than 8 characters")
+  .max(128, "Password must contain at most 128 characters")
+  .regex(uppercasePattern, "Password must contain at least one uppercase letter")
+  .regex(digitPattern, "Password must contain at least one digit")
   .regex(
     specialCharacterPattern,
-    "Password must contain at least one special character."
+      "Password must contain at least one special character"
   );
 
 export function getAccountPasswordRequirements(password: string) {

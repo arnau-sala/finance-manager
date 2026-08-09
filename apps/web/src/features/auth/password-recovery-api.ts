@@ -59,7 +59,7 @@ export function requestPasswordResetEmail(email: string) {
   return postPasswordRecovery(
     "/api/auth/password-reset/email/request",
     { email },
-    "Unable to start account recovery. Please try again"
+        "Unable to start account recovery\nPlease try again"
   );
 }
 
@@ -67,7 +67,7 @@ export function resendPasswordResetEmail(email: string) {
   return postPasswordRecovery(
     "/api/auth/password-reset/email/resend",
     { email },
-    "Unable to resend the code. Please try again"
+        "Unable to resend the code\nPlease try again"
   );
 }
 
@@ -75,7 +75,7 @@ export function verifyPasswordResetEmailCode(email: string, code: string) {
   return postPasswordRecovery(
     "/api/auth/password-reset/email/verify",
     { email, code },
-    "Unable to verify the code. Please try again"
+        "Unable to verify the code\nPlease try again"
   );
 }
 
@@ -89,7 +89,7 @@ export async function verifyPasswordResetRecoveryCode(input: {
       ...(input.username ? { username: input.username } : {}),
       recoveryCode: input.recoveryCode
     },
-    "Unable to verify the recovery code. Please try again"
+        "Unable to verify the recovery code\nPlease try again"
   );
 
   if (typeof body.username !== "string") {
@@ -109,7 +109,7 @@ export async function completePasswordReset(input: {
   }>(
     "/api/auth/password-reset/complete",
     input,
-    "Unable to change the password. Please try again"
+        "Unable to change the password\nPlease try again"
   );
 
   return {

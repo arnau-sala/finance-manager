@@ -54,7 +54,7 @@ async function copyText(text: string) {
   textArea.remove();
 
   if (!copied) {
-    throw new Error("Clipboard access is unavailable.");
+    throw new Error("Clipboard access is unavailable");
   }
 }
 

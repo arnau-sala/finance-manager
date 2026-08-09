@@ -24,7 +24,7 @@ export const startingNetWorthSchema = z
       .max(32)
       .regex(
         DECIMAL_NET_WORTH_PATTERN,
-        "Starting net worth must be a decimal with at most two decimal places."
+      "Starting net worth must be a decimal with at most two decimal places"
       )
   )
   .superRefine((amount, context) => {
@@ -37,7 +37,7 @@ export const startingNetWorthSchema = z
       context.addIssue({
         code: "custom",
         message:
-          "Starting net worth must be between -10,000,000 and 10,000,000."
+      "Starting net worth must be between -10,000,000 and 10,000,000"
       });
     }
   })

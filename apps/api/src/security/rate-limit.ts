@@ -36,8 +36,8 @@ export function registerRateLimit(app: FastifyInstance) {
     keyGenerator: (request) => request.ip,
     errorResponseBuilder: (_request, context) => ({
       statusCode: context.statusCode,
-      error: "Too many requests.",
-      message: `Rate limit exceeded. Retry in ${context.after}.`,
+      error: "Too many requests",
+      message: `Rate limit exceeded\nRetry in ${context.after}`,
       retryAfter: context.after,
     }),
   });

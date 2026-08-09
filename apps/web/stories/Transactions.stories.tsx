@@ -103,7 +103,7 @@ export const RowsAndEmptyStates: Story = {
           <div style={{ height: 230 }}>
             <FirstTransactionEmptyState
               headingId="storybook-empty-transactions"
-              description="Add your first transaction to start building your history."
+        description="Add your first transaction to start building your history"
               onNewTransaction={() => undefined}
             />
           </div>

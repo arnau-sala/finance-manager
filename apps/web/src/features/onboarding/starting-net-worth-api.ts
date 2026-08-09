@@ -19,9 +19,9 @@ type StartingNetWorthResponse = {
 async function readError(response: Response) {
   try {
     const body = (await response.json()) as { error?: string };
-    return body.error ?? "Unable to finish account setup.";
+    return body.error ?? "Unable to finish account setup";
   } catch {
-    return "Unable to finish account setup.";
+  return "Unable to finish account setup";
   }
 }
 

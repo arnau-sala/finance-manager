@@ -267,7 +267,7 @@ function ModalRenderer({
       {renderDialog("session-expired", {
         title: "Session expired",
         description:
-          "Your session has ended. Return to the main page to sign in again.",
+      "Your session has ended\nReturn to the main page to sign in again",
         confirmLabel: "Return to main",
         icon: <TimerOff />,
         showCancel: false,
@@ -277,7 +277,7 @@ function ModalRenderer({
       {renderDialog("google-signin-notice", {
         title: "Google sign-in",
         description:
-          "No account exists for arnau@example.com.\n\nCreate one with this Google account?",
+          "No account exists for arnau@example.com.\nCreate one with this Google account?",
         confirmLabel: "Create account",
         cancelLabel: "Cancel",
         icon: <StorybookGoogleIcon />
@@ -286,7 +286,7 @@ function ModalRenderer({
       {renderDialog("google-link", {
         title: "Link Google account?",
         description:
-          "Keep password access and add Google sign-in. Continue and choose arnau@example.com.",
+      "Add Google sign-in and keep password\nContinue and choose arnau@example.com",
         confirmLabel: "Continue",
         icon: <StorybookGoogleIcon />
       })}
@@ -294,7 +294,7 @@ function ModalRenderer({
       {renderDialog("google-link-mismatch", {
         title: "Incorrect Google account",
         description:
-          "Nothing was linked. Choose arnau@example.com, the email used by this account.",
+      "Nothing was linked\nChoose arnau@example.com, the email used by this account",
         confirmLabel: "Try again",
         icon: <TriangleAlert />,
         tone: "warning"
@@ -303,7 +303,7 @@ function ModalRenderer({
       {renderDialog("google-unlink", {
         title: "Unlink Google?",
         description:
-          "Google sign-in will be removed.\nYou can still sign in with your username or email and password.\nYour account will remain linked to arnau@example.com.\n\nContinue and choose arnau@example.com to verify this change.",
+      "Google sign-in will be removed\nYou can still sign in with your username or email and password\nYour account will remain linked to arnau@example.com\n\nContinue and choose arnau@example.com to verify this change",
         confirmLabel: "Continue",
         icon: <StorybookGoogleIcon />,
         confirmTone: "danger"
@@ -312,7 +312,7 @@ function ModalRenderer({
       {renderDialog("google-unlink-mismatch", {
         title: "Incorrect Google account",
         description:
-          "Nothing was unlinked. Choose arnau@example.com, the Google account linked to this profile.",
+      "Nothing was unlinked\nChoose arnau@example.com, the Google account linked to this profile",
         confirmLabel: "Try again",
         icon: <TriangleAlert />,
         tone: "warning",
@@ -322,7 +322,7 @@ function ModalRenderer({
       {renderDialog("recovery-reset", {
         title: "Reset recovery code?",
         description:
-          "A new recovery code will replace your current one. The old code stops working only when the replacement is ready",
+          "A new recovery code will replace your current one\nThe old code stops working only when the replacement is ready",
         confirmLabel: "Reset code",
         icon: <Key />,
         children: (
@@ -385,7 +385,7 @@ function ModalRenderer({
       {renderDialog("email-unlink", {
         title: "Unlink email?",
         description:
-          "Sign-in with arnau@example.com and password will be removed.\nYou can still sign in with your username and password or Google.\narnau@example.com will remain linked to your Google sign-in.\n\nA confirmation code will be sent to arnau@example.com.",
+      "Sign-in with arnau@example.com and password will be removed\nYou can still sign in with your username and password or Google\narnau@example.com will remain linked to your Google sign-in\n\nA confirmation code will be sent to arnau@example.com",
         confirmLabel: "Continue",
         icon: <Mail />,
         tone: "danger",
@@ -394,7 +394,7 @@ function ModalRenderer({
 
       {renderDialog("email-unlink-code", {
         title: "Enter verification code",
-        description: "Enter the 6-digit code sent to\narnau@example.com.",
+    description: "Enter the 6-digit code sent to\narnau@example.com",
         confirmLabel: "Unlink email",
         icon: <Mail />,
         tone: "danger",
@@ -426,7 +426,7 @@ function ModalRenderer({
       {renderDialog("username-unlink", {
         title: "Unlink username?",
         description:
-          "Sign-in with your username and password will be removed.\nYou can still sign in with arnau@example.com and password or Google.\nYour recovery code will also stop working.",
+      "Sign-in with your username and password will be removed\nYou can still sign in with arnau@example.com and password or Google\nYour recovery code will also stop working",
         confirmLabel: "Unlink username",
         icon: <AtSign />,
         tone: "danger",
@@ -444,7 +444,7 @@ function ModalRenderer({
 
       {renderDialog("logout", {
         title: "Log out?",
-        description: "You'll need to sign in again.",
+    description: "You'll need to sign in again",
         confirmLabel: "Log out",
         icon: <LogOut />
       })}
@@ -452,7 +452,7 @@ function ModalRenderer({
       {renderDialog("delete-password", {
         title: "Delete account?",
         description:
-          "Permanently delete your account.\nThis cannot be undone.",
+      "Permanently delete your account\nThis cannot be undone",
         confirmLabel: "Delete account",
         icon: <Trash2 />,
         tone: "danger",
@@ -471,7 +471,7 @@ function ModalRenderer({
       {renderDialog("delete-google", {
         title: "Delete account?",
         description:
-          "Permanently delete your account.\nContinue to verify with Google.\nThis cannot be undone.",
+      "Permanently delete your account\nContinue to verify with Google\nThis cannot be undone",
         confirmLabel: "Continue",
         icon: <Trash2 />,
         tone: "danger",
@@ -481,7 +481,7 @@ function ModalRenderer({
       {renderDialog("delete-hybrid", {
         title: "Delete account?",
         description:
-          "Permanently delete your account.\nChoose how to verify your identity.\nThis cannot be undone.",
+      "Permanently delete your account\nChoose how to verify your identity\nThis cannot be undone",
         confirmLabel:
           deleteMethod === "google" ? "Continue" : "Delete account",
         icon: <Trash2 />,
@@ -517,7 +517,7 @@ function ModalRenderer({
 
       {renderDialog("delete-rate-limited", {
         title: "Too many attempts",
-        description: "Too many deletion attempts. Try again in 15 minutes.",
+    description: "Too many deletion attempts\nTry again in 15 minutes",
         confirmLabel: "Got it",
         icon: <Clock3 />,
         tone: "warning",
@@ -526,7 +526,7 @@ function ModalRenderer({
 
       {renderDialog("success", {
         title: "Google account linked",
-        description: "You can now sign in with your password or Google.",
+    description: "You can now sign in with your password or Google",
         confirmLabel: "Done",
         icon: <CircleCheck />,
         showCancel: false
@@ -545,8 +545,9 @@ export const AllModals: Story = {
           <section className="storybook-section">
             <h2>All modals</h2>
             <p className="storybook-note">
-              Open each modal from here. They use the same dialog component and
-              app styles, with mock content only.
+              Open each modal from here
+              They use the same dialog component and
+              app styles, with mock content only
             </p>
             <div className="profile-action-list">
               {modalEntries.map((entry) => (

@@ -466,7 +466,7 @@ export function TransactionComposer({
       setInvalidFields(nextInvalidFields);
       setFormError(
         parsedTransaction.error.issues[0]?.message ??
-          "Check the transaction details."
+          "Check the transaction details"
       );
       return;
     }
@@ -517,8 +517,8 @@ export function TransactionComposer({
         error instanceof Error
           ? error.message
           : isEditing
-            ? "Unable to update the transaction. Please try again."
-            : "Unable to add the transaction. Please try again."
+            ? "Unable to update the transaction\nPlease try again"
+            : "Unable to add the transaction\nPlease try again"
       );
     } finally {
       setIsSubmitting(false);
@@ -706,8 +706,8 @@ export function TransactionComposer({
             <ActionButton type="submit" disabled={!canSubmit}>
               {isSubmitting
                 ? isEditing
-                  ? "Saving..."
-                  : "Adding..."
+                  ? "Saving"
+                  : "Adding"
                 : isEditing
                   ? "Save changes"
                   : "Add transaction"}

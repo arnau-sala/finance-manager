@@ -592,8 +592,8 @@ export function MovesPage({
             </h2>
             <p>
               {normalizedQuery || activeFilterCount > 0
-                ? "Try adjusting your search or filters."
-                : "Your movements will appear here once you add one."}
+                  ? "Try adjusting your search or filters"
+                  : "Your movements will appear here once you add one"}
             </p>
           </div>
         )}

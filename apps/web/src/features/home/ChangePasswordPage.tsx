@@ -115,7 +115,7 @@ export function ChangePasswordPage({
     } catch (submitError) {
       if (submitError instanceof ApiRequestError && submitError.status === 429) {
         setError(
-          `Too many password changes. Try again in ${
+          `Too many password changes\nTry again in ${
             submitError.retryAfter ?? "15 minutes"
           }`
         );
@@ -247,7 +247,7 @@ export function ChangePasswordPage({
                 type="submit"
                 disabled={!fieldsFilled || isSubmitting}
               >
-                {isSubmitting ? "Updating..." : "Change password"}
+                {isSubmitting ? "Updating" : "Change password"}
               </ActionButton>
             </form>
           ) : (

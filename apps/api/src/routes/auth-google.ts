@@ -297,14 +297,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const config = getGoogleOAuthConfig();
 
       if (!config) {
         return reply.code(503).send({
-          error: "Google sign-in is not configured.",
+          error: "Google sign-in is not configured",
         });
       }
 
@@ -315,7 +315,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (
@@ -323,7 +323,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         !user.googleSubject
       ) {
         return reply.code(400).send({
-          error: "Google reauthentication is unavailable for this account.",
+          error: "Google reauthentication is unavailable for this account",
         });
       }
 
@@ -356,14 +356,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const config = getGoogleOAuthConfig();
 
       if (!config) {
         return reply.code(503).send({
-          error: "Google sign-in is not configured.",
+          error: "Google sign-in is not configured",
         });
       }
 
@@ -379,7 +379,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user || user.status !== "APPROVED") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (
@@ -388,7 +388,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         user.googleSubject
       ) {
         return reply.code(409).send({
-          error: "Google linking is unavailable for this account.",
+          error: "Google linking is unavailable for this account",
         });
       }
 
@@ -421,14 +421,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const config = getGoogleOAuthConfig();
 
       if (!config) {
         return reply.code(503).send({
-          error: "Google sign-in is not configured.",
+          error: "Google sign-in is not configured",
         });
       }
 
@@ -446,7 +446,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user || user.status !== "APPROVED") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (
@@ -456,7 +456,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
         (!user.emailLoginEnabled && !user.username)
       ) {
         return reply.code(409).send({
-          error: "Google unlinking is unavailable for this account.",
+          error: "Google unlinking is unavailable for this account",
         });
       }
 
@@ -489,14 +489,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       reply.header("Cache-Control", "no-store");
 
       if (!token) {
-        return reply.code(404).send({ error: "Google action expired." });
+        return reply.code(404).send({ error: "Google action expired" });
       }
 
       const action = await getPendingGoogleAuthAction(token);
 
       if (!action) {
         request.session.set("googleAuthActionToken", "");
-        return reply.code(404).send({ error: "Google action expired." });
+        return reply.code(404).send({ error: "Google action expired" });
       }
 
       return reply.send({ action });
@@ -512,14 +512,14 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       reply.header("Cache-Control", "no-store");
 
       if (!token) {
-        return reply.code(401).send({ error: "Google action expired." });
+        return reply.code(401).send({ error: "Google action expired" });
       }
 
       const result = await confirmPendingGoogleAuthAction(token);
       request.session.set("googleAuthActionToken", "");
 
       if (result.type === "invalid") {
-        return reply.code(401).send({ error: "Google action expired." });
+        return reply.code(401).send({ error: "Google action expired" });
       }
 
       if (result.type === "password-required") {

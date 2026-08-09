@@ -29,7 +29,7 @@ export const adminUserRoutes: FastifyPluginAsync = async (app) => {
     const parsedQuery = usersPaginationQuerySchema.safeParse(request.query);
 
     if (!parsedQuery.success) {
-      return reply.code(400).send({ error: "Invalid pagination query." });
+      return reply.code(400).send({ error: "Invalid pagination query" });
     }
 
     const { limit, offset } = parsedQuery.data;
@@ -51,7 +51,7 @@ export const adminUserRoutes: FastifyPluginAsync = async (app) => {
     const parsedParams = userIdParamsSchema.safeParse(request.params);
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid user id." });
+      return reply.code(400).send({ error: "Invalid user id" });
     }
 
     const user = await db.user.findUnique({
@@ -60,7 +60,7 @@ export const adminUserRoutes: FastifyPluginAsync = async (app) => {
     });
 
     if (!user) {
-      return reply.code(404).send({ error: "User not found." });
+      return reply.code(404).send({ error: "User not found" });
     }
 
     return reply.send({ user });

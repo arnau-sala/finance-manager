@@ -53,7 +53,7 @@ const beginEmailLinkBodySchema = z.union([
         context.addIssue({
           code: "custom",
           path: ["passwordConfirmation"],
-          message: "Passwords do not match.",
+          message: "Passwords do not match",
         });
       }
     }),
@@ -87,7 +87,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const user = await db.user.findUnique({
@@ -97,7 +97,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       await db.pendingEmailLink.deleteMany({ where: { userId } });
@@ -114,13 +114,13 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = beginEmailLinkBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Invalid email linking details." });
+        return reply.code(400).send({ error: "Invalid email linking details" });
       }
 
       const neutralResponseStartedAt = Date.now();
@@ -139,32 +139,32 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
         if (result.type === "unauthenticated") {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         if (result.type === "unavailable") {
           return reply.code(409).send({
-            error: "This account already has a linked email.",
+            error: "This account already has a linked email",
           });
         }
 
         if (result.type === "invalid-request") {
           return reply.code(400).send({
-            error: "Invalid email linking details.",
+            error: "Invalid email linking details",
           });
         }
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
         if (error instanceof EmailDeliveryError) {
-          request.log.error(error, "Verification email delivery failed.");
+          request.log.error(error, "Verification email delivery failed");
           return reply.code(503).send({
-            error: "Verification email could not be sent. Please try again.",
+            error: "Verification email could not be sent\nPlease try again",
           });
         }
 
@@ -185,7 +185,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const neutralResponseStartedAt = Date.now();
@@ -198,20 +198,20 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
         if (result.type === "unauthenticated") {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
         if (error instanceof EmailDeliveryError) {
-          request.log.error(error, "Verification email delivery failed.");
+          request.log.error(error, "Verification email delivery failed");
           return reply.code(503).send({
-            error: "Verification email could not be sent. Please try again.",
+            error: "Verification email could not be sent\nPlease try again",
           });
         }
 
@@ -232,14 +232,14 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = verifyEmailCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid or expired verification code.",
+          error: "Invalid or expired verification code",
         });
       }
 
@@ -253,9 +253,9 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
         });
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
@@ -264,17 +264,17 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "invalid") {
         return reply.code(400).send({
-          error: "Invalid or expired verification code.",
+          error: "Invalid or expired verification code",
         });
       }
 
       if (result.type === "unauthenticated") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (result.type === "unavailable") {
-        return reply.code(409).send({ error: "Email could not be linked." });
+        return reply.code(409).send({ error: "Email could not be linked" });
       }
 
       const user = await db.user.findUnique({
@@ -284,11 +284,11 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       return reply.send({
-        message: "Email linked successfully.",
+        message: "Email linked successfully",
         user: toAuthenticatedUserResponse(user),
       });
     },
@@ -303,7 +303,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const user = await db.user.findUnique({
@@ -313,7 +313,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!user) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       await db.pendingEmailUnlink.deleteMany({ where: { userId } });
@@ -330,7 +330,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       try {
@@ -341,26 +341,26 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
         if (result.type === "unauthenticated") {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         if (result.type === "unavailable") {
           return reply.code(409).send({
-            error: "Email unlinking is unavailable for this account.",
+            error: "Email unlinking is unavailable for this account",
           });
         }
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
         if (error instanceof EmailDeliveryError) {
-          request.log.error(error, "Email unlink code delivery failed.");
+          request.log.error(error, "Email unlink code delivery failed");
           return reply.code(503).send({
-            error: "Verification code could not be sent. Please try again.",
+            error: "Verification code could not be sent\nPlease try again",
           });
         }
 
@@ -368,7 +368,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return reply.code(202).send({
-        message: "A verification code has been sent to your email.",
+        message: "A verification code has been sent to your email",
       });
     },
   );
@@ -382,7 +382,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       try {
@@ -393,26 +393,26 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
         if (result.type === "unauthenticated") {
           request.session.delete();
-          return reply.code(401).send({ error: "Authentication required." });
+          return reply.code(401).send({ error: "Authentication required" });
         }
 
         if (result.type === "unavailable") {
           return reply.code(409).send({
-            error: "Email unlinking is unavailable for this account.",
+            error: "Email unlinking is unavailable for this account",
           });
         }
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
         if (error instanceof EmailDeliveryError) {
-          request.log.error(error, "Email unlink code delivery failed.");
+          request.log.error(error, "Email unlink code delivery failed");
           return reply.code(503).send({
-            error: "Verification code could not be sent. Please try again.",
+            error: "Verification code could not be sent\nPlease try again",
           });
         }
 
@@ -420,7 +420,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
       }
 
       return reply.code(202).send({
-        message: "A verification code has been sent to your email.",
+        message: "A verification code has been sent to your email",
       });
     },
   );
@@ -434,14 +434,14 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (!userId || sessionVersion === undefined) {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = verifyEmailCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid or expired verification code.",
+          error: "Invalid or expired verification code",
         });
       }
 
@@ -455,9 +455,9 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
         });
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
@@ -466,18 +466,18 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "invalid") {
         return reply.code(400).send({
-          error: "Invalid or expired verification code.",
+          error: "Invalid or expired verification code",
         });
       }
 
       if (result.type === "unauthenticated") {
         request.session.delete();
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       if (result.type === "unavailable") {
         return reply.code(409).send({
-          error: "Email unlinking is unavailable for this account.",
+          error: "Email unlinking is unavailable for this account",
         });
       }
 
@@ -486,7 +486,7 @@ export const accountEmailRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("sessionVersion", result.user.sessionVersion);
 
       return reply.send({
-        message: "Email unlinked successfully.",
+        message: "Email unlinked successfully",
         user: toAuthenticatedUserResponse(result.user),
       });
     },

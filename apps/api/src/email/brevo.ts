@@ -19,7 +19,7 @@ type TransactionalEmail = {
 };
 
 export class EmailConfigurationError extends Error {
-  constructor(message = "Email delivery is not configured.") {
+  constructor(message = "Email delivery is not configured") {
     super(message);
     this.name = "EmailConfigurationError";
   }
@@ -82,13 +82,13 @@ export async function sendTransactionalEmail(email: TransactionalEmail) {
     throw new EmailDeliveryError(
       error instanceof Error
         ? `Brevo request failed: ${error.message}`
-        : "Brevo request failed.",
+          : "Brevo request failed",
     );
   }
 
   if (response.status !== 201) {
     throw new EmailDeliveryError(
-      "Brevo rejected the email request.",
+      "Brevo rejected the email request",
       response.status,
     );
   }

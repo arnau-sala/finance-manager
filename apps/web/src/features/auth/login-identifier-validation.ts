@@ -11,7 +11,7 @@ export function validateLoginIdentifier(identifier: string) {
       ? { success: true as const, data: result.data }
       : {
           success: false as const,
-          message: "Enter a valid email or username.",
+          message: "Enter a valid email or username",
         };
   }
 
@@ -21,6 +21,6 @@ export function validateLoginIdentifier(identifier: string) {
     ? { success: true as const, data: result.data }
     : {
         success: false as const,
-        message: "Enter a valid email or username.",
+        message: "Enter a valid email or username",
       };
 }

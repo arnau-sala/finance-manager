@@ -69,7 +69,7 @@ export function PasswordLoginPage({
 
     if (!parsedPassword.success) {
       setInvalidFields({ identifier: false, password: true });
-      setFormError(parsedPassword.error.issues[0]?.message ?? "Enter your password.");
+      setFormError(parsedPassword.error.issues[0]?.message ?? "Enter your password");
       return;
     }
 
@@ -88,7 +88,7 @@ export function PasswordLoginPage({
       setFormError(
         error instanceof Error
           ? error.message
-          : "Login failed.",
+          : "Login failed",
       );
     } finally {
       setIsSubmitting(false);
@@ -216,7 +216,7 @@ export function PasswordLoginPage({
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Checking..." : "Continue"}
+            {isSubmitting ? "Checking" : "Continue"}
           </ActionButton>
         </form>
       </section>

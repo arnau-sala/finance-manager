@@ -20,7 +20,7 @@ export function registerSecureSession(app: FastifyInstance) {
   const sessionKey = process.env.SESSION_KEY;
 
   if (!sessionKey || !/^[a-f\d]{64}$/i.test(sessionKey)) {
-    throw new Error("SESSION_KEY must be a 64-character hexadecimal value.");
+    throw new Error("SESSION_KEY must be a 64-character hexadecimal value");
   }
 
   app.register(secureSession, {

@@ -65,7 +65,7 @@ export async function startRegistration(input: RegistrationInput) {
   await postRegistrationRequest(
     "/api/auth/register",
     input,
-    "Unable to start registration. Please try again."
+    "Unable to start registration\nPlease try again"
   );
 }
 
@@ -84,7 +84,7 @@ export async function startUsernameRegistration(
   if (!response.ok) {
     throw await createRegistrationError(
       response,
-      "Unable to create your account. Please try again.",
+      "Unable to create your account\nPlease try again",
     );
   }
 
@@ -97,7 +97,7 @@ export async function startUsernameRegistration(
     typeof body.recoveryCode !== "string" ||
     typeof body.user?.username !== "string"
   ) {
-    throw new ApiRequestError("Unable to load your recovery code.", 500);
+    throw new ApiRequestError("Unable to load your recovery code", 500);
   }
 
   return {
@@ -122,14 +122,14 @@ export async function checkUsernameAvailability(
   if (!response.ok) {
     throw await createRegistrationError(
       response,
-      "Unable to check username availability.",
+      "Unable to check username availability",
     );
   }
 
   const body = (await response.json()) as { available?: unknown };
 
   if (typeof body.available !== "boolean") {
-    throw new ApiRequestError("Unable to check username availability.", 500);
+    throw new ApiRequestError("Unable to check username availability", 500);
   }
 
   return body.available;
@@ -139,7 +139,7 @@ export async function resendRegistrationCode(email: string) {
   await postRegistrationRequest(
     "/api/auth/register/resend",
     { email },
-    "Unable to resend the code. Please try again."
+    "Unable to resend the code\nPlease try again"
   );
 }
 
@@ -147,6 +147,6 @@ export async function verifyRegistrationCode(email: string, code: string) {
   await postRegistrationRequest(
     "/api/auth/register/verify",
     { email, code },
-    "Unable to verify the code. Please try again."
+    "Unable to verify the code\nPlease try again"
   );
 }

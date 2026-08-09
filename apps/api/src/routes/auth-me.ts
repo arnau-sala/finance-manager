@@ -14,7 +14,7 @@ export const authMeRoutes: FastifyPluginAsync = async (app) => {
       const user = await getAuthenticatedUser(request);
 
       if (!user) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       return reply.send({ user: toAuthenticatedUserResponse(user) });

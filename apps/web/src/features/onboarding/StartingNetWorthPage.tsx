@@ -83,7 +83,7 @@ export function StartingNetWorthPage({
         return;
       }
 
-      setError("Unable to finish account setup. Please try again.");
+      setError("Unable to finish account setup\nPlease try again");
     } finally {
       setPendingAction(null);
     }
@@ -121,7 +121,7 @@ export function StartingNetWorthPage({
           disabled={isPending}
           onClick={skipSetup}
         >
-          {pendingAction === "SKIP" ? "Skipping..." : "Skip for now"}
+          {pendingAction === "SKIP" ? "Skipping" : "Skip for now"}
         </button>
       </header>
 
@@ -137,8 +137,9 @@ export function StartingNetWorthPage({
           <p>Your financial starting point</p>
           <h1 id="starting-net-worth-title">Set your starting net worth</h1>
           <p>
-            Enter what you own minus what you owe today. We will use it as
-            your baseline and track changes from future transactions.
+            Enter what you own minus what you owe today
+            We will use it as
+            your baseline and track changes from future transactions
           </p>
         </div>
 
@@ -211,7 +212,7 @@ export function StartingNetWorthPage({
             id="starting-net-worth-help"
             className="starting-net-worth-form__help"
           >
-            Net worth insights stay unavailable if you skip this step.
+            Net worth insights stay unavailable if you skip this step
           </p>
           <p
             id="starting-net-worth-error"
@@ -226,7 +227,7 @@ export function StartingNetWorthPage({
             type="submit"
             disabled={parsedAmount === null || isPending}
           >
-            {pendingAction === "SAVE" ? "Saving..." : "Continue"}
+            {pendingAction === "SAVE" ? "Saving" : "Continue"}
           </ActionButton>
         </form>
       </section>

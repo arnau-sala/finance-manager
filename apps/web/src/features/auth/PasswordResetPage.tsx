@@ -58,7 +58,7 @@ export function PasswordResetPage({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unable to change the password. Please try again"
+          : "Unable to change the password\nPlease try again"
       );
       setIsSubmitting(false);
     }
@@ -129,7 +129,7 @@ export function PasswordResetPage({
             type="submit"
             disabled={!canSubmit || isSubmitting}
           >
-            {isSubmitting ? "Updating..." : "Change password"}
+            {isSubmitting ? "Updating" : "Change password"}
           </ActionButton>
         </form>
       </section>

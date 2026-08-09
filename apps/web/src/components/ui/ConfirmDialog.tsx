@@ -39,7 +39,7 @@ export function ConfirmDialog({
   tone = "default",
   confirmTone = "default",
   confirmDisabled = false,
-  confirmingLabel = "Please wait...",
+  confirmingLabel = "Please wait",
   showCancel = true,
   dismissible = true,
   children,

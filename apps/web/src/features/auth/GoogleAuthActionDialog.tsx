@@ -15,9 +15,9 @@ function getDialogContent(action: GoogleAuthAction) {
   if (action.action === "create-account") {
     return {
       title: "No account found",
-      description: `No account is linked to ${action.email}.\nCreate one with Google?`,
+      description: `No account is linked to ${action.email}\nCreate one with Google?`,
       confirmLabel: "Create account",
-      confirmingLabel: "Creating..."
+      confirmingLabel: "Creating"
     };
   }
 
@@ -26,7 +26,7 @@ function getDialogContent(action: GoogleAuthAction) {
       title: "Account already exists",
       description: `${action.email} is already linked with Google`,
       confirmLabel: "Sign in",
-      confirmingLabel: "Signing in..."
+      confirmingLabel: "Signing in"
     };
   }
 
@@ -34,7 +34,7 @@ function getDialogContent(action: GoogleAuthAction) {
     title: "Use your password",
     description: `${action.email} already has an account, but Google is not linked`,
     confirmLabel: "Sign in with password",
-    confirmingLabel: "Opening..."
+    confirmingLabel: "Opening"
   };
 }
 

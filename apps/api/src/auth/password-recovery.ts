@@ -62,7 +62,7 @@ function getVerificationSecret() {
 
   if (!secret || !/^[a-f\d]{64}$/i.test(secret)) {
     throw new EmailConfigurationError(
-      "EMAIL_VERIFICATION_SECRET must be a 64-character hexadecimal value.",
+      "EMAIL_VERIFICATION_SECRET must be a 64-character hexadecimal value",
     );
   }
 

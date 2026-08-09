@@ -178,7 +178,7 @@ export function EmailVerificationResendButton({
       onClick={handleResend}
     >
       {isResending
-        ? "Sending..."
+        ? "Sending"
         : remainingSeconds > 0
           ? `Resend code in ${formatCountdown(remainingSeconds)}`
           : "Resend code"}

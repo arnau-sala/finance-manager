@@ -572,7 +572,7 @@ export default function CategoryBreakdownChart({
           <div
             className="stats-category-matrix"
             role="group"
-            aria-label={`${type === "INCOME" ? "Income" : "Expense"} category breakdown from ${displayedPeriod}. Each square represents one percent.`}
+            aria-label={`${type === "INCOME" ? "Income" : "Expense"} category breakdown from ${displayedPeriod}\nEach square represents one percent`}
           >
             {cells.map((cell) => (
               <span

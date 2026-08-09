@@ -39,7 +39,7 @@ function getAllowedOrigins() {
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error("ALLOWED_ORIGINS must be configured in production.");
+    throw new Error("ALLOWED_ORIGINS must be configured in production");
   }
 
   return DEVELOPMENT_ALLOWED_ORIGINS;
@@ -66,7 +66,7 @@ export function registerOriginCheck(app: FastifyInstance) {
     }
 
     if (!allowedOrigins.has(origin)) {
-      return reply.code(403).send({ error: "Origin not allowed." });
+  return reply.code(403).send({ error: "Origin not allowed" });
     }
   });
 }

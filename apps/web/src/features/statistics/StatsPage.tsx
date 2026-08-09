@@ -614,7 +614,7 @@ function StatsCategoryList({
         </ul>
       ) : (
         <p className="stats-category-empty">
-          No {type === "EXPENSE" ? "expenses" : "income"} in this period.
+          No {type === "EXPENSE" ? "expenses" : "income"} in this period
         </p>
       )}
     </section>
@@ -1339,7 +1339,7 @@ export function StatsPage({
       >
         <div className="stats-account-empty">
           <StatisticsLoadState
-            message="Your statistics could not be loaded."
+            message="Your statistics could not be loaded"
             retry={() => {
               prefetchScheduler.prioritizeUserRequest();
               void availabilityQuery.refetch();
@@ -1510,7 +1510,7 @@ export function StatsPage({
               />
             ) : overviewState === "error" ? (
               <StatisticsLoadState
-                message="Your statistics could not be loaded."
+                message="Your statistics could not be loaded"
                 retry={() => {
                   prefetchScheduler.prioritizeUserRequest();
                   void overviewQuery.refetch();
@@ -1537,7 +1537,7 @@ export function StatsPage({
                   <StatsChartsView charts={charts} />
                 ) : chartsState === "error" ? (
                   <StatisticsLoadState
-                    message="Your charts could not be loaded."
+                    message="Your charts could not be loaded"
                     retry={() => {
                       prefetchScheduler.prioritizeUserRequest();
                       void chartsQuery.refetch();

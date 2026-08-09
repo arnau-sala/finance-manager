@@ -47,7 +47,7 @@ const registerBodySchema = z
       context.addIssue({
         code: "custom",
         path: ["passwordConfirmation"],
-        message: "Passwords do not match.",
+        message: "Passwords do not match",
       });
     }
   });
@@ -72,7 +72,7 @@ const usernameRegisterBodySchema = z
       context.addIssue({
         code: "custom",
         path: ["passwordConfirmation"],
-        message: "Passwords do not match.",
+        message: "Passwords do not match",
       });
     }
   });
@@ -93,7 +93,7 @@ const verifyRegistrationBodySchema = z
   .strict();
 
 const invalidVerificationCodeResponse = {
-  error: "Invalid or expired verification code.",
+  error: "Invalid or expired verification code",
 };
 
 const loginIdentifierSchema = z.union([emailSchema, usernameSchema]);
@@ -123,7 +123,7 @@ const browserLoginBodySchema = z
   .passthrough();
 
 const invalidCredentialsResponse = {
-  error: "Invalid identifier or password.",
+  error: "Invalid identifier or password",
 };
 
 async function authenticatePasswordUser(
@@ -181,7 +181,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedParams.success) {
         return reply.code(400).send({
-          error: "Invalid username.",
+          error: "Invalid username",
           issues: parsedParams.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -206,7 +206,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid registration data.",
+          error: "Invalid registration data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -224,16 +224,16 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         });
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
         if (error instanceof EmailDeliveryError) {
-          request.log.error(error, "Verification email delivery failed.");
+          request.log.error(error, "Verification email delivery failed");
           return reply.code(503).send({
-            error: "Verification email could not be sent. Please try again.",
+            error: "Verification email could not be sent\nPlease try again",
           });
         }
 
@@ -252,7 +252,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid registration data.",
+          error: "Invalid registration data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -268,7 +268,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (result.type === "username-unavailable") {
-        return reply.code(409).send({ error: "Username is unavailable." });
+        return reply.code(409).send({ error: "Username is unavailable" });
       }
 
       request.session.regenerate();
@@ -277,7 +277,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       reply.header("Cache-Control", "no-store");
 
       return reply.code(201).send({
-        message: "Account created successfully.",
+        message: "Account created successfully",
         user: result.user,
         recoveryCode: result.recoveryCode,
       });
@@ -291,23 +291,23 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const parsedBody = resendRegistrationBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Invalid email address." });
+        return reply.code(400).send({ error: "Invalid email address" });
       }
 
       try {
         await resendPasswordRegistrationCode(parsedBody.data.email);
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
         if (error instanceof EmailDeliveryError) {
-          request.log.error(error, "Verification email delivery failed.");
+          request.log.error(error, "Verification email delivery failed");
           return reply.code(503).send({
-            error: "Verification email could not be sent. Please try again.",
+            error: "Verification email could not be sent\nPlease try again",
           });
         }
 
@@ -337,9 +337,9 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         );
       } catch (error) {
         if (error instanceof EmailConfigurationError) {
-          request.log.error(error, "Email verification is not configured.");
+          request.log.error(error, "Email verification is not configured");
           return reply.code(503).send({
-            error: "Email verification is not configured.",
+            error: "Email verification is not configured",
           });
         }
 
@@ -352,7 +352,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.type === "account-exists") {
         return reply.code(409).send({
-          error: "An account already exists for this email.",
+          error: "An account already exists for this email",
         });
       }
 
@@ -361,7 +361,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("sessionVersion", result.sessionVersion);
 
       return reply.code(201).send({
-        message: "Account created successfully.",
+        message: "Account created successfully",
         user: result.user,
       });
     },
@@ -374,7 +374,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const parsedBody = loginBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Invalid login data." });
+        return reply.code(400).send({ error: "Invalid login data" });
       }
 
       const { identifier, password } = parsedBody.data;
@@ -392,7 +392,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       request.session.set("userId", user.id);
       request.session.set("sessionVersion", user.sessionVersion);
 
-      return reply.send({ message: "Login successful." });
+      return reply.send({ message: "Login successful" });
     },
   );
 
@@ -403,7 +403,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const parsedBody = browserLoginBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(400).send({ error: "Invalid login data." });
+        return reply.code(400).send({ error: "Invalid login data" });
       }
 
       const user = await authenticatePasswordUser(
@@ -431,12 +431,12 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const userId = request.session.get("userId");
 
       if (!userId) {
-        return reply.code(401).send({ error: "No active session." });
+        return reply.code(401).send({ error: "No active session" });
       }
 
       request.session.delete();
 
-      return reply.send({ message: "Logout successful." });
+      return reply.send({ message: "Logout successful" });
     },
   );
 };

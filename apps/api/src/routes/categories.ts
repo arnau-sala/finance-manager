@@ -46,13 +46,13 @@ export const categoryRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedQuery = categoryQuerySchema.safeParse(request.query);
 
       if (!parsedQuery.success) {
-        return reply.code(400).send({ error: "Invalid category filter." });
+        return reply.code(400).send({ error: "Invalid category filter" });
       }
 
       const categories = await db.category.findMany({

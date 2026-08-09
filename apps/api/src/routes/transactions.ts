@@ -106,7 +106,7 @@ const transactionListQuerySchema = getPaginationQuerySchema({
       context.addIssue({
         code: "custom",
         path: ["maximumAmountCents"],
-        message: "Maximum amount must not be lower than minimum amount.",
+        message: "Maximum amount must not be lower than minimum amount",
       });
     }
 
@@ -118,7 +118,7 @@ const transactionListQuerySchema = getPaginationQuerySchema({
       context.addIssue({
         code: "custom",
         path: ["endDate"],
-        message: "End date must not be earlier than start date.",
+        message: "End date must not be earlier than start date",
       });
     }
   });
@@ -138,7 +138,7 @@ const amountSchema = z
       .string()
       .regex(
         DECIMAL_AMOUNT_PATTERN,
-        "Amount must be a positive decimal with at most two decimal places.",
+      "Amount must be a positive decimal with at most two decimal places",
       ),
   )
   .superRefine((amount, context) => {
@@ -147,14 +147,14 @@ const amountSchema = z
     if (amountCents <= 0n) {
       context.addIssue({
         code: "custom",
-        message: "Amount must be greater than zero.",
+        message: "Amount must be greater than zero",
       });
     }
 
     if (amountCents > MAX_AMOUNT_CENTS) {
       context.addIssue({
         code: "custom",
-        message: "Amount is too large.",
+        message: "Amount is too large",
       });
     }
   })
@@ -285,7 +285,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedQuery = transactionListQuerySchema.safeParse(
@@ -294,7 +294,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedQuery.success) {
         return reply.code(400).send({
-          error: "Invalid transaction filters.",
+          error: "Invalid transaction filters",
           issues: parsedQuery.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -371,7 +371,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedParams = transactionCategoryParamsSchema.safeParse(
@@ -379,7 +379,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       );
 
       if (!parsedParams.success) {
-        return reply.code(400).send({ error: "Invalid category id." });
+        return reply.code(400).send({ error: "Invalid category id" });
       }
 
       const parsedQuery = transactionsPaginationQuerySchema.safeParse(
@@ -387,7 +387,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       );
 
       if (!parsedQuery.success) {
-        return reply.code(400).send({ error: "Invalid pagination query." });
+        return reply.code(400).send({ error: "Invalid pagination query" });
       }
 
       const { limit, offset } = parsedQuery.data;
@@ -435,13 +435,13 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedParams = transactionParamsSchema.safeParse(request.params);
 
       if (!parsedParams.success) {
-        return reply.code(400).send({ error: "Invalid transaction id." });
+        return reply.code(400).send({ error: "Invalid transaction id" });
       }
 
       const detail = await getTransactionDetail(
@@ -450,7 +450,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       );
 
       if (!detail) {
-        return reply.code(404).send({ error: "Transaction not found." });
+        return reply.code(404).send({ error: "Transaction not found" });
       }
 
       return reply.send(detail);
@@ -464,14 +464,14 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedBody = createTransactionBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid transaction data.",
+          error: "Invalid transaction data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -494,7 +494,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       if (!category) {
         return reply
           .code(400)
-          .send({ error: "Invalid category for transaction type." });
+          .send({ error: "Invalid category for transaction type" });
       }
 
       const transaction = await db.transaction.create({
@@ -525,13 +525,13 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedParams = transactionParamsSchema.safeParse(request.params);
 
       if (!parsedParams.success) {
-        return reply.code(400).send({ error: "Invalid transaction id." });
+        return reply.code(400).send({ error: "Invalid transaction id" });
       }
 
       const deletion = await db.transaction.deleteMany({
@@ -542,10 +542,10 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (deletion.count === 0) {
-        return reply.code(404).send({ error: "Transaction not found." });
+        return reply.code(404).send({ error: "Transaction not found" });
       }
 
-      return reply.send({ message: "Transaction deleted." });
+      return reply.send({ message: "Transaction deleted" });
     },
   );
 
@@ -556,13 +556,13 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const parsedParams = transactionParamsSchema.safeParse(request.params);
 
       if (!parsedParams.success) {
-        return reply.code(400).send({ error: "Invalid transaction id." });
+        return reply.code(400).send({ error: "Invalid transaction id" });
       }
 
       const parsedBody = updateTransactionBodySchema.safeParse(
@@ -571,7 +571,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid transaction data.",
+          error: "Invalid transaction data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -592,11 +592,11 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (!transaction) {
-        return reply.code(404).send({ error: "Transaction not found." });
+        return reply.code(404).send({ error: "Transaction not found" });
       }
 
       if (Object.keys(parsedBody.data).length === 0) {
-        return reply.send({ message: "Transaction updated." });
+        return reply.send({ message: "Transaction updated" });
       }
 
       const { type, categoryId, description, date, amount } = parsedBody.data;
@@ -613,7 +613,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       if (!category) {
         return reply
           .code(400)
-          .send({ error: "Invalid category for transaction type." });
+          .send({ error: "Invalid category for transaction type" });
       }
 
       const update = await db.transaction.updateMany({
@@ -631,10 +631,10 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
       });
 
       if (update.count === 0) {
-        return reply.code(404).send({ error: "Transaction not found." });
+        return reply.code(404).send({ error: "Transaction not found" });
       }
 
-      return reply.send({ message: "Transaction updated." });
+      return reply.send({ message: "Transaction updated" });
     },
   );
 };

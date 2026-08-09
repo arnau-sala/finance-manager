@@ -178,7 +178,7 @@ export function UsernameLinkPage({
             type="submit"
             disabled={!canSubmit}
           >
-            {isSubmitting ? "Linking..." : "Continue"}
+            {isSubmitting ? "Linking" : "Continue"}
           </ActionButton>
         </form>
       </section>

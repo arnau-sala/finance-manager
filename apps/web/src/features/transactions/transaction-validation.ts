@@ -14,10 +14,10 @@ function amountToCents(amount: string) {
 const transactionAmountSchema = z
   .string()
   .trim()
-  .min(1, "Enter an amount.")
+  .min(1, "Enter an amount")
   .regex(
     AMOUNT_PATTERN,
-    "Enter a valid amount with no more than two decimal places."
+      "Enter a valid amount with no more than two decimal places"
   )
   .superRefine((amount, context) => {
     if (!AMOUNT_PATTERN.test(amount)) {
@@ -29,14 +29,14 @@ const transactionAmountSchema = z
     if (amountCents <= 0n) {
       context.addIssue({
         code: "custom",
-        message: "Amount must be greater than zero."
+      message: "Amount must be greater than zero"
       });
     }
 
     if (amountCents > MAX_AMOUNT_CENTS) {
       context.addIssue({
         code: "custom",
-        message: "Amount is too large."
+      message: "Amount is too large"
       });
     }
   })
@@ -49,12 +49,12 @@ export const createTransactionSchema = z
     description: z
       .string()
       .trim()
-      .min(1, "Enter a name.")
-      .max(50, "Name must be 50 characters or fewer."),
-    categoryId: z.string().trim().min(1, "Choose a category."),
+  .min(1, "Enter a name")
+  .max(50, "Name must be 50 characters or fewer"),
+  categoryId: z.string().trim().min(1, "Choose a category"),
     date: z
       .string()
-      .refine((value) => parseLocalDateOnly(value) !== null, "Choose a valid date.")
+  .refine((value) => parseLocalDateOnly(value) !== null, "Choose a valid date")
   })
   .strict()
   .superRefine((transaction, context) => {
@@ -68,7 +68,7 @@ export const createTransactionSchema = z
       context.addIssue({
         code: "custom",
         path: ["categoryId"],
-        message: "Choose a valid category."
+      message: "Choose a valid category"
       });
     }
   });

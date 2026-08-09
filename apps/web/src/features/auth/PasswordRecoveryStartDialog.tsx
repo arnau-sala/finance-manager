@@ -62,7 +62,7 @@ export function PasswordRecoveryStartDialog({
       setError(
         requestError instanceof Error
           ? requestError.message
-          : "Unable to start account recovery. Please try again"
+          : "Unable to start account recovery\nPlease try again"
       );
       setIsSubmitting(false);
     }
@@ -74,7 +74,7 @@ export function PasswordRecoveryStartDialog({
       title="Recover your account"
       description="Enter your email or username"
       confirmLabel="Continue"
-      confirmingLabel="Checking..."
+      confirmingLabel="Checking"
       icon={<KeyRound />}
       isConfirming={isSubmitting}
       error={error}

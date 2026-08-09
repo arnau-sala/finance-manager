@@ -144,7 +144,7 @@ export function EmailLinkEmailPage({
             type="submit"
             disabled={!canSubmit}
           >
-            {isSubmitting ? "Sending..." : "Send code"}
+            {isSubmitting ? "Sending" : "Send code"}
           </ActionButton>
         </form>
       </section>

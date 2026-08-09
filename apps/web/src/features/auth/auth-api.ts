@@ -114,7 +114,7 @@ export async function login(input: LoginInput) {
   });
 
   if (!response.ok) {
-    throw new Error(await readErrorMessage(response, "Login failed."));
+    throw new Error(await readErrorMessage(response, "Login failed"));
   }
 }
 
@@ -129,7 +129,7 @@ export async function getCurrentSession() {
   }
 
   if (!response.ok) {
-    throw new Error("Unable to load the current session.");
+    throw new Error("Unable to load the current session");
   }
 
   const body = (await response.json()) as CurrentSessionResponse;
@@ -143,7 +143,7 @@ export async function logout() {
   });
 
   if (!response.ok && response.status !== 401) {
-    throw new Error(await readErrorMessage(response, "Unable to log out."));
+    throw new Error(await readErrorMessage(response, "Unable to log out"));
   }
 }
 
@@ -158,7 +158,7 @@ export async function deleteAccount(password: string) {
   });
 
   if (!response.ok) {
-    throw await createApiRequestError(response, "Unable to delete account.");
+    throw await createApiRequestError(response, "Unable to delete account");
   }
 }
 
@@ -173,7 +173,7 @@ export async function updateProfile(input: UpdateProfileInput) {
   });
 
   if (!response.ok) {
-    throw await createApiRequestError(response, "Unable to update profile.");
+    throw await createApiRequestError(response, "Unable to update profile");
   }
 
   const body = (await response.json()) as UpdateProfileResponse;
@@ -241,7 +241,7 @@ export async function changePassword(input: ChangePasswordInput) {
   });
 
   if (!response.ok) {
-    throw await createApiRequestError(response, "Unable to change password.");
+    throw await createApiRequestError(response, "Unable to change password");
   }
 }
 
@@ -433,14 +433,14 @@ export async function startGoogleAccountDeletion() {
   if (!response.ok) {
     throw await createApiRequestError(
       response,
-      "Unable to verify your Google account."
+          "Unable to verify your Google account"
     );
   }
 
   const body = (await response.json()) as GoogleAuthorizationStartResponse;
 
   if (!body.authorizationUrl) {
-    throw new ApiRequestError("Unable to verify your Google account.", 500);
+    throw new ApiRequestError("Unable to verify your Google account", 500);
   }
 
   return body.authorizationUrl;
@@ -455,14 +455,14 @@ export async function startGoogleAccountLink() {
   if (!response.ok) {
     throw await createApiRequestError(
       response,
-      "Unable to link your Google account."
+          "Unable to link your Google account"
     );
   }
 
   const body = (await response.json()) as GoogleAuthorizationStartResponse;
 
   if (!body.authorizationUrl) {
-    throw new ApiRequestError("Unable to link your Google account.", 500);
+    throw new ApiRequestError("Unable to link your Google account", 500);
   }
 
   return body.authorizationUrl;
@@ -477,14 +477,14 @@ export async function startGoogleAccountUnlink() {
   if (!response.ok) {
     throw await createApiRequestError(
       response,
-      "Unable to unlink your Google account."
+          "Unable to unlink your Google account"
     );
   }
 
   const body = (await response.json()) as GoogleAuthorizationStartResponse;
 
   if (!body.authorizationUrl) {
-    throw new ApiRequestError("Unable to verify your Google account.", 500);
+    throw new ApiRequestError("Unable to verify your Google account", 500);
   }
 
   return body.authorizationUrl;

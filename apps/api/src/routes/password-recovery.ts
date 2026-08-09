@@ -59,7 +59,7 @@ const completeBodySchema = z
       context.addIssue({
         code: "custom",
         path: ["newPasswordConfirmation"],
-        message: "Passwords do not match.",
+        message: "Passwords do not match",
       });
     }
   });
@@ -132,7 +132,7 @@ function dispatchRecoveryEmail(
   }
 
   void deliverPasswordRecoveryEmail(delivery).catch((error) => {
-    request.log.error(error, "Password recovery email delivery failed.");
+      request.log.error(error, "Password recovery email delivery failed");
   });
 }
 
@@ -144,7 +144,7 @@ async function handleEmailResetRequest(
   const parsedBody = emailRequestBodySchema.safeParse(request.body);
 
   if (!parsedBody.success) {
-    return reply.code(400).send({ error: "Invalid email address." });
+    return reply.code(400).send({ error: "Invalid email address" });
   }
 
   try {
@@ -152,10 +152,10 @@ async function handleEmailResetRequest(
     dispatchRecoveryEmail(delivery, request);
   } catch (error) {
     if (error instanceof EmailConfigurationError) {
-      request.log.error(error, "Password recovery email is not configured.");
+      request.log.error(error, "Password recovery email is not configured");
       await waitForNeutralResponse(startedAt);
       return reply.code(503).send({
-        error: "Password recovery email is not configured.",
+        error: "Password recovery email is not configured",
       });
     }
 
@@ -194,7 +194,7 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
       if (!parsedBody.success) {
         return reply
           .code(400)
-          .send({ error: "Invalid or expired verification code." });
+          .send({ error: "Invalid or expired verification code" });
       }
 
       let result;
@@ -208,10 +208,10 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
         if (error instanceof EmailConfigurationError) {
           request.log.error(
             error,
-            "Password recovery verification is not configured.",
+          "Password recovery verification is not configured",
           );
           return reply.code(503).send({
-            error: "Password recovery email is not configured.",
+            error: "Password recovery email is not configured",
           });
         }
 
@@ -221,12 +221,12 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
       if (result.type === "invalid") {
         return reply
           .code(400)
-          .send({ error: "Invalid or expired verification code." });
+          .send({ error: "Invalid or expired verification code" });
       }
 
       setResetCookie(reply, result.token);
       reply.header("Cache-Control", "no-store");
-      return reply.send({ message: "Recovery code verified." });
+      return reply.send({ message: "Recovery code verified" });
     },
   );
 
@@ -237,19 +237,19 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
       const parsedBody = recoveryCodeBodySchema.safeParse(request.body);
 
       if (!parsedBody.success) {
-        return reply.code(401).send({ error: "Invalid recovery code." });
+        return reply.code(401).send({ error: "Invalid recovery code" });
       }
 
       const result = await verifyAccountRecoveryCode(parsedBody.data);
 
       if (result.type === "invalid" || !result.username) {
-        return reply.code(401).send({ error: "Invalid recovery code." });
+        return reply.code(401).send({ error: "Invalid recovery code" });
       }
 
       setResetCookie(reply, result.token);
       reply.header("Cache-Control", "no-store");
       return reply.send({
-        message: "Recovery code verified.",
+        message: "Recovery code verified",
         username: result.username,
       });
     },
@@ -263,7 +263,7 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedBody.success) {
         return reply.code(400).send({
-          error: "Invalid password data.",
+          error: "Invalid password data",
           issues: parsedBody.error.issues.map((issue) => ({
             field: issue.path.join("."),
             message: issue.message,
@@ -276,7 +276,7 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
       if (!token) {
         clearResetCookie(reply);
         return reply.code(401).send({
-          error: "Recovery session expired. Start again.",
+          error: "Recovery session expired\nStart again",
         });
       }
 
@@ -288,13 +288,13 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
       if (result.type === "invalid") {
         clearResetCookie(reply);
         return reply.code(401).send({
-          error: "Recovery session expired. Start again.",
+          error: "Recovery session expired\nStart again",
         });
       }
 
       if (result.type === "password-unchanged") {
         return reply.code(400).send({
-          error: "New password must be different from current password.",
+          error: "New password must be different from current password",
         });
       }
 
@@ -304,12 +304,12 @@ export const passwordRecoveryRoutes: FastifyPluginAsync = async (app) => {
 
       if (result.notification) {
         void notifyPasswordChanged(result.notification).catch((error) => {
-          request.log.error(error, "Password change notification failed.");
+        request.log.error(error, "Password change notification failed");
         });
       }
 
       return reply.send({
-        message: "Password changed successfully.",
+        message: "Password changed successfully",
         username: result.username,
         recoveryCode: result.recoveryCode,
       });

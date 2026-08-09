@@ -217,7 +217,7 @@ export function PasswordRecoveryCodePage({
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "Unable to verify the recovery code. Please try again"
+          : "Unable to verify the recovery code\nPlease try again"
       );
       setIsSubmitting(false);
     }
@@ -345,7 +345,7 @@ export function PasswordRecoveryCodePage({
             type="submit"
             disabled={!canSubmit || isSubmitting}
           >
-            {isSubmitting ? "Verifying..." : "Continue"}
+            {isSubmitting ? "Verifying" : "Continue"}
           </ActionButton>
         </form>
       </section>

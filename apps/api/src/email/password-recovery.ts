@@ -41,12 +41,12 @@ export async function sendPasswordResetCodeEmail(input: {
     to: { email: input.email, name: input.name },
     subject: "Reset your Finance Manager password",
     tag: "password-reset-code",
-    textContent: `Hi ${input.name},\n\nUse this code to reset your Finance Manager password: ${input.code}\n\nThe code expires in ${input.expiresInMinutes} minutes. If you did not request this, you can ignore this email.`,
+    textContent: `Hi ${input.name},\n\nUse this code to reset your Finance Manager password: ${input.code}\n\nThe code expires in ${input.expiresInMinutes} minutes\nIf you did not request this, you can ignore this email`,
     htmlContent: emailFrame(`
         <h1 style="margin:0 0 12px;font-size:24px;font-weight:500;">Reset your password</h1>
         <p style="margin:0 0 8px;color:#667085;line-height:1.5;">Hi ${name}, enter this code in Finance Manager:</p>
         <p style="margin:22px 0;font-size:32px;letter-spacing:8px;color:#111827;">${code}</p>
-        <p style="margin:0;color:#667085;line-height:1.5;">The code expires in ${input.expiresInMinutes} minutes. If you did not request this, you can ignore this email.</p>`),
+        <p style="margin:0;color:#667085;line-height:1.5;">The code expires in ${input.expiresInMinutes} minutes<br>If you did not request this, you can ignore this email</p>`),
   });
 }
 
@@ -60,16 +60,16 @@ export async function sendGooglePasswordGuidanceEmail(input: {
     to: { email: input.email, name: input.name },
     subject: "Use Google to access Finance Manager",
     tag: "password-reset-google-guidance",
-    textContent: `Hi ${input.name},\n\nYour Finance Manager account uses Google sign-in and does not have a password to reset. Open Finance Manager, tap Continue with Google, and choose ${input.email}.\n\nIf you did not request this, you can ignore this email.`,
+    textContent: `Hi ${input.name},\n\nYour Finance Manager account uses Google sign-in and does not have a password to reset\nOpen Finance Manager, tap Continue with Google, and choose ${input.email}\n\nIf you did not request this, you can ignore this email`,
     htmlContent: emailFrame(`
         <h1 style="margin:0 0 12px;font-size:24px;font-weight:500;">Sign in with Google</h1>
-        <p style="margin:0;color:#667085;line-height:1.5;">Hi ${name}, this account uses Google sign-in and does not have a password to reset.</p>
+        <p style="margin:0;color:#667085;line-height:1.5;">Hi ${name}, this account uses Google sign-in and does not have a password to reset</p>
         <div style="margin:24px 0;padding:13px 18px;color:#111827;background:#e7f6f3;border:1px solid #9fd8ce;border-radius:999px;text-align:center;font-size:16px;">
           <span style="display:inline-block;margin-right:10px;font-weight:600;color:#4285f4;">G</span>
           Continue with Google
         </div>
-        <p style="margin:0;color:#667085;line-height:1.5;">Open Finance Manager, tap the button shown above, then choose <strong style="color:#111827;">${escapeHtml(input.email)}</strong>.</p>
-        <p style="margin:16px 0 0;color:#667085;line-height:1.5;">If you did not request this, you can ignore this email.</p>`),
+        <p style="margin:0;color:#667085;line-height:1.5;">Open Finance Manager, tap the button shown above, then choose <strong style="color:#111827;">${escapeHtml(input.email)}</strong></p>
+        <p style="margin:16px 0 0;color:#667085;line-height:1.5;">If you did not request this, you can ignore this email</p>`),
   });
 }
 
@@ -83,10 +83,10 @@ export async function sendPasswordChangedEmail(input: {
     to: { email: input.email, name: input.name },
     subject: "Your Finance Manager password was changed",
     tag: "password-reset-complete",
-    textContent: `Hi ${input.name},\n\nYour Finance Manager password was changed and all existing sessions were signed out. If this was not you, secure your email account and contact support.`,
+    textContent: `Hi ${input.name},\n\nYour Finance Manager password was changed and all existing sessions were signed out\nIf this was not you, secure your email account and contact support`,
     htmlContent: emailFrame(`
         <h1 style="margin:0 0 12px;font-size:24px;font-weight:500;">Password changed</h1>
-        <p style="margin:0;color:#667085;line-height:1.5;">Hi ${name}, your Finance Manager password was changed and all existing sessions were signed out.</p>
-        <p style="margin:16px 0 0;color:#667085;line-height:1.5;">If this was not you, secure your email account and contact support.</p>`),
+        <p style="margin:0;color:#667085;line-height:1.5;">Hi ${name}, your Finance Manager password was changed and all existing sessions were signed out</p>
+        <p style="margin:16px 0 0;color:#667085;line-height:1.5;">If this was not you, secure your email account and contact support</p>`),
   });
 }

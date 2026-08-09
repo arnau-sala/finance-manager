@@ -84,7 +84,7 @@ function getGoogleAuthNotice(result: string | null): GoogleAuthNotice | null {
   if (isGoogleAuthResult(result, "failed")) {
     return {
       title: "Google sign-in failed",
-      description: "We couldn't verify the selected Google account. Please try again"
+      description: "We couldn't verify the selected Google account\nPlease try again"
     };
   }
 
@@ -535,7 +535,7 @@ export function App() {
     );
 
     if (!form) {
-      throw new Error("Unable to complete credential setup.");
+      throw new Error("Unable to complete credential setup");
     }
 
     const formPage = form.closest<HTMLElement>(".auth-flow-page");
@@ -616,7 +616,7 @@ export function App() {
     const user = await getCurrentSession();
 
     if (!user) {
-      throw new Error("Unable to load your account.");
+      throw new Error("Unable to load your account");
     }
 
     clearAuthenticatedData();
@@ -721,7 +721,7 @@ export function App() {
         <ConfirmDialog
           open={isSessionExpired}
           title="Session expired"
-          description="Your session has ended. Return to the main page to sign in again."
+          description="Your session has ended\nReturn to the main page to sign in again"
           confirmLabel="Return to main"
           icon={<TimerOff />}
           showCancel={false}
@@ -792,7 +792,7 @@ export function App() {
         <ConfirmDialog
           open={isSessionExpired}
           title="Session expired"
-          description="Your session has ended. Return to the main page to sign in again."
+          description="Your session has ended\nReturn to the main page to sign in again"
           confirmLabel="Return to main"
           icon={<TimerOff />}
           showCancel={false}

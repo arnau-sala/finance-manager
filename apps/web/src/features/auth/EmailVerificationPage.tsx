@@ -25,7 +25,7 @@ export function EmailVerificationPage({
   idPrefix = "email-verification",
   title,
   verifyLabel,
-  verifyingLabel = "Verifying...",
+  verifyingLabel = "Verifying",
   onBack,
   onVerifyCode,
   onResendCode
@@ -57,7 +57,7 @@ export function EmailVerificationPage({
       setFormError(
         error instanceof Error
           ? error.message
-          : "Unable to verify the code. Please try again"
+          : "Unable to verify the code\nPlease try again"
       );
       window.requestAnimationFrame(() => {
         codeInputRef.current?.focus({ preventScroll: true });
@@ -166,7 +166,7 @@ export function EmailVerificationPage({
               setFormError(
                 error instanceof Error
                   ? error.message
-                  : "Unable to resend the code. Please try again"
+                  : "Unable to resend the code\nPlease try again"
               )
             }
             onBusyChange={setIsResending}

@@ -37,7 +37,7 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const period = getCurrentMonthRange();

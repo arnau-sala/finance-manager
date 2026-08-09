@@ -9,7 +9,7 @@ export const registrationSchema = z
     email: emailSchema,
     name: userNameSchema,
     password: accountPasswordSchema,
-    passwordConfirmation: z.string().min(1, "Repeat your password.")
+  passwordConfirmation: z.string().min(1, "Repeat your password")
   })
   .strict()
   .superRefine(({ password, passwordConfirmation }, context) => {
@@ -17,7 +17,7 @@ export const registrationSchema = z
       context.addIssue({
         code: "custom",
         path: ["passwordConfirmation"],
-        message: "Passwords do not match."
+      message: "Passwords do not match"
       });
     }
   });

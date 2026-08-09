@@ -75,7 +75,7 @@ function toSafeNumber(value: bigint) {
   const number = Number(value);
 
   if (!Number.isSafeInteger(number)) {
-    throw new Error("Transaction detail aggregate exceeds the safe range.");
+    throw new Error("Transaction detail aggregate exceeds the safe range");
   }
 
   return number;

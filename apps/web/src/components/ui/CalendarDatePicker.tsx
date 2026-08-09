@@ -81,7 +81,7 @@ function getRequiredDateParts(value: string) {
   const parts = getDateParts(value);
 
   if (!parts) {
-    throw new Error("CalendarDatePicker requires valid date boundaries.");
+    throw new Error("CalendarDatePicker requires valid date boundaries");
   }
 
   return parts;

@@ -125,8 +125,8 @@ export function RecoveryCodePage({
           error instanceof Error
           ? error.message
           : isPasswordReset
-            ? "Unable to return to sign in. Please try again"
-            : "Unable to open your account. Please try again",
+            ? "Unable to return to sign in\nPlease try again"
+            : "Unable to open your account\nPlease try again",
         tone: "error"
       });
       setIsContinuing(false);
@@ -150,7 +150,7 @@ export function RecoveryCodePage({
               {isRecoveryReset
                 ? "This code will replace your current one when you finish"
                 : isReplacement
-                  ? "Your previous code no longer works. Save this replacement"
+                  ? "Your previous code no longer works\nSave this replacement"
                   : "Use this code to recover your account if you forget your password"}
             </p>
           </div>
@@ -214,12 +214,12 @@ export function RecoveryCodePage({
             <span className="auth-recovery-code-continue__label">
               {isContinuing
                 ? isPasswordReset
-                ? "Returning..."
+                ? "Returning"
                 : isRecoveryReset
-                  ? "Closing..."
+                  ? "Closing"
                   : isUsernameLink
-                    ? "Finishing..."
-                  : "Opening account..."
+                    ? "Finishing"
+                  : "Opening account"
                 : isPasswordReset
                   ? "Back to sign in"
                   : isRecoveryReset

@@ -145,7 +145,7 @@ export function EditProfilePage({
 
       setError(
         submitError instanceof ApiRequestError && submitError.status === 429
-          ? `Too many profile updates. Try again in ${
+          ? `Too many profile updates\nTry again in ${
               submitError.retryAfter ?? "15 minutes"
             }`
           : submitError instanceof Error
@@ -345,7 +345,7 @@ export function EditProfilePage({
               type="submit"
               disabled={!canSubmit}
             >
-              {isSubmitting ? "Saving..." : "Save changes"}
+              {isSubmitting ? "Saving" : "Save changes"}
             </ActionButton>
           </form>
         </section>

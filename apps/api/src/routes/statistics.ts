@@ -141,7 +141,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const currentYear = new Date().getFullYear();
@@ -150,7 +150,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     );
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid balance period." });
+      return reply.code(400).send({ error: "Invalid balance period" });
     }
 
     const { month, year = currentYear } = parsedParams.data;
@@ -171,7 +171,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const currentYear = new Date().getFullYear();
@@ -180,7 +180,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     );
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid balance period." });
+      return reply.code(400).send({ error: "Invalid balance period" });
     }
 
     const { year = currentYear } = parsedParams.data;
@@ -201,7 +201,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const currentYear = new Date().getFullYear();
@@ -212,7 +212,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       .safeParse(request.params);
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid category period." });
+      return reply.code(400).send({ error: "Invalid category period" });
     }
 
     const { month, year = currentYear } = parsedParams.data;
@@ -234,7 +234,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const currentYear = new Date().getFullYear();
@@ -245,7 +245,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       .safeParse(request.params);
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid category period." });
+      return reply.code(400).send({ error: "Invalid category period" });
     }
 
     const { type, month, year = currentYear } = parsedParams.data;
@@ -267,7 +267,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const currentYear = new Date().getFullYear();
@@ -276,7 +276,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     );
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid category period." });
+      return reply.code(400).send({ error: "Invalid category period" });
     }
 
     const { year = currentYear } = parsedParams.data;
@@ -298,7 +298,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const currentYear = new Date().getFullYear();
@@ -309,7 +309,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       .safeParse(request.params);
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid category period." });
+      return reply.code(400).send({ error: "Invalid category period" });
     }
 
     const { type, year = currentYear } = parsedParams.data;
@@ -331,7 +331,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const categories = await getUserCategoryStatistics(userId);
@@ -348,13 +348,13 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
     const userId = await getAuthenticatedUserId(request);
 
     if (!userId) {
-      return reply.code(401).send({ error: "Authentication required." });
+      return reply.code(401).send({ error: "Authentication required" });
     }
 
     const parsedParams = categoryTypeParamsSchema.safeParse(request.params);
 
     if (!parsedParams.success) {
-      return reply.code(400).send({ error: "Invalid category type." });
+      return reply.code(400).send({ error: "Invalid category type" });
     }
 
     const categories = await getUserCategoryStatistics(
@@ -374,7 +374,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const today = getTodayDateOnly();
@@ -397,14 +397,14 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const today = getTodayDateOnly();
       const period = parseStatisticsPeriod(request.query, today);
 
       if (!period) {
-        return reply.code(400).send({ error: "Invalid statistics period." });
+        return reply.code(400).send({ error: "Invalid statistics period" });
       }
 
       const overview = await getStatisticsOverview(userId, period, today);
@@ -422,14 +422,14 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const today = getTodayDateOnly();
       const period = parseStatisticsPeriod(request.query, today);
 
       if (!period) {
-        return reply.code(400).send({ error: "Invalid statistics period." });
+        return reply.code(400).send({ error: "Invalid statistics period" });
       }
 
       const charts = await getStatisticsCharts(userId, period, today);
@@ -447,7 +447,7 @@ export const statisticsRoutes: FastifyPluginAsync = async (app) => {
       const userId = await getAuthenticatedUserId(request);
 
       if (!userId) {
-        return reply.code(401).send({ error: "Authentication required." });
+        return reply.code(401).send({ error: "Authentication required" });
       }
 
       const balance = await getUserBalance(userId);

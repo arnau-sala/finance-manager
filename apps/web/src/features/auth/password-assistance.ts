@@ -24,7 +24,7 @@ export type PasswordCharacterStatus = "match" | "mismatch";
 
 function secureRandomIndex(maxExclusive: number) {
   if (!globalThis.crypto?.getRandomValues) {
-    throw new Error("Secure password generation is unavailable.");
+    throw new Error("Secure password generation is unavailable");
   }
 
   const randomBytes = new Uint8Array(1);
