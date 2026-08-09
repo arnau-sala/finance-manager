@@ -2,6 +2,10 @@
 
 Backend-first personal finance manager.
 
+## License
+
+All rights reserved. See [LICENSE](LICENSE).
+
 ## Current Phase
 
 The mobile-first authenticated experience now includes real Home, Moves, Profile,

@@ -4,6 +4,7 @@ import { ArrowRight, Mail } from "lucide-react";
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
+import { LegalNoticeScreen } from "./LegalNoticeScreen";
 import { validateLoginIdentifier } from "./login-identifier-validation";
 import type { PasswordRecoveryStart } from "./PasswordRecoveryFlow";
 import { PasswordRecoveryStartDialog } from "./PasswordRecoveryStartDialog";
@@ -36,6 +37,8 @@ export function AuthLandingPage({
   const [identifier, setIdentifier] = useState("");
   const [identifierError, setIdentifierError] = useState<string | null>(null);
   const [isRecoveryDialogOpen, setIsRecoveryDialogOpen] = useState(false);
+  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
+  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
   const hasContinued = useRef(false);
   const displayedError = identifierError ?? externalError;
 
@@ -68,8 +71,21 @@ export function AuthLandingPage({
     }
   }
 
+  function openLegalScreen() {
+    setIsLegalScreenClosing(false);
+    setIsLegalScreenOpen(true);
+  }
+
+  function closeLegalScreen() {
+    setIsLegalScreenClosing(true);
+  }
+
   return (
-    <main className="auth-screen auth-screen--static">
+    <main
+      className={`auth-screen auth-screen--static${
+        isLegalScreenOpen ? " auth-screen--legal-open" : ""
+      }`}
+    >
       <section className="auth-panel" aria-labelledby="auth-title">
         <header className="auth-header">
           <div className="auth-identity">
@@ -201,6 +217,25 @@ export function AuthLandingPage({
           </button>
         </div>
       </section>
+
+      <button
+        className="auth-landing-legal"
+        type="button"
+        onClick={openLegalScreen}
+      >
+        Privacy & Terms
+      </button>
+
+      {isLegalScreenOpen ? (
+        <LegalNoticeScreen
+          closing={isLegalScreenClosing}
+          onClose={closeLegalScreen}
+          onClosed={() => {
+            setIsLegalScreenOpen(false);
+            setIsLegalScreenClosing(false);
+          }}
+        />
+      ) : null}
 
       <PasswordRecoveryStartDialog
         open={isRecoveryDialogOpen}
