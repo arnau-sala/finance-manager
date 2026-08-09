@@ -10,6 +10,8 @@
     "dev:web": "npm run dev --workspace apps/web",
     "build:api": "npm run build --workspace apps/api",
     "build:web": "npm run build --workspace apps/web",
+    "storybook:web": "npm run storybook --workspace apps/web",
+    "build:storybook:web": "npm run build:storybook --workspace apps/web",
     "start:api": "npm run start --workspace apps/api",
     "db:generate": "node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",
     "db:migrate": "node -r dotenv/config ./node_modules/prisma/build/index.js migrate dev --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",

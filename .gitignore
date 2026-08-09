@@ -2,6 +2,7 @@ node_modules/
 
 apps/api/dist/
 apps/web/dist/
+apps/web/storybook-static/
 apps/web/tsconfig.tsbuildinfo
 apps/api/.env
 
