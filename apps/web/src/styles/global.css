@@ -6745,7 +6745,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .transaction-category-picker legend {
-  padding: 0;
+  padding-left: var(--text-field-padding);
 }
 
 .transaction-composer__field textarea {
