@@ -11,7 +11,7 @@ import {
   keepPreviousData,
   useInfiniteQuery
 } from "@tanstack/react-query";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
@@ -400,6 +400,19 @@ export function MovesPage({
         <div className="moves-page moves-page--empty">
           <header className="moves-page__header">
             <h1 id="moves-page-title">Transactions</h1>
+            <div className="moves-page__header-actions">
+              <p aria-live="polite">0 transactions</p>
+              <ActionButton
+                shape="icon"
+                className="moves-new-transaction-button"
+                type="button"
+                aria-label="New transaction"
+                title="New transaction"
+                onClick={onNewTransaction}
+              >
+                <Plus aria-hidden="true" />
+              </ActionButton>
+            </div>
           </header>
 
           <FirstTransactionEmptyState
@@ -421,20 +434,32 @@ export function MovesPage({
       <div className="moves-page">
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
-          {isLoadingFilteredResults ? (
-            <SkeletonBlock
-              className="moves-results-skeleton__count"
-              width={82}
-              height={12}
-            />
-          ) : (
-            <p aria-live="polite">
-              {getResultLabel(
-                totalResults,
-                normalizedQuery.length > 0 || activeFilterCount > 0
-              )}
-            </p>
-          )}
+          <div className="moves-page__header-actions">
+            {isLoadingFilteredResults ? (
+              <SkeletonBlock
+                className="moves-results-skeleton__count"
+                width={82}
+                height={12}
+              />
+            ) : (
+              <p aria-live="polite">
+                {getResultLabel(
+                  totalResults,
+                  normalizedQuery.length > 0 || activeFilterCount > 0
+                )}
+              </p>
+            )}
+            <ActionButton
+              shape="icon"
+              className="moves-new-transaction-button"
+              type="button"
+              aria-label="New transaction"
+              title="New transaction"
+              onClick={onNewTransaction}
+            >
+              <Plus aria-hidden="true" />
+            </ActionButton>
+          </div>
         </header>
 
         <div className="moves-toolbar">

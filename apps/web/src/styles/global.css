@@ -94,6 +94,7 @@ input[type="submit"] {
 .auth-primary-button:active:not(:disabled),
 .starting-net-worth-form__submit:active:not(:disabled),
 .home-new-transaction:active:not(:disabled),
+.moves-new-transaction-button:active:not(:disabled),
 .transaction-composer__footer button:active:not(:disabled),
 .confirm-dialog__button--confirm:active:not(:disabled) {
   background-color: color-mix(in srgb, var(--color-primary) 82%, white);
@@ -2841,7 +2842,8 @@ button.transaction-row__content:focus-visible {
 
 .moves-page__header {
   display: flex;
-  align-items: end;
+  min-height: 40px;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
 }
@@ -2854,12 +2856,45 @@ button.transaction-row__content:focus-visible {
 
 .moves-page__header p {
   flex: 0 0 auto;
-  margin: 0 0 3px;
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.4;
   font-weight: 400;
   white-space: nowrap;
+}
+
+.moves-page__header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.moves-new-transaction-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-new-transaction-button svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+
+.moves-new-transaction-button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .stats-page {
@@ -2875,7 +2910,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .stats-page__header {
-  min-height: 33px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2893,7 +2928,7 @@ button.transaction-row__content:focus-visible {
   min-height: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: 33px minmax(0, 1fr);
+  grid-template-rows: 40px minmax(0, 1fr);
   align-content: stretch;
   gap: 0;
   margin: 0 auto;
@@ -2902,8 +2937,8 @@ button.transaction-row__content:focus-visible {
 
 .stats-page--empty .stats-page__header,
 .moves-page--empty .moves-page__header {
-  min-height: 33px;
-  height: 33px;
+  min-height: 40px;
+  height: 40px;
   align-items: center;
 }
 
