@@ -5040,7 +5040,7 @@ button.transaction-row__content:focus-visible {
   padding: 10px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 18px;
 }
 
 .moves-filter-panel__heading {
