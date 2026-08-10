@@ -13,6 +13,7 @@ import {
 import { ActionButton } from "../src/components/ui/ActionButton";
 import { ConfirmDialog } from "../src/components/ui/ConfirmDialog";
 import { SkeletonBlock } from "../src/components/ui/SkeletonBlock";
+import { AppleBrowserInstallScreen } from "../src/app/StandaloneGate";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
@@ -199,4 +200,9 @@ export const Components: Story = {
       </div>
     </main>
   )
+};
+
+export const AppleNavigatorPage: Story = {
+  name: "Apple navigator page",
+  render: () => <AppleBrowserInstallScreen />
 };

@@ -44,8 +44,6 @@ function getIsAppleBrowser() {
 export function StandaloneGate({ children }: StandaloneGateProps) {
   const [isStandalone, setIsStandalone] = useState(getIsStandaloneApp);
   const [isAppleBrowser, setIsAppleBrowser] = useState(getIsAppleBrowser);
-  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
-  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
 
   useLayoutEffect(() => {
     if (isStandalone) {
@@ -91,12 +89,72 @@ export function StandaloneGate({ children }: StandaloneGateProps) {
       );
     }
 
-    return (
-      <>
-        <main className="browser-install-screen" aria-labelledby="browser-install-title">
-          <section className="browser-install-panel">
-            <header className="browser-install-hero">
-              <div className="browser-install-icon" aria-hidden="true">
+    return <AppleBrowserInstallScreen />;
+  }
+
+  return <>{children}</>;
+}
+
+export function AppleBrowserInstallScreen() {
+  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
+  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
+
+  return (
+    <>
+      <main
+        className="browser-install-screen"
+        aria-labelledby="browser-install-title"
+      >
+        <section className="browser-install-panel">
+          <header className="browser-install-hero">
+            <div className="browser-install-icon" aria-hidden="true">
+              <img
+                src="/icons/app-icon-512.png"
+                width={512}
+                height={512}
+                alt=""
+                decoding="sync"
+              />
+            </div>
+            <div className="browser-install-copy">
+              <p className="browser-install-kicker">Finance Manager</p>
+              <h1 id="browser-install-title">Add it to your Home Screen</h1>
+              <p>Use it from your Home Screen like a mobile app</p>
+            </div>
+          </header>
+
+          <div className="browser-install-reason">
+            <Smartphone aria-hidden="true" strokeWidth={1.8} />
+            <span>Home Screen access, no browser bar, smoother mobile flow</span>
+          </div>
+
+          <ol className="browser-install-steps" aria-label="Install steps">
+            <li>
+              <span className="browser-install-step__number">1</span>
+              <span className="browser-install-step__icon" aria-hidden="true">
+                <Share strokeWidth={1.9} />
+              </span>
+              <span className="browser-install-step__content">
+                <strong>Tap Share</strong>
+                <span>Use the Safari button at the bottom</span>
+              </span>
+            </li>
+            <li>
+              <span className="browser-install-step__number">2</span>
+              <span className="browser-install-step__icon" aria-hidden="true">
+                <SquarePlus strokeWidth={1.9} />
+              </span>
+              <span className="browser-install-step__content">
+                <strong>Add to Home Screen</strong>
+                <span>Choose it from the share menu</span>
+              </span>
+            </li>
+            <li>
+              <span className="browser-install-step__number">3</span>
+              <span
+                className="browser-install-step__icon browser-install-step__icon--app"
+                aria-hidden="true"
+              >
                 <img
                   src="/icons/app-icon-512.png"
                   width={512}
@@ -104,87 +162,37 @@ export function StandaloneGate({ children }: StandaloneGateProps) {
                   alt=""
                   decoding="sync"
                 />
-              </div>
-              <div className="browser-install-copy">
-                <p className="browser-install-kicker">Finance Manager</p>
-                <h1 id="browser-install-title">Add it to your Home Screen</h1>
-                <p>Use it from your Home Screen like a mobile app</p>
-              </div>
-            </header>
+              </span>
+              <span className="browser-install-step__content">
+                <strong>Open Finance Manager</strong>
+                <span>Use the new Home Screen icon</span>
+              </span>
+            </li>
+          </ol>
 
-            <div className="browser-install-reason">
-              <Smartphone aria-hidden="true" strokeWidth={1.8} />
-              <span>Home Screen access, no browser bar, smoother mobile flow</span>
-            </div>
-
-            <ol className="browser-install-steps" aria-label="Install steps">
-              <li>
-                <span className="browser-install-step__number">1</span>
-                <span className="browser-install-step__icon" aria-hidden="true">
-                  <Share strokeWidth={1.9} />
-                </span>
-                <span className="browser-install-step__content">
-                  <strong>Tap Share</strong>
-                  <span>Use the Safari button at the bottom</span>
-                </span>
-              </li>
-              <li>
-                <span className="browser-install-step__number">2</span>
-                <span className="browser-install-step__icon" aria-hidden="true">
-                  <SquarePlus strokeWidth={1.9} />
-                </span>
-                <span className="browser-install-step__content">
-                  <strong>Add to Home Screen</strong>
-                  <span>Choose it from the share menu</span>
-                </span>
-              </li>
-              <li>
-                <span className="browser-install-step__number">3</span>
-                <span
-                  className="browser-install-step__icon browser-install-step__icon--app"
-                  aria-hidden="true"
-                >
-                  <img
-                    src="/icons/app-icon-512.png"
-                    width={512}
-                    height={512}
-                    alt=""
-                    decoding="sync"
-                  />
-                </span>
-                <span className="browser-install-step__content">
-                  <strong>Open Finance Manager</strong>
-                  <span>Use the new Home Screen icon</span>
-                </span>
-              </li>
-            </ol>
-
-            <ActionButton
-              className="browser-install-legal"
-              type="button"
-              onClick={() => {
-                setIsLegalScreenClosing(false);
-                setIsLegalScreenOpen(true);
-              }}
-            >
-              Privacy & Terms
-            </ActionButton>
-          </section>
-        </main>
-
-        {isLegalScreenOpen ? (
-          <LegalNoticeScreen
-            closing={isLegalScreenClosing}
-            onClose={() => setIsLegalScreenClosing(true)}
-            onClosed={() => {
-              setIsLegalScreenOpen(false);
+          <ActionButton
+            className="browser-install-legal"
+            type="button"
+            onClick={() => {
               setIsLegalScreenClosing(false);
+              setIsLegalScreenOpen(true);
             }}
-          />
-        ) : null}
-      </>
-    );
-  }
+          >
+            Privacy & Terms
+          </ActionButton>
+        </section>
+      </main>
 
-  return <>{children}</>;
+      {isLegalScreenOpen ? (
+        <LegalNoticeScreen
+          closing={isLegalScreenClosing}
+          onClose={() => setIsLegalScreenClosing(true)}
+          onClosed={() => {
+            setIsLegalScreenOpen(false);
+            setIsLegalScreenClosing(false);
+          }}
+        />
+      ) : null}
+    </>
+  );
 }
