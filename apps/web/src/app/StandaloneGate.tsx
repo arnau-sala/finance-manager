@@ -3,16 +3,27 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type MouseEvent,
   type ReactNode
 } from "react";
 import {
+  ArrowRight,
+  ChartColumn,
+  LockKeyhole,
   MoreVertical,
   Share,
   Smartphone,
-  SquarePlus
+  SquarePlus,
+  WalletCards
 } from "lucide-react";
 
 import { ActionButton } from "../components/ui/ActionButton";
+import { DesktopLegalNoticeScreen } from "../features/auth/DesktopLegalNoticeScreen";
+import {
+  DESKTOP_LEGAL_PATH,
+  isDesktopLegalPath,
+  normalizeAppPath
+} from "../features/auth/desktop-legal-path";
 import { LegalNoticeScreen } from "../features/auth/LegalNoticeScreen";
 
 type NavigatorWithStandalone = Navigator & {
@@ -204,11 +215,7 @@ export function StandaloneGate({ children }: StandaloneGateProps) {
       return <BrowserInstallScreen initialPlatform="android" />;
     }
 
-    return (
-      <main className="browser-placeholder-screen" aria-label="Browser mode">
-        <p>Navigator Page</p>
-      </main>
-    );
+    return <DesktopBrowserLandingScreen />;
   }
 
   return <>{children}</>;
@@ -220,6 +227,254 @@ export function AppleBrowserInstallScreen() {
 
 export function AndroidBrowserInstallScreen() {
   return <BrowserInstallScreen initialPlatform="android" />;
+}
+
+export function DesktopBrowserLandingScreen() {
+  const [guidePlatform, setGuidePlatform] =
+    useState<BrowserInstallPlatform>("apple");
+  const [pathname, setPathname] = useState(() =>
+    normalizeAppPath(window.location.pathname)
+  );
+  const openedLegalViaPushRef = useRef(false);
+  const guideContent = installContent[guidePlatform];
+  const GuidePlatformIcon = guideContent.PlatformIcon;
+  const showLegalScreen = isDesktopLegalPath(pathname);
+
+  useEffect(() => {
+    function syncPathname() {
+      setPathname(normalizeAppPath(window.location.pathname));
+      openedLegalViaPushRef.current = false;
+    }
+
+    window.addEventListener("popstate", syncPathname);
+    return () => {
+      window.removeEventListener("popstate", syncPathname);
+    };
+  }, []);
+
+  function openLegalScreen(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    if (showLegalScreen) {
+      return;
+    }
+
+    openedLegalViaPushRef.current = true;
+    window.history.pushState({}, "", DESKTOP_LEGAL_PATH);
+    setPathname(DESKTOP_LEGAL_PATH);
+  }
+
+  function closeLegalScreen() {
+    if (openedLegalViaPushRef.current) {
+      openedLegalViaPushRef.current = false;
+      window.history.back();
+      return;
+    }
+
+    window.history.replaceState({}, "", "/");
+    setPathname("/");
+  }
+
+  const featureCards = [
+    {
+      title: "Track daily moves",
+      text: "Add income and expenses with categories, dates and details",
+      icon: WalletCards
+    },
+    {
+      title: "Understand your money",
+      text: "See net worth, balance, savings, categories and period insights",
+      icon: ChartColumn
+    },
+    {
+      title: "Stay in control",
+      text: "Use email, Google or username accounts with recovery options",
+      icon: LockKeyhole
+    }
+  ];
+
+  if (showLegalScreen) {
+    return <DesktopLegalNoticeScreen onClose={closeLegalScreen} />;
+  }
+
+  return (
+    <main
+      className="desktop-landing-screen"
+      aria-labelledby="desktop-landing-title"
+    >
+      <header className="desktop-landing-nav" aria-label="Finance Manager">
+        <span className="desktop-landing-brand">
+          <img
+            src="/icons/app-icon-512.png"
+            width={512}
+            height={512}
+            alt=""
+            decoding="sync"
+          />
+          <span>Finance Manager</span>
+        </span>
+      </header>
+
+        <section className="desktop-landing-shell">
+          <section className="desktop-landing-hero">
+            <div className="desktop-landing-copy">
+              <p className="desktop-landing-kicker">Mobile-first finance app</p>
+              <h1 id="desktop-landing-title">Money, made clear.</h1>
+              <p>
+                Track your personal finances from a mobile PWA built for quick
+                daily use and clean statistics
+              </p>
+              <div className="desktop-landing-actions">
+                <button
+                  className="desktop-landing-primary"
+                  type="button"
+                  onClick={() => {
+                    document
+                      .getElementById("desktop-install")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
+                  <span>Use it on your phone</span>
+                  <ArrowRight aria-hidden="true" />
+                </button>
+                <span className="desktop-landing-note">
+                  Open this website on mobile and add it to your Home Screen
+                </span>
+              </div>
+            </div>
+
+            <div className="desktop-landing-preview" aria-hidden="true">
+              <div className="desktop-landing-phone-frame">
+                <span className="desktop-landing-phone-frame__island" />
+                <img
+                  className="desktop-landing-preview__image"
+                  src="/landing/home-mockup.png"
+                  width={390}
+                  height={844}
+                  alt=""
+                  decoding="async"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="desktop-landing-features" aria-label="App summary">
+            {featureCards.map((feature) => {
+              const FeatureIcon = feature.icon;
+
+              return (
+                <article key={feature.title} className="desktop-landing-card">
+                  <span className="desktop-landing-card__icon" aria-hidden="true">
+                    <FeatureIcon strokeWidth={1.8} />
+                  </span>
+                  <div>
+                    <h2>{feature.title}</h2>
+                    <p>{feature.text}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <section
+            id="desktop-install"
+            className="desktop-landing-install"
+            aria-labelledby="desktop-install-title"
+          >
+            <div className="desktop-landing-guide">
+              <div
+                className="desktop-landing-platform-switch"
+                aria-label="Choose mobile platform"
+              >
+                {(["apple", "android"] as const).map((platform) => {
+                  const option = installContent[platform];
+                  const OptionIcon = option.PlatformIcon;
+                  const isSelected = guidePlatform === platform;
+
+                  return (
+                    <ActionButton
+                      key={platform}
+                      type="button"
+                      className={`desktop-landing-platform-switch__button${
+                        isSelected
+                          ? " desktop-landing-platform-switch__button--selected"
+                          : ""
+                      }`}
+                      onClick={() => setGuidePlatform(platform)}
+                    >
+                      <OptionIcon />
+                      <span>{option.platformName}</span>
+                    </ActionButton>
+                  );
+                })}
+              </div>
+
+              <div className="desktop-landing-guide__header">
+                <span aria-hidden="true">
+                  <GuidePlatformIcon />
+                </span>
+                <div>
+                  <strong>{guideContent.platformName} guide</strong>
+                  <p>{guideContent.infoText}</p>
+                </div>
+              </div>
+
+              <ol className="desktop-landing-guide__steps">
+                {guideContent.steps.map((step, index) => (
+                  <li key={step.title}>
+                    <span className="desktop-landing-guide__number">
+                      {index + 1}
+                    </span>
+                    <span
+                      className={`desktop-landing-guide__icon${
+                        step.icon ? "" : " desktop-landing-guide__icon--app"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {step.icon ?? (
+                        <img
+                          src="/icons/app-icon-512.png"
+                          width={512}
+                          height={512}
+                          alt=""
+                          decoding="sync"
+                        />
+                      )}
+                    </span>
+                    <div>
+                      <strong>{step.title}</strong>
+                      <span>{step.detail}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="desktop-landing-install__intro">
+              <p className="desktop-landing-kicker">How to use it</p>
+              <h2 id="desktop-install-title">Add it from your phone</h2>
+              <p>
+                Finance Manager is meant to run from the Home Screen, without a
+                browser bar and with a smoother mobile flow
+              </p>
+            </div>
+          </section>
+
+          <footer className="desktop-landing-footer">
+            <p className="desktop-landing-footer__copy">© 2026 Arnau Sala</p>
+            <p className="desktop-landing-footer__copy">
+              financemanager.auth@gmail.com
+            </p>
+            <a
+              className="desktop-landing-legal"
+              href={DESKTOP_LEGAL_PATH}
+              onClick={openLegalScreen}
+            >
+              Privacy & Terms
+            </a>
+          </footer>
+        </section>
+      </main>
+  );
 }
 
 function BrowserInstallScreen({

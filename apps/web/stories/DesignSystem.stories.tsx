@@ -15,7 +15,8 @@ import { ConfirmDialog } from "../src/components/ui/ConfirmDialog";
 import { SkeletonBlock } from "../src/components/ui/SkeletonBlock";
 import {
   AndroidBrowserInstallScreen,
-  AppleBrowserInstallScreen
+  AppleBrowserInstallScreen,
+  DesktopBrowserLandingScreen
 } from "../src/app/StandaloneGate";
 import {
   SlidingSegmentedControl,
@@ -213,4 +214,9 @@ export const AppleNavigatorPage: Story = {
 export const AndroidNavigatorPage: Story = {
   name: "Android navigator page",
   render: () => <AndroidBrowserInstallScreen />
+};
+
+export const DesktopLandingPage: Story = {
+  name: "Desktop landing page",
+  render: () => <DesktopBrowserLandingScreen />
 };

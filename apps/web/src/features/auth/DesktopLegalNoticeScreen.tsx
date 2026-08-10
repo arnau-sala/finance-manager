@@ -1,5 +1,5 @@
+import { useEffect } from "react";
 import { X } from "lucide-react";
-import { createPortal } from "react-dom";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import {
@@ -10,15 +10,13 @@ import {
   type LegalNoticeSection
 } from "./legal-notice-content";
 
-type LegalNoticeScreenProps = {
-  closing: boolean;
+type DesktopLegalNoticeScreenProps = {
   onClose: () => void;
-  onClosed: () => void;
 };
 
 function LegalSection({ section }: { section: LegalNoticeSection }) {
   return (
-    <section className="auth-legal-section">
+    <section className="desktop-legal-section">
       <h2>{section.title}</h2>
       <ul>
         {section.items.map((item) => (
@@ -29,37 +27,47 @@ function LegalSection({ section }: { section: LegalNoticeSection }) {
   );
 }
 
-export function LegalNoticeScreen({
-  closing,
-  onClose,
-  onClosed
-}: LegalNoticeScreenProps) {
-  return createPortal(
+export function DesktopLegalNoticeScreen({
+  onClose
+}: DesktopLegalNoticeScreenProps) {
+  useEffect(() => {
+    document.documentElement.classList.add("desktop-legal-route");
+    window.scrollTo(0, 0);
+
+    return () => {
+      document.documentElement.classList.remove("desktop-legal-route");
+    };
+  }, []);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
+  return (
     <aside
-      className={`auth-legal-screen${closing ? " is-closing" : ""}`}
-      aria-labelledby="auth-legal-title"
-      aria-modal="true"
-      role="dialog"
-      onAnimationEnd={(event) => {
-        if (
-          event.target === event.currentTarget &&
-          event.animationName === "auth-legal-screen-exit"
-        ) {
-          onClosed();
-        }
-      }}
+      className="desktop-legal-screen"
+      aria-labelledby="desktop-legal-title"
     >
-      <div className="auth-legal-chrome">
-        <header className="auth-legal-header">
+      <div className="desktop-legal-chrome">
+        <header className="desktop-legal-header">
           <div>
-            <p className="auth-legal-kicker">Finance Manager</p>
-            <h1 id="auth-legal-title">Privacy & Terms</h1>
-            <p className="auth-legal-updated">{legalNoticeUpdatedOn}</p>
+            <p className="desktop-legal-kicker">Finance Manager</p>
+            <h1 id="desktop-legal-title">Privacy & Terms</h1>
+            <p className="desktop-legal-updated">{legalNoticeUpdatedOn}</p>
           </div>
 
           <ActionButton
             shape="icon"
-            className="auth-legal-close"
+            className="desktop-legal-close"
             type="button"
             aria-label="Close privacy and terms"
             onClick={onClose}
@@ -68,8 +76,8 @@ export function LegalNoticeScreen({
           </ActionButton>
         </header>
 
-        <div className="auth-legal-content">
-          <section className="auth-legal-intro">
+        <div className="desktop-legal-body">
+          <section className="desktop-legal-intro">
             <h2>Plain English summary</h2>
             <ul>
               {legalNoticeSummaryItems.map((item) => (
@@ -78,14 +86,14 @@ export function LegalNoticeScreen({
             </ul>
           </section>
 
-          <section className="auth-legal-group">
+          <section className="desktop-legal-document">
             <h2>Privacy Policy</h2>
             {privacySections.map((section) => (
               <LegalSection key={section.title} section={section} />
             ))}
           </section>
 
-          <section className="auth-legal-group">
+          <section className="desktop-legal-document">
             <h2>Terms of Use</h2>
             {termsSections.map((section) => (
               <LegalSection key={section.title} section={section} />
@@ -93,7 +101,6 @@ export function LegalNoticeScreen({
           </section>
         </div>
       </div>
-    </aside>,
-    document.body
+    </aside>
   );
 }
