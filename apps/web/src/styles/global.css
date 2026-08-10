@@ -499,6 +499,7 @@ body::before {
   border-radius: 999px;
   cursor: pointer;
   pointer-events: auto;
+  text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
 

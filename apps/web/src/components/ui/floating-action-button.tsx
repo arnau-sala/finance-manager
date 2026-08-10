@@ -5,6 +5,7 @@ import { useState, type ElementType, type SVGProps } from "react";
 type FloatingAction = {
   label: string;
   Icon: ElementType;
+  href?: string;
 };
 
 function GithubIcon(props: SVGProps<SVGSVGElement>) {
@@ -24,7 +25,11 @@ function LinkedinIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 const actions: FloatingAction[] = [
-  { label: "LinkedIn", Icon: LinkedinIcon },
+  {
+    label: "LinkedIn",
+    Icon: LinkedinIcon,
+    href: "https://www.linkedin.com/in/arnau-sala-araujo"
+  },
   { label: "GitHub", Icon: GithubIcon },
   { label: "Feedback", Icon: ThumbsUp }
 ];
@@ -40,6 +45,13 @@ const smoothTransition = {
   ease: [0.22, 1, 0.36, 1]
 } as const;
 
+const actionMotionProps = {
+  opacity: { open: 1, closed: 0 },
+  filter: { open: "blur(0px)", closed: "blur(3px)" },
+  scale: { open: 1, closed: 0.88 },
+  rotate: { open: 0, closed: 45 }
+} as const;
+
 export function LandingFloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -52,29 +64,57 @@ export function LandingFloatingActionButton() {
       aria-label="Landing actions"
     >
       <div className="landing-floating-actions__actions" aria-hidden={!isOpen}>
-        {actions.map(({ label, Icon }, index) => (
-          <motion.button
-            key={label}
-            className="landing-floating-actions__action"
-            type="button"
-            aria-label={label}
-            tabIndex={isOpen ? 0 : -1}
-            initial={false}
-            animate={{
-              opacity: isOpen ? 1 : 0,
-              filter: isOpen ? "blur(0px)" : "blur(3px)",
-              scale: isOpen ? 1 : 0.88,
-              rotate: isOpen ? 0 : 45
-            }}
-            transition={{
+        {actions.map(({ label, Icon, href }, index) => {
+          const motionProps = {
+            className: "landing-floating-actions__action",
+            "aria-label": label,
+            tabIndex: isOpen ? 0 : -1,
+            initial: false as const,
+            animate: {
+              opacity: isOpen
+                ? actionMotionProps.opacity.open
+                : actionMotionProps.opacity.closed,
+              filter: isOpen
+                ? actionMotionProps.filter.open
+                : actionMotionProps.filter.closed,
+              scale: isOpen
+                ? actionMotionProps.scale.open
+                : actionMotionProps.scale.closed,
+              rotate: isOpen
+                ? actionMotionProps.rotate.open
+                : actionMotionProps.rotate.closed
+            },
+            transition: {
               duration: 0.42,
-              ease: [0.22, 1, 0.36, 1],
+              ease: [0.22, 1, 0.36, 1] as const,
               delay: isOpen ? 0.08 + index * 0.035 : index * 0.025
-            }}
-          >
-            <Icon aria-hidden="true" strokeWidth={1.8} />
-          </motion.button>
-        ))}
+            }
+          };
+
+          if (href) {
+            return (
+              <motion.a
+                key={label}
+                {...motionProps}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Icon aria-hidden="true" strokeWidth={1.8} />
+              </motion.a>
+            );
+          }
+
+          return (
+            <motion.button
+              key={label}
+              {...motionProps}
+              type="button"
+            >
+              <Icon aria-hidden="true" strokeWidth={1.8} />
+            </motion.button>
+          );
+        })}
       </div>
 
       <motion.div
