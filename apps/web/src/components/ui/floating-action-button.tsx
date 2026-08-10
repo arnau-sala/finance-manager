@@ -30,7 +30,11 @@ const actions: FloatingAction[] = [
     Icon: LinkedinIcon,
     href: "https://www.linkedin.com/in/arnau-sala-araujo"
   },
-  { label: "GitHub", Icon: GithubIcon },
+  {
+    label: "GitHub",
+    Icon: GithubIcon,
+    href: "https://github.com/arnau-sala/finance-manager"
+  },
   { label: "Feedback", Icon: ThumbsUp }
 ];
 
