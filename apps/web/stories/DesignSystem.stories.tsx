@@ -13,7 +13,10 @@ import {
 import { ActionButton } from "../src/components/ui/ActionButton";
 import { ConfirmDialog } from "../src/components/ui/ConfirmDialog";
 import { SkeletonBlock } from "../src/components/ui/SkeletonBlock";
-import { AppleBrowserInstallScreen } from "../src/app/StandaloneGate";
+import {
+  AndroidBrowserInstallScreen,
+  AppleBrowserInstallScreen
+} from "../src/app/StandaloneGate";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
@@ -205,4 +208,9 @@ export const Components: Story = {
 export const AppleNavigatorPage: Story = {
   name: "Apple navigator page",
   render: () => <AppleBrowserInstallScreen />
+};
+
+export const AndroidNavigatorPage: Story = {
+  name: "Android navigator page",
+  render: () => <AndroidBrowserInstallScreen />
 };
