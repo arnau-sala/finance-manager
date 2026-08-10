@@ -249,6 +249,8 @@ export function ProfilePage({
   );
   const summaryGoogleInfoRef = useRef<HTMLDivElement>(null);
   const [isSummaryGoogleInfoOpen, setIsSummaryGoogleInfoOpen] = useState(false);
+  const [isSummaryGoogleInfoClosing, setIsSummaryGoogleInfoClosing] =
+    useState(false);
   const [isRecoveryCodeDialogOpen, setIsRecoveryCodeDialogOpen] =
     useState(false);
   const [signOutOtherDevices, setSignOutOtherDevices] = useState(false);
@@ -278,6 +280,15 @@ export function ProfilePage({
     (user.authProvider === "PASSWORD_AND_GOOGLE" &&
       deleteVerificationMethod === "google");
 
+  function openSummaryGoogleInfo() {
+    setIsSummaryGoogleInfoClosing(false);
+    setIsSummaryGoogleInfoOpen(true);
+  }
+
+  function closeSummaryGoogleInfo() {
+    setIsSummaryGoogleInfoClosing(true);
+  }
+
   useEffect(() => {
     if (!isSummaryGoogleInfoOpen) {
       return;
@@ -285,13 +296,13 @@ export function ProfilePage({
 
     function handlePointerDown(event: PointerEvent) {
       if (!summaryGoogleInfoRef.current?.contains(event.target as Node)) {
-        setIsSummaryGoogleInfoOpen(false);
+        closeSummaryGoogleInfo();
       }
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        setIsSummaryGoogleInfoOpen(false);
+        closeSummaryGoogleInfo();
       }
     }
 
@@ -832,9 +843,14 @@ export function ProfilePage({
                           aria-label="View Google sign-in details"
                           aria-expanded={isSummaryGoogleInfoOpen}
                           aria-controls="profile-summary-google-info"
-                          onClick={() =>
-                            setIsSummaryGoogleInfoOpen((isOpen) => !isOpen)
-                          }
+                          onClick={() => {
+                            if (isSummaryGoogleInfoOpen) {
+                              closeSummaryGoogleInfo();
+                              return;
+                            }
+
+                            openSummaryGoogleInfo();
+                          }}
                         >
                           <GoogleIcon />
                         </button>
@@ -842,8 +858,23 @@ export function ProfilePage({
                         {isSummaryGoogleInfoOpen ? (
                           <div
                             id="profile-summary-google-info"
-                            className="profile-summary-card__google-info"
+                            className={`profile-summary-card__google-info${
+                              isSummaryGoogleInfoClosing
+                                ? " profile-summary-card__google-info--closing"
+                                : ""
+                            }`}
                             role="note"
+                            onAnimationEnd={(event) => {
+                              if (
+                                event.target !== event.currentTarget ||
+                                !isSummaryGoogleInfoClosing
+                              ) {
+                                return;
+                              }
+
+                              setIsSummaryGoogleInfoOpen(false);
+                              setIsSummaryGoogleInfoClosing(false);
+                            }}
                           >
                             <strong>Google sign in activated</strong>
                             <p>
