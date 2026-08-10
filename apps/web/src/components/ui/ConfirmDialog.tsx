@@ -7,6 +7,8 @@ import { formatErrorMessage } from "./error-message";
 
 type ConfirmDialogProps = {
   open: boolean;
+  className?: string;
+  role?: "alertdialog" | "dialog";
   title: string;
   description: string;
   confirmLabel: string;
@@ -28,6 +30,8 @@ type ConfirmDialogProps = {
 
 export function ConfirmDialog({
   open,
+  className,
+  role = "alertdialog",
   title,
   description,
   confirmLabel,
@@ -89,7 +93,7 @@ export function ConfirmDialog({
       }
 
       const controls = dialogRef.current?.querySelectorAll<HTMLElement>(
-        "button:not(:disabled), input:not(:disabled)"
+        "button:not(:disabled), input:not(:disabled), textarea:not(:disabled)"
       );
 
       if (!controls?.length) {
@@ -147,8 +151,10 @@ export function ConfirmDialog({
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className={`confirm-dialog confirm-dialog--${tone} confirm-dialog--confirm-${confirmTone}`}
-        role="alertdialog"
+        className={`confirm-dialog confirm-dialog--${tone} confirm-dialog--confirm-${confirmTone}${
+          className ? ` ${className}` : ""
+        }`}
+        role={role}
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}

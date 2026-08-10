@@ -8788,6 +8788,50 @@ button.transaction-row__content:focus-visible {
   text-align: left;
 }
 
+.feedback-dialog {
+  width: min(100%, 460px);
+  padding: 26px;
+}
+
+.feedback-dialog__form {
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.feedback-dialog .confirm-dialog__field {
+  gap: 7px;
+}
+
+.feedback-dialog label > span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.feedback-dialog__field-heading {
+  min-height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.feedback-dialog__field-heading .transaction-composer__character-count {
+  margin-right: var(--text-field-padding, 20px);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.feedback-dialog__textarea {
+  min-height: 92px;
+  resize: none;
+}
+
+.feedback-dialog .confirm-dialog__button--confirm:disabled {
+  opacity: 0.45;
+}
+
 .confirm-dialog__email-code-form {
   gap: 12px;
 }

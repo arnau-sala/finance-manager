@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Plus, ThumbsUp } from "lucide-react";
 import { useState, type ElementType, type SVGProps } from "react";
 
+import { FeedbackDialog } from "./FeedbackDialog";
+
 type FloatingAction = {
   label: string;
   Icon: ElementType;
@@ -58,6 +60,7 @@ const actionMotionProps = {
 
 export function LandingFloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
 
   return (
     <div
@@ -114,6 +117,12 @@ export function LandingFloatingActionButton() {
               key={label}
               {...motionProps}
               type="button"
+              onClick={() => {
+                if (label === "Feedback") {
+                  setIsOpen(false);
+                  setIsFeedbackOpen(true);
+                }
+              }}
             >
               <Icon aria-hidden="true" strokeWidth={1.8} />
             </motion.button>
@@ -146,6 +155,10 @@ export function LandingFloatingActionButton() {
           </motion.span>
         </button>
       </motion.div>
+      <FeedbackDialog
+        open={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+      />
     </div>
   );
 }
