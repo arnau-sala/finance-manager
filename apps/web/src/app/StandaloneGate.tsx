@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { ActionButton } from "../components/ui/ActionButton";
+import { LandingFloatingActionButton } from "../components/ui/floating-action-button";
 import { DesktopLegalNoticeScreen } from "../features/auth/DesktopLegalNoticeScreen";
 import {
   DESKTOP_LEGAL_PATH,
@@ -458,21 +459,18 @@ export function DesktopBrowserLandingScreen() {
               </p>
             </div>
           </section>
-
-          <footer className="desktop-landing-footer">
-            <p className="desktop-landing-footer__copy">© 2026 Arnau Sala</p>
-            <p className="desktop-landing-footer__copy">
-              financemanager.auth@gmail.com
-            </p>
-            <a
-              className="desktop-landing-legal"
-              href={DESKTOP_LEGAL_PATH}
-              onClick={openLegalScreen}
-            >
-              Privacy & Terms
-            </a>
-          </footer>
         </section>
+        <footer className="desktop-landing-footer">
+          <p className="desktop-landing-footer__copy">© 2026 Arnau Sala</p>
+          <a
+            className="desktop-landing-legal"
+            href={DESKTOP_LEGAL_PATH}
+            onClick={openLegalScreen}
+          >
+            Privacy & Terms
+          </a>
+          <LandingFloatingActionButton />
+        </footer>
       </main>
   );
 }

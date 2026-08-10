@@ -422,16 +422,21 @@ body::before {
 }
 
 .desktop-landing-footer {
+  position: relative;
+  width: 100%;
+  min-height: 88px;
+  flex: 0 0 auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px 18px;
   margin-top: 16px;
   padding:
-    0
-    0
+    16px
+    max(96px, calc(env(safe-area-inset-right) + 80px))
     max(clamp(16px, 2.5vw, 24px), env(safe-area-inset-bottom));
+  padding-left: max(clamp(16px, 3vw, 40px), env(safe-area-inset-left));
 }
 
 .desktop-landing-footer__copy,
@@ -456,6 +461,108 @@ body::before {
   color: var(--color-text);
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.landing-floating-actions {
+  position: absolute;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 20;
+  height: 56px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.landing-floating-actions__actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: visibility 0s;
+}
+
+.landing-floating-actions.is-closed .landing-floating-actions__actions {
+  visibility: hidden;
+  transition: visibility 0s 500ms;
+}
+
+.landing-floating-actions__trigger,
+.landing-floating-actions__action {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.landing-floating-actions__trigger-track {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  background: var(--color-surface);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.landing-floating-actions__trigger {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  box-shadow: var(--shadow-navigation);
+  pointer-events: auto;
+}
+
+.landing-floating-actions__trigger:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.landing-floating-actions__trigger:active {
+  background: var(--color-primary-pressed);
+  border-color: var(--color-primary-pressed);
+}
+
+.landing-floating-actions__trigger-icon {
+  display: grid;
+  place-items: center;
+}
+
+.landing-floating-actions__trigger svg {
+  width: 23px;
+  height: 23px;
+}
+
+.landing-floating-actions__action {
+  color: var(--color-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-border);
+  box-shadow: var(--shadow-navigation);
+}
+
+.landing-floating-actions__action:hover {
+  color: var(--color-primary-hover);
+  background: var(--color-primary-soft);
+}
+
+.landing-floating-actions__action svg {
+  width: 21px;
+  height: 21px;
+}
+
+.landing-floating-actions__trigger:focus-visible,
+.landing-floating-actions__action:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 3px;
 }
 
 .desktop-landing-hero {
@@ -546,7 +653,8 @@ body::before {
 
 .desktop-landing-preview {
   display: grid;
-  justify-items: center;
+  justify-self: end;
+  justify-items: end;
 }
 
 .desktop-landing-phone-frame {
@@ -969,6 +1077,11 @@ body::before {
 
   .desktop-landing-actions {
     justify-content: center;
+  }
+
+  .desktop-landing-preview {
+    justify-self: center;
+    justify-items: center;
   }
 
   .desktop-landing-install__intro {
