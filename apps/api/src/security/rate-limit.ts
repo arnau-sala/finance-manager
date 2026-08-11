@@ -210,6 +210,14 @@ export const financialWriteRateLimit = {
     getSessionOrIpKey(request, "financial-write"),
 };
 
+export const feedbackSubmitRateLimit = {
+  hook: "preHandler" as const,
+  max: 10,
+  timeWindow: "15 minutes",
+  keyGenerator: (request: FastifyRequest) =>
+    getSessionOrIpKey(request, "feedback-submit"),
+};
+
 export const adminRateLimit = {
   max: 120,
   timeWindow: "1 minute",

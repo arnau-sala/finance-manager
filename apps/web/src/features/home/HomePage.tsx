@@ -28,6 +28,7 @@ import { AppVersionPage } from "./AppVersionPage";
 import { ChangePasswordPage } from "./ChangePasswordPage";
 import { EditProfilePage } from "./EditProfilePage";
 import { EmailLinkFlow } from "./EmailLinkFlow";
+import { FeatureSuggestionPage } from "./FeatureSuggestionPage";
 import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 import { RecoveryCodeResetPage } from "./RecoveryCodeResetPage";
@@ -207,6 +208,8 @@ export function HomePage({
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isAppVersionOpen, setIsAppVersionOpen] = useState(false);
+  const [isFeatureSuggestionOpen, setIsFeatureSuggestionOpen] =
+    useState(false);
   const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
   const [isUsernameLinkOpen, setIsUsernameLinkOpen] = useState(false);
   const [recoveryCodeReset, setRecoveryCodeReset] =
@@ -223,6 +226,7 @@ export function HomePage({
     isEditProfileOpen ||
     isChangePasswordOpen ||
     isAppVersionOpen ||
+    isFeatureSuggestionOpen ||
     isEmailLinkOpen ||
     isUsernameLinkOpen ||
     recoveryCodeReset !== null ||
@@ -281,6 +285,7 @@ export function HomePage({
           isChangePasswordOpen ||
           isEditProfileOpen ||
           isAppVersionOpen ||
+          isFeatureSuggestionOpen ||
           isEmailLinkOpen ||
           isUsernameLinkOpen ||
           recoveryCodeReset
@@ -352,7 +357,18 @@ export function HomePage({
 
       <AppVersionPage
         open={isAppVersionOpen}
+        onSuggestFeature={() => {
+          prefetchScheduler.prioritizeUserRequest();
+          setIsFeatureSuggestionOpen(true);
+        }}
         onBack={() => setIsAppVersionOpen(false)}
+      />
+
+      <FeatureSuggestionPage
+        open={isFeatureSuggestionOpen}
+        user={user}
+        onBack={() => setIsFeatureSuggestionOpen(false)}
+        onSessionExpired={onSessionExpired}
       />
 
       <EmailLinkFlow

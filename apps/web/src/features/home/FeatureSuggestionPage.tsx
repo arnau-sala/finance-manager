@@ -1,0 +1,359 @@
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  Check,
+  ChevronLeft,
+  CircleCheck,
+  Lightbulb,
+  TriangleAlert
+} from "lucide-react";
+
+import { ActionButton } from "../../components/ui/ActionButton";
+import { formatErrorMessage } from "../../components/ui/error-message";
+import { ApiRequestError, type SessionUser } from "../auth/auth-api";
+import { validateEmail } from "../auth/email-validation";
+import { submitFeedback } from "./feedback-api";
+
+type FeatureSuggestionPageProps = {
+  open: boolean;
+  user: SessionUser;
+  onBack: () => void;
+  onSessionExpired: () => void;
+};
+
+const suggestionMaxLength = 600;
+const suggestionCharacterCountRevealLength = 500;
+
+type SubmittedSuggestion = {
+  email: string | null;
+  message: string;
+  sender: string | null;
+};
+
+export function FeatureSuggestionPage({
+  open,
+  user,
+  onBack,
+  onSessionExpired
+}: FeatureSuggestionPageProps) {
+  const screenRef = useRef<HTMLElement>(null);
+  const [suggestion, setSuggestion] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [hasContactEmailBlurred, setHasContactEmailBlurred] = useState(false);
+  const [anonymous, setAnonymous] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submittedSuggestion, setSubmittedSuggestion] =
+    useState<SubmittedSuggestion | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const hasLinkedEmail = Boolean(user.email);
+  const senderLabel = user.username
+    ? `@${user.username}`
+    : user.email ?? user.name;
+  const showsContactEmailField = !hasLinkedEmail && !anonymous;
+  const parsedContactEmail =
+    contactEmail.trim().length > 0 ? validateEmail(contactEmail) : null;
+  const contactEmailError =
+    showsContactEmailField &&
+    hasContactEmailBlurred &&
+    parsedContactEmail !== null &&
+    !parsedContactEmail.success
+      ? (parsedContactEmail.error.issues[0]?.message ??
+        "Enter a valid email address")
+      : null;
+  const canSend =
+    suggestion.trim().length > 0 && !isSubmitting;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setSuggestion("");
+    setContactEmail("");
+    setHasContactEmailBlurred(false);
+    setAnonymous(false);
+    setIsSubmitting(false);
+    setSubmitted(false);
+    setSubmittedSuggestion(null);
+    setError(null);
+    screenRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [open]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canSend) {
+      return;
+    }
+
+    if (
+      showsContactEmailField &&
+      contactEmail.trim().length > 0 &&
+      parsedContactEmail?.success !== true
+    ) {
+      setHasContactEmailBlurred(true);
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      const trimmedSuggestion = suggestion.trim();
+      const submittedEmail =
+        showsContactEmailField && contactEmail.trim().length > 0
+          ? contactEmail.trim()
+          : user.email;
+
+      await submitFeedback({
+        type: "suggestion",
+        message: trimmedSuggestion,
+        anonymous,
+        email: submittedEmail ?? undefined
+      });
+      setSubmittedSuggestion({
+        email: anonymous ? null : (submittedEmail ?? null),
+        message: trimmedSuggestion,
+        sender: anonymous ? null : senderLabel
+      });
+      setSubmitted(true);
+      screenRef.current?.scrollTo({ top: 0, left: 0 });
+    } catch (submitError) {
+      if (submitError instanceof ApiRequestError && submitError.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
+      setError(
+        submitError instanceof ApiRequestError && submitError.status === 429
+          ? `Too many suggestions\nTry again in ${
+              submitError.retryAfter ?? "15 minutes"
+            }`
+          : submitError instanceof Error
+            ? submitError.message
+            : "Unable to send suggestion"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className={`account-flow-layer feature-suggestion-layer${
+        open ? " is-open" : ""
+      }`}
+      aria-hidden={!open}
+      inert={!open}
+    >
+      <section
+        ref={screenRef}
+        className="auth-screen auth-screen--login auth-screen--register feature-suggestion-screen"
+      >
+        <ActionButton
+          shape="icon"
+          className="auth-back-button"
+          type="button"
+          onClick={onBack}
+          aria-label="Go back"
+        >
+          <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
+        </ActionButton>
+
+        <section
+          className="auth-panel feature-suggestion-panel"
+          aria-labelledby="feature-suggestion-title"
+        >
+          <header className="auth-header auth-password-reset-header feature-suggestion-header">
+            <span className="auth-recovery-code-icon" aria-hidden="true">
+              {submitted ? (
+                <CircleCheck strokeWidth={1.7} />
+              ) : (
+                <Lightbulb strokeWidth={1.7} />
+              )}
+            </span>
+            <div className="auth-message">
+              <h1 id="feature-suggestion-title">Suggest a feature</h1>
+              <p className="auth-subtitle">
+                {submitted
+                  ? "Your idea helps shape what comes next"
+                  : "Share an idea for future improvements"}
+              </p>
+            </div>
+          </header>
+
+          {submitted ? (
+            <div className="auth-login-form auth-register-form feature-suggestion-form feature-suggestion-confirmation-stage">
+              <p className="feature-suggestion-confirmation__message">
+                <strong>Thank you for sharing this</strong>
+                <span>I will review it and consider it for a future update</span>
+              </p>
+
+              <div
+                className="feature-suggestion-confirmation"
+                aria-label="Sent suggestion summary"
+              >
+                <section className="feature-suggestion-confirmation__section">
+                  <span>Suggestion sent</span>
+                  <p>{submittedSuggestion?.message ?? suggestion.trim()}</p>
+                </section>
+
+                <section className="feature-suggestion-confirmation__section">
+                  <span>Shared information</span>
+                  {submittedSuggestion?.sender ? (
+                    <div className="feature-suggestion-confirmation__details">
+                      <p>{submittedSuggestion.sender}</p>
+                      {submittedSuggestion.email ? (
+                        <p>{submittedSuggestion.email}</p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p>Anonymous suggestion</p>
+                  )}
+                </section>
+              </div>
+
+              <ActionButton
+                className="auth-primary-button feature-suggestion-submit"
+                type="button"
+                onClick={onBack}
+              >
+                Done
+              </ActionButton>
+            </div>
+          ) : (
+            <form
+              className="auth-login-form auth-register-form feature-suggestion-form"
+              noValidate
+              onSubmit={handleSubmit}
+            >
+            <div className="auth-form-field">
+              <div className="auth-register-field-heading">
+                <span
+                  className="text-field-label"
+                  id="feature-suggestion-message-label"
+                >
+                  Suggestion
+                </span>
+                {suggestion.length >= suggestionCharacterCountRevealLength ? (
+                  <span
+                    className="transaction-composer__character-count"
+                    aria-live="polite"
+                  >
+                    {suggestion.length}/{suggestionMaxLength}
+                  </span>
+                ) : null}
+              </div>
+              <textarea
+                id="feature-suggestion-message"
+                className="text-field text-field--multiline feature-suggestion-textarea"
+                aria-labelledby="feature-suggestion-message-label"
+                placeholder="Tell me what would make the app better"
+                value={suggestion}
+                maxLength={suggestionMaxLength}
+                rows={6}
+                onChange={(event) => setSuggestion(event.target.value)}
+              />
+            </div>
+
+            {showsContactEmailField ? (
+              <div className="auth-form-field">
+                <div className="auth-register-field-heading">
+                  <span
+                    className="text-field-label"
+                    id="feature-suggestion-email-label"
+                  >
+                    Email (optional)
+                  </span>
+                  {contactEmailError ? (
+                    <p
+                      id="feature-suggestion-email-error"
+                      className="auth-register-field-error"
+                      role="alert"
+                      aria-live="polite"
+                    >
+                      <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                      <span>{formatErrorMessage(contactEmailError)}</span>
+                    </p>
+                  ) : null}
+                </div>
+                <input
+                  id="feature-suggestion-email"
+                  className="text-field"
+                  aria-labelledby="feature-suggestion-email-label"
+                  aria-invalid={Boolean(contactEmailError)}
+                  aria-describedby={
+                    contactEmailError
+                      ? "feature-suggestion-email-error"
+                      : undefined
+                  }
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Where I can reply"
+                  value={contactEmail}
+                  onBlur={() => setHasContactEmailBlurred(true)}
+                  onChange={(event) => {
+                    setContactEmail(event.target.value);
+                    setHasContactEmailBlurred(false);
+                  }}
+                />
+              </div>
+            ) : null}
+
+            <div className="auth-form-field feature-suggestion-privacy">
+              <span
+                className="text-field-label"
+                id="feature-suggestion-privacy-label"
+              >
+                Privacy
+              </span>
+              <label
+                className="recovery-code-reset-option feature-suggestion-anonymous"
+                htmlFor="feature-suggestion-anonymous"
+                aria-labelledby="feature-suggestion-privacy-label"
+              >
+                <input
+                  id="feature-suggestion-anonymous"
+                  type="checkbox"
+                  checked={anonymous}
+                  onChange={(event) => {
+                    setAnonymous(event.target.checked);
+                    setHasContactEmailBlurred(false);
+                  }}
+                />
+                <span
+                  className="recovery-code-reset-option__checkbox"
+                  aria-hidden="true"
+                >
+                  <Check />
+                </span>
+                <span className="recovery-code-reset-option__copy">
+                  <strong>Send anonymously</strong>
+                </span>
+              </label>
+              <p className="feature-suggestion-privacy__note">
+                {anonymous
+                  ? "This suggestion will be shared anonymously"
+                  : `This suggestion will be shared as ${senderLabel}`}
+              </p>
+            </div>
+
+            <ActionButton
+              className="auth-primary-button feature-suggestion-submit"
+              type="submit"
+              disabled={!canSend}
+            >
+              {isSubmitting ? "Sending" : "Send suggestion"}
+            </ActionButton>
+            {error ? (
+              <p className="auth-field-message auth-field-message--error">
+                {formatErrorMessage(error)}
+              </p>
+            ) : null}
+          </form>
+          )}
+        </section>
+      </section>
+    </div>
+  );
+}

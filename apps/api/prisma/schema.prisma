@@ -49,6 +49,11 @@ enum TransactionType {
   EXPENSE
 }
 
+enum FeedbackType {
+  GENERAL
+  SUGGESTION
+}
+
 model User {
   id                    String       @id @default(cuid())
   email                 String?      @unique
@@ -76,6 +81,7 @@ model User {
   pendingPasswordReset    PendingPasswordReset?
   passwordResetGrant      PasswordResetGrant?
   googleAuthActions       PendingGoogleAuthAction[]
+  feedbackEntries         FeedbackEntry[]
 }
 
 model PendingRegistration {
@@ -218,4 +224,17 @@ model Transaction {
 
   @@index([userId, occurredOn])
   @@index([categoryId])
+}
+
+model FeedbackEntry {
+  id        String       @id @default(cuid())
+  type      FeedbackType
+  userId    String?
+  email     String?
+  message   String       @db.VarChar(1000)
+  createdAt DateTime     @default(now())
+  user      User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([type, createdAt])
+  @@index([userId, createdAt])
 }

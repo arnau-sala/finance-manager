@@ -19,6 +19,7 @@ import { ActionButton } from "../../components/ui/ActionButton";
 
 type AppVersionPageProps = {
   open: boolean;
+  onSuggestFeature: () => void;
   onBack: () => void;
 };
 
@@ -78,7 +79,11 @@ const futureFeatures = [
   }
 ] as const;
 
-export function AppVersionPage({ open, onBack }: AppVersionPageProps) {
+export function AppVersionPage({
+  open,
+  onSuggestFeature,
+  onBack
+}: AppVersionPageProps) {
   const screenRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -171,7 +176,7 @@ export function AppVersionPage({ open, onBack }: AppVersionPageProps) {
               <ActionButton
                 className="auth-primary-button app-version-suggestion-button"
                 type="button"
-                onClick={() => undefined}
+                onClick={onSuggestFeature}
               >
                 <MessageSquare aria-hidden="true" strokeWidth={1.8} />
                 Suggest a feature
