@@ -55,6 +55,7 @@ import {
   EmailVerificationCodeInput,
   EmailVerificationResendButton
 } from "../auth/EmailVerificationCodeInput";
+import { LegalNoticeScreen } from "../auth/LegalNoticeScreen";
 import { validateAccountPassword } from "../auth/password-validation";
 
 type ProfilePageProps = {
@@ -197,6 +198,8 @@ export function ProfilePage({
   const profileContentRef = useRef<HTMLDivElement>(null);
   const [isProfileScrollable, setIsProfileScrollable] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
+  const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
+  const [isLegalScreenClosing, setIsLegalScreenClosing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [deleteDialogMode, setDeleteDialogMode] =
@@ -469,6 +472,15 @@ export function ProfilePage({
     }
 
     setIsDeletingAccount(false);
+  }
+
+  function openLegalScreen() {
+    setIsLegalScreenClosing(false);
+    setIsLegalScreenOpen(true);
+  }
+
+  function closeLegalScreen() {
+    setIsLegalScreenClosing(true);
   }
 
   function closeGoogleLinkDialog() {
@@ -1054,7 +1066,7 @@ export function ProfilePage({
               <ProfileActionButton
                 label="Privacy & Terms"
                 icon={<FileText />}
-                onClick={() => undefined}
+                onClick={openLegalScreen}
               />
               <ProfileActionButton
                 label="App version"
@@ -1529,6 +1541,17 @@ export function ProfilePage({
           </form>
         ) : null}
       </ConfirmDialog>
+
+      {isLegalScreenOpen ? (
+        <LegalNoticeScreen
+          closing={isLegalScreenClosing}
+          onClose={closeLegalScreen}
+          onClosed={() => {
+            setIsLegalScreenOpen(false);
+            setIsLegalScreenClosing(false);
+          }}
+        />
+      ) : null}
     </>
   );
 }
