@@ -63,6 +63,7 @@ type ProfilePageProps = {
   onEditProfile: () => void;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
+  onAppVersion: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
@@ -181,6 +182,7 @@ export function ProfilePage({
   onEditProfile,
   onProfileUpdated,
   onChangePassword,
+  onAppVersion,
   onLinkEmail,
   onLinkUsername,
   onRecoveryCodeReset,
@@ -1071,7 +1073,7 @@ export function ProfilePage({
               <ProfileActionButton
                 label="App version"
                 icon={<Info />}
-                onClick={() => undefined}
+                onClick={onAppVersion}
               />
               <ProfileActionButton
                 label="Feedback"
