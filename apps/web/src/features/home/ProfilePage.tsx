@@ -8,16 +8,19 @@ import {
 } from "react";
 import {
   AtSign,
+  Info,
   CalendarDays,
   Check,
   ChevronRight,
   CircleCheck,
   Clock3,
+  FileText,
   Key,
   KeyRound,
   Landmark,
   LogOut,
   Mail,
+  MessageSquare,
   Pencil,
   TriangleAlert,
   Trash2,
@@ -1040,6 +1043,31 @@ export function ProfilePage({
               </div>
             </section>
           ) : null}
+
+          <section
+            className="profile-section"
+            aria-labelledby="profile-about-title"
+          >
+            <h2 id="profile-about-title">About</h2>
+
+            <div className="profile-action-list">
+              <ProfileActionButton
+                label="Privacy & Terms"
+                icon={<FileText />}
+                onClick={() => undefined}
+              />
+              <ProfileActionButton
+                label="App version"
+                icon={<Info />}
+                onClick={() => undefined}
+              />
+              <ProfileActionButton
+                label="Feedback"
+                icon={<MessageSquare />}
+                onClick={() => undefined}
+              />
+            </div>
+          </section>
 
           <section
             className="profile-section"
