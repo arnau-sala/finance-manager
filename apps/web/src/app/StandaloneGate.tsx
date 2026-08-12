@@ -325,21 +325,39 @@ export function DesktopBrowserLandingScreen() {
                 daily use and clean statistics
               </p>
               <div className="desktop-landing-actions">
-                <button
-                  className="desktop-landing-primary"
-                  type="button"
-                  onClick={() => {
-                    document
-                      .getElementById("desktop-install")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                >
-                  <span>Use it on your phone</span>
-                  <ArrowRight aria-hidden="true" />
-                </button>
-                <span className="desktop-landing-note">
-                  Open this website on mobile and add it to your Home Screen
-                </span>
+                <div className="desktop-landing-action-row">
+                  <button
+                    className="desktop-landing-primary"
+                    type="button"
+                    onClick={() => {
+                      document
+                        .getElementById("desktop-install")
+                        ?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start"
+                        });
+                    }}
+                  >
+                    <span>Use it on your phone</span>
+                    <ArrowRight aria-hidden="true" />
+                  </button>
+                  <span className="desktop-landing-note">
+                    Open this website on mobile and add it to your Home Screen
+                  </span>
+                </div>
+                <div className="desktop-landing-action-row">
+                  <button
+                    className="desktop-landing-secondary"
+                    type="button"
+                  >
+                    <span>Launch on this device</span>
+                    <ArrowRight aria-hidden="true" />
+                  </button>
+                  <span className="desktop-landing-note">
+                    You can use it here, but the interface is designed for
+                    mobile
+                  </span>
+                </div>
               </div>
             </div>
 
