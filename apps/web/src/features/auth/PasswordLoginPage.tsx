@@ -110,7 +110,7 @@ export function PasswordLoginPage({
       <section className="auth-panel auth-login-panel" aria-labelledby="login-title">
         <header className="auth-header auth-login-header">
           <div className="auth-logo auth-logo--login" aria-hidden="true">
-            <img
+            <img draggable={false}
               src="/icons/app-icon-512.png"
               width={512}
               height={512}

@@ -82,7 +82,7 @@ export function PasswordResetPage({
       >
         <header className="auth-header auth-password-reset-header">
           <div className="auth-logo auth-logo--verification" aria-hidden="true">
-            <img
+            <img draggable={false}
               src="/icons/app-icon-512.png"
               width={512}
               height={512}

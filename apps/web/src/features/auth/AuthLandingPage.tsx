@@ -90,7 +90,7 @@ export function AuthLandingPage({
         <header className="auth-header">
           <div className="auth-identity">
             <div className="auth-logo" aria-hidden="true">
-              <img
+              <img draggable={false}
                 src="/icons/app-icon-512.png"
                 width={512}
                 height={512}

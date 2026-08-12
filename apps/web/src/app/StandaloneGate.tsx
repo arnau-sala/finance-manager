@@ -344,7 +344,7 @@ export function DesktopBrowserLandingScreen() {
     >
       <header className="desktop-landing-nav" aria-label="Finance Manager">
         <span className="desktop-landing-brand">
-          <img
+          <img draggable={false}
             src="/icons/app-icon-512.png"
             width={512}
             height={512}
@@ -407,7 +407,7 @@ export function DesktopBrowserLandingScreen() {
             <div className="desktop-landing-preview" aria-hidden="true">
               <div className="desktop-landing-phone-frame">
                 <span className="desktop-landing-phone-frame__island" />
-                <img
+                <img draggable={false}
                   className="desktop-landing-preview__image"
                   src="/landing/home-mockup.png"
                   width={390}
@@ -493,7 +493,7 @@ export function DesktopBrowserLandingScreen() {
                       aria-hidden="true"
                     >
                       {step.icon ?? (
-                        <img
+                        <img draggable={false}
                           src="/icons/app-icon-512.png"
                           width={512}
                           height={512}
@@ -646,7 +646,7 @@ function BrowserInstallScreen({
 
           <header className="browser-install-hero">
             <div className="browser-install-icon" aria-hidden="true">
-              <img
+              <img draggable={false}
                 src="/icons/app-icon-512.png"
                 width={512}
                 height={512}
@@ -677,7 +677,7 @@ function BrowserInstallScreen({
                   aria-hidden="true"
                 >
                   {step.icon ?? (
-                    <img
+                    <img draggable={false}
                       src="/icons/app-icon-512.png"
                       width={512}
                       height={512}

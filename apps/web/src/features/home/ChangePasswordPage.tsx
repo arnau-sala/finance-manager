@@ -168,7 +168,7 @@ export function ChangePasswordPage({
                 className="auth-logo auth-logo--verification"
                 aria-hidden="true"
               >
-                <img
+                <img draggable={false}
                   src="/icons/app-icon-512.png"
                   width={512}
                   height={512}

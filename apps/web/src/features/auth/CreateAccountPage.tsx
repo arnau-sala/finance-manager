@@ -636,7 +636,7 @@ export function CreateAccountPage({
       >
         <header className="auth-header auth-register-header">
           <div className="auth-logo auth-logo--register" aria-hidden="true">
-            <img
+            <img draggable={false}
               src="/icons/app-icon-512.png"
               width={512}
               height={512}
