@@ -5,7 +5,7 @@ import { FeatureSuggestionPage } from "../src/features/home/FeatureSuggestionPag
 import type { SessionUser } from "../src/features/auth/auth-api";
 
 const meta = {
-  title: "Pages/Feature suggestion",
+  title: "Pages/Feedback",
   component: FeatureSuggestionPage,
   parameters: {
     layout: "fullscreen"
@@ -86,18 +86,40 @@ function FeedbackFetchMock({ children }: { children: ReactNode }) {
   return children;
 }
 
-export const WithLinkedEmail: Story = {
+export const FeatureSuggestionWithLinkedEmail: Story = {
   args: {
     open: true,
+    kind: "suggestion",
     user: emailUser,
     onBack: () => undefined,
     onSessionExpired: () => undefined
   }
 };
 
-export const UsernameOnly: Story = {
+export const FeatureSuggestionUsernameOnly: Story = {
   args: {
     open: true,
+    kind: "suggestion",
+    user: usernameOnlyUser,
+    onBack: () => undefined,
+    onSessionExpired: () => undefined
+  }
+};
+
+export const GeneralFeedbackWithLinkedEmail: Story = {
+  args: {
+    open: true,
+    kind: "general",
+    user: emailUser,
+    onBack: () => undefined,
+    onSessionExpired: () => undefined
+  }
+};
+
+export const GeneralFeedbackUsernameOnly: Story = {
+  args: {
+    open: true,
+    kind: "general",
     user: usernameOnlyUser,
     onBack: () => undefined,
     onSessionExpired: () => undefined

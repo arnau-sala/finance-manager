@@ -67,6 +67,7 @@ type HomeSectionProps = {
   onEditProfile: () => void;
   onChangePassword: () => void;
   onAppVersion: () => void;
+  onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
@@ -141,6 +142,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onEditProfile,
     onChangePassword,
     onAppVersion,
+    onFeedback,
     onLinkEmail,
     onLinkUsername,
     onRecoveryCodeReset,
@@ -160,6 +162,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onProfileUpdated={onProfileUpdated}
       onChangePassword={onChangePassword}
       onAppVersion={onAppVersion}
+      onFeedback={onFeedback}
       onLinkEmail={onLinkEmail}
       onLinkUsername={onLinkUsername}
       onRecoveryCodeReset={onRecoveryCodeReset}
@@ -208,6 +211,7 @@ export function HomePage({
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isAppVersionOpen, setIsAppVersionOpen] = useState(false);
+  const [isGeneralFeedbackOpen, setIsGeneralFeedbackOpen] = useState(false);
   const [isFeatureSuggestionOpen, setIsFeatureSuggestionOpen] =
     useState(false);
   const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
@@ -226,6 +230,7 @@ export function HomePage({
     isEditProfileOpen ||
     isChangePasswordOpen ||
     isAppVersionOpen ||
+    isGeneralFeedbackOpen ||
     isFeatureSuggestionOpen ||
     isEmailLinkOpen ||
     isUsernameLinkOpen ||
@@ -285,6 +290,7 @@ export function HomePage({
           isChangePasswordOpen ||
           isEditProfileOpen ||
           isAppVersionOpen ||
+          isGeneralFeedbackOpen ||
           isFeatureSuggestionOpen ||
           isEmailLinkOpen ||
           isUsernameLinkOpen ||
@@ -309,6 +315,10 @@ export function HomePage({
           onAppVersion: () => {
             prefetchScheduler.prioritizeUserRequest();
             setIsAppVersionOpen(true);
+          },
+          onFeedback: () => {
+            prefetchScheduler.prioritizeUserRequest();
+            setIsGeneralFeedbackOpen(true);
           },
           onLinkEmail: () => {
             prefetchScheduler.prioritizeUserRequest();
@@ -366,8 +376,17 @@ export function HomePage({
 
       <FeatureSuggestionPage
         open={isFeatureSuggestionOpen}
+        kind="suggestion"
         user={user}
         onBack={() => setIsFeatureSuggestionOpen(false)}
+        onSessionExpired={onSessionExpired}
+      />
+
+      <FeatureSuggestionPage
+        open={isGeneralFeedbackOpen}
+        kind="general"
+        user={user}
+        onBack={() => setIsGeneralFeedbackOpen(false)}
         onSessionExpired={onSessionExpired}
       />
 

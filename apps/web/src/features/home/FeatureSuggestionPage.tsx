@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Check,
   ChevronLeft,
-  CircleCheck,
   Lightbulb,
+  MessageSquare,
   TriangleAlert
 } from "lucide-react";
 
@@ -15,6 +15,7 @@ import { submitFeedback } from "./feedback-api";
 
 type FeatureSuggestionPageProps = {
   open: boolean;
+  kind?: "general" | "suggestion";
   user: SessionUser;
   onBack: () => void;
   onSessionExpired: () => void;
@@ -31,6 +32,7 @@ type SubmittedSuggestion = {
 
 export function FeatureSuggestionPage({
   open,
+  kind = "suggestion",
   user,
   onBack,
   onSessionExpired
@@ -49,6 +51,47 @@ export function FeatureSuggestionPage({
   const senderLabel = user.username
     ? `@${user.username}`
     : user.email ?? user.name;
+  const HeaderIcon = kind === "suggestion" ? Lightbulb : MessageSquare;
+  const copy =
+    kind === "suggestion"
+      ? {
+          title: "Suggest a feature",
+          defaultSubtitle: "Share an idea for future improvements",
+          submittedSubtitle: "Your idea helps shape what comes next",
+          messageLabel: "Suggestion",
+          messagePlaceholder: "Tell me what would make the app better",
+          sharedAnonymous: "This suggestion will be shared anonymously",
+          sharedAs: "This suggestion will be shared as",
+          submitIdle: "Send suggestion",
+          submitBusy: "Sending",
+          tooMany: "Too many suggestions",
+          submitError: "Unable to send suggestion",
+          submittedThanks: "Thank you for sharing this",
+          submittedReview:
+            "I will review it and consider it for a future update",
+          sentLabel: "Suggestion sent",
+          anonymousLabel: "Anonymous suggestion",
+          summaryLabel: "Sent suggestion summary"
+        }
+      : {
+          title: "Send feedback",
+          defaultSubtitle: "Share how the app feels to use",
+          submittedSubtitle: "Your feedback helps improve Finance Manager",
+          messageLabel: "Feedback",
+          messagePlaceholder: "Tell me what worked or what felt unclear",
+          sharedAnonymous: "This feedback will be shared anonymously",
+          sharedAs: "This feedback will be shared as",
+          submitIdle: "Send feedback",
+          submitBusy: "Sending",
+          tooMany: "Too many feedback messages",
+          submitError: "Unable to send feedback",
+          submittedThanks: "Thank you for the feedback",
+          submittedReview:
+            "I will review it and use it to improve the app",
+          sentLabel: "Feedback sent",
+          anonymousLabel: "Anonymous feedback",
+          summaryLabel: "Sent feedback summary"
+        };
   const showsContactEmailField = !hasLinkedEmail && !anonymous;
   const parsedContactEmail =
     contactEmail.trim().length > 0 ? validateEmail(contactEmail) : null;
@@ -106,7 +149,7 @@ export function FeatureSuggestionPage({
           : user.email;
 
       await submitFeedback({
-        type: "suggestion",
+        type: kind,
         message: trimmedSuggestion,
         anonymous,
         email: submittedEmail ?? undefined
@@ -126,12 +169,12 @@ export function FeatureSuggestionPage({
 
       setError(
         submitError instanceof ApiRequestError && submitError.status === 429
-          ? `Too many suggestions\nTry again in ${
+          ? `${copy.tooMany}\nTry again in ${
               submitError.retryAfter ?? "15 minutes"
             }`
           : submitError instanceof Error
             ? submitError.message
-            : "Unable to send suggestion"
+            : copy.submitError
       );
     } finally {
       setIsSubmitting(false);
@@ -167,17 +210,17 @@ export function FeatureSuggestionPage({
           <header className="auth-header auth-password-reset-header feature-suggestion-header">
             <span className="auth-recovery-code-icon" aria-hidden="true">
               {submitted ? (
-                <CircleCheck strokeWidth={1.7} />
+                <Check strokeWidth={1.7} />
               ) : (
-                <Lightbulb strokeWidth={1.7} />
+                <HeaderIcon strokeWidth={1.7} />
               )}
             </span>
             <div className="auth-message">
-              <h1 id="feature-suggestion-title">Suggest a feature</h1>
+              <h1 id="feature-suggestion-title">{copy.title}</h1>
               <p className="auth-subtitle">
                 {submitted
-                  ? "Your idea helps shape what comes next"
-                  : "Share an idea for future improvements"}
+                  ? copy.submittedSubtitle
+                  : copy.defaultSubtitle}
               </p>
             </div>
           </header>
@@ -185,16 +228,16 @@ export function FeatureSuggestionPage({
           {submitted ? (
             <div className="auth-login-form auth-register-form feature-suggestion-form feature-suggestion-confirmation-stage">
               <p className="feature-suggestion-confirmation__message">
-                <strong>Thank you for sharing this</strong>
-                <span>I will review it and consider it for a future update</span>
+                <strong>{copy.submittedThanks}</strong>
+                <span>{copy.submittedReview}</span>
               </p>
 
               <div
                 className="feature-suggestion-confirmation"
-                aria-label="Sent suggestion summary"
+                aria-label={copy.summaryLabel}
               >
                 <section className="feature-suggestion-confirmation__section">
-                  <span>Suggestion sent</span>
+                  <span>{copy.sentLabel}</span>
                   <p>{submittedSuggestion?.message ?? suggestion.trim()}</p>
                 </section>
 
@@ -208,7 +251,7 @@ export function FeatureSuggestionPage({
                       ) : null}
                     </div>
                   ) : (
-                    <p>Anonymous suggestion</p>
+                    <p>{copy.anonymousLabel}</p>
                   )}
                 </section>
               </div>
@@ -233,7 +276,7 @@ export function FeatureSuggestionPage({
                   className="text-field-label"
                   id="feature-suggestion-message-label"
                 >
-                  Suggestion
+                  {copy.messageLabel}
                 </span>
                 {suggestion.length >= suggestionCharacterCountRevealLength ? (
                   <span
@@ -248,7 +291,7 @@ export function FeatureSuggestionPage({
                 id="feature-suggestion-message"
                 className="text-field text-field--multiline feature-suggestion-textarea"
                 aria-labelledby="feature-suggestion-message-label"
-                placeholder="Tell me what would make the app better"
+                placeholder={copy.messagePlaceholder}
                 value={suggestion}
                 maxLength={suggestionMaxLength}
                 rows={6}
@@ -333,8 +376,8 @@ export function FeatureSuggestionPage({
               </label>
               <p className="feature-suggestion-privacy__note">
                 {anonymous
-                  ? "This suggestion will be shared anonymously"
-                  : `This suggestion will be shared as ${senderLabel}`}
+                  ? copy.sharedAnonymous
+                  : `${copy.sharedAs} ${senderLabel}`}
               </p>
             </div>
 
@@ -343,7 +386,7 @@ export function FeatureSuggestionPage({
               type="submit"
               disabled={!canSend}
             >
-              {isSubmitting ? "Sending" : "Send suggestion"}
+              {isSubmitting ? copy.submitBusy : copy.submitIdle}
             </ActionButton>
             {error ? (
               <p className="auth-field-message auth-field-message--error">

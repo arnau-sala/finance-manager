@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState } from "react";
-import { ChevronLeft, CircleCheck } from "lucide-react";
+import { Check, ChevronLeft } from "lucide-react";
 
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { ActionButton } from "../../components/ui/ActionButton";
@@ -158,7 +158,7 @@ export function ChangePasswordPage({
           <header className="auth-header auth-password-reset-header">
             {mode === "success" ? (
               <span className="auth-recovery-code-icon" aria-hidden="true">
-                <CircleCheck strokeWidth={1.7} />
+                <Check strokeWidth={1.7} />
               </span>
             ) : (
               <div

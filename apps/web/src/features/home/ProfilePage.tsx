@@ -12,7 +12,6 @@ import {
   CalendarDays,
   Check,
   ChevronRight,
-  CircleCheck,
   Clock3,
   FileText,
   Key,
@@ -64,6 +63,7 @@ type ProfilePageProps = {
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
   onAppVersion: () => void;
+  onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
@@ -183,6 +183,7 @@ export function ProfilePage({
   onProfileUpdated,
   onChangePassword,
   onAppVersion,
+  onFeedback,
   onLinkEmail,
   onLinkUsername,
   onRecoveryCodeReset,
@@ -1078,7 +1079,7 @@ export function ProfilePage({
               <ProfileActionButton
                 label="Feedback"
                 icon={<MessageSquare />}
-                onClick={() => undefined}
+                onClick={onFeedback}
               />
             </div>
           </section>
@@ -1192,7 +1193,7 @@ export function ProfilePage({
         confirmingLabel="Opening"
         icon={
           googleLinkDialogMode === "success" ? (
-            <CircleCheck />
+            <Check />
           ) : googleLinkDialogMode === "mismatch" ||
             googleLinkDialogMode === "failed" ? (
             <TriangleAlert />
@@ -1243,7 +1244,7 @@ export function ProfilePage({
         confirmingLabel="Opening"
         icon={
           googleUnlinkDialogMode === "success" ? (
-            <CircleCheck />
+            <Check />
           ) : googleUnlinkDialogMode === "confirm" ? (
             <GoogleIcon />
           ) : (
@@ -1293,7 +1294,7 @@ export function ProfilePage({
           emailUnlinkDialogMode === "code" ? "Unlinking" : "Sending"
         }
         icon={
-          emailUnlinkDialogMode === "success" ? <CircleCheck /> : <Mail />
+          emailUnlinkDialogMode === "success" ? <Check /> : <Mail />
         }
         tone={emailUnlinkDialogMode === "success" ? "default" : "danger"}
         confirmTone={
@@ -1391,7 +1392,7 @@ export function ProfilePage({
         }
         confirmingLabel="Unlinking"
         icon={
-          usernameUnlinkDialogMode === "success" ? <CircleCheck /> : <AtSign />
+          usernameUnlinkDialogMode === "success" ? <Check /> : <AtSign />
         }
         tone={usernameUnlinkDialogMode === "success" ? "default" : "danger"}
         confirmTone={

@@ -1,4 +1,4 @@
-import { AtSign, CheckCircle2, Mail } from "lucide-react";
+import { AtSign, Check, Mail } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
 import { ActionButton } from "../../components/ui/ActionButton";
@@ -40,7 +40,7 @@ export function EmailLinkSuccessPage({
       >
         <header className="auth-header auth-password-reset-header">
           <span className="auth-recovery-code-icon" aria-hidden="true">
-            <CheckCircle2 strokeWidth={1.7} />
+            <Check strokeWidth={1.7} />
           </span>
           <div className="auth-message">
             <h1 id="email-link-success-title">Email linked</h1>

@@ -3,7 +3,6 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   AtSign,
   Check,
-  CircleCheck,
   Clock3,
   Key,
   KeyRound,
@@ -531,7 +530,7 @@ function ModalRenderer({
         title: "Google account linked",
     description: "You can now sign in with your password or Google",
         confirmLabel: "Done",
-        icon: <CircleCheck />,
+        icon: <Check />,
         showCancel: false
       })}
     </>
