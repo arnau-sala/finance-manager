@@ -498,23 +498,6 @@ export function MovesPage({
           </ActionButton>
         </div>
 
-        <div className="moves-results-count">
-          {isLoadingFilteredResults ? (
-            <SkeletonBlock
-              className="moves-results-skeleton__count"
-              width={82}
-              height={12}
-            />
-          ) : (
-            <p aria-live="polite">
-              {getResultLabel(
-                totalResults,
-                normalizedQuery.length > 0 || activeFilterCount > 0
-              )}
-            </p>
-          )}
-        </div>
-
         {isFilterPanelOpen ? (
           <MovesFiltersPanel
             id={FILTER_PANEL_ID}
@@ -532,6 +515,27 @@ export function MovesPage({
             onFilterSelect={openFilterEditor}
           />
         ) : null}
+
+        <div
+          className={`moves-results-count${
+            isFilterPanelOpen ? " moves-results-count--after-filter-panel" : ""
+          }`}
+        >
+          {isLoadingFilteredResults ? (
+            <SkeletonBlock
+              className="moves-results-skeleton__count"
+              width={82}
+              height={12}
+            />
+          ) : (
+            <p aria-live="polite">
+              {getResultLabel(
+                totalResults,
+                normalizedQuery.length > 0 || activeFilterCount > 0
+              )}
+            </p>
+          )}
+        </div>
 
         {isLoadingFilteredResults ||
         (loadingState === "ready" && transactions.length > 0) ? (

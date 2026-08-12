@@ -6260,6 +6260,10 @@ html.desktop-app-route .stats-view-stage {
   text-align: center;
 }
 
+.moves-results-count--after-filter-panel {
+  margin-top: 10px;
+}
+
 .moves-results-count p {
   margin: 0;
 }
