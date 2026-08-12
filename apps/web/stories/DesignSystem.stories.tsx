@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   AlertTriangle,
@@ -33,7 +33,14 @@ const meta = {
   title: "Design System/Overview",
   parameters: {
     layout: "fullscreen"
-  }
+  },
+  decorators: [
+    (Story) => (
+      <FeedbackFetchMock>
+        <Story />
+      </FeedbackFetchMock>
+    )
+  ]
 } satisfies Meta;
 
 export default meta;
@@ -44,6 +51,35 @@ const periodOptions = [
   { value: "year", label: "Year" },
   { value: "all", label: "All" }
 ] as const satisfies readonly SlidingSegmentOption<"month" | "year" | "all">[];
+
+function FeedbackFetchMock({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const originalFetch = window.fetch;
+
+    window.fetch = async (input, init) => {
+      const url = typeof input === "string" ? input : input.url;
+
+      if (url.endsWith("/api/feedback")) {
+        await new Promise((resolve) => window.setTimeout(resolve, 280));
+
+        return new Response(JSON.stringify({ status: "created" }), {
+          status: 201,
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+      }
+
+      return originalFetch(input, init);
+    };
+
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, []);
+
+  return children;
+}
 
 function SegmentedExamples() {
   const [period, setPeriod] = useState<"month" | "year" | "all">("month");

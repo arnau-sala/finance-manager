@@ -1,12 +1,14 @@
-import { ThumbsUp } from "lucide-react";
+import { ThumbsUp, TriangleAlert } from "lucide-react";
 import { useId, useState } from "react";
 
 import { ConfirmDialog } from "./ConfirmDialog";
+import { formatErrorMessage } from "./error-message";
 import {
   FeedbackConfirmationContent,
   SuccessCheckIcon
 } from "./FeedbackConfirmation";
 import { ApiRequestError } from "../../features/auth/auth-api";
+import { validateEmail } from "../../features/auth/email-validation";
 import { submitFeedback } from "../../features/home/feedback-api";
 
 const feedbackMaxLength = 1000;
@@ -24,6 +26,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [hasEmailBlurred, setHasEmailBlurred] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedFeedback, setSubmittedFeedback] = useState<{
@@ -36,6 +39,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
     setName("");
     setEmail("");
     setFeedback("");
+    setHasEmailBlurred(false);
     setError(null);
     setIsSubmitting(false);
     setSubmittedFeedback(null);
@@ -46,10 +50,23 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
     onClose();
   }
 
+  const parsedEmail = email.trim().length > 0 ? validateEmail(email) : null;
+  const emailError =
+    hasEmailBlurred && parsedEmail !== null && !parsedEmail.success
+      ? (parsedEmail.error.issues[0]?.message ?? "Enter a valid email address")
+      : null;
+  const canSend =
+    feedback.trim().length > 0 &&
+    !isSubmitting &&
+    (parsedEmail === null || parsedEmail.success);
+
   async function sendFeedback() {
     const trimmedFeedback = feedback.trim();
 
-    if (!trimmedFeedback || isSubmitting) {
+    if (!canSend) {
+      if (parsedEmail !== null && !parsedEmail.success) {
+        setHasEmailBlurred(true);
+      }
       return;
     }
 
@@ -106,7 +123,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
       iconClassName={
         submittedFeedback ? "feedback-dialog__success-icon-shell" : undefined
       }
-      confirmDisabled={!submittedFeedback && feedback.trim().length === 0}
+      confirmDisabled={!submittedFeedback && !canSend}
       isConfirming={isSubmitting}
       confirmingLabel="Sending"
       error={submittedFeedback ? null : error}
@@ -147,19 +164,40 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
           </div>
 
           <div className="confirm-dialog__field">
-            <label className="text-field-label" htmlFor={emailId}>
-              Email <span>(optional)</span>
-            </label>
+            <div className="feedback-dialog__field-heading">
+              <label className="text-field-label" htmlFor={emailId}>
+                Email <span>(optional)</span>
+              </label>
+              {emailError ? (
+                <p
+                  id={`${emailId}-error`}
+                  className="auth-register-field-error"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  <TriangleAlert aria-hidden="true" strokeWidth={1.8} />
+                  <span>{formatErrorMessage(emailError)}</span>
+                </p>
+              ) : null}
+            </div>
             <input
               id={emailId}
-              className="text-field text-field--dialog"
+              className={`text-field text-field--dialog${
+                emailError ? " text-field--invalid" : ""
+              }`}
               name="email"
               type="email"
               inputMode="email"
               autoComplete="email"
               maxLength={254}
+              aria-invalid={Boolean(emailError)}
+              aria-describedby={emailError ? `${emailId}-error` : undefined}
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onBlur={() => setHasEmailBlurred(true)}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setHasEmailBlurred(false);
+              }}
             />
           </div>
 
