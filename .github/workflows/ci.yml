@@ -23,7 +23,7 @@ env:
 
 jobs:
   quality:
-    name: Build, unit tests and dependencies
+    name: Build, coverage and dependencies
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,8 +41,17 @@ jobs:
       - name: Generate Prisma Client
         run: npm run db:generate
 
-      - name: Run unit tests
-        run: npm run test:unit
+      - name: Run unit tests with coverage thresholds
+        run: npm run test:coverage
+
+      - name: Upload coverage reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-reports
+          path: coverage/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Build API
         run: npm run build:api

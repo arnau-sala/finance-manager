@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatDateOnly,
   getMonthDateOnlyRange,
+  getTodayDateOnly,
   getYearDateOnlyRange,
   parseDateOnly,
 } from "../src/dates/date-only.js";
@@ -24,6 +25,7 @@ describe("API date helpers", () => {
       to: "2027-01-01",
     });
     expect(formatDateOnly(parseDateOnly("2026-08-12"))).toBe("2026-08-12");
+    expect(getTodayDateOnly(new Date(2026, 0, 5, 12))).toBe("2026-01-05");
   });
 });
 

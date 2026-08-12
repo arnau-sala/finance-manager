@@ -19,5 +19,14 @@ test.describe("authenticated account", () => {
 
     await expect(page.getByText("Net worth", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: /New transaction/i })).toBeVisible();
+
+    await page.getByRole("button", { name: "moves" }).click();
+    await expect(page.getByRole("heading", { name: "Transactions" })).toBeVisible();
+
+    await page.getByRole("button", { name: "stats" }).click();
+    await expect(page.getByRole("heading", { name: "Statistics" })).toBeVisible();
+
+    await page.getByRole("button", { name: "profile" }).click();
+    await expect(page.getByRole("button", { name: /Edit profile/i })).toBeVisible();
   });
 });

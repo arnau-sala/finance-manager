@@ -34,6 +34,32 @@ test.describe("desktop entry", () => {
     ).toBeVisible();
     await expect(page.getByRole("heading", { name: "Terms of Use" })).toBeVisible();
   });
+
+  test("offers every account creation method and opens credential forms", async ({ page }) => {
+    await page.goto("/app");
+    await page.getByRole("button", { name: "Create an account" }).click();
+
+    await expect(page.getByText("Email account", { exact: true })).toBeVisible();
+    await expect(page.getByText("Username account", { exact: true })).toBeVisible();
+    await expect(page.getByText("Google account", { exact: true })).toBeVisible();
+
+    await page.getByText("Email account", { exact: true }).click();
+    await expect(page.getByLabel("Email address")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Name", exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: /back/i }).click();
+    await page.getByText("Username account", { exact: true }).click();
+    await expect(
+      page.getByRole("textbox", { name: "Username", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Name", exact: true })).toBeVisible();
+  });
+
+  test("opens account recovery help without leaving the landing", async ({ page }) => {
+    await page.goto("/app");
+    await page.getByRole("button", { name: "Need help?" }).click();
+    await expect(page.getByText("Forgot your username?")).toBeVisible();
+  });
 });
 
 test.describe("mobile browser entry", () => {

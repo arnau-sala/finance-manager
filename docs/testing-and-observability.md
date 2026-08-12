@@ -29,9 +29,19 @@ npm.cmd run test:watch --workspace apps/api
 Generate coverage in `coverage/web` and `coverage/api`:
 
 ```powershell
-npm.cmd run test:coverage --workspace apps/web
-npm.cmd run test:coverage --workspace apps/api
+npm.cmd run test:coverage
 ```
+
+The Vitest percentage intentionally measures deterministic domain rules, API
+contracts, response mapping, and shared components. Full React pages, chart
+rendering, and browser navigation are covered by Playwright instead: adding
+those files to line coverage would produce a lower number without making the
+tests more useful. Open `coverage/web/index.html` and
+`coverage/api/index.html` for the detailed interactive reports.
+
+CI enforces minimum global coverage of 80% statements/lines, 70% branches, and
+85% functions for both workspaces. Every run also uploads the two HTML reports
+as the `coverage-reports` artifact for 14 days.
 
 Install the browser binaries once on a new machine, then run the E2E suite:
 
