@@ -1,5 +1,5 @@
 import { ThumbsUp, TriangleAlert } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 
 import { ConfirmDialog } from "./ConfirmDialog";
 import { formatErrorMessage } from "./error-message";
@@ -23,6 +23,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
   const nameId = useId();
   const emailId = useId();
   const feedbackId = useId();
+  const feedbackInputRef = useRef<HTMLTextAreaElement>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [feedback, setFeedback] = useState("");
@@ -59,6 +60,40 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
     feedback.trim().length > 0 &&
     !isSubmitting &&
     (parsedEmail === null || parsedEmail.success);
+
+  useLayoutEffect(() => {
+    const input = feedbackInputRef.current;
+
+    if (!open || submittedFeedback || !input) {
+      return;
+    }
+
+    input.style.height = "auto";
+
+    const styles = window.getComputedStyle(input);
+    const minHeight = Number.parseFloat(styles.minHeight);
+    const borderHeight =
+      Number.parseFloat(styles.borderTopWidth) +
+      Number.parseFloat(styles.borderBottomWidth);
+
+    if (!Number.isFinite(minHeight) || !Number.isFinite(borderHeight)) {
+      return;
+    }
+
+    const contentHeight = input.scrollHeight + borderHeight;
+    const requiredHeight = Math.max(contentHeight, minHeight);
+    input.style.height = `${requiredHeight}px`;
+
+    const dialog = input.closest<HTMLElement>(".confirm-dialog");
+    const dialogOverflow = dialog
+      ? Math.max(0, dialog.scrollHeight - dialog.clientHeight)
+      : 0;
+    const finalHeight = Math.max(minHeight, requiredHeight - dialogOverflow);
+
+    input.style.height = `${finalHeight}px`;
+    input.style.overflowY =
+      requiredHeight > finalHeight + 1 ? "auto" : "hidden";
+  }, [feedback, open, submittedFeedback]);
 
   async function sendFeedback() {
     const trimmedFeedback = feedback.trim();
@@ -216,6 +251,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
               ) : null}
             </div>
             <textarea
+              ref={feedbackInputRef}
               id={feedbackId}
               className="text-field text-field--dialog text-field--multiline feedback-dialog__textarea"
               name="feedback"
