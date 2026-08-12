@@ -36,6 +36,22 @@ html.desktop-legal-route #root {
   touch-action: auto;
 }
 
+html.desktop-app-route {
+  --desktop-app-width: min(100vw, 430px);
+}
+
+html.desktop-app-route #root {
+  position: relative;
+  width: var(--desktop-app-width);
+  max-width: 430px;
+  height: 100%;
+  min-height: 100%;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--color-surface);
+  transform: translate3d(0, 0, 0);
+}
+
 body {
   margin: 0;
   background: var(--color-surface);
@@ -4662,6 +4678,21 @@ button.transaction-row__content:focus-visible {
   padding: 2px 0 calc(82px + env(safe-area-inset-bottom));
 }
 
+html.desktop-app-route .stats-page > .stats-page__header,
+html.desktop-app-route .stats-page > .stats-period-mode,
+html.desktop-app-route .stats-page > .stats-period-navigation,
+html.desktop-app-route .stats-page--skeleton > .skeleton-block,
+html.desktop-app-route .stats-page--skeleton > .stats-initial-skeleton__period,
+html.desktop-app-route .stats-page--skeleton > .stats-initial-skeleton__content,
+html.desktop-app-route .stats-page--empty > .first-transaction-empty,
+html.desktop-app-route .stats-account-empty {
+  width: calc(
+    100% - var(--stats-gutter-left) - var(--stats-gutter-right)
+  );
+  margin-right: 0;
+  margin-left: 0;
+}
+
 .stats-page__header {
   min-height: 40px;
   display: flex;
@@ -5418,6 +5449,12 @@ button.transaction-row__content:focus-visible {
   margin-left: -50vw;
   margin-top: calc(var(--stats-section-gap) - var(--stats-page-gap));
   overflow: hidden;
+}
+
+html.desktop-app-route .stats-view-stage {
+  left: calc(-1 * var(--stats-gutter-left));
+  width: var(--desktop-app-width);
+  margin-left: 0;
 }
 
 .stats-view-panel {

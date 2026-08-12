@@ -37,6 +37,8 @@ type StandaloneGateProps = {
 
 type BrowserInstallPlatform = "apple" | "android";
 
+const DESKTOP_APP_PATH = "/app";
+
 const standaloneMediaQueries = [
   "(display-mode: standalone)",
   "(display-mode: fullscreen)",
@@ -68,6 +70,10 @@ function getIsAppleBrowser() {
 
 function getIsAndroidBrowser() {
   return window.navigator.userAgent.toLowerCase().includes("android");
+}
+
+function isDesktopAppPath(pathname = window.location.pathname) {
+  return normalizeAppPath(pathname) === DESKTOP_APP_PATH;
 }
 
 function AndroidIcon({ className }: { className?: string }) {
@@ -170,14 +176,27 @@ export function StandaloneGate({ children }: StandaloneGateProps) {
   const [isAndroidBrowser, setIsAndroidBrowser] = useState(
     getIsAndroidBrowser
   );
+  const isDesktopAppAccess =
+    !isStandalone && !isAppleBrowser && !isAndroidBrowser && isDesktopAppPath();
 
   useLayoutEffect(() => {
-    if (isStandalone) {
+    if (isStandalone || isDesktopAppAccess) {
       return;
     }
 
     document.getElementById("app-startup-splash")?.remove();
-  }, [isStandalone]);
+  }, [isDesktopAppAccess, isStandalone]);
+
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle(
+      "desktop-app-route",
+      isDesktopAppAccess
+    );
+
+    return () => {
+      document.documentElement.classList.remove("desktop-app-route");
+    };
+  }, [isDesktopAppAccess]);
 
   useEffect(() => {
     const mediaQueryLists = standaloneMediaQueries.map((query) =>
@@ -208,6 +227,10 @@ export function StandaloneGate({ children }: StandaloneGateProps) {
   }, []);
 
   if (!isStandalone) {
+    if (isDesktopAppAccess) {
+      return <>{children}</>;
+    }
+
     if (isAppleBrowser) {
       return <BrowserInstallScreen initialPlatform="apple" />;
     }
@@ -349,6 +372,9 @@ export function DesktopBrowserLandingScreen() {
                   <button
                     className="desktop-landing-secondary"
                     type="button"
+                    onClick={() => {
+                      window.location.assign(DESKTOP_APP_PATH);
+                    }}
                   >
                     <span>Launch on this device</span>
                     <ArrowRight aria-hidden="true" />
