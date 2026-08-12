@@ -157,7 +157,10 @@ export function ChangePasswordPage({
         >
           <header className="auth-header auth-password-reset-header">
             {mode === "success" ? (
-              <span className="auth-recovery-code-icon" aria-hidden="true">
+              <span
+                className="auth-recovery-code-icon success-check-icon"
+                aria-hidden="true"
+              >
                 <Check strokeWidth={1.7} />
               </span>
             ) : (

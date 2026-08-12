@@ -232,6 +232,7 @@ function ModalRenderer({
       description: string;
       confirmLabel: string;
       icon: ReactNode;
+      iconClassName?: string;
       cancelLabel?: string;
       tone?: "default" | "danger" | "warning";
       confirmTone?: "default" | "danger";
@@ -249,6 +250,7 @@ function ModalRenderer({
         confirmLabel={props.confirmLabel}
         cancelLabel={props.cancelLabel}
         icon={props.icon}
+        iconClassName={props.iconClassName}
         tone={props.tone}
         confirmTone={props.confirmTone}
         showCancel={props.showCancel}
@@ -531,6 +533,7 @@ function ModalRenderer({
     description: "You can now sign in with your password or Google",
         confirmLabel: "Done",
         icon: <Check />,
+        iconClassName: "success-check-icon",
         showCancel: false
       })}
     </>

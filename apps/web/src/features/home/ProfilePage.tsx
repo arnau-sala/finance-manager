@@ -1201,6 +1201,9 @@ export function ProfilePage({
             <GoogleIcon />
           )
         }
+        iconClassName={
+          googleLinkDialogMode === "success" ? "success-check-icon" : undefined
+        }
         tone={
           googleLinkDialogMode === "mismatch" ||
           googleLinkDialogMode === "failed"
@@ -1251,6 +1254,11 @@ export function ProfilePage({
             <TriangleAlert />
           )
         }
+        iconClassName={
+          googleUnlinkDialogMode === "success"
+            ? "success-check-icon"
+            : undefined
+        }
         tone={
           googleUnlinkDialogMode === "mismatch" ||
           googleUnlinkDialogMode === "failed"
@@ -1295,6 +1303,9 @@ export function ProfilePage({
         }
         icon={
           emailUnlinkDialogMode === "success" ? <Check /> : <Mail />
+        }
+        iconClassName={
+          emailUnlinkDialogMode === "success" ? "success-check-icon" : undefined
         }
         tone={emailUnlinkDialogMode === "success" ? "default" : "danger"}
         confirmTone={
@@ -1393,6 +1404,11 @@ export function ProfilePage({
         confirmingLabel="Unlinking"
         icon={
           usernameUnlinkDialogMode === "success" ? <Check /> : <AtSign />
+        }
+        iconClassName={
+          usernameUnlinkDialogMode === "success"
+            ? "success-check-icon"
+            : undefined
         }
         tone={usernameUnlinkDialogMode === "success" ? "default" : "danger"}
         confirmTone={

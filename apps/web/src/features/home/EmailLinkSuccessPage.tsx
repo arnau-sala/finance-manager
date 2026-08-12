@@ -39,7 +39,10 @@ export function EmailLinkSuccessPage({
         aria-labelledby="email-link-success-title"
       >
         <header className="auth-header auth-password-reset-header">
-          <span className="auth-recovery-code-icon" aria-hidden="true">
+          <span
+            className="auth-recovery-code-icon success-check-icon"
+            aria-hidden="true"
+          >
             <Check strokeWidth={1.7} />
           </span>
           <div className="auth-message">

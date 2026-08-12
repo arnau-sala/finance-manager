@@ -208,7 +208,12 @@ export function FeatureSuggestionPage({
           aria-labelledby="feature-suggestion-title"
         >
           <header className="auth-header auth-password-reset-header feature-suggestion-header">
-            <span className="auth-recovery-code-icon" aria-hidden="true">
+            <span
+              className={`auth-recovery-code-icon${
+                submitted ? " success-check-icon" : ""
+              }`}
+              aria-hidden="true"
+            >
               {submitted ? (
                 <Check strokeWidth={1.7} />
               ) : (

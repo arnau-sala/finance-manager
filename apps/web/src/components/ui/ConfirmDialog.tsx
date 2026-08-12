@@ -14,6 +14,7 @@ type ConfirmDialogProps = {
   confirmLabel: string;
   cancelLabel?: string;
   icon: ReactNode;
+  iconClassName?: string;
   isConfirming?: boolean;
   interactionLocked?: boolean;
   error?: string | null;
@@ -37,6 +38,7 @@ export function ConfirmDialog({
   confirmLabel,
   cancelLabel = "Cancel",
   icon,
+  iconClassName,
   isConfirming = false,
   interactionLocked = false,
   error = null,
@@ -160,7 +162,12 @@ export function ConfirmDialog({
         aria-describedby={descriptionId}
         onMouseDown={preventDialogMouseDown}
       >
-        <div className="confirm-dialog__icon" aria-hidden="true">
+        <div
+          className={`confirm-dialog__icon${
+            iconClassName ? ` ${iconClassName}` : ""
+          }`}
+          aria-hidden="true"
+        >
           {icon}
         </div>
 
