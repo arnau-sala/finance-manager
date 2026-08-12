@@ -52,6 +52,8 @@ export function FeatureSuggestionPage({
     ? `@${user.username}`
     : user.email ?? user.name;
   const HeaderIcon = kind === "suggestion" ? Lightbulb : MessageSquare;
+  const idPrefix =
+    kind === "suggestion" ? "feature-suggestion" : "general-feedback";
   const copy =
     kind === "suggestion"
       ? {
@@ -203,9 +205,9 @@ export function FeatureSuggestionPage({
           <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
         </ActionButton>
 
-        <section
-          className="auth-panel feature-suggestion-panel"
-          aria-labelledby="feature-suggestion-title"
+          <section
+            className="auth-panel feature-suggestion-panel"
+          aria-labelledby={`${idPrefix}-title`}
         >
           <header className="auth-header auth-password-reset-header feature-suggestion-header">
             <span
@@ -221,7 +223,7 @@ export function FeatureSuggestionPage({
               )}
             </span>
             <div className="auth-message">
-              <h1 id="feature-suggestion-title">{copy.title}</h1>
+              <h1 id={`${idPrefix}-title`}>{copy.title}</h1>
               <p className="auth-subtitle">
                 {submitted
                   ? copy.submittedSubtitle
@@ -279,7 +281,7 @@ export function FeatureSuggestionPage({
               <div className="auth-register-field-heading">
                 <span
                   className="text-field-label"
-                  id="feature-suggestion-message-label"
+                  id={`${idPrefix}-message-label`}
                 >
                   {copy.messageLabel}
                 </span>
@@ -293,9 +295,9 @@ export function FeatureSuggestionPage({
                 ) : null}
               </div>
               <textarea
-                id="feature-suggestion-message"
+                id={`${idPrefix}-message`}
                 className="text-field text-field--multiline feature-suggestion-textarea"
-                aria-labelledby="feature-suggestion-message-label"
+                aria-labelledby={`${idPrefix}-message-label`}
                 placeholder={copy.messagePlaceholder}
                 value={suggestion}
                 maxLength={suggestionMaxLength}
@@ -309,13 +311,13 @@ export function FeatureSuggestionPage({
                 <div className="auth-register-field-heading">
                   <span
                     className="text-field-label"
-                    id="feature-suggestion-email-label"
+                    id={`${idPrefix}-email-label`}
                   >
                     Email (optional)
                   </span>
                   {contactEmailError ? (
                     <p
-                      id="feature-suggestion-email-error"
+                      id={`${idPrefix}-email-error`}
                       className="auth-register-field-error"
                       role="alert"
                       aria-live="polite"
@@ -326,13 +328,13 @@ export function FeatureSuggestionPage({
                   ) : null}
                 </div>
                 <input
-                  id="feature-suggestion-email"
+                  id={`${idPrefix}-email`}
                   className="text-field"
-                  aria-labelledby="feature-suggestion-email-label"
+                  aria-labelledby={`${idPrefix}-email-label`}
                   aria-invalid={Boolean(contactEmailError)}
                   aria-describedby={
                     contactEmailError
-                      ? "feature-suggestion-email-error"
+                      ? `${idPrefix}-email-error`
                       : undefined
                   }
                   type="email"
@@ -351,17 +353,17 @@ export function FeatureSuggestionPage({
             <div className="auth-form-field feature-suggestion-privacy">
               <span
                 className="text-field-label"
-                id="feature-suggestion-privacy-label"
+                id={`${idPrefix}-privacy-label`}
               >
                 Privacy
               </span>
               <label
                 className="recovery-code-reset-option feature-suggestion-anonymous"
-                htmlFor="feature-suggestion-anonymous"
-                aria-labelledby="feature-suggestion-privacy-label"
+                htmlFor={`${idPrefix}-anonymous`}
+                aria-labelledby={`${idPrefix}-privacy-label`}
               >
                 <input
-                  id="feature-suggestion-anonymous"
+                  id={`${idPrefix}-anonymous`}
                   type="checkbox"
                   checked={anonymous}
                   onChange={(event) => {
