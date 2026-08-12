@@ -12,6 +12,15 @@
     "build:web": "npm run build --workspace apps/web",
     "storybook:web": "npm run storybook --workspace apps/web",
     "build:storybook:web": "npm run build:storybook --workspace apps/web",
+    "test": "npm run test:unit",
+    "test:unit": "npm run test:web && npm run test:api",
+    "test:web": "npm run test --workspace apps/web",
+    "test:api": "npm run test --workspace apps/api",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "security:audit": "npm audit --audit-level=high",
+    "security:zap": "node scripts/run-zap.mjs",
     "start:api": "npm run start --workspace apps/api",
     "db:generate": "node -r dotenv/config ./node_modules/prisma/build/index.js generate --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",
     "db:migrate": "node -r dotenv/config ./node_modules/prisma/build/index.js migrate dev --schema apps/api/prisma/schema.prisma dotenv_config_path=apps/api/.env",
@@ -25,6 +34,15 @@
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "prisma": "^6.19.3"
+  },
+  "allowScripts": {
+    "argon2": true,
+    "esbuild": true,
+    "prisma": true,
+    "@prisma/client": true,
+    "@prisma/engines": true,
+    "@sentry/cli": true
   }
 }

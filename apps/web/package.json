@@ -8,10 +8,14 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "storybook": "storybook dev -p 6006 --host 0.0.0.0",
-    "build:storybook": "storybook build"
+    "build:storybook": "storybook build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
+    "@sentry/react": "^10.70.0",
     "@tanstack/react-query": "^5.101.4",
     "@vitejs/plugin-react": "^5.1.2",
     "echarts": "^6.1.0",
@@ -24,9 +28,16 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@sentry/vite-plugin": "^5.4.0",
     "@storybook/react-vite": "^10.5.7",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.4",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "storybook": "^10.5.7"
+    "@vitest/coverage-v8": "^4.1.10",
+    "jsdom": "^30.0.1",
+    "storybook": "^10.5.7",
+    "vitest": "^4.1.10"
   }
 }

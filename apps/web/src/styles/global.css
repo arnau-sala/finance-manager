@@ -10321,3 +10321,30 @@ html.desktop-app-route .stats-view-stage {
     text-align: center;
   }
 }
+/* Last-resort UI shown only when React cannot render the application */
+.app-error-fallback {
+  box-sizing: border-box;
+  min-height: 100dvh;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.app-error-fallback h1,
+.app-error-fallback p {
+  margin: 0;
+}
+
+.app-error-fallback p {
+  color: var(--color-text-muted);
+}
+
+.app-error-fallback button {
+  width: min(100%, 280px);
+}

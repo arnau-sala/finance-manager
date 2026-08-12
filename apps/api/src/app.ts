@@ -14,6 +14,7 @@ import { feedbackRoutes } from "./routes/feedback.js";
 import { homeRoutes } from "./routes/home.js";
 import { statisticsRoutes } from "./routes/statistics.js";
 import { transactionRoutes } from "./routes/transactions.js";
+import { registerApiErrorMonitoring } from "./observability/sentry.js";
 import { registerOriginCheck } from "./security/origin-check.js";
 import { registerRateLimit } from "./security/rate-limit.js";
 import { registerSecurityHeaders } from "./security/security-headers.js";
@@ -45,6 +46,7 @@ export function buildApp() {
   app.register(homeRoutes);
   app.register(statisticsRoutes);
   app.register(transactionRoutes);
+  registerApiErrorMonitoring(app);
 
   return app;
 }

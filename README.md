@@ -164,6 +164,8 @@ Mutating browser requests must come from an allowed origin. Local development al
 Frontend product, design, and architecture decisions are tracked in `docs/frontend.md`.
 Brevo setup and the complete verification test flow are documented in
 [`docs/email-verification.md`](docs/email-verification.md).
+Automated tests, Sentry monitoring, dependency checks, and OWASP ZAP are
+documented in [`docs/testing-and-observability.md`](docs/testing-and-observability.md).
 
 ## Register
 

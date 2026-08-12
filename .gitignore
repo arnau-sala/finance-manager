@@ -5,6 +5,16 @@ apps/web/dist/
 apps/web/storybook-static/
 apps/web/tsconfig.tsbuildinfo
 apps/api/.env
+apps/api/.env.test
+apps/web/.env
+apps/web/.env.local
+apps/web/.env.*.local
+
+coverage/
+playwright-report/
+test-results/
+blob-report/
+zap-report/
 
 CONTEXT.md
 CHARTS.md

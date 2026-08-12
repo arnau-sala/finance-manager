@@ -1,4 +1,5 @@
 import "dotenv/config";
+import "./instrument.js";
 
 import { buildApp } from "./app.js";
 

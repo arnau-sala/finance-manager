@@ -11,6 +11,7 @@ import { lockAppHorizontalNavigation } from "./app-navigation-guard";
 import { observeAppDataLifecycle } from "../cache/app-data-lifecycle";
 import { clearAuthenticatedData } from "../cache/financial-cache";
 import { prefetchScheduler } from "../cache/prefetch-scheduler";
+import { setObservabilityUser } from "../observability/sentry";
 import { GoogleIcon } from "../components/brand/GoogleIcon";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
@@ -162,6 +163,10 @@ export function App() {
   const markInitialHomeReady = useCallback(() => {
     setIsInitialHomeReady(true);
   }, []);
+
+  useEffect(() => {
+    setObservabilityUser(sessionUser?.id ?? null);
+  }, [sessionUser?.id]);
 
   if (initialGoogleAuthRef.current === undefined) {
     initialGoogleAuthRef.current = new URL(window.location.href).searchParams.get(

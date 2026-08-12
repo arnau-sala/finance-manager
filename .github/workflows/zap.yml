@@ -1,0 +1,32 @@
+name: OWASP ZAP baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: URL to scan, for example https://example.com
+        required: true
+        type: string
+  schedule:
+    - cron: "30 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Passive web security scan
+    if: github.event_name == 'workflow_dispatch' || vars.ZAP_TARGET_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Run ZAP baseline
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: ${{ github.event.inputs.target || vars.ZAP_TARGET_URL }}
+          allow_issue_writing: false
+          fail_action: false
+          artifact_name: zap-report
+          cmd_options: -a
