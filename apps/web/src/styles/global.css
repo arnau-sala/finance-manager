@@ -52,6 +52,52 @@ html.desktop-app-route #root {
   transform: translate3d(0, 0, 0);
 }
 
+.desktop-app-back-link {
+  position: fixed;
+  z-index: 20000;
+  top: 18px;
+  left: 18px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 400;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.desktop-app-back-link svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  stroke-width: 1.9;
+}
+
+.desktop-app-back-link:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 720px) {
+  html.desktop-app-route #root {
+    height: calc(100% - 54px);
+    min-height: calc(100% - 54px);
+    margin-top: 54px;
+  }
+
+  .desktop-app-back-link {
+    top: 9px;
+    left: 12px;
+  }
+}
+
 body {
   margin: 0;
   background: var(--color-surface);

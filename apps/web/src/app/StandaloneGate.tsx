@@ -7,6 +7,7 @@ import {
   type ReactNode
 } from "react";
 import {
+  ArrowLeft,
   ArrowRight,
   ChartColumn,
   LockKeyhole,
@@ -16,6 +17,7 @@ import {
   SquarePlus,
   WalletCards
 } from "lucide-react";
+import { createPortal } from "react-dom";
 
 import { ActionButton } from "../components/ui/ActionButton";
 import { LandingFloatingActionButton } from "../components/ui/floating-action-button";
@@ -74,6 +76,16 @@ function getIsAndroidBrowser() {
 
 function isDesktopAppPath(pathname = window.location.pathname) {
   return normalizeAppPath(pathname) === DESKTOP_APP_PATH;
+}
+
+function DesktopAppBackLink() {
+  return createPortal(
+    <a className="desktop-app-back-link" href="/">
+      <ArrowLeft aria-hidden="true" />
+      <span>Back to landing</span>
+    </a>,
+    document.body
+  );
 }
 
 function AndroidIcon({ className }: { className?: string }) {
@@ -228,7 +240,12 @@ export function StandaloneGate({ children }: StandaloneGateProps) {
 
   if (!isStandalone) {
     if (isDesktopAppAccess) {
-      return <>{children}</>;
+      return (
+        <>
+          {children}
+          <DesktopAppBackLink />
+        </>
+      );
     }
 
     if (isAppleBrowser) {
