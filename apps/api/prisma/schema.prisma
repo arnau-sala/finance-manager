@@ -52,6 +52,7 @@ enum TransactionType {
 enum FeedbackType {
   GENERAL
   SUGGESTION
+  LANDING
 }
 
 model User {
@@ -230,6 +231,7 @@ model FeedbackEntry {
   id        String       @id @default(cuid())
   type      FeedbackType
   userId    String?
+  name      String?      @db.VarChar(100)
   email     String?
   message   String       @db.VarChar(1000)
   createdAt DateTime     @default(now())

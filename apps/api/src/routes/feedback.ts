@@ -7,8 +7,16 @@ import { feedbackSubmitRateLimit } from "../security/rate-limit.js";
 
 const feedbackBodySchema = z
   .object({
-    type: z.enum(["general", "suggestion"]),
+    type: z.enum(["general", "suggestion", "landing"]),
     message: z.string().trim().min(1).max(1000),
+    name: z
+      .preprocess(
+        (value) =>
+          typeof value === "string" && value.trim().length === 0
+            ? undefined
+            : value,
+        z.string().trim().max(100).optional(),
+      ),
     email: z
       .preprocess(
         (value) =>
@@ -28,27 +36,37 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
     async (request, reply) => {
       const user = await getAuthenticatedUser(request);
 
-      if (!user) {
-        return reply.code(401).send({ error: "Authentication required" });
-      }
-
       const result = feedbackBodySchema.safeParse(request.body);
 
       if (!result.success) {
         return reply.code(400).send({ error: "Invalid feedback input" });
       }
 
+      const isLandingFeedback = result.data.type === "landing";
+
+      if (!isLandingFeedback && !user) {
+        return reply.code(401).send({ error: "Authentication required" });
+      }
+
       const type =
-        result.data.type === "suggestion" ? "SUGGESTION" : "GENERAL";
-      const email = result.data.anonymous
-        ? null
-        : (result.data.email ?? user.email ?? null);
+        result.data.type === "landing"
+          ? "LANDING"
+          : result.data.type === "suggestion"
+            ? "SUGGESTION"
+            : "GENERAL";
+      const email =
+        result.data.anonymous || isLandingFeedback
+          ? (result.data.email ?? null)
+          : (result.data.email ?? user?.email ?? null);
+      const userId =
+        result.data.anonymous || isLandingFeedback ? null : (user?.id ?? null);
 
       await db.feedbackEntry.create({
         data: {
           type,
           message: result.data.message,
-          userId: result.data.anonymous ? null : user.id,
+          userId,
+          name: isLandingFeedback ? (result.data.name ?? null) : null,
           email,
         },
       });

@@ -1,0 +1,4 @@
+ALTER TYPE "FeedbackType" ADD VALUE 'LANDING';
+
+ALTER TABLE "FeedbackEntry"
+ADD COLUMN "name" VARCHAR(100);

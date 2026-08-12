@@ -2,6 +2,8 @@ import { ThumbsUp } from "lucide-react";
 import { useId, useState } from "react";
 
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ApiRequestError } from "../../features/auth/auth-api";
+import { submitFeedback } from "../../features/home/feedback-api";
 
 const feedbackMaxLength = 1000;
 const feedbackCharacterCountRevealLength = 900;
@@ -18,12 +20,45 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function closeDialog() {
     setName("");
     setEmail("");
     setFeedback("");
+    setError(null);
+    setIsSubmitting(false);
     onClose();
+  }
+
+  async function sendFeedback() {
+    const trimmedFeedback = feedback.trim();
+
+    if (!trimmedFeedback || isSubmitting) {
+      return;
+    }
+
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      await submitFeedback({
+        anonymous: true,
+        type: "landing",
+        name: name.trim() || undefined,
+        email: email.trim() || undefined,
+        message: trimmedFeedback
+      });
+      closeDialog();
+    } catch (sendError) {
+      setError(
+        sendError instanceof ApiRequestError
+          ? sendError.message
+          : "Unable to send feedback"
+      );
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -32,13 +67,16 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
       className="feedback-dialog"
       role="dialog"
       title="Share your feedback"
-      description="Your comments help make Finance Manager better."
+      description="Your comments help make Finance Manager better"
       confirmLabel="Send feedback"
       cancelLabel="Cancel"
       icon={<ThumbsUp aria-hidden="true" strokeWidth={1.8} />}
       confirmDisabled={feedback.trim().length === 0}
+      isConfirming={isSubmitting}
+      confirmingLabel="Sending"
+      error={error}
       onCancel={closeDialog}
-      onConfirm={() => {}}
+      onConfirm={sendFeedback}
     >
       <form
         className="confirm-dialog__form feedback-dialog__form"
@@ -54,6 +92,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
             name="name"
             type="text"
             autoComplete="name"
+            maxLength={100}
             value={name}
             onChange={(event) => setName(event.target.value)}
           />

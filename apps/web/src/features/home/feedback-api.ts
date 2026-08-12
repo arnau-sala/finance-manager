@@ -4,7 +4,8 @@ type SubmitFeedbackInput = {
   anonymous: boolean;
   email?: string;
   message: string;
-  type: "general" | "suggestion";
+  name?: string;
+  type: "general" | "suggestion" | "landing";
 };
 
 type ApiErrorResponse = {
