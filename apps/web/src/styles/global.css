@@ -1910,6 +1910,43 @@ body.app-logout-transition .confirm-dialog-backdrop {
   -webkit-touch-callout: none;
 }
 
+html.desktop-app-route
+  .auth-flow-page--landing
+  > .auth-screen--static {
+  grid-template-rows: minmax(min-content, 1fr) auto;
+  place-items: stretch center;
+  row-gap: 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+html.desktop-app-route
+  .auth-flow-page--landing
+  > .auth-screen--static::-webkit-scrollbar {
+  display: none;
+}
+
+html.desktop-app-route
+  .auth-flow-page--landing
+  > .auth-screen--static
+  > .auth-panel {
+  align-self: center;
+}
+
+html.desktop-app-route
+  .auth-flow-page--landing
+  > .auth-screen--static
+  > .auth-landing-legal {
+  position: static;
+  grid-row: 2;
+  align-self: end;
+  justify-self: center;
+  max-width: 100%;
+}
+
 .auth-screen--legal-open {
   touch-action: pan-y;
   user-select: text;
