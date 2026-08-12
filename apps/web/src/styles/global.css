@@ -7438,7 +7438,7 @@ html.desktop-app-route .stats-view-stage {
   min-height: 42px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 10px 0 6px;
   color: var(--color-text-muted);
   user-select: none;
