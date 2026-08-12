@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "prisma": "^6.19.3"
+    "prisma": "^7.9.1"
   },
   "allowScripts": {
     "argon2": true,
