@@ -1067,9 +1067,9 @@ export function ProfilePage({
 
             <div className="profile-action-list">
               <ProfileActionButton
-                label="Privacy & Terms"
-                icon={<FileText />}
-                onClick={openLegalScreen}
+                label="Feedback"
+                icon={<MessageSquare />}
+                onClick={onFeedback}
               />
               <ProfileActionButton
                 label="App version"
@@ -1077,9 +1077,9 @@ export function ProfilePage({
                 onClick={onAppVersion}
               />
               <ProfileActionButton
-                label="Feedback"
-                icon={<MessageSquare />}
-                onClick={onFeedback}
+                label="Privacy & Terms"
+                icon={<FileText />}
+                onClick={openLegalScreen}
               />
             </div>
           </section>
