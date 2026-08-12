@@ -2,6 +2,10 @@ import { ThumbsUp } from "lucide-react";
 import { useId, useState } from "react";
 
 import { ConfirmDialog } from "./ConfirmDialog";
+import {
+  FeedbackConfirmationContent,
+  SuccessCheckIcon
+} from "./FeedbackConfirmation";
 import { ApiRequestError } from "../../features/auth/auth-api";
 import { submitFeedback } from "../../features/home/feedback-api";
 
@@ -22,13 +26,23 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedFeedback, setSubmittedFeedback] = useState<{
+    email: string | null;
+    message: string;
+    sender: string | null;
+  } | null>(null);
 
-  function closeDialog() {
+  function resetDialog() {
     setName("");
     setEmail("");
     setFeedback("");
     setError(null);
     setIsSubmitting(false);
+    setSubmittedFeedback(null);
+  }
+
+  function closeDialog() {
+    resetDialog();
     onClose();
   }
 
@@ -43,14 +57,22 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
     setIsSubmitting(true);
 
     try {
+      const trimmedName = name.trim();
+      const trimmedEmail = email.trim();
+
       await submitFeedback({
         anonymous: true,
         type: "landing",
-        name: name.trim() || undefined,
-        email: email.trim() || undefined,
+        name: trimmedName || undefined,
+        email: trimmedEmail || undefined,
         message: trimmedFeedback
       });
-      closeDialog();
+      setSubmittedFeedback({
+        email: trimmedEmail || null,
+        message: trimmedFeedback,
+        sender: trimmedName || null
+      });
+      setIsSubmitting(false);
     } catch (sendError) {
       setError(
         sendError instanceof ApiRequestError
@@ -66,82 +88,109 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
       open={open}
       className="feedback-dialog"
       role="dialog"
-      title="Share your feedback"
-      description="Your comments help make Finance Manager better"
-      confirmLabel="Send feedback"
+      title={submittedFeedback ? "Feedback sent" : "Share your feedback"}
+      description={
+        submittedFeedback
+          ? "Your feedback helps improve Finance Manager"
+          : "Your comments help make Finance Manager better"
+      }
+      confirmLabel={submittedFeedback ? "Done" : "Send feedback"}
       cancelLabel="Cancel"
-      icon={<ThumbsUp aria-hidden="true" strokeWidth={1.8} />}
-      confirmDisabled={feedback.trim().length === 0}
+      icon={
+        submittedFeedback ? (
+          <SuccessCheckIcon className="feedback-dialog__success-icon" />
+        ) : (
+          <ThumbsUp aria-hidden="true" strokeWidth={1.8} />
+        )
+      }
+      iconClassName={
+        submittedFeedback ? "feedback-dialog__success-icon-shell" : undefined
+      }
+      confirmDisabled={!submittedFeedback && feedback.trim().length === 0}
       isConfirming={isSubmitting}
       confirmingLabel="Sending"
-      error={error}
+      error={submittedFeedback ? null : error}
+      showCancel={!submittedFeedback}
       onCancel={closeDialog}
-      onConfirm={sendFeedback}
+      onConfirm={submittedFeedback ? closeDialog : sendFeedback}
     >
-      <form
-        className="confirm-dialog__form feedback-dialog__form"
-        onSubmit={(event) => event.preventDefault()}
-      >
-        <div className="confirm-dialog__field">
-          <label className="text-field-label" htmlFor={nameId}>
-            Name <span>(optional)</span>
-          </label>
-          <input
-            id={nameId}
-            className="text-field text-field--dialog"
-            name="name"
-            type="text"
-            autoComplete="name"
-            maxLength={100}
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </div>
-
-        <div className="confirm-dialog__field">
-          <label className="text-field-label" htmlFor={emailId}>
-            Email <span>(optional)</span>
-          </label>
-          <input
-            id={emailId}
-            className="text-field text-field--dialog"
-            name="email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            maxLength={254}
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
-        </div>
-
-        <div className="confirm-dialog__field">
-          <div className="feedback-dialog__field-heading">
-            <label className="text-field-label" htmlFor={feedbackId}>
-              Your feedback
+      {submittedFeedback ? (
+        <FeedbackConfirmationContent
+          anonymousLabel="Anonymous feedback"
+          email={submittedFeedback.email}
+          message={submittedFeedback.message}
+          review="I will review it and use it to improve the app"
+          sentLabel="Feedback sent"
+          sender={submittedFeedback.sender}
+          summaryLabel="Sent feedback summary"
+          thanks="Thank you for the feedback"
+        />
+      ) : (
+        <form
+          className="confirm-dialog__form feedback-dialog__form"
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <div className="confirm-dialog__field">
+            <label className="text-field-label" htmlFor={nameId}>
+              Name <span>(optional)</span>
             </label>
-            {feedback.length >= feedbackCharacterCountRevealLength ? (
-              <span
-                className="transaction-composer__character-count"
-                aria-live="polite"
-              >
-                {feedback.length}/{feedbackMaxLength}
-              </span>
-            ) : null}
+            <input
+              id={nameId}
+              className="text-field text-field--dialog"
+              name="name"
+              type="text"
+              autoComplete="name"
+              maxLength={100}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
           </div>
-          <textarea
-            id={feedbackId}
-            className="text-field text-field--dialog text-field--multiline feedback-dialog__textarea"
-            name="feedback"
-            rows={3}
-            required
-            maxLength={feedbackMaxLength}
-            placeholder="Write your feedback here"
-            value={feedback}
-            onChange={(event) => setFeedback(event.target.value)}
-          />
-        </div>
-      </form>
+
+          <div className="confirm-dialog__field">
+            <label className="text-field-label" htmlFor={emailId}>
+              Email <span>(optional)</span>
+            </label>
+            <input
+              id={emailId}
+              className="text-field text-field--dialog"
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              maxLength={254}
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
+
+          <div className="confirm-dialog__field">
+            <div className="feedback-dialog__field-heading">
+              <label className="text-field-label" htmlFor={feedbackId}>
+                Your feedback
+              </label>
+              {feedback.length >= feedbackCharacterCountRevealLength ? (
+                <span
+                  className="transaction-composer__character-count"
+                  aria-live="polite"
+                >
+                  {feedback.length}/{feedbackMaxLength}
+                </span>
+              ) : null}
+            </div>
+            <textarea
+              id={feedbackId}
+              className="text-field text-field--dialog text-field--multiline feedback-dialog__textarea"
+              name="feedback"
+              rows={3}
+              required
+              maxLength={feedbackMaxLength}
+              placeholder="Write your feedback here"
+              value={feedback}
+              onChange={(event) => setFeedback(event.target.value)}
+            />
+          </div>
+        </form>
+      )}
     </ConfirmDialog>
   );
 }

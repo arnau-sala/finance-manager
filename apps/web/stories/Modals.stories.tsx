@@ -15,6 +15,10 @@ import {
 
 import { ConfirmDialog } from "../src/components/ui/ConfirmDialog";
 import {
+  FeedbackConfirmationContent,
+  SuccessCheckIcon
+} from "../src/components/ui/FeedbackConfirmation";
+import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
 } from "../src/components/ui/SlidingSegmentedControl";
@@ -53,6 +57,7 @@ type ModalId =
   | "delete-google"
   | "delete-hybrid"
   | "delete-rate-limited"
+  | "feedback-success"
   | "success";
 
 type ModalEntry = {
@@ -141,6 +146,11 @@ const modalEntries: readonly ModalEntry[] = [
     id: "delete-rate-limited",
     label: "Too many attempts",
     description: "Rate-limit error modal"
+  },
+  {
+    id: "feedback-success",
+    label: "Feedback sent",
+    description: "Landing feedback confirmation"
   },
   {
     id: "success",
@@ -535,6 +545,27 @@ function ModalRenderer({
         icon: <Check />,
         iconClassName: "success-check-icon",
         showCancel: false
+      })}
+
+      {renderDialog("feedback-success", {
+        title: "Feedback sent",
+        description: "Your feedback helps improve Finance Manager",
+        confirmLabel: "Done",
+        icon: <SuccessCheckIcon className="feedback-dialog__success-icon" />,
+        iconClassName: "feedback-dialog__success-icon-shell",
+        showCancel: false,
+        children: (
+          <FeedbackConfirmationContent
+            anonymousLabel="Anonymous feedback"
+            email="arnau@example.com"
+            message="The desktop landing feels clear and the mobile guide is easy to follow"
+            review="I will review it and use it to improve the app"
+            sentLabel="Feedback sent"
+            sender="Arnau"
+            summaryLabel="Sent feedback summary"
+            thanks="Thank you for the feedback"
+          />
+        )
       })}
     </>
   );

@@ -9304,6 +9304,27 @@ html.desktop-app-route .stats-view-stage {
   padding: 26px;
 }
 
+.feedback-dialog__success-icon-shell {
+  width: 66px;
+  height: 66px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.feedback-dialog__success-icon {
+  margin: 0;
+}
+
+.feedback-dialog__success-icon-shell .feedback-dialog__success-icon svg {
+  width: 29px;
+  height: 29px;
+}
+
+.feedback-dialog > .feature-suggestion-confirmation-stage {
+  margin-top: 18px;
+}
+
 .feedback-dialog__form {
   gap: 14px;
   margin-top: 22px;

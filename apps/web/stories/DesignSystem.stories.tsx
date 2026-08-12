@@ -12,6 +12,10 @@ import {
 
 import { ActionButton } from "../src/components/ui/ActionButton";
 import { ConfirmDialog } from "../src/components/ui/ConfirmDialog";
+import {
+  FeedbackConfirmationContent,
+  SuccessCheckIcon
+} from "../src/components/ui/FeedbackConfirmation";
 import { SkeletonBlock } from "../src/components/ui/SkeletonBlock";
 import {
   AndroidBrowserInstallScreen,
@@ -199,6 +203,23 @@ export const Components: Story = {
         </section>
 
         <ConfirmDialogExample />
+
+        <section className="storybook-section">
+          <h2>Feedback confirmation</h2>
+          <div className="auth-recovery-code-header">
+            <SuccessCheckIcon />
+          </div>
+          <FeedbackConfirmationContent
+            anonymousLabel="Anonymous feedback"
+            email="arnau@example.com"
+            message="The desktop landing feels clear and the mobile guide is easy to follow"
+            review="I will review it and use it to improve the app"
+            sentLabel="Feedback sent"
+            sender="Arnau"
+            summaryLabel="Sent feedback summary"
+            thanks="Thank you for the feedback"
+          />
+        </section>
 
         <LegalAcceptanceExample />
       </div>

@@ -9,6 +9,10 @@ import {
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import { formatErrorMessage } from "../../components/ui/error-message";
+import {
+  FeedbackConfirmationContent,
+  SuccessCheckIcon
+} from "../../components/ui/FeedbackConfirmation";
 import { ApiRequestError, type SessionUser } from "../auth/auth-api";
 import { validateEmail } from "../auth/email-validation";
 import { submitFeedback } from "./feedback-api";
@@ -210,18 +214,13 @@ export function FeatureSuggestionPage({
           aria-labelledby={`${idPrefix}-title`}
         >
           <header className="auth-header auth-password-reset-header feature-suggestion-header">
-            <span
-              className={`auth-recovery-code-icon${
-                submitted ? " success-check-icon" : ""
-              }`}
-              aria-hidden="true"
-            >
-              {submitted ? (
-                <Check strokeWidth={1.7} />
-              ) : (
+            {submitted ? (
+              <SuccessCheckIcon />
+            ) : (
+              <span className="auth-recovery-code-icon" aria-hidden="true">
                 <HeaderIcon strokeWidth={1.7} />
-              )}
-            </span>
+              </span>
+            )}
             <div className="auth-message">
               <h1 id={`${idPrefix}-title`}>{copy.title}</h1>
               <p className="auth-subtitle">
@@ -233,35 +232,17 @@ export function FeatureSuggestionPage({
           </header>
 
           {submitted ? (
-            <div className="auth-login-form auth-register-form feature-suggestion-form feature-suggestion-confirmation-stage">
-              <p className="feature-suggestion-confirmation__message">
-                <strong>{copy.submittedThanks}</strong>
-                <span>{copy.submittedReview}</span>
-              </p>
-
-              <div
-                className="feature-suggestion-confirmation"
-                aria-label={copy.summaryLabel}
-              >
-                <section className="feature-suggestion-confirmation__section">
-                  <span>{copy.sentLabel}</span>
-                  <p>{submittedSuggestion?.message ?? suggestion.trim()}</p>
-                </section>
-
-                <section className="feature-suggestion-confirmation__section">
-                  <span>Shared information</span>
-                  {submittedSuggestion?.sender ? (
-                    <div className="feature-suggestion-confirmation__details">
-                      <p>{submittedSuggestion.sender}</p>
-                      {submittedSuggestion.email ? (
-                        <p>{submittedSuggestion.email}</p>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <p>{copy.anonymousLabel}</p>
-                  )}
-                </section>
-              </div>
+            <div className="auth-login-form auth-register-form feature-suggestion-form">
+              <FeedbackConfirmationContent
+                anonymousLabel={copy.anonymousLabel}
+                email={submittedSuggestion?.email ?? null}
+                message={submittedSuggestion?.message ?? suggestion.trim()}
+                review={copy.submittedReview}
+                sentLabel={copy.sentLabel}
+                sender={submittedSuggestion?.sender ?? null}
+                summaryLabel={copy.summaryLabel}
+                thanks={copy.submittedThanks}
+              />
 
               <ActionButton
                 className="auth-primary-button feature-suggestion-submit"
