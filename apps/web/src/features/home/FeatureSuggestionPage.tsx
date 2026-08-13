@@ -20,8 +20,9 @@ import { submitFeedback } from "./feedback-api";
 type FeatureSuggestionPageProps = {
   open: boolean;
   kind?: "general" | "suggestion";
-  user: SessionUser;
+  user: SessionUser | null;
   onBack: () => void;
+  onDone?: () => void;
   onSessionExpired: () => void;
 };
 
@@ -39,6 +40,7 @@ export function FeatureSuggestionPage({
   kind = "suggestion",
   user,
   onBack,
+  onDone,
   onSessionExpired
 }: FeatureSuggestionPageProps) {
   const screenRef = useRef<HTMLElement>(null);
@@ -51,10 +53,14 @@ export function FeatureSuggestionPage({
   const [submittedSuggestion, setSubmittedSuggestion] =
     useState<SubmittedSuggestion | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const hasLinkedEmail = Boolean(user.email);
-  const senderLabel = user.username
-    ? `@${user.username}`
-    : user.email ?? user.name;
+  const hasSessionUser = user !== null;
+  const hasLinkedEmail = Boolean(user?.email);
+  const senderLabel = user
+    ? user.username
+      ? `@${user.username}`
+      : user.email ?? user.name
+    : null;
+  const isAnonymousSubmission = anonymous || !hasSessionUser;
   const HeaderIcon = kind === "suggestion" ? Lightbulb : MessageSquare;
   const idPrefix =
     kind === "suggestion" ? "feature-suggestion" : "general-feedback";
@@ -110,7 +116,9 @@ export function FeatureSuggestionPage({
         "Enter a valid email address")
       : null;
   const canSend =
-    suggestion.trim().length > 0 && !isSubmitting;
+    suggestion.trim().length > 0 &&
+    !isSubmitting &&
+    (parsedContactEmail === null || parsedContactEmail.success);
 
   useEffect(() => {
     if (!open) {
@@ -152,18 +160,23 @@ export function FeatureSuggestionPage({
       const submittedEmail =
         showsContactEmailField && contactEmail.trim().length > 0
           ? contactEmail.trim()
-          : user.email;
+          : user?.email;
 
       await submitFeedback({
         type: kind,
         message: trimmedSuggestion,
-        anonymous,
+        anonymous: isAnonymousSubmission,
         email: submittedEmail ?? undefined
       });
       setSubmittedSuggestion({
-        email: anonymous ? null : (submittedEmail ?? null),
+        email:
+          !hasSessionUser && submittedEmail
+            ? submittedEmail
+            : isAnonymousSubmission
+              ? null
+              : (submittedEmail ?? null),
         message: trimmedSuggestion,
-        sender: anonymous ? null : senderLabel
+        sender: isAnonymousSubmission ? null : senderLabel
       });
       setSubmitted(true);
       screenRef.current?.scrollTo({ top: 0, left: 0 });
@@ -247,7 +260,7 @@ export function FeatureSuggestionPage({
               <ActionButton
                 className="auth-primary-button feature-suggestion-submit"
                 type="button"
-                onClick={onBack}
+                onClick={onDone ?? onBack}
               >
                 Done
               </ActionButton>
@@ -331,43 +344,45 @@ export function FeatureSuggestionPage({
               </div>
             ) : null}
 
-            <div className="auth-form-field feature-suggestion-privacy">
-              <span
-                className="text-field-label"
-                id={`${idPrefix}-privacy-label`}
-              >
-                Privacy
-              </span>
-              <label
-                className="recovery-code-reset-option feature-suggestion-anonymous"
-                htmlFor={`${idPrefix}-anonymous`}
-                aria-labelledby={`${idPrefix}-privacy-label`}
-              >
-                <input
-                  id={`${idPrefix}-anonymous`}
-                  type="checkbox"
-                  checked={anonymous}
-                  onChange={(event) => {
-                    setAnonymous(event.target.checked);
-                    setHasContactEmailBlurred(false);
-                  }}
-                />
+            {hasSessionUser ? (
+              <div className="auth-form-field feature-suggestion-privacy">
                 <span
-                  className="recovery-code-reset-option__checkbox"
-                  aria-hidden="true"
+                  className="text-field-label"
+                  id={`${idPrefix}-privacy-label`}
                 >
-                  <Check />
+                  Privacy
                 </span>
-                <span className="recovery-code-reset-option__copy">
-                  <strong>Send anonymously</strong>
-                </span>
-              </label>
-              <p className="feature-suggestion-privacy__note">
-                {anonymous
-                  ? copy.sharedAnonymous
-                  : `${copy.sharedAs} ${senderLabel}`}
-              </p>
-            </div>
+                <label
+                  className="recovery-code-reset-option feature-suggestion-anonymous"
+                  htmlFor={`${idPrefix}-anonymous`}
+                  aria-labelledby={`${idPrefix}-privacy-label`}
+                >
+                  <input
+                    id={`${idPrefix}-anonymous`}
+                    type="checkbox"
+                    checked={anonymous}
+                    onChange={(event) => {
+                      setAnonymous(event.target.checked);
+                      setHasContactEmailBlurred(false);
+                    }}
+                  />
+                  <span
+                    className="recovery-code-reset-option__checkbox"
+                    aria-hidden="true"
+                  >
+                    <Check />
+                  </span>
+                  <span className="recovery-code-reset-option__copy">
+                    <strong>Send anonymously</strong>
+                  </span>
+                </label>
+                <p className="feature-suggestion-privacy__note">
+                  {anonymous
+                    ? copy.sharedAnonymous
+                    : `${copy.sharedAs} ${senderLabel}`}
+                </p>
+              </div>
+            ) : null}
 
             <ActionButton
               className="auth-primary-button feature-suggestion-submit"

@@ -43,8 +43,10 @@ export const feedbackRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const isLandingFeedback = result.data.type === "landing";
+      const isAnonymousGeneralFeedback =
+        result.data.type === "general" && result.data.anonymous;
 
-      if (!isLandingFeedback && !user) {
+      if (!isLandingFeedback && !isAnonymousGeneralFeedback && !user) {
         return reply.code(401).send({ error: "Authentication required" });
       }
 

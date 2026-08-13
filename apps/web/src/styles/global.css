@@ -10334,26 +10334,79 @@ html.desktop-app-route .stats-view-stage {
 .app-error-fallback {
   box-sizing: border-box;
   min-height: 100dvh;
-  padding: 32px;
+  padding: 32px 28px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 18px;
   text-align: center;
   background: var(--color-surface);
   color: var(--color-text);
 }
 
-.app-error-fallback h1,
-.app-error-fallback p {
+.app-error-fallback__copy {
+  max-width: 320px;
+  display: grid;
+  gap: 10px;
+}
+
+.app-error-fallback h1 {
   margin: 0;
+  color: var(--color-text);
+  font-size: 24px;
+  line-height: 1.18;
+  font-weight: 400;
+  letter-spacing: 0;
 }
 
 .app-error-fallback p {
+  margin: 0;
   color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.app-error-fallback__contact {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-error-fallback__contact a {
+  color: var(--color-primary);
+  font-weight: 400;
+  text-decoration: none;
+}
+
+.app-error-fallback__actions {
+  width: min(100%, 280px);
+  display: grid;
+  gap: 10px;
 }
 
 .app-error-fallback button {
-  width: min(100%, 280px);
+  width: 100%;
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.app-error-fallback button svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  stroke-width: 1.9;
+}
+
+.app-error-fallback__report {
+  height: 52px;
+  padding: 0 24px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 15px;
+  font-weight: 400;
 }
