@@ -26,8 +26,8 @@ function getNextDate(date: string) {
   return nextDate.toISOString().slice(0, 10);
 }
 
-function isMonthEnd(date: string, finalDate: string) {
-  return date === finalDate || getNextDate(date).slice(0, 7) !== date.slice(0, 7);
+function isMonthStart(date: string) {
+  return date.endsWith("-01");
 }
 
 export async function getCurrentNetWorth(userId: string, today: string) {
@@ -140,7 +140,8 @@ export async function getNetWorthSeries(
     if (
       period.mode !== "ALL" ||
       date === visibleStart ||
-      isMonthEnd(date, period.endDate)
+      isMonthStart(date) ||
+      date === period.endDate
     ) {
       points.push({
         date,

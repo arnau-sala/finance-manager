@@ -275,7 +275,7 @@ describe("net worth calculations", () => {
     });
   });
 
-  it("reduces all-time series to the opening point and month ends", async () => {
+  it("reduces all-time series to the opening point, month starts and final point", async () => {
     vi.spyOn(db, "$queryRaw").mockResolvedValueOnce([
       { startingNetWorthCents: 10_000, date: null, deltaCents: 0n },
       { startingNetWorthCents: 10_000, date: "2026-01-15", deltaCents: 1_000n },
@@ -293,7 +293,7 @@ describe("net worth calculations", () => {
     expect(result.status).toBe("READY");
     expect(result.points.map((point) => point.date)).toEqual([
       "2026-01-01",
-      "2026-01-31",
+      "2026-02-01",
       "2026-02-02",
     ]);
   });

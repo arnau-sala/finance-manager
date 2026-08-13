@@ -155,6 +155,14 @@ function createPeriodBoundaryTicks(
   return boundaries;
 }
 
+function createMonthStartMarkers(points: readonly NetWorthPoint[]) {
+  return new Set(
+    points
+      .filter((point) => point.date.endsWith("-01"))
+      .map((point) => point.date)
+  );
+}
+
 function createTickLabels(
   mode: StatisticsPeriodMode,
   points: readonly NetWorthPoint[]
@@ -227,7 +235,7 @@ function createChartOption(
     mode === "YEAR"
       ? createPeriodStartMarkers(points, 7)
       : mode === "ALL"
-        ? createPeriodStartMarkers(points, 4)
+        ? createMonthStartMarkers(points)
         : new Set(tickLabels.keys());
   const values = points.map((point) => {
     const isMarker = markerDates.has(point.date);
