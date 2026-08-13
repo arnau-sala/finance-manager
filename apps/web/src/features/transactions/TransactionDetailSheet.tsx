@@ -66,6 +66,7 @@ const CLOSE_VELOCITY_PX_PER_MS = 0.55;
 const DISMISS_SWIPE_DISTANCE_PX = 48;
 const DISMISS_SWIPE_MAX_DURATION_MS = 700;
 const ACTIONS_ANIMATION_MS = 220;
+const DELETE_CONFIRM_EXIT_ANIMATION_MS = 120;
 
 const detailScopeOptions = [
   { value: "MONTH", label: "Month" },
@@ -301,6 +302,7 @@ export function TransactionDetailSheet({
   const suspendedRef = useRef(suspended);
   const deleteConfirmOpenRef = useRef(false);
   const isDeletingRef = useRef(false);
+  const deleteConfirmCloseTimerRef = useRef<number | null>(null);
   const shareNoticeTimerRef = useRef<number | null>(null);
   const renderedTransactionRef = useRef<TransactionPreview | null>(null);
   const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
@@ -311,6 +313,7 @@ export function TransactionDetailSheet({
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [actionsInteractive, setActionsInteractive] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmClosing, setDeleteConfirmClosing] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
@@ -320,7 +323,7 @@ export function TransactionDetailSheet({
   } | null>(null);
 
   useEffect(() => {
-    if (!deleteConfirmOpen) {
+    if (!deleteConfirmOpen || deleteConfirmClosing) {
       return;
     }
 
@@ -329,7 +332,7 @@ export function TransactionDetailSheet({
     });
 
     return () => cancelAnimationFrame(focusFrame);
-  }, [deleteConfirmOpen]);
+  }, [deleteConfirmClosing, deleteConfirmOpen]);
   const transactionId = transaction?.id ?? "";
   const detailQuery = useQuery({
     ...transactionDetailQueryOptions(ownerId, transactionId),
@@ -379,13 +382,45 @@ export function TransactionDetailSheet({
   deleteConfirmOpenRef.current = deleteConfirmOpen;
   isDeletingRef.current = isDeleting;
 
+  function openDeleteConfirm() {
+    if (deleteConfirmCloseTimerRef.current !== null) {
+      window.clearTimeout(deleteConfirmCloseTimerRef.current);
+      deleteConfirmCloseTimerRef.current = null;
+    }
+
+    setDeleteError(null);
+    setDeleteConfirmClosing(false);
+    setDeleteConfirmOpen(true);
+  }
+
+  function closeDeleteConfirm({ immediate = false } = {}) {
+    if (deleteConfirmCloseTimerRef.current !== null) {
+      window.clearTimeout(deleteConfirmCloseTimerRef.current);
+      deleteConfirmCloseTimerRef.current = null;
+    }
+
+    if (immediate || !deleteConfirmOpenRef.current) {
+      setDeleteConfirmClosing(false);
+      setDeleteConfirmOpen(false);
+      setDeleteError(null);
+      return;
+    }
+
+    setDeleteConfirmClosing(true);
+    deleteConfirmCloseTimerRef.current = window.setTimeout(() => {
+      deleteConfirmCloseTimerRef.current = null;
+      setDeleteConfirmClosing(false);
+      setDeleteConfirmOpen(false);
+      setDeleteError(null);
+    }, DELETE_CONFIRM_EXIT_ANIMATION_MS);
+  }
+
   useEffect(() => {
     if (!open) {
       dragGesture.current = null;
       dismissSwipeGesture.current = null;
       setActionsOpen(false);
-      setDeleteConfirmOpen(false);
-      setDeleteError(null);
+      closeDeleteConfirm({ immediate: true });
       setIsDeleting(false);
       setIsSharing(false);
       setShareNotice(null);
@@ -399,8 +434,7 @@ export function TransactionDetailSheet({
         ? document.activeElement
         : null;
     setActionsOpen(false);
-    setDeleteConfirmOpen(false);
-    setDeleteError(null);
+    closeDeleteConfirm({ immediate: true });
     setIsDeleting(false);
     setIsSharing(false);
     setShareNotice(null);
@@ -419,8 +453,7 @@ export function TransactionDetailSheet({
         event.preventDefault();
 
         if (!isDeletingRef.current) {
-          setDeleteConfirmOpen(false);
-          setDeleteError(null);
+          closeDeleteConfirm();
         }
 
         return;
@@ -478,6 +511,10 @@ export function TransactionDetailSheet({
       if (shareNoticeTimerRef.current !== null) {
         window.clearTimeout(shareNoticeTimerRef.current);
         shareNoticeTimerRef.current = null;
+      }
+      if (deleteConfirmCloseTimerRef.current !== null) {
+        window.clearTimeout(deleteConfirmCloseTimerRef.current);
+        deleteConfirmCloseTimerRef.current = null;
       }
       previousFocus.current?.focus({ preventScroll: true });
     };
@@ -664,12 +701,12 @@ export function TransactionDetailSheet({
 
     try {
       await deleteTransaction(displayedTransaction.id);
-      setDeleteConfirmOpen(false);
+      closeDeleteConfirm({ immediate: true });
       setActionsOpen(false);
       onDeleted();
     } catch (error) {
       if (error instanceof TransactionApiError && error.status === 401) {
-        setDeleteConfirmOpen(false);
+        closeDeleteConfirm({ immediate: true });
         onSessionExpired();
         return;
       }
@@ -740,8 +777,7 @@ export function TransactionDetailSheet({
 
           if (deleteConfirmOpen) {
             if (!isDeleting) {
-              setDeleteConfirmOpen(false);
-              setDeleteError(null);
+              closeDeleteConfirm();
             }
           } else {
             onClose();
@@ -787,8 +823,7 @@ export function TransactionDetailSheet({
               event.stopPropagation();
 
               if (!isDeleting) {
-                setDeleteConfirmOpen(false);
-                setDeleteError(null);
+                closeDeleteConfirm();
               }
             }}
           />
@@ -817,8 +852,7 @@ export function TransactionDetailSheet({
               title="More"
               disabled={isDeleting}
               onClick={() => {
-                setDeleteConfirmOpen(false);
-                setDeleteError(null);
+                closeDeleteConfirm();
                 setActionsOpen((current) => !current);
               }}
             >
@@ -880,8 +914,7 @@ export function TransactionDetailSheet({
                   title="Delete"
                   disabled={!actionsInteractive || deleteConfirmOpen}
                   onClick={() => {
-                    setDeleteError(null);
-                    setDeleteConfirmOpen(true);
+                    openDeleteConfirm();
                   }}
                 >
                   <Trash2 aria-hidden="true" />
@@ -892,7 +925,11 @@ export function TransactionDetailSheet({
             {deleteConfirmOpen && displayedTransaction ? (
               <div
                 ref={deleteConfirmRef}
-                className="transaction-detail-delete-confirm"
+                className={`transaction-detail-delete-confirm${
+                  deleteConfirmClosing
+                    ? " transaction-detail-delete-confirm--closing"
+                    : ""
+                }`}
                 role="alertdialog"
                 aria-modal="true"
                 aria-labelledby={deleteTitleId}
@@ -920,8 +957,7 @@ export function TransactionDetailSheet({
                     type="button"
                     disabled={isDeleting}
                     onClick={() => {
-                      setDeleteConfirmOpen(false);
-                      setDeleteError(null);
+                      closeDeleteConfirm();
                     }}
                   >
                     Cancel

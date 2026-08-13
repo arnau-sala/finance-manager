@@ -7872,6 +7872,13 @@ html.desktop-app-route .stats-view-stage {
   box-shadow: var(--shadow-dialog);
   pointer-events: auto;
   text-align: left;
+  transform-origin: 18px top;
+  animation: profile-summary-card-google-info-in 150ms ease-out;
+}
+
+.transaction-detail-delete-confirm--closing {
+  pointer-events: none;
+  animation: profile-summary-card-google-info-out 120ms ease-in forwards;
 }
 
 .transaction-detail-delete-confirm > strong {
