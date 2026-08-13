@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import {
   invalidateAfterStartingNetWorthWrite,
@@ -13,6 +13,7 @@ import { StatsPage } from "../statistics/StatsPage";
 import {
   createInitialMovesPageState,
   MovesPage,
+  type MovesScrollTarget,
   type MovesPageState
 } from "../transactions/MovesPage";
 import {
@@ -77,7 +78,12 @@ type HomeSectionProps = {
   onInitialContentReady: () => void;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
-  onTransactionSelect: (transaction: TransactionPreview) => void;
+  onTransactionSelect: (
+    transaction: TransactionPreview,
+    viewportOffset?: number | null
+  ) => void;
+  movesScrollTarget: MovesScrollTarget | null;
+  onMovesScrollTargetHandled: () => void;
   movesViewState: MovesPageState;
   onMovesViewStateChange: (state: MovesPageState) => void;
   googleAccountDeletionFeedback: GoogleAccountDeletionFeedback | null;
@@ -111,6 +117,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onNewTransaction,
     onTransactionSelect,
+    movesScrollTarget,
+    onMovesScrollTargetHandled,
     movesViewState,
     onMovesViewStateChange
   }) => (
@@ -120,6 +128,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onStateChange={onMovesViewStateChange}
       onNewTransaction={onNewTransaction}
       onTransactionSelect={onTransactionSelect}
+      scrollTarget={movesScrollTarget}
+      onScrollTargetHandled={onMovesScrollTargetHandled}
       onSessionExpired={onSessionExpired}
     />
   ),
@@ -222,6 +232,11 @@ export function HomePage({
     useState<TransactionPreview | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
     useState<TransactionPreview | null>(null);
+  const [movesScrollTarget, setMovesScrollTarget] =
+    useState<MovesScrollTarget | null>(null);
+  const movesSelectedTransactionViewportOffset = useRef<number | null>(
+    null
+  );
   const [movesViewState, setMovesViewState] = useState<MovesPageState>(
     createInitialMovesPageState
   );
@@ -250,9 +265,35 @@ export function HomePage({
     setIsTransactionComposerOpen(true);
   }
 
-  function finishFinancialWrite() {
+  function finishFinancialWrite(updatedTransactionId?: string) {
+    const shouldRestoreEditedTransaction =
+      activeSection === "moves" &&
+      transactionBeingEdited !== null &&
+      updatedTransactionId === transactionBeingEdited.id;
+    const scrollTarget =
+      shouldRestoreEditedTransaction && updatedTransactionId
+        ? {
+            transactionId: updatedTransactionId,
+            viewportOffset:
+              movesSelectedTransactionViewportOffset.current,
+            isReady: false
+          }
+        : null;
+
+    if (scrollTarget) {
+      setMovesScrollTarget(scrollTarget);
+    }
+
     setIsTransactionComposerOpen(false);
-    void invalidateAfterTransactionWrite(user.id);
+    void invalidateAfterTransactionWrite(user.id).finally(() => {
+      if (scrollTarget) {
+        setMovesScrollTarget((current) =>
+          current?.transactionId === scrollTarget.transactionId
+            ? { ...current, isReady: true }
+            : current
+        );
+      }
+    });
   }
 
   function finishProfileUpdate(updatedUser: SessionUser) {
@@ -278,8 +319,13 @@ export function HomePage({
     setActiveSection(section);
   }
 
-  function openTransaction(transaction: TransactionPreview) {
+  function openTransaction(
+    transaction: TransactionPreview,
+    viewportOffset: number | null = null
+  ) {
     prefetchScheduler.prioritizeUserRequest();
+    movesSelectedTransactionViewportOffset.current =
+      activeSection === "moves" ? viewportOffset : null;
     setSelectedTransaction(transaction);
   }
 
@@ -336,6 +382,9 @@ export function HomePage({
           onNewTransaction: openNewTransaction,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,
+          movesScrollTarget,
+          onMovesScrollTargetHandled: () =>
+            setMovesScrollTarget(null),
           movesViewState,
           onMovesViewStateChange: setMovesViewState,
           googleAccountDeletionFeedback,

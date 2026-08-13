@@ -38,7 +38,7 @@ type TransactionComposerProps = {
   transaction: TransactionPreview | null;
   onClose: () => void;
   onCreated: () => void;
-  onUpdated: () => void;
+  onUpdated: (transactionId: string) => void;
   onSessionExpired: () => void;
 };
 
@@ -488,7 +488,7 @@ export function TransactionComposer({
         }
 
         await updateTransaction(transaction.id, changedFields);
-        onUpdated();
+        onUpdated(transaction.id);
       } else {
         await createTransaction(parsedTransaction.data);
         onCreated();

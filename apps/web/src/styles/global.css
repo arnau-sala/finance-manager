@@ -7424,6 +7424,22 @@ html.desktop-app-route .stats-view-stage {
   list-style: none;
 }
 
+.moves-results-stage {
+  position: relative;
+}
+
+.moves-results-restoring {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--color-background);
+}
+
+.moves-transaction-list--restoring {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .moves-results-separator {
   display: grid;
   align-items: center;

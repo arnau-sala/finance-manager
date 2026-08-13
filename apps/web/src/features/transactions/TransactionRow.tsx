@@ -1,3 +1,5 @@
+import { forwardRef } from "react";
+
 import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
 import { getCategoryIcon, type TransactionType } from "./category-catalog";
@@ -55,15 +57,19 @@ function formatTransactionDate(value: string) {
   }).format(date);
 }
 
-export function TransactionRow({
-  type,
-  categoryId,
-  categoryName,
-  amount,
-  description,
-  date,
-  onSelect
-}: TransactionRowData) {
+export const TransactionRow = forwardRef<HTMLLIElement, TransactionRowData>(
+  function TransactionRow(
+    {
+      type,
+      categoryId,
+      categoryName,
+      amount,
+      description,
+      date,
+      onSelect
+    },
+    ref
+  ) {
   const Icon = getCategoryIcon(categoryId, type);
   const content = (
     <>
@@ -85,7 +91,7 @@ export function TransactionRow({
   );
 
   return (
-    <li className="transaction-row">
+    <li ref={ref} className="transaction-row">
       {onSelect ? (
         <button
           className="transaction-row__content"
@@ -100,4 +106,5 @@ export function TransactionRow({
       )}
     </li>
   );
-}
+  }
+);

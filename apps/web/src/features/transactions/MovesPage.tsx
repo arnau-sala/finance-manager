@@ -1,6 +1,7 @@
 import {
   Fragment,
   type RefObject,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -52,8 +53,19 @@ type MovesPageProps = {
   initialState: MovesPageState;
   onStateChange: (state: MovesPageState) => void;
   onNewTransaction: () => void;
-  onTransactionSelect: (transaction: TransactionPreview) => void;
+  onTransactionSelect: (
+    transaction: TransactionPreview,
+    viewportOffset: number | null
+  ) => void;
+  scrollTarget: MovesScrollTarget | null;
+  onScrollTargetHandled: () => void;
   onSessionExpired: () => void;
+};
+
+export type MovesScrollTarget = {
+  transactionId: string;
+  viewportOffset: number | null;
+  isReady: boolean;
 };
 
 export type MovesPageState = {
@@ -180,6 +192,8 @@ export function MovesPage({
   onStateChange,
   onNewTransaction,
   onTransactionSelect,
+  scrollTarget,
+  onScrollTargetHandled,
   onSessionExpired
 }: MovesPageProps) {
   const [searchQuery, setSearchQuery] = useState(
@@ -201,6 +215,7 @@ export function MovesPage({
   );
   const scrollContainer = useRef<HTMLElement>(null);
   const loadMoreSentinel = useRef<HTMLDivElement>(null);
+  const transactionRows = useRef(new Map<string, HTMLLIElement>());
   const persistedState = useRef(initialState);
   const activeFilterCount = countActiveMovesFilters(appliedFilters);
   const transactionRequest = useMemo(
@@ -247,7 +262,22 @@ export function MovesPage({
   const isLoadingFilteredResults =
     isSearchDebouncing ||
     (transactionsQuery.isPlaceholderData && transactionsQuery.isFetching);
+  const isRestoringEditedTransaction = scrollTarget !== null;
+  const isPreparingResults =
+    isLoadingFilteredResults || isRestoringEditedTransaction;
   const hasMore = transactionsQuery.hasNextPage;
+
+  const registerTransactionRow = useCallback(
+    (transactionId: string) => (node: HTMLLIElement | null) => {
+      if (node) {
+        transactionRows.current.set(transactionId, node);
+        return;
+      }
+
+      transactionRows.current.delete(transactionId);
+    },
+    []
+  );
 
   persistedState.current = {
     searchQuery,
@@ -321,9 +351,86 @@ export function MovesPage({
     scheduleTransactionDetailPrefetches(userId, transactionIds);
   }, [firstPage, lastPage, userId]);
 
+  useLayoutEffect(() => {
+    if (
+      !scrollTarget ||
+      !scrollTarget.isReady ||
+      loadingState !== "ready" ||
+      isLoadingFilteredResults
+    ) {
+      return;
+    }
+
+    const targetRow = transactionRows.current.get(
+      scrollTarget.transactionId
+    );
+
+    if (targetRow) {
+      const root = scrollContainer.current;
+
+      if (root) {
+        const rootRect = root.getBoundingClientRect();
+        const rowRect = targetRow.getBoundingClientRect();
+        const currentViewportOffset = rowRect.top - rootRect.top;
+        const desiredViewportOffset =
+          scrollTarget.viewportOffset ?? currentViewportOffset;
+        const targetScrollTop =
+          root.scrollTop +
+          currentViewportOffset -
+          desiredViewportOffset;
+
+        root.scrollTop = Math.max(0, targetScrollTop);
+      }
+
+      window.requestAnimationFrame(() => {
+        onScrollTargetHandled();
+      });
+      return;
+    }
+
+    if (
+      transactionsQuery.hasNextPage &&
+      !transactionsQuery.isFetching &&
+      !transactionsQuery.isFetchingNextPage
+    ) {
+      prefetchScheduler.prioritizeUserRequest();
+      void transactionsQuery.fetchNextPage();
+      return;
+    }
+
+    if (
+      !transactionsQuery.hasNextPage &&
+      !transactionsQuery.isFetching
+    ) {
+      onScrollTargetHandled();
+    }
+  }, [
+    isLoadingFilteredResults,
+    loadingState,
+    onScrollTargetHandled,
+    scrollTarget,
+    transactions.length,
+    transactionsQuery.fetchNextPage,
+    transactionsQuery.hasNextPage,
+    transactionsQuery.isFetching,
+    transactionsQuery.isFetchingNextPage
+  ]);
+
   function updateSearchQuery(value: string) {
     setSearchQuery(value);
     scrollContainer.current?.scrollTo({ top: 0 });
+  }
+
+  function selectTransaction(transaction: TransactionPreview) {
+    const root = scrollContainer.current;
+    const row = transactionRows.current.get(transaction.id);
+    const viewportOffset =
+      root && row
+        ? row.getBoundingClientRect().top -
+          root.getBoundingClientRect().top
+        : null;
+
+    onTransactionSelect(transaction, viewportOffset);
   }
 
   function applyFilters(filters: MovesFilters) {
@@ -521,7 +628,7 @@ export function MovesPage({
             isFilterPanelOpen ? " moves-results-count--after-filter-panel" : ""
           }`}
         >
-          {isLoadingFilteredResults ? (
+          {isPreparingResults ? (
             <SkeletonBlock
               className="moves-results-skeleton__count"
               width={82}
@@ -537,7 +644,7 @@ export function MovesPage({
           )}
         </div>
 
-        {isLoadingFilteredResults ||
+        {isPreparingResults ||
         (loadingState === "ready" && transactions.length > 0) ? (
           <div className="moves-results-separator" aria-hidden="true" />
         ) : null}
@@ -545,41 +652,57 @@ export function MovesPage({
         {isLoadingFilteredResults ? (
           <TransactionResultsSkeleton />
         ) : loadingState === "ready" && transactions.length > 0 ? (
-          <ul className="moves-transaction-list" aria-label="Transaction history">
-            {transactions.map((transaction, index) => {
-              const previousTransaction = transactions[index - 1];
-              const startsNewMonth =
-                !previousTransaction ||
-                getMonthKey(previousTransaction.date) !==
-                  getMonthKey(transaction.date);
+          <div className="moves-results-stage">
+            {isRestoringEditedTransaction ? (
+              <div className="moves-results-restoring" aria-hidden="true">
+                <TransactionResultsSkeleton />
+              </div>
+            ) : null}
+            <ul
+              className={`moves-transaction-list${
+                isRestoringEditedTransaction
+                  ? " moves-transaction-list--restoring"
+                  : ""
+              }`}
+              aria-label="Transaction history"
+              aria-hidden={isRestoringEditedTransaction}
+            >
+              {transactions.map((transaction, index) => {
+                const previousTransaction = transactions[index - 1];
+                const startsNewMonth =
+                  !previousTransaction ||
+                  getMonthKey(previousTransaction.date) !==
+                    getMonthKey(transaction.date);
 
-              return (
-                <Fragment key={transaction.id}>
-                  {startsNewMonth ? (
-                    <li className="moves-month-divider">
-                      <time dateTime={getMonthKey(transaction.date)}>
-                        {formatMonthLabel(transaction.date)}
-                      </time>
-                    </li>
-                  ) : null}
-                  <TransactionRow
-                    type={transaction.type}
-                    categoryId={transaction.categoryId}
-                    categoryName={transaction.category.name}
-                    amount={transaction.amount}
-                    description={transaction.description}
-                    date={transaction.date}
-                    onSelect={() => onTransactionSelect(transaction)}
-                  />
-                </Fragment>
-              );
-            })}
-            {transactionsQuery.isFetchingNextPage
-              ? Array.from({ length: 3 }, (_, index) => (
-                  <TransactionRowSkeleton key={`loading-${index}`} />
-                ))
-              : null}
-          </ul>
+                return (
+                  <Fragment key={transaction.id}>
+                    {startsNewMonth ? (
+                      <li className="moves-month-divider">
+                        <time dateTime={getMonthKey(transaction.date)}>
+                          {formatMonthLabel(transaction.date)}
+                        </time>
+                      </li>
+                    ) : null}
+                    <TransactionRow
+                      ref={registerTransactionRow(transaction.id)}
+                      type={transaction.type}
+                      categoryId={transaction.categoryId}
+                      categoryName={transaction.category.name}
+                      amount={transaction.amount}
+                      description={transaction.description}
+                      date={transaction.date}
+                      onSelect={() => selectTransaction(transaction)}
+                    />
+                  </Fragment>
+                );
+              })}
+              {transactionsQuery.isFetchingNextPage
+                ? Array.from({ length: 3 }, (_, index) => (
+                    <TransactionRowSkeleton key={`loading-${index}`} />
+                  ))
+                : null}
+            </ul>
+          </div>
         ) : loadingState === "error" ? (
           <div className="moves-empty-state" role="alert">
             <Search aria-hidden="true" />
