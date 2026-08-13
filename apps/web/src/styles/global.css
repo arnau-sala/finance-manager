@@ -5798,6 +5798,10 @@ html.desktop-app-route .stats-view-stage {
   touch-action: pan-y;
 }
 
+.stats-cash-flow__chart {
+  margin-top: 8px;
+}
+
 .stats-category-breakdown__type {
   margin-top: calc((var(--stats-section-line-gap) * 2) + 1px);
   margin-bottom: 8px;
