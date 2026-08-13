@@ -76,6 +76,7 @@ type HomeSectionProps = {
   onAccountDeleted: () => void;
   onSessionExpired: () => void;
   onInitialContentReady: () => void;
+  scrollToTopSignal: number;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (
@@ -99,6 +100,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onSessionExpired,
     onInitialContentReady,
+    scrollToTopSignal,
     onNewTransaction,
     onNavigateToMoves,
     onTransactionSelect
@@ -107,6 +109,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       user={user}
       onSessionExpired={onSessionExpired}
       onInitialContentReady={onInitialContentReady}
+      scrollToTopSignal={scrollToTopSignal}
       onNewTransaction={onNewTransaction}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
@@ -115,6 +118,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   moves: ({
     user,
     onSessionExpired,
+    scrollToTopSignal,
     onNewTransaction,
     onTransactionSelect,
     movesScrollTarget,
@@ -130,17 +134,20 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onTransactionSelect={onTransactionSelect}
       scrollTarget={movesScrollTarget}
       onScrollTargetHandled={onMovesScrollTargetHandled}
+      scrollToTopSignal={scrollToTopSignal}
       onSessionExpired={onSessionExpired}
     />
   ),
   stats: ({
     user,
     onSessionExpired,
+    scrollToTopSignal,
     onNewTransaction,
     onTransactionSelect
   }) => (
     <StatsPage
       userId={user.id}
+      scrollToTopSignal={scrollToTopSignal}
       onNewTransaction={onNewTransaction}
       onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
@@ -148,6 +155,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   ),
   profile: ({
     user,
+    scrollToTopSignal,
     onProfileUpdated,
     onEditProfile,
     onChangePassword,
@@ -168,6 +176,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   }) => (
     <ProfilePage
       user={user}
+      scrollToTopSignal={scrollToTopSignal}
       onEditProfile={onEditProfile}
       onProfileUpdated={onProfileUpdated}
       onChangePassword={onChangePassword}
@@ -240,7 +249,15 @@ export function HomePage({
   const [movesViewState, setMovesViewState] = useState<MovesPageState>(
     createInitialMovesPageState
   );
+  const [scrollToTopRequest, setScrollToTopRequest] = useState<{
+    section: HomeSectionId;
+    signal: number;
+  } | null>(null);
   const ActiveSection = homeSections[activeSection];
+  const activeScrollToTopSignal =
+    scrollToTopRequest?.section === activeSection
+      ? scrollToTopRequest.signal
+      : 0;
   const isOverlayOpen =
     isEditProfileOpen ||
     isChangePasswordOpen ||
@@ -306,16 +323,22 @@ export function HomePage({
 
   function navigateToMoves(filters = createEmptyMovesFilters()) {
     prefetchScheduler.prioritizeUserRequest();
+    setScrollToTopRequest(null);
     setMovesViewState(createInitialMovesPageState(filters));
     setActiveSection("moves");
   }
 
   function changeSection(section: HomeSectionId) {
     if (section === activeSection) {
+      setScrollToTopRequest((current) => ({
+        section,
+        signal: (current?.signal ?? 0) + 1
+      }));
       return;
     }
 
     prefetchScheduler.prioritizeUserRequest();
+    setScrollToTopRequest(null);
     setActiveSection(section);
   }
 
@@ -379,6 +402,7 @@ export function HomePage({
           onAccountDeleted,
           onSessionExpired,
           onInitialContentReady,
+          scrollToTopSignal: activeScrollToTopSignal,
           onNewTransaction: openNewTransaction,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,
@@ -397,7 +421,7 @@ export function HomePage({
 
         <HomeFooterNav
           activeSection={activeSection}
-          onSectionChange={changeSection}
+          onSectionSelect={changeSection}
         />
       </div>
 

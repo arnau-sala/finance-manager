@@ -36,6 +36,7 @@ type HomeOverviewPageProps = {
   user: SessionUser;
   onSessionExpired: () => void;
   onInitialContentReady: () => void;
+  scrollToTopSignal: number;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
@@ -184,6 +185,7 @@ export function HomeOverviewPage({
   user,
   onSessionExpired,
   onInitialContentReady,
+  scrollToTopSignal,
   onNewTransaction,
   onNavigateToMoves,
   onTransactionSelect
@@ -191,6 +193,7 @@ export function HomeOverviewPage({
   const overviewQuery = useQuery(homeOverviewQueryOptions(user.id));
   const overview = overviewQuery.data ?? null;
   const netWorthAnimationTimeout = useRef<number | null>(null);
+  const scrollContainer = useRef<HTMLElement>(null);
   const [isNetWorthHidden, setIsNetWorthHidden] = useState(() =>
     readStoredNetWorthHidden(user.id)
   );
@@ -225,6 +228,15 @@ export function HomeOverviewPage({
   }, [onInitialContentReady, overviewQuery.isPending]);
 
   useEffect(() => {
+    if (scrollToTopSignal > 0) {
+      scrollContainer.current?.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+  }, [scrollToTopSignal]);
+
+  useEffect(() => {
     if (overview) {
       scheduleHomePrefetches(user.id);
     }
@@ -243,6 +255,7 @@ export function HomeOverviewPage({
   if (loadingState === "error" || !overview) {
     return (
       <section
+        ref={scrollContainer}
         className="home-content home-content--overview"
         aria-labelledby="home-overview-title"
       >
@@ -290,6 +303,7 @@ export function HomeOverviewPage({
 
   return (
     <section
+      ref={scrollContainer}
       className="home-content home-content--overview"
       aria-labelledby="home-overview-title"
     >

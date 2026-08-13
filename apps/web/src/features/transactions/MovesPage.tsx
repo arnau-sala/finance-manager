@@ -59,6 +59,7 @@ type MovesPageProps = {
   ) => void;
   scrollTarget: MovesScrollTarget | null;
   onScrollTargetHandled: () => void;
+  scrollToTopSignal: number;
   onSessionExpired: () => void;
 };
 
@@ -194,6 +195,7 @@ export function MovesPage({
   onTransactionSelect,
   scrollTarget,
   onScrollTargetHandled,
+  scrollToTopSignal,
   onSessionExpired
 }: MovesPageProps) {
   const [searchQuery, setSearchQuery] = useState(
@@ -279,6 +281,19 @@ export function MovesPage({
     []
   );
 
+  function syncPersistedScrollTop() {
+    const root = scrollContainer.current;
+
+    if (!root) {
+      return;
+    }
+
+    persistedState.current = {
+      ...persistedState.current,
+      scrollTop: root.scrollTop
+    };
+  }
+
   persistedState.current = {
     searchQuery,
     filters: {
@@ -296,6 +311,16 @@ export function MovesPage({
       root.scrollTop = initialState.scrollTop;
     }
   }, [initialState.scrollTop]);
+
+  useEffect(() => {
+    if (scrollToTopSignal > 0 && !scrollTarget) {
+      scrollContainer.current?.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+      syncPersistedScrollTop();
+    }
+  }, [scrollTarget, scrollToTopSignal]);
 
   useEffect(
     () => () => {
@@ -503,6 +528,7 @@ export function MovesPage({
         ref={scrollContainer}
         className="home-content home-content--moves"
         aria-labelledby="moves-page-title"
+        onScroll={syncPersistedScrollTop}
       >
         <div className="moves-page moves-page--empty">
           <header className="moves-page__header">
@@ -536,6 +562,7 @@ export function MovesPage({
       ref={scrollContainer}
       className="home-content home-content--moves"
       aria-labelledby="moves-page-title"
+      onScroll={syncPersistedScrollTop}
     >
       <div className="moves-page">
         <header className="moves-page__header">

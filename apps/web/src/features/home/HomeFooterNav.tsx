@@ -2,10 +2,13 @@ import { homeNavItems, type HomeSectionId } from "./home-sections";
 
 type HomeFooterNavProps = {
   activeSection: HomeSectionId;
-  onSectionChange: (section: HomeSectionId) => void;
+  onSectionSelect: (section: HomeSectionId) => void;
 };
 
-export function HomeFooterNav({ activeSection, onSectionChange }: HomeFooterNavProps) {
+export function HomeFooterNav({
+  activeSection,
+  onSectionSelect
+}: HomeFooterNavProps) {
   return (
     <>
       <div className="home-footer-nav__hit-shield" aria-hidden="true" />
@@ -22,7 +25,7 @@ export function HomeFooterNav({ activeSection, onSectionChange }: HomeFooterNavP
               type="button"
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
-              onClick={() => onSectionChange(item.id)}
+              onClick={() => onSectionSelect(item.id)}
             >
               <span className="home-footer-nav__icon" aria-hidden="true">
                 <Icon className="home-footer-nav__icon-svg" />

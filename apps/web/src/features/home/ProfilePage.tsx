@@ -59,6 +59,7 @@ import { validateAccountPassword } from "../auth/password-validation";
 
 type ProfilePageProps = {
   user: SessionUser;
+  scrollToTopSignal: number;
   onEditProfile: () => void;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
@@ -179,6 +180,7 @@ function getEmailUnlinkDescription(
 
 export function ProfilePage({
   user,
+  scrollToTopSignal,
   onEditProfile,
   onProfileUpdated,
   onChangePassword,
@@ -323,6 +325,15 @@ export function ProfilePage({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isSummaryGoogleInfoOpen]);
+
+  useEffect(() => {
+    if (scrollToTopSignal > 0) {
+      profileScrollRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+  }, [scrollToTopSignal]);
 
   useLayoutEffect(() => {
     const scrollContainer = profileScrollRef.current;

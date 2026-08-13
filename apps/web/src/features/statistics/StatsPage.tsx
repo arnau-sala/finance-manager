@@ -71,6 +71,7 @@ const StatsChartsView = lazy(loadStatsChartsView);
 
 type StatsPageProps = {
   userId: string;
+  scrollToTopSignal: number;
   onNewTransaction: () => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
@@ -1081,12 +1082,14 @@ function StatsOverviewContent({
 
 export function StatsPage({
   userId,
+  scrollToTopSignal,
   onNewTransaction,
   onTransactionSelect,
   onSessionExpired
 }: StatsPageProps) {
   const currentMonthKey = getLocalDateKey().slice(0, 7);
   const currentYear = Number(currentMonthKey.slice(0, 4));
+  const scrollContainer = useRef<HTMLElement>(null);
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const yearPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [viewMode, setViewMode] = useState<StatsViewMode>("OVERVIEW");
@@ -1251,6 +1254,15 @@ export function StatsPage({
     overviewQuery.error
   ]);
 
+  useEffect(() => {
+    if (scrollToTopSignal > 0) {
+      scrollContainer.current?.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+    }
+  }, [scrollToTopSignal]);
+
   function changePeriod(nextIndex: number) {
     if (mode === "ALL") {
       return;
@@ -1323,6 +1335,7 @@ export function StatsPage({
   if (availabilityState === "loading") {
     return (
       <section
+        ref={scrollContainer}
         className="home-content home-content--stats"
         aria-labelledby="stats-page-title"
       >
@@ -1334,6 +1347,7 @@ export function StatsPage({
   if (availabilityState === "error" || !availability) {
     return (
       <section
+        ref={scrollContainer}
         className="home-content home-content--stats"
         aria-label="Statistics"
       >
@@ -1353,6 +1367,7 @@ export function StatsPage({
   if (availableMonths.length === 0) {
     return (
       <section
+        ref={scrollContainer}
         className="home-content home-content--stats"
         aria-labelledby="stats-page-title"
       >
@@ -1373,6 +1388,7 @@ export function StatsPage({
 
   return (
     <section
+      ref={scrollContainer}
       className="home-content home-content--stats"
       aria-labelledby="stats-page-title"
     >
