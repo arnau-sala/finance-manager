@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
@@ -37,6 +37,8 @@ type HomeOverviewPageProps = {
   onSessionExpired: () => void;
   onInitialContentReady: () => void;
   scrollToTopSignal: number;
+  initialScrollTop: number;
+  onScrollTopChange: (scrollTop: number) => void;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
@@ -186,6 +188,8 @@ export function HomeOverviewPage({
   onSessionExpired,
   onInitialContentReady,
   scrollToTopSignal,
+  initialScrollTop,
+  onScrollTopChange,
   onNewTransaction,
   onNavigateToMoves,
   onTransactionSelect
@@ -194,6 +198,7 @@ export function HomeOverviewPage({
   const overview = overviewQuery.data ?? null;
   const netWorthAnimationTimeout = useRef<number | null>(null);
   const scrollContainer = useRef<HTMLElement>(null);
+  const persistedScrollTop = useRef(initialScrollTop);
   const [isNetWorthHidden, setIsNetWorthHidden] = useState(() =>
     readStoredNetWorthHidden(user.id)
   );
@@ -211,6 +216,33 @@ export function HomeOverviewPage({
       }
     };
   }, []);
+
+  useLayoutEffect(() => {
+    const root = scrollContainer.current;
+
+    persistedScrollTop.current = initialScrollTop;
+
+    if (root) {
+      root.scrollTop = initialScrollTop;
+    }
+  }, [initialScrollTop]);
+
+  useEffect(
+    () => () => {
+      onScrollTopChange(
+        scrollContainer.current?.scrollTop ?? persistedScrollTop.current
+      );
+    },
+    [onScrollTopChange]
+  );
+
+  function syncPersistedScrollTop() {
+    const root = scrollContainer.current;
+
+    if (root) {
+      persistedScrollTop.current = root.scrollTop;
+    }
+  }
 
   useEffect(() => {
     if (
@@ -233,6 +265,7 @@ export function HomeOverviewPage({
         top: 0,
         behavior: "smooth"
       });
+      syncPersistedScrollTop();
     }
   }, [scrollToTopSignal]);
 
@@ -258,6 +291,7 @@ export function HomeOverviewPage({
         ref={scrollContainer}
         className="home-content home-content--overview"
         aria-labelledby="home-overview-title"
+        onScroll={syncPersistedScrollTop}
       >
         <div className="home-overview home-overview--error">
           <header className="home-overview__header">
@@ -306,6 +340,7 @@ export function HomeOverviewPage({
       ref={scrollContainer}
       className="home-content home-content--overview"
       aria-labelledby="home-overview-title"
+      onScroll={syncPersistedScrollTop}
     >
       <div className="home-overview">
         <header className="home-overview__header">

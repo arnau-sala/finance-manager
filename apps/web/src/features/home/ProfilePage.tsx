@@ -60,6 +60,8 @@ import { validateAccountPassword } from "../auth/password-validation";
 type ProfilePageProps = {
   user: SessionUser;
   scrollToTopSignal: number;
+  initialScrollTop: number;
+  onScrollTopChange: (scrollTop: number) => void;
   onEditProfile: () => void;
   onProfileUpdated: (user: SessionUser) => void;
   onChangePassword: () => void;
@@ -181,6 +183,8 @@ function getEmailUnlinkDescription(
 export function ProfilePage({
   user,
   scrollToTopSignal,
+  initialScrollTop,
+  onScrollTopChange,
   onEditProfile,
   onProfileUpdated,
   onChangePassword,
@@ -201,6 +205,7 @@ export function ProfilePage({
 }: ProfilePageProps) {
   const profileScrollRef = useRef<HTMLElement>(null);
   const profileContentRef = useRef<HTMLDivElement>(null);
+  const persistedScrollTop = useRef(initialScrollTop);
   const [isProfileScrollable, setIsProfileScrollable] = useState(false);
   const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [isLegalScreenOpen, setIsLegalScreenOpen] = useState(false);
@@ -326,12 +331,40 @@ export function ProfilePage({
     };
   }, [isSummaryGoogleInfoOpen]);
 
+  useLayoutEffect(() => {
+    const root = profileScrollRef.current;
+
+    persistedScrollTop.current = initialScrollTop;
+
+    if (root) {
+      root.scrollTop = initialScrollTop;
+    }
+  }, [initialScrollTop]);
+
+  useEffect(
+    () => () => {
+      onScrollTopChange(
+        profileScrollRef.current?.scrollTop ?? persistedScrollTop.current
+      );
+    },
+    [onScrollTopChange]
+  );
+
+  function syncPersistedScrollTop() {
+    const root = profileScrollRef.current;
+
+    if (root) {
+      persistedScrollTop.current = root.scrollTop;
+    }
+  }
+
   useEffect(() => {
     if (scrollToTopSignal > 0) {
       profileScrollRef.current?.scrollTo({
         top: 0,
         behavior: "smooth"
       });
+      syncPersistedScrollTop();
     }
   }, [scrollToTopSignal]);
 
@@ -829,6 +862,7 @@ export function ProfilePage({
           isProfileScrollable ? " is-scrollable" : ""
         }`}
         aria-label="Profile"
+        onScroll={syncPersistedScrollTop}
       >
         <div ref={profileContentRef} className="profile-page">
           <section

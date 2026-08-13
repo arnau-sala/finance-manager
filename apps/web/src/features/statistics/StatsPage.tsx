@@ -72,6 +72,8 @@ const StatsChartsView = lazy(loadStatsChartsView);
 type StatsPageProps = {
   userId: string;
   scrollToTopSignal: number;
+  initialScrollTop: number;
+  onScrollTopChange: (scrollTop: number) => void;
   onNewTransaction: () => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
@@ -1083,6 +1085,8 @@ function StatsOverviewContent({
 export function StatsPage({
   userId,
   scrollToTopSignal,
+  initialScrollTop,
+  onScrollTopChange,
   onNewTransaction,
   onTransactionSelect,
   onSessionExpired
@@ -1090,6 +1094,7 @@ export function StatsPage({
   const currentMonthKey = getLocalDateKey().slice(0, 7);
   const currentYear = Number(currentMonthKey.slice(0, 4));
   const scrollContainer = useRef<HTMLElement>(null);
+  const persistedScrollTop = useRef(initialScrollTop);
   const monthPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const yearPickerAnchorRef = useRef<HTMLButtonElement>(null);
   const [viewMode, setViewMode] = useState<StatsViewMode>("OVERVIEW");
@@ -1254,12 +1259,40 @@ export function StatsPage({
     overviewQuery.error
   ]);
 
+  useLayoutEffect(() => {
+    const root = scrollContainer.current;
+
+    persistedScrollTop.current = initialScrollTop;
+
+    if (root) {
+      root.scrollTop = initialScrollTop;
+    }
+  }, [initialScrollTop]);
+
+  useEffect(
+    () => () => {
+      onScrollTopChange(
+        scrollContainer.current?.scrollTop ?? persistedScrollTop.current
+      );
+    },
+    [onScrollTopChange]
+  );
+
+  function syncPersistedScrollTop() {
+    const root = scrollContainer.current;
+
+    if (root) {
+      persistedScrollTop.current = root.scrollTop;
+    }
+  }
+
   useEffect(() => {
     if (scrollToTopSignal > 0) {
       scrollContainer.current?.scrollTo({
         top: 0,
         behavior: "smooth"
       });
+      syncPersistedScrollTop();
     }
   }, [scrollToTopSignal]);
 
@@ -1338,6 +1371,7 @@ export function StatsPage({
         ref={scrollContainer}
         className="home-content home-content--stats"
         aria-labelledby="stats-page-title"
+        onScroll={syncPersistedScrollTop}
       >
         <StatsInitialSkeleton />
       </section>
@@ -1350,6 +1384,7 @@ export function StatsPage({
         ref={scrollContainer}
         className="home-content home-content--stats"
         aria-label="Statistics"
+        onScroll={syncPersistedScrollTop}
       >
         <div className="stats-account-empty">
           <StatisticsLoadState
@@ -1370,6 +1405,7 @@ export function StatsPage({
         ref={scrollContainer}
         className="home-content home-content--stats"
         aria-labelledby="stats-page-title"
+        onScroll={syncPersistedScrollTop}
       >
         <div className="stats-page stats-page--empty">
           <header className="stats-page__header">
@@ -1391,6 +1427,7 @@ export function StatsPage({
       ref={scrollContainer}
       className="home-content home-content--stats"
       aria-labelledby="stats-page-title"
+      onScroll={syncPersistedScrollTop}
     >
       <div className="stats-page">
         <header className="stats-page__header">

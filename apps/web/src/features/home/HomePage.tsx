@@ -1,4 +1,10 @@
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 
 import {
   invalidateAfterStartingNetWorthWrite,
@@ -77,6 +83,11 @@ type HomeSectionProps = {
   onSessionExpired: () => void;
   onInitialContentReady: () => void;
   scrollToTopSignal: number;
+  sectionScrollTops: Record<HomeSectionId, number>;
+  onSectionScrollTopChange: (
+    section: HomeSectionId,
+    scrollTop: number
+  ) => void;
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (
@@ -101,6 +112,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSessionExpired,
     onInitialContentReady,
     scrollToTopSignal,
+    sectionScrollTops,
+    onSectionScrollTopChange,
     onNewTransaction,
     onNavigateToMoves,
     onTransactionSelect
@@ -110,6 +123,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onSessionExpired={onSessionExpired}
       onInitialContentReady={onInitialContentReady}
       scrollToTopSignal={scrollToTopSignal}
+      initialScrollTop={sectionScrollTops.home}
+      onScrollTopChange={(scrollTop) =>
+        onSectionScrollTopChange("home", scrollTop)
+      }
       onNewTransaction={onNewTransaction}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
@@ -119,6 +136,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onSessionExpired,
     scrollToTopSignal,
+    sectionScrollTops,
+    onSectionScrollTopChange,
     onNewTransaction,
     onTransactionSelect,
     movesScrollTarget,
@@ -142,12 +161,18 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     user,
     onSessionExpired,
     scrollToTopSignal,
+    sectionScrollTops,
+    onSectionScrollTopChange,
     onNewTransaction,
     onTransactionSelect
   }) => (
     <StatsPage
       userId={user.id}
       scrollToTopSignal={scrollToTopSignal}
+      initialScrollTop={sectionScrollTops.stats}
+      onScrollTopChange={(scrollTop) =>
+        onSectionScrollTopChange("stats", scrollTop)
+      }
       onNewTransaction={onNewTransaction}
       onTransactionSelect={onTransactionSelect}
       onSessionExpired={onSessionExpired}
@@ -156,6 +181,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
   profile: ({
     user,
     scrollToTopSignal,
+    sectionScrollTops,
+    onSectionScrollTopChange,
     onProfileUpdated,
     onEditProfile,
     onChangePassword,
@@ -177,6 +204,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     <ProfilePage
       user={user}
       scrollToTopSignal={scrollToTopSignal}
+      initialScrollTop={sectionScrollTops.profile}
+      onScrollTopChange={(scrollTop) =>
+        onSectionScrollTopChange("profile", scrollTop)
+      }
       onEditProfile={onEditProfile}
       onProfileUpdated={onProfileUpdated}
       onChangePassword={onChangePassword}
@@ -249,6 +280,14 @@ export function HomePage({
   const [movesViewState, setMovesViewState] = useState<MovesPageState>(
     createInitialMovesPageState
   );
+  const [sectionScrollTops, setSectionScrollTops] = useState<
+    Record<HomeSectionId, number>
+  >({
+    home: 0,
+    moves: 0,
+    stats: 0,
+    profile: 0
+  });
   const [scrollToTopRequest, setScrollToTopRequest] = useState<{
     section: HomeSectionId;
     signal: number;
@@ -258,6 +297,20 @@ export function HomePage({
     scrollToTopRequest?.section === activeSection
       ? scrollToTopRequest.signal
       : 0;
+
+  const updateSectionScrollTop = useCallback(
+    (section: HomeSectionId, scrollTop: number) => {
+      setSectionScrollTops((current) =>
+        current[section] === scrollTop
+          ? current
+          : {
+              ...current,
+              [section]: scrollTop
+            }
+      );
+    },
+    []
+  );
   const isOverlayOpen =
     isEditProfileOpen ||
     isChangePasswordOpen ||
@@ -403,6 +456,8 @@ export function HomePage({
           onSessionExpired,
           onInitialContentReady,
           scrollToTopSignal: activeScrollToTopSignal,
+          sectionScrollTops,
+          onSectionScrollTopChange: updateSectionScrollTop,
           onNewTransaction: openNewTransaction,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,
