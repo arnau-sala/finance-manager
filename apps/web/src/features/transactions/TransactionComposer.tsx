@@ -1,5 +1,6 @@
 import {
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
@@ -525,6 +526,28 @@ export function TransactionComposer({
     }
   }
 
+  function handleFormKeyDownCapture(
+    event: ReactKeyboardEvent<HTMLFormElement>
+  ) {
+    if (
+      !isEditing ||
+      event.key !== "Enter" ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+
+    const target = event.target;
+
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement
+    ) {
+      event.preventDefault();
+      target.blur();
+    }
+  }
+
   return createPortal(
     <section
       ref={composerRef}
@@ -570,6 +593,7 @@ export function TransactionComposer({
         noValidate
         aria-busy={isSubmitting}
         onSubmit={handleSubmit}
+        onKeyDownCapture={handleFormKeyDownCapture}
       >
         <div
           ref={scrollArea}
@@ -649,6 +673,12 @@ export function TransactionComposer({
                     !event.nativeEvent.isComposing
                   ) {
                     event.preventDefault();
+
+                    if (isEditing) {
+                      event.currentTarget.blur();
+                      return;
+                    }
+
                     event.currentTarget.form?.requestSubmit();
                   }
                 }}
