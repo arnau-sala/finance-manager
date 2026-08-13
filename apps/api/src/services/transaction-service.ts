@@ -26,6 +26,7 @@ type TransactionDetailAggregateRow = {
   createdAt: Date;
   categoryName: string;
   categoryType: TransactionType;
+  startingNetWorthCents: number | null;
   trackedBalanceBeforeCents: bigint;
   monthCategoryPosition: bigint;
   monthCategoryTotal: bigint;
@@ -142,9 +143,11 @@ export async function getTransactionDetail(
           t."occurredOn",
           t."createdAt",
           c."name" AS "categoryName",
-          c."type" AS "categoryType"
+          c."type" AS "categoryType",
+          u."startingNetWorthCents" AS "startingNetWorthCents"
         FROM "Transaction" t
         INNER JOIN "Category" c ON c."id" = t."categoryId"
+        INNER JOIN "User" u ON u."id" = t."userId"
         WHERE t."id" = ${transactionId}
           AND t."userId" = ${userId}
       ),
@@ -198,6 +201,7 @@ export async function getTransactionDetail(
         target."createdAt",
         target."categoryName",
         target."categoryType",
+        target."startingNetWorthCents",
         COALESCE(
           SUM(
             CASE
@@ -306,7 +310,8 @@ export async function getTransactionDetail(
         target."occurredOn",
         target."createdAt",
         target."categoryName",
-        target."categoryType"
+        target."categoryType",
+        target."startingNetWorthCents"
     `,
   );
   const row = rows[0];
@@ -317,7 +322,7 @@ export async function getTransactionDetail(
 
   const trackedBalanceBeforeCents = toSafeNumber(
     row.trackedBalanceBeforeCents,
-  );
+  ) + (row.startingNetWorthCents ?? 0);
   const signedAmountCents =
     row.type === "INCOME" ? row.amountCents : -row.amountCents;
   const transaction: TransactionWithCategory = {

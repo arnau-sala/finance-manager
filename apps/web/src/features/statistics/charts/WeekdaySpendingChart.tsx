@@ -55,7 +55,7 @@ function formatCompactEuro(value: number) {
     return `${compactNumberFormatter.format(value / 1000)}k€`;
   }
 
-  return `${Math.round(value)}€`;
+  return formatEuroAmount(value, { fractionDigits: 0 });
 }
 
 function formatDisplayedPeriod(startDate: string, endDate: string) {

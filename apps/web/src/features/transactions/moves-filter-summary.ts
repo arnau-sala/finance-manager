@@ -1,4 +1,5 @@
 import { parseLocalDateOnly } from "../../dates/date-only";
+import { formatEuroInputAmount } from "../../money/format-euro";
 import { transactionCategories } from "./category-catalog";
 import {
   getActiveCategoryIds,
@@ -6,7 +7,7 @@ import {
 } from "./moves-filters";
 
 function formatAmountValue(value: string) {
-  return `${value.replace(".", ",")}\u20ac`;
+  return formatEuroInputAmount(value);
 }
 
 export function formatFilterDateValue(value: string) {

@@ -24,10 +24,35 @@ const signedWholeEuroNumberFormatter = new Intl.NumberFormat("es-ES", {
   useGrouping: false
 });
 
+const subtleMoneyGroupSeparator = "\u202f";
+
 type FormatEuroOptions = {
   showSign?: boolean;
   fractionDigits?: 0 | 2;
 };
+
+function addSubtleMoneyGrouping(formattedNumber: string) {
+  const [integerPart = "", decimalPart] = formattedNumber.split(",");
+  const sign =
+    integerPart.startsWith("+") || integerPart.startsWith("-")
+      ? integerPart[0]
+      : "";
+  const unsignedInteger = sign ? integerPart.slice(1) : integerPart;
+  const groupedInteger = unsignedInteger.replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    subtleMoneyGroupSeparator
+  );
+
+  return `${sign}${groupedInteger}${
+    decimalPart === undefined ? "" : `,${decimalPart}`
+  }`;
+}
+
+export function formatEuroInputAmount(value: string) {
+  const normalizedValue = value.trim().replace(".", ",");
+
+  return `${addSubtleMoneyGrouping(normalizedValue)}\u20ac`;
+}
 
 export function formatEuroAmount(
   value: number | string,
@@ -50,5 +75,5 @@ export function formatEuroAmount(
         ? signedEuroNumberFormatter
         : euroNumberFormatter;
 
-  return `${formatter.format(amount)}\u20ac`;
+  return `${addSubtleMoneyGrouping(formatter.format(amount))}\u20ac`;
 }

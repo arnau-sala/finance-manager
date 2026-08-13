@@ -326,6 +326,7 @@ describe("transaction details", () => {
     createdAt: new Date("2026-08-12T10:00:00.000Z"),
     categoryName: "Dining",
     categoryType: "EXPENSE" as const,
+    startingNetWorthCents: 10_000,
     trackedBalanceBeforeCents: 1000n,
     monthCategoryPosition: 1n,
     monthCategoryTotal: 2n,
@@ -350,7 +351,7 @@ describe("transaction details", () => {
 
     expect(detail).toMatchObject({
       transaction: { id: "tx-1", amount: "0.25" },
-      trackedBalance: { before: "10.00", after: "9.75" },
+      trackedBalance: { before: "110.00", after: "109.75" },
       contexts: {
         month: {
           categoryRank: { position: 1, total: 2 },

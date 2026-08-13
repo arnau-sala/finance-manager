@@ -4,7 +4,10 @@ import {
   getTodayDateOnly,
   parseLocalDateOnly,
 } from "../src/dates/date-only";
-import { formatEuroAmount } from "../src/money/format-euro";
+import {
+  formatEuroAmount,
+  formatEuroInputAmount,
+} from "../src/money/format-euro";
 import {
   isEditableStartingNetWorth,
   parseStartingNetWorth,
@@ -17,7 +20,23 @@ describe("money formatting and validation", () => {
     expect(formatEuroAmount(12, { showSign: true, fractionDigits: 0 })).toBe(
       "+12€",
     );
+    expect(formatEuroAmount(1234, { fractionDigits: 0 })).toBe(
+      "1\u202f234\u20ac",
+    );
+    expect(formatEuroAmount("1234567.5")).toBe(
+      "1\u202f234\u202f567,50\u20ac",
+    );
+    expect(formatEuroAmount(-1234, { showSign: true, fractionDigits: 0 })).toBe(
+      "-1\u202f234\u20ac",
+    );
     expect(formatEuroAmount("invalid")).toBe("Amount unavailable");
+  });
+
+  it("formats editable euro input amounts without changing decimals", () => {
+    expect(formatEuroInputAmount("1234.5")).toBe("1\u202f234,5\u20ac");
+    expect(formatEuroInputAmount("1234567,89")).toBe(
+      "1\u202f234\u202f567,89\u20ac",
+    );
   });
 
   it("accepts editable partial amounts but validates final bounds", () => {

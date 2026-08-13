@@ -77,6 +77,13 @@ describe("transaction filters", () => {
       getAmountFilterSummary({ ...base, amountMode: "EXACT", exactAmount: "12.5" }),
     ).toBe("12,5€");
     expect(
+      getAmountFilterSummary({
+        ...base,
+        amountMode: "EXACT",
+        exactAmount: "1234.5",
+      }),
+    ).toBe("1\u202f234,5\u20ac");
+    expect(
       getAmountFilterSummary({ ...base, minimumAmount: "10", maximumAmount: "20" }),
     ).toBe("10€ - 20€");
     expect(getAmountFilterSummary({ ...base, minimumAmount: "10" })).toBe(
