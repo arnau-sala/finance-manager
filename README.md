@@ -43,45 +43,47 @@ that explains the app and guides users toward the PWA flow.
 
 <table>
   <tr>
-    <td align="center" width="33%">
-      <img src="docs/assets/readme/01-home-overview.png" alt="Home screen with net worth, latest moves, and monthly activity" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/01-home-overview.png" alt="Home screen with net worth, latest moves, and monthly activity" width="320" />
       <br />
       <strong>Home</strong>
       <br />
       A daily snapshot of net worth, latest moves, and monthly activity
     </td>
-    <td align="center" width="33%">
-      <img src="docs/assets/readme/02-transactions-list.png" alt="Transactions screen with search, grouped history, and transaction amounts" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/02-transactions-list.png" alt="Transactions screen with search, grouped history, and transaction amounts" width="320" />
       <br />
       <strong>Transactions</strong>
       <br />
       Searchable history grouped by period, category, amount, and type
     </td>
-    <td align="center" width="33%">
-      <img src="docs/assets/readme/04-transaction-detail.png" alt="Transaction detail ticket with balance before and after, ranking, and period impact" width="230" />
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/04-transaction-detail.png" alt="Transaction detail ticket with balance before and after, ranking, and period impact" width="320" />
       <br />
       <strong>Transaction Detail</strong>
       <br />
       Ticket-style context for balance impact, ranking, and period share
     </td>
-  </tr>
-  <tr>
-    <td align="center" width="33%">
-      <img src="docs/assets/readme/05-statistics-overview.png" alt="Statistics overview with money totals and income categories" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/05-statistics-overview.png" alt="Statistics overview with money totals and income categories" width="320" />
       <br />
       <strong>Statistics</strong>
       <br />
       Real period summaries for balance, income, expenses, and categories
     </td>
-    <td align="center" width="33%">
-      <img src="docs/assets/readme/07-statistics-charts.png" alt="Statistics charts showing net worth evolution and cash flow" width="230" />
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/07-statistics-charts.png" alt="Statistics charts showing net worth evolution and cash flow" width="320" />
       <br />
       <strong>Charts</strong>
       <br />
       Net worth evolution, cash flow, and visual financial patterns
     </td>
-    <td align="center" width="33%">
-      <img src="docs/assets/readme/08-category-timeline.png" alt="Category timeline matrix and weekday spending chart" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/08-category-timeline.png" alt="Category timeline matrix and weekday spending chart" width="320" />
       <br />
       <strong>Patterns</strong>
       <br />
@@ -94,23 +96,25 @@ that explains the app and guides users toward the PWA flow.
 
 <table>
   <tr>
-    <td align="center" width="25%">
-      <img src="docs/assets/readme/03-transactions-filters.png" alt="Expanded transaction filters with type, amount, date, and category options" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/03-transactions-filters.png" alt="Expanded transaction filters with type, amount, date, and category options" width="320" />
       <br />
       <strong>Smart filters</strong>
     </td>
-    <td align="center" width="25%">
-      <img src="docs/assets/readme/06-statistics-insights.png" alt="Statistics insights and expense streaks for the selected year" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/06-statistics-insights.png" alt="Statistics insights and expense streaks for the selected year" width="320" />
       <br />
       <strong>Period insights</strong>
     </td>
-    <td align="center" width="25%">
-      <img src="docs/assets/readme/09-profile-account.png" alt="Profile screen with account details, account actions, security actions, and about section" width="230" />
+  </tr>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/09-profile-account.png" alt="Profile screen with account details, account actions, security actions, and about section" width="320" />
       <br />
       <strong>Flexible account setup</strong>
     </td>
-    <td align="center" width="25%">
-      <img src="docs/assets/readme/10-sign-in.png" alt="Sign in screen with email or username, Google sign in, account creation, and privacy links" width="230" />
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/10-sign-in.png" alt="Sign in screen with email or username, Google sign in, account creation, and privacy links" width="320" />
       <br />
       <strong>Sign in</strong>
     </td>
