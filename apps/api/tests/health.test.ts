@@ -74,10 +74,14 @@ describe("API health", () => {
   });
 
   it("allows configured and originless state-changing requests", async () => {
+    const allowedOrigin =
+      process.env.ALLOWED_ORIGINS?.split(",")
+        .map((origin) => origin.trim())
+        .find(Boolean) ?? "http://localhost:5173";
     const configuredOrigin = await app.inject({
       method: "POST",
       url: "/__tests__/write",
-      headers: { origin: "http://localhost:5173" },
+      headers: { origin: allowedOrigin },
     });
     const originless = await app.inject({
       method: "POST",
