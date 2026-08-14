@@ -6985,6 +6985,7 @@ html.desktop-app-route .stats-view-stage {
 }
 
 .moves-filter-panel__heading > span {
+  padding-left: 10px;
   color: var(--color-text);
   font-size: var(--moves-filter-heading-font-size);
   line-height: var(--moves-filter-title-line-height);
