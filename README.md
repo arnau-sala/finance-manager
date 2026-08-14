@@ -41,7 +41,8 @@ that explains the app and guides users toward the PWA flow.
 
 ### Mobile App
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="50%">
       <img src="docs/assets/readme/01-home-overview.png" alt="Home screen with net worth, latest moves, and monthly activity" width="320" />
@@ -91,10 +92,12 @@ that explains the app and guides users toward the PWA flow.
     </td>
   </tr>
 </table>
+</div>
 
 ### Focused Interfaces
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="50%">
       <img src="docs/assets/readme/03-transactions-filters.png" alt="Expanded transaction filters with type, amount, date, and category options" width="320" />
@@ -120,6 +123,7 @@ that explains the app and guides users toward the PWA flow.
     </td>
   </tr>
 </table>
+</div>
 
 <div align="center">
   <img src="docs/assets/readme/11-desktop-guide.png" alt="Desktop guide explaining how to add Finance Manager to the phone home screen" width="920" />
@@ -127,7 +131,8 @@ that explains the app and guides users toward the PWA flow.
 
 ### Product Scope
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="50%">
       <img src="docs/assets/readme/12-what-you-can-do-now.jpeg" alt="Current Finance Manager capabilities: track transactions, find movements, understand statistics, use charts, and manage access" width="420" />
@@ -141,6 +146,7 @@ that explains the app and guides users toward the PWA flow.
     </td>
   </tr>
 </table>
+</div>
 
 ## What Makes It Interesting
 
@@ -154,7 +160,8 @@ that explains the app and guides users toward the PWA flow.
 
 ### Web App
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="120">
       <img src="https://cdn.simpleicons.org/react" alt="React" height="34" />
@@ -188,10 +195,12 @@ that explains the app and guides users toward the PWA flow.
     </td>
   </tr>
 </table>
+</div>
 
 ### Backend & Data
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="120">
       <img src="https://cdn.simpleicons.org/nodedotjs" alt="Node.js" height="34" />
@@ -220,10 +229,12 @@ that explains the app and guides users toward the PWA flow.
     </td>
   </tr>
 </table>
+</div>
 
 ### Auth, Email & Quality
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="120">
       <img src="https://cdn.simpleicons.org/google" alt="Google OAuth" height="34" />
@@ -257,6 +268,7 @@ that explains the app and guides users toward the PWA flow.
     </td>
   </tr>
 </table>
+</div>
 
 Authentication also uses secure sessions, email verification, recovery codes, and Argon2id password hashing
 
@@ -264,7 +276,8 @@ Authentication also uses secure sessions, email verification, recovery codes, an
 
 The original technical README has been moved out of the GitHub landing page and kept as project documentation:
 
-<table>
+<div align="center">
+<table align="center" width="100%">
   <tr>
     <td align="center" width="25%">
       <a href="docs/api-reference.md">
@@ -342,6 +355,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
   </tr>
 </table>
+</div>
 
 ## Local Development
 
