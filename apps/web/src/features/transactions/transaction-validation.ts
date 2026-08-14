@@ -5,6 +5,7 @@ import { transactionCategories } from "./category-catalog";
 
 const MAX_AMOUNT_CENTS = 2_147_483_647n;
 const AMOUNT_PATTERN = /^\d{1,8}(?:,\d{1,2})?$/;
+export const TRANSACTION_NAME_MAX_LENGTH = 50;
 
 function amountToCents(amount: string) {
   const [wholePart, decimalPart = ""] = amount.split(",");
@@ -50,7 +51,10 @@ export const createTransactionSchema = z
       .string()
       .trim()
   .min(1, "Enter a name")
-  .max(50, "Name must be 50 characters or fewer"),
+  .max(
+    TRANSACTION_NAME_MAX_LENGTH,
+    `Name must be ${TRANSACTION_NAME_MAX_LENGTH} characters or fewer`
+  ),
   categoryId: z.string().trim().min(1, "Choose a category"),
     date: z
       .string()

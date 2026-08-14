@@ -43,6 +43,7 @@ import {
   type TransactionPreview
 } from "./transaction-api";
 import { FirstTransactionEmptyState } from "./FirstTransactionEmptyState";
+import { TRANSACTION_NAME_MAX_LENGTH } from "./transaction-validation";
 
 const FILTER_PANEL_ID = "moves-filter-panel";
 
@@ -596,6 +597,7 @@ export function MovesPage({
               autoComplete="off"
               spellCheck={false}
               placeholder="Search by name"
+              maxLength={TRANSACTION_NAME_MAX_LENGTH}
               value={searchQuery}
               onChange={(event) => updateSearchQuery(event.target.value)}
             />

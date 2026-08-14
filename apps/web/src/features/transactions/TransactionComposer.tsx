@@ -32,6 +32,7 @@ import {
 import {
   type CreateTransactionInput,
   type CreateTransactionField,
+  TRANSACTION_NAME_MAX_LENGTH,
   validateCreateTransaction
 } from "./transaction-validation";
 
@@ -679,7 +680,7 @@ export function TransactionComposer({
                     className="transaction-composer__character-count"
                     aria-live="polite"
                   >
-                    {name.length}/50
+                    {name.length}/{TRANSACTION_NAME_MAX_LENGTH}
                   </span>
                 ) : null}
               </div>
@@ -693,7 +694,7 @@ export function TransactionComposer({
                 autoComplete="off"
                 placeholder="What was it?"
                 value={name}
-                maxLength={50}
+                maxLength={TRANSACTION_NAME_MAX_LENGTH}
                 disabled={isSubmitting}
                 aria-labelledby="transaction-name-label"
                 aria-invalid={invalidFields.description === true}
