@@ -164,32 +164,32 @@ that explains the app and guides users toward the PWA flow.
 <table align="center" width="100%">
   <tr>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/react" alt="React" height="34" />
+      <img src="https://cdn.simpleicons.org/react" alt="React" height="44" />
       <br />
       <sub>React</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/typescript" alt="TypeScript" height="34" />
+      <img src="https://cdn.simpleicons.org/typescript" alt="TypeScript" height="44" />
       <br />
       <sub>TypeScript</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/vite" alt="Vite" height="34" />
+      <img src="https://cdn.simpleicons.org/vite" alt="Vite" height="44" />
       <br />
       <sub>Vite</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/reactquery" alt="TanStack Query" height="34" />
+      <img src="https://cdn.simpleicons.org/reactquery" alt="TanStack Query" height="44" />
       <br />
       <sub>TanStack Query</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/apacheecharts" alt="Apache ECharts" height="34" />
+      <img src="https://cdn.simpleicons.org/apacheecharts" alt="Apache ECharts" height="44" />
       <br />
       <sub>ECharts</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/framer" alt="Framer Motion" height="34" />
+      <img src="https://cdn.simpleicons.org/framer" alt="Framer Motion" height="44" />
       <br />
       <sub>Framer Motion</sub>
     </td>
@@ -203,27 +203,27 @@ that explains the app and guides users toward the PWA flow.
 <table align="center" width="100%">
   <tr>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/nodedotjs" alt="Node.js" height="34" />
+      <img src="https://cdn.simpleicons.org/nodedotjs" alt="Node.js" height="44" />
       <br />
       <sub>Node.js</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/fastify" alt="Fastify" height="34" />
+      <img src="https://cdn.simpleicons.org/fastify" alt="Fastify" height="44" />
       <br />
       <sub>Fastify</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/zod" alt="Zod" height="34" />
+      <img src="https://cdn.simpleicons.org/zod" alt="Zod" height="44" />
       <br />
       <sub>Zod</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/prisma" alt="Prisma" height="34" />
+      <img src="https://cdn.simpleicons.org/prisma" alt="Prisma" height="44" />
       <br />
       <sub>Prisma</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" height="34" />
+      <img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" height="44" />
       <br />
       <sub>PostgreSQL</sub>
     </td>
@@ -237,32 +237,32 @@ that explains the app and guides users toward the PWA flow.
 <table align="center" width="100%">
   <tr>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/google" alt="Google OAuth" height="34" />
+      <img src="https://cdn.simpleicons.org/google" alt="Google OAuth" height="44" />
       <br />
       <sub>Google OAuth</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/brevo" alt="Brevo" height="34" />
+      <img src="https://cdn.simpleicons.org/brevo" alt="Brevo" height="44" />
       <br />
       <sub>Brevo</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/vitest" alt="Vitest" height="34" />
+      <img src="https://cdn.simpleicons.org/vitest" alt="Vitest" height="44" />
       <br />
       <sub>Vitest</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/playwright/playwright-original.svg" alt="Playwright" height="34" />
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/playwright/playwright-original.svg" alt="Playwright" height="44" />
       <br />
       <sub>Playwright</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/storybook" alt="Storybook" height="34" />
+      <img src="https://cdn.simpleicons.org/storybook" alt="Storybook" height="44" />
       <br />
       <sub>Storybook</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/sentry" alt="Sentry" height="34" />
+      <img src="https://cdn.simpleicons.org/sentry" alt="Sentry" height="44" />
       <br />
       <sub>Sentry</sub>
     </td>
@@ -281,7 +281,7 @@ The original technical README has been moved out of the GitHub landing page and 
   <tr>
     <td align="center" width="25%">
       <a href="docs/api-reference.md">
-        <img src="https://api.iconify.design/lucide:terminal.svg?color=%230f766e" alt="API and setup reference" height="36" />
+        <img src="https://api.iconify.design/lucide:terminal.svg?color=%230f766e" alt="API and setup reference" height="46" />
         <br />
         <strong>API & Setup</strong>
       </a>
@@ -290,7 +290,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
     <td align="center" width="25%">
       <a href="docs/architecture.md">
-        <img src="https://api.iconify.design/lucide:blocks.svg?color=%230f766e" alt="Architecture" height="36" />
+        <img src="https://api.iconify.design/lucide:blocks.svg?color=%230f766e" alt="Architecture" height="46" />
         <br />
         <strong>Architecture</strong>
       </a>
@@ -299,7 +299,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
     <td align="center" width="25%">
       <a href="docs/database.md">
-        <img src="https://api.iconify.design/lucide:database.svg?color=%230f766e" alt="Database" height="36" />
+        <img src="https://api.iconify.design/lucide:database.svg?color=%230f766e" alt="Database" height="46" />
         <br />
         <strong>Database</strong>
       </a>
@@ -308,7 +308,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
     <td align="center" width="25%">
       <a href="docs/frontend.md">
-        <img src="https://api.iconify.design/lucide:panels-top-left.svg?color=%230f766e" alt="Frontend" height="36" />
+        <img src="https://api.iconify.design/lucide:panels-top-left.svg?color=%230f766e" alt="Frontend" height="46" />
         <br />
         <strong>Frontend</strong>
       </a>
@@ -319,7 +319,7 @@ The original technical README has been moved out of the GitHub landing page and 
   <tr>
     <td align="center" width="25%">
       <a href="docs/security.md">
-        <img src="https://api.iconify.design/lucide:shield-check.svg?color=%230f766e" alt="Security" height="36" />
+        <img src="https://api.iconify.design/lucide:shield-check.svg?color=%230f766e" alt="Security" height="46" />
         <br />
         <strong>Security</strong>
       </a>
@@ -328,7 +328,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
     <td align="center" width="25%">
       <a href="docs/testing-and-observability.md">
-        <img src="https://api.iconify.design/lucide:test-tube.svg?color=%230f766e" alt="Testing and observability" height="36" />
+        <img src="https://api.iconify.design/lucide:test-tube.svg?color=%230f766e" alt="Testing and observability" height="46" />
         <br />
         <strong>Testing & Monitoring</strong>
       </a>
@@ -337,7 +337,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
     <td align="center" width="25%">
       <a href="docs/roadmap.md">
-        <img src="https://api.iconify.design/lucide:map.svg?color=%230f766e" alt="Roadmap" height="36" />
+        <img src="https://api.iconify.design/lucide:map.svg?color=%230f766e" alt="Roadmap" height="46" />
         <br />
         <strong>Roadmap</strong>
       </a>
@@ -346,7 +346,7 @@ The original technical README has been moved out of the GitHub landing page and 
     </td>
     <td align="center" width="25%">
       <a href="docs/email-verification.md">
-        <img src="https://api.iconify.design/lucide:mail-check.svg?color=%230f766e" alt="Email verification" height="36" />
+        <img src="https://api.iconify.design/lucide:mail-check.svg?color=%230f766e" alt="Email verification" height="46" />
         <br />
         <strong>Email Verification</strong>
       </a>
