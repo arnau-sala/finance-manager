@@ -6836,6 +6836,7 @@ html.desktop-app-route .stats-view-stage {
   grid-template-columns: 19px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
+  padding-right: 8px;
   color: var(--color-text-muted);
   -webkit-tap-highlight-color: transparent;
 }
