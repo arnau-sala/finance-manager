@@ -45,12 +45,6 @@ function getAllowedOrigins() {
   return DEVELOPMENT_ALLOWED_ORIGINS;
 }
 
-function getRequestOrigin(request: FastifyRequest) {
-  const origin = request.headers.origin;
-
-  return typeof origin === "string" ? normalizeOrigin(origin) : null;
-}
-
 export function registerOriginCheck(app: FastifyInstance) {
   const allowedOrigins = new Set(getAllowedOrigins());
 
@@ -59,14 +53,21 @@ export function registerOriginCheck(app: FastifyInstance) {
       return;
     }
 
-    const origin = getRequestOrigin(request);
+    if (request.headers["sec-fetch-site"] === "cross-site") {
+      return reply.code(403).send({ error: "Origin not allowed" });
+    }
 
-    if (!origin) {
+    const originHeader = request.headers.origin;
+
+    if (originHeader === undefined) {
       return;
     }
 
-    if (!allowedOrigins.has(origin)) {
-  return reply.code(403).send({ error: "Origin not allowed" });
+    const origin =
+      typeof originHeader === "string" ? normalizeOrigin(originHeader) : null;
+
+    if (!origin || !allowedOrigins.has(origin)) {
+      return reply.code(403).send({ error: "Origin not allowed" });
     }
   });
 }

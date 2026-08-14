@@ -2,7 +2,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   CalendarDays,
-  CircleEuroSign,
+  CircleEuro,
   Shapes
 } from "lucide-react";
 
@@ -75,7 +75,7 @@ export function MovesActiveFilterTags({
             aria-label={`Edit amount filter: ${amountSummary}`}
             onClick={() => onFilterSelect("amount")}
           >
-            <CircleEuroSign aria-hidden="true" />
+            <CircleEuro aria-hidden="true" />
             <span className="moves-active-filter-tag__label">
               {amountSummary}
             </span>

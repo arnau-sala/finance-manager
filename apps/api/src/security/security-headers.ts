@@ -10,4 +10,9 @@ export function registerSecurityHeaders(app: FastifyInstance) {
       policy: "no-referrer",
     },
   });
+
+  app.addHook("onSend", async (_request, reply, payload) => {
+    reply.header("Cache-Control", "private, no-store");
+    return payload;
+  });
 }

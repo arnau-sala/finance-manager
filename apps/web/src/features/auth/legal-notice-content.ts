@@ -3,12 +3,12 @@ export type LegalNoticeSection = {
   items: string[];
 };
 
-export const legalNoticeUpdatedOn = "Last updated 9 August 2026";
+export const legalNoticeUpdatedOn = "Last updated 14 August 2026";
 
 export const legalNoticeSummaryItems = [
   "You enter your finances manually",
   "The app does not connect to banks",
-  "No ads, analytics or tracking cookies are used",
+  "No ads or tracking cookies are used",
   "Your data is not sold",
   "You can delete your account from the app",
   "The project is visible code, but all rights are reserved unless a license says otherwise"
@@ -38,6 +38,7 @@ export const privacySections: LegalNoticeSection[] = [
       "Security data such as hashed passwords, hashed recovery codes, session data, verification codes and sign-in activity needed to protect the account",
       "Financial data entered by the user, including transaction name, amount, category, type, date and starting net worth",
       "Technical data needed to run the service, such as server logs, request metadata, device and browser information, error data and security events",
+      "Anonymous page-view and performance data, such as visited paths, approximate country, browser, device type and Core Web Vitals",
       "Interface preferences such as whether net worth is hidden"
     ]
   },
@@ -57,6 +58,7 @@ export const privacySections: LegalNoticeSection[] = [
       "To provide transaction tracking, home summaries, statistics and charts",
       "To authenticate users with email, username, password, Google sign-in or recovery code",
       "To send verification, recovery and account security emails",
+      "To understand aggregate usage, diagnose errors and improve app performance",
       "To prevent abuse, protect accounts and maintain the reliability of the service",
       "To comply with legal obligations when they apply"
     ]
@@ -65,7 +67,7 @@ export const privacySections: LegalNoticeSection[] = [
     title: "Legal bases",
     items: [
       "Contract necessity for creating the account and providing the app features requested by the user",
-      "Legitimate interest for security, fraud prevention, debugging, service integrity and abuse prevention",
+      "Legitimate interest for security, fraud prevention, aggregate usage measurement, performance monitoring, debugging, service integrity and abuse prevention",
       "Legal obligation where records must be kept or disclosed under applicable law",
       "Consent or user choice where optional account methods such as Google sign-in are selected by the user"
     ]
@@ -73,8 +75,9 @@ export const privacySections: LegalNoticeSection[] = [
   {
     title: "Service providers",
     items: [
-      "Vercel is planned for hosting, deployment and delivery of the web app",
-      "A PostgreSQL database provider stores account, security and transaction data for the service",
+      "Vercel hosts and delivers the web app and provides anonymous Web Analytics and performance measurement through Speed Insights",
+      "Neon provides the PostgreSQL database that stores account, security and transaction data for the service",
+      "Sentry receives sanitized error and performance reports with default personal data collection disabled; reports may include a pseudonymous account ID when a signed-in user encounters an error",
       "Brevo sends verification, recovery and account security emails from financemanager.auth@gmail.com or a Brevo-managed sender derived from it",
       "Google provides optional Google sign-in when the user chooses it",
       "These providers may process data only as needed to provide their services, under their own security and data processing terms"
@@ -84,8 +87,9 @@ export const privacySections: LegalNoticeSection[] = [
     title: "Cookies and local storage",
     items: [
       "The app uses only essential cookies or browser storage needed for sign-in, account security, preferences and app functionality",
-      "The app does not use advertising cookies, tracking cookies, analytics cookies or behavioural profiling",
-      "Because only essential storage is used, no marketing cookie banner is shown"
+      "Vercel Web Analytics uses anonymous aggregate data without cookies or identifiers that track users across websites, while Speed Insights measures app performance",
+      "The app does not use advertising cookies, tracking cookies or behavioural profiling",
+      "Because no non-essential cookies are used, no marketing cookie banner is shown"
     ]
   },
   {

@@ -1,5 +1,5 @@
 import formBody from "@fastify/formbody";
-import Fastify from "fastify";
+import Fastify, { type FastifyRequest } from "fastify";
 
 import { registerSecureSession } from "./auth/session.js";
 import { accountEmailRoutes } from "./routes/account-email.js";
@@ -17,11 +17,26 @@ import { transactionRoutes } from "./routes/transactions.js";
 import { registerApiErrorMonitoring } from "./observability/sentry.js";
 import { registerOriginCheck } from "./security/origin-check.js";
 import { registerRateLimit } from "./security/rate-limit.js";
+import { registerSafeErrorResponses } from "./security/error-response.js";
 import { registerSecurityHeaders } from "./security/security-headers.js";
+
+function serializeRequestForLogs(request: FastifyRequest) {
+  return {
+    method: request.method,
+    url: request.url.split(/[?#]/, 1)[0],
+    host: request.headers.host,
+    remoteAddress: request.ip,
+  };
+}
 
 export function buildApp() {
   const app = Fastify({
-    logger: true,
+    trustProxy: process.env.VERCEL === "1",
+    logger: {
+      serializers: {
+        req: serializeRequestForLogs,
+      },
+    },
   });
 
   app.register(formBody);
@@ -54,6 +69,7 @@ export function buildApp() {
   app.register(homeRoutes);
   app.register(statisticsRoutes);
   app.register(transactionRoutes);
+  registerSafeErrorResponses(app);
   registerApiErrorMonitoring(app);
 
   return app;

@@ -4,7 +4,7 @@ import {
   CalendarDays,
   ChevronDown,
   ChevronUp,
-  CircleEuroSign,
+  CircleEuro,
   Equal,
   Shapes
 } from "lucide-react";
@@ -223,7 +223,7 @@ export function MovesFiltersPanel({
           summary={amountSummary}
           active={hasAmountFilter}
           expanded={activeEditor === "amount"}
-          icon={<CircleEuroSign aria-hidden="true" />}
+          icon={<CircleEuro aria-hidden="true" />}
           onClick={() =>
             setActiveEditor((current) =>
               current === "amount" ? null : "amount"

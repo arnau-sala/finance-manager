@@ -1,5 +1,40 @@
 {
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; connect-src 'self' https://*.ingest.de.sentry.io; font-src 'self' data:; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; manifest-src 'self'; object-src 'none'; script-src 'self' 'sha256-gg1aXJVlD04qkstBlKeW8Lee3Vxu8gROy4scMzscpkE='; style-src 'self' 'unsafe-inline'; worker-src 'self'"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-Permitted-Cross-Domain-Policies",
+          "value": "none"
+        }
+      ]
+    }
+  ],
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://finance-manager-api-flax.vercel.app/:path*"
+    },
     {
       "source": "/((?!api/).*)",
       "destination": "/index.html"

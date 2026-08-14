@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 import { App } from "./app/App";
 import { lockPortraitOrientation } from "./app/portrait-orientation";
@@ -28,5 +30,7 @@ createRoot(document.getElementById("root")!).render(
         </QueryClientProvider>
       </StandaloneGate>
     </SentryErrorBoundary>
+    <Analytics />
+    <SpeedInsights />
   </StrictMode>
 );

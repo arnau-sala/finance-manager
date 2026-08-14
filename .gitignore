@@ -9,6 +9,7 @@ apps/api/.env.test
 apps/web/.env
 apps/web/.env.local
 apps/web/.env.*.local
+apps/web/.vercel/
 
 coverage/
 playwright-report/

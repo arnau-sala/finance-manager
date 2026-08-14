@@ -1,3 +1,6 @@
+import { randomInt } from "node:crypto";
+import { setTimeout as delay } from "node:timers/promises";
+
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 
@@ -128,6 +131,20 @@ const invalidCredentialsResponse = {
   error: "Invalid identifier or password",
 };
 
+const NEUTRAL_REGISTRATION_RESPONSE_MIN_MS = 800;
+const NEUTRAL_REGISTRATION_RESPONSE_JITTER_MS = 200;
+
+async function waitForNeutralRegistrationResponse(startedAt: number) {
+  const targetDuration =
+    NEUTRAL_REGISTRATION_RESPONSE_MIN_MS +
+    randomInt(NEUTRAL_REGISTRATION_RESPONSE_JITTER_MS + 1);
+  const remaining = targetDuration - (Date.now() - startedAt);
+
+  if (remaining > 0) {
+    await delay(remaining);
+  }
+}
+
 let dummyPasswordHashPromise: ReturnType<typeof hashPassword> | undefined;
 
 function getDummyPasswordHash() {
@@ -224,6 +241,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { email, name, password, legalAccepted } = parsedBody.data;
+      const neutralResponseStartedAt = Date.now();
 
       try {
         await beginPasswordRegistration({
@@ -250,6 +268,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         throw error;
       }
 
+      await waitForNeutralRegistrationResponse(neutralResponseStartedAt);
       return reply.code(202).send(genericRegistrationResponse);
     },
   );
@@ -305,6 +324,8 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid email address" });
       }
 
+      const neutralResponseStartedAt = Date.now();
+
       try {
         await resendPasswordRegistrationCode(parsedBody.data.email);
       } catch (error) {
@@ -325,6 +346,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         throw error;
       }
 
+      await waitForNeutralRegistrationResponse(neutralResponseStartedAt);
       return reply.code(202).send(genericRegistrationResponse);
     },
   );
