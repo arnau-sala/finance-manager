@@ -20,4 +20,15 @@ describe("API health", () => {
     expect(response.json()).toEqual({ status: "ok" });
     expect(response.headers["referrer-policy"]).toBe("no-referrer");
   });
+
+  it("describes the API at its root without requiring a database", async () => {
+    const response = await app.inject({ method: "GET", url: "/" });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      name: "Finance Manager API",
+      status: "ok",
+      health: "/health",
+    });
+  });
 });

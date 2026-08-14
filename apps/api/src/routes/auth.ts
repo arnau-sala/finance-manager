@@ -128,10 +128,16 @@ const invalidCredentialsResponse = {
   error: "Invalid identifier or password",
 };
 
+let dummyPasswordHashPromise: ReturnType<typeof hashPassword> | undefined;
+
+function getDummyPasswordHash() {
+  dummyPasswordHashPromise ??= hashPassword("Dummy-password1!");
+  return dummyPasswordHashPromise;
+}
+
 async function authenticatePasswordUser(
   identifier: string,
   password: string,
-  dummyPasswordHash: string,
 ) {
   const normalizedIdentifier = normalizeLoginIdentifier(identifier);
   const user = await db.user.findUnique({
@@ -153,8 +159,11 @@ async function authenticatePasswordUser(
     supportsPasswordAuthentication(user.authProvider) &&
     (!normalizedIdentifier.includes("@") || user.emailLoginEnabled) &&
     Boolean(user.passwordHash);
+  const passwordHash = userCanUsePassword
+    ? user.passwordHash!
+    : await getDummyPasswordHash();
   const passwordMatches = await verifyPassword(
-    userCanUsePassword ? user.passwordHash! : dummyPasswordHash,
+    passwordHash,
     password,
   );
 
@@ -171,8 +180,6 @@ async function authenticatePasswordUser(
 }
 
 export const authRoutes: FastifyPluginAsync = async (app) => {
-  const dummyPasswordHash = await hashPassword("Dummy-password1!");
-
   app.get(
     "/auth/usernames/:username/availability",
     { config: { rateLimit: authUsernameAvailabilityRateLimit } },
@@ -385,7 +392,6 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const user = await authenticatePasswordUser(
         identifier,
         password,
-        dummyPasswordHash,
       );
 
       if (!user) {
@@ -413,7 +419,6 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
       const user = await authenticatePasswordUser(
         parsedBody.data.username,
         parsedBody.data.password,
-        dummyPasswordHash,
       );
 
       if (!user) {

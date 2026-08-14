@@ -2,7 +2,7 @@ import "dotenv/config";
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 const requiredEnvironment = [
@@ -22,9 +22,8 @@ if (!existsSync(distDirectory)) {
   process.exit(1);
 }
 
-const sentryCliPath = fileURLToPath(
-  new URL("../node_modules/@sentry/cli/bin/sentry-cli", import.meta.url),
-);
+const require = createRequire(import.meta.url);
+const sentryCliPath = require.resolve("@sentry/cli/bin/sentry-cli");
 
 function runSentryCli(argumentsList) {
   const result = spawnSync(process.execPath, [sentryCliPath, ...argumentsList], {

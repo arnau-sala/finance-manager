@@ -34,6 +34,14 @@ export function buildApp() {
     return { status: "ok" };
   });
 
+  app.get("/", async () => {
+    return {
+      name: "Finance Manager API",
+      status: "ok",
+      health: "/health",
+    };
+  });
+
   app.register(accountRoutes);
   app.register(accountEmailRoutes);
   app.register(adminUserRoutes);

@@ -46,7 +46,10 @@ export function initializeApiObservability() {
   Sentry.init({
     dsn,
     environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
-    release: process.env.SENTRY_RELEASE || undefined,
+    release:
+      process.env.SENTRY_RELEASE ||
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      undefined,
     sendDefaultPii: false,
     tracesSampleRate: parseSampleRate(
       process.env.SENTRY_TRACES_SAMPLE_RATE,
