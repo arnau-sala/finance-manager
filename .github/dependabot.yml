@@ -11,8 +11,21 @@ updates:
     groups:
       npm-production:
         dependency-type: production
+        update-types:
+          - minor
+          - patch
       npm-development:
         dependency-type: development
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: prisma
+        versions:
+          - ">=7.0.0"
+      - dependency-name: "@prisma/client"
+        versions:
+          - ">=7.0.0"
 
   - package-ecosystem: github-actions
     directory: /
