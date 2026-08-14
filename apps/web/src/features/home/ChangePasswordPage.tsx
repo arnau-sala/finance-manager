@@ -205,7 +205,7 @@ export function ChangePasswordPage({
                 placeholder="Enter your current password"
                 value={currentPassword}
                 invalid={error !== null}
-                autoComplete="current-password"
+                autoComplete="off"
                 describedBy="account-password-error"
                 disabled={isSubmitting}
                 characterStatuses={Array.from(

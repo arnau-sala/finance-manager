@@ -30,7 +30,7 @@ type AuthPasswordFieldProps = {
   placeholder: string;
   value: string;
   invalid: boolean;
-  autoComplete: "current-password" | "new-password";
+  autoComplete: "current-password" | "new-password" | "off";
   describedBy?: string;
   onGenerate?: () => void;
   generating?: boolean;
