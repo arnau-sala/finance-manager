@@ -1,10 +1,13 @@
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
+  useEffect,
   useRef,
   useState
 } from "react";
 import { type LucideIcon } from "lucide-react";
+
+import { acquireDragScrollLock } from "./drag-scroll-lock";
 
 export type SlidingSegmentOption<Value extends string> = {
   value: Value;
@@ -23,6 +26,7 @@ type SlidingSegmentedControlProps<Value extends string> = {
   compact?: boolean;
   iconOnly?: boolean;
   allowDrag?: boolean;
+  lockScrollOnDrag?: boolean;
   disabled?: boolean;
   externalDragOffset?: number;
   externalDragging?: boolean;
@@ -48,6 +52,7 @@ export function SlidingSegmentedControl<Value extends string>({
   compact = false,
   iconOnly = false,
   allowDrag = true,
+  lockScrollOnDrag = true,
   disabled = false,
   externalDragOffset,
   externalDragging = false
@@ -60,6 +65,7 @@ export function SlidingSegmentedControl<Value extends string>({
   const [isDragging, setIsDragging] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const drag = useRef<SegmentDrag | null>(null);
+  const releaseScrollLock = useRef<(() => void) | null>(null);
   const suppressClick = useRef(false);
   const optionCount = Math.max(options.length, 1);
   const displayedDragOffset = externalDragOffset ?? dragOffset;
@@ -85,6 +91,21 @@ export function SlidingSegmentedControl<Value extends string>({
 
     select(nextValue);
   }
+
+  function lockScrollForDrag() {
+    if (!lockScrollOnDrag || releaseScrollLock.current) {
+      return;
+    }
+
+    releaseScrollLock.current = acquireDragScrollLock();
+  }
+
+  function unlockScrollForDrag() {
+    releaseScrollLock.current?.();
+    releaseScrollLock.current = null;
+  }
+
+  useEffect(() => unlockScrollForDrag, []);
 
   function startDrag(
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -121,6 +142,16 @@ export function SlidingSegmentedControl<Value extends string>({
     }
 
     const distance = event.clientX - currentDrag.startX;
+    const verticalDistance = event.clientY - currentDrag.startY;
+    const hasHorizontalIntent =
+      Math.abs(distance) > Math.abs(verticalDistance) &&
+      Math.abs(distance) >= 4;
+
+    if (hasHorizontalIntent) {
+      lockScrollForDrag();
+      event.preventDefault();
+    }
+
     const minimumOffset =
       currentDrag.startIndex > 0 ? -currentDrag.maxDistance : 0;
     const maximumOffset =
@@ -153,6 +184,7 @@ export function SlidingSegmentedControl<Value extends string>({
     drag.current = null;
     setIsDragging(false);
     setDragOffset(0);
+    unlockScrollForDrag();
 
     if (
       canMove &&
@@ -175,6 +207,7 @@ export function SlidingSegmentedControl<Value extends string>({
     drag.current = null;
     setIsDragging(false);
     setDragOffset(0);
+    unlockScrollForDrag();
   }
 
   return (

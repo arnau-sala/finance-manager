@@ -4210,6 +4210,25 @@ body.anchored-picker-open .home-content--moves {
   overflow-y: hidden;
 }
 
+body.segmented-drag-scroll-lock {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.segmented-drag-scroll-lock .home-content--profile,
+body.segmented-drag-scroll-lock .home-content--overview,
+body.segmented-drag-scroll-lock .home-content--moves,
+body.segmented-drag-scroll-lock .home-content--stats,
+body.segmented-drag-scroll-lock .transaction-composer__scroll-area,
+body.segmented-drag-scroll-lock .transaction-detail-sheet__scroll-area,
+body.segmented-drag-scroll-lock .app-version-screen,
+body.segmented-drag-scroll-lock .feature-suggestion-screen,
+body.segmented-drag-scroll-lock .auth-screen--password-reset,
+body.segmented-drag-scroll-lock .auth-screen--registration-method {
+  overflow-y: hidden !important;
+  overscroll-behavior-y: none;
+}
+
 .home-content--profile,
 .home-content--overview,
 .home-content--moves,

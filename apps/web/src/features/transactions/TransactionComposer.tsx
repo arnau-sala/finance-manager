@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { ActionButton } from "../../components/ui/ActionButton";
+import { acquireDragScrollLock } from "../../components/ui/drag-scroll-lock";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { type TransactionType } from "./category-catalog";
@@ -163,6 +164,7 @@ export function TransactionComposer({
   const scrollArea = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLElement>(null);
   const typeDrag = useRef<TypeDragGesture | null>(null);
+  const releaseTypeDragScrollLock = useRef<(() => void) | null>(null);
   const suppressNextComposerClick = useRef(false);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
@@ -183,6 +185,19 @@ export function TransactionComposer({
     date.length > 0 &&
     hasChanges;
   const maximumTransactionDate = getTodayDateOnly();
+
+  function lockScrollForTypeDrag() {
+    if (releaseTypeDragScrollLock.current) {
+      return;
+    }
+
+    releaseTypeDragScrollLock.current = acquireDragScrollLock();
+  }
+
+  function unlockScrollForTypeDrag() {
+    releaseTypeDragScrollLock.current?.();
+    releaseTypeDragScrollLock.current = null;
+  }
 
   useEffect(() => {
     if (open && !wasOpen.current) {
@@ -217,6 +232,7 @@ export function TransactionComposer({
 
   useEffect(() => {
     if (!open) {
+      unlockScrollForTypeDrag();
       return;
     }
 
@@ -227,7 +243,10 @@ export function TransactionComposer({
     }
 
     window.addEventListener("keydown", closeWithEscape);
-    return () => window.removeEventListener("keydown", closeWithEscape);
+    return () => {
+      unlockScrollForTypeDrag();
+      window.removeEventListener("keydown", closeWithEscape);
+    };
   }, [isSubmitting, onClose, open]);
 
   useLayoutEffect(() => {
@@ -349,6 +368,16 @@ export function TransactionComposer({
     }
 
     const distance = event.clientX - currentDrag.startX;
+    const verticalDistance = event.clientY - currentDrag.startY;
+    const hasHorizontalIntent =
+      Math.abs(distance) > Math.abs(verticalDistance) &&
+      Math.abs(distance) >= 4;
+
+    if (hasHorizontalIntent) {
+      lockScrollForTypeDrag();
+      event.preventDefault();
+    }
+
     const minimumOffset =
       currentDrag.startIndex > 0 ? -currentDrag.maxDistance : 0;
     const maximumOffset =
@@ -383,6 +412,7 @@ export function TransactionComposer({
     typeDrag.current = null;
     setIsTypeDragging(false);
     setTypeDragOffset(0);
+    unlockScrollForTypeDrag();
 
     if (shouldHandleGesture) {
       suppressNextComposerClick.current = true;
@@ -404,6 +434,7 @@ export function TransactionComposer({
     typeDrag.current = null;
     setIsTypeDragging(false);
     setTypeDragOffset(0);
+    unlockScrollForTypeDrag();
   }
 
   function handleComposerClickCapture(event: ReactMouseEvent<HTMLElement>) {
