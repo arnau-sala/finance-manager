@@ -33,7 +33,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://finance-manager-api-flax.vercel.app/:path*"
+      "destination": "https://financemanager-api.vercel.app/:path*"
     },
     {
       "source": "/((?!api/).*)",

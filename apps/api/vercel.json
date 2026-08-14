@@ -6,7 +6,10 @@
       "use": "@vercel/node",
       "config": {
         "includeFiles": [
-          "node_modules/sodium-native/prebuilds/linux-x64/**"
+          "prebuilds/**",
+          "api/prebuilds/**",
+          "node_modules/sodium-native/prebuilds/**",
+          "../../node_modules/sodium-native/prebuilds/**"
         ]
       }
     }
