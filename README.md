@@ -1,1389 +1,371 @@
 # Finance Manager
 
-Backend-first personal finance manager.
+<div align="center">
+  <img src="apps/web/src/assets/app-splash-icon-456.jpg" alt="Finance Manager icon" width="104" height="104" />
+
+  <h3>Money, made clear</h3>
+  <p>
+    A mobile-first personal finance app for tracking income, expenses, net worth,
+    transaction history, and spending patterns from one focused interface
+  </p>
+
+  <p>
+    <img alt="Status" src="https://img.shields.io/badge/status-MVP%20in%20progress-0f766e?style=flat-square" />
+    <img alt="Frontend" src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-111827?style=flat-square" />
+    <img alt="Backend" src="https://img.shields.io/badge/backend-Fastify%20%2B%20Prisma-111827?style=flat-square" />
+    <img alt="Database" src="https://img.shields.io/badge/database-PostgreSQL-111827?style=flat-square" />
+    <img alt="License" src="https://img.shields.io/badge/license-All%20rights%20reserved-64748b?style=flat-square" />
+  </p>
+</div>
+
+---
+
+## Overview
+
+Finance Manager is a personal finance product built as a polished mobile web app.
+It is designed around quick daily use: add transactions fast, review recent moves,
+understand where money is going, and explore statistics without feeling like a spreadsheet.
+
+The project started as a personal tool, but it is being developed with the standards of a real product:
+secure authentication, owner-scoped financial data, production monitoring, automated tests, a documented API,
+and a UI system designed for a consistent mobile experience.
+
+## Product Preview
+
+Finance Manager is designed as a mobile-first product, with a desktop landing page
+that explains the app and guides users toward the PWA flow.
+
+<div align="center">
+  <img src="docs/assets/readme/00-desktop-hero.png" alt="Finance Manager desktop landing page with a mobile app preview" width="920" />
+</div>
+
+### Mobile App
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/assets/readme/01-home-overview.png" alt="Home screen with net worth, latest moves, and monthly activity" width="230" />
+      <br />
+      <strong>Home</strong>
+      <br />
+      A daily snapshot of net worth, latest moves, and monthly activity
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/assets/readme/02-transactions-list.png" alt="Transactions screen with search, grouped history, and transaction amounts" width="230" />
+      <br />
+      <strong>Transactions</strong>
+      <br />
+      Searchable history grouped by period, category, amount, and type
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/assets/readme/04-transaction-detail.png" alt="Transaction detail ticket with balance before and after, ranking, and period impact" width="230" />
+      <br />
+      <strong>Transaction Detail</strong>
+      <br />
+      Ticket-style context for balance impact, ranking, and period share
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/assets/readme/05-statistics-overview.png" alt="Statistics overview with money totals and income categories" width="230" />
+      <br />
+      <strong>Statistics</strong>
+      <br />
+      Real period summaries for balance, income, expenses, and categories
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/assets/readme/07-statistics-charts.png" alt="Statistics charts showing net worth evolution and cash flow" width="230" />
+      <br />
+      <strong>Charts</strong>
+      <br />
+      Net worth evolution, cash flow, and visual financial patterns
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/assets/readme/08-category-timeline.png" alt="Category timeline matrix and weekday spending chart" width="230" />
+      <br />
+      <strong>Patterns</strong>
+      <br />
+      Category timelines and weekday spending for behavioral insight
+    </td>
+  </tr>
+</table>
+
+### Focused Interfaces
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <img src="docs/assets/readme/03-transactions-filters.png" alt="Expanded transaction filters with type, amount, date, and category options" width="230" />
+      <br />
+      <strong>Smart filters</strong>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/assets/readme/06-statistics-insights.png" alt="Statistics insights and expense streaks for the selected year" width="230" />
+      <br />
+      <strong>Period insights</strong>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/assets/readme/09-profile-account.png" alt="Profile screen with account details, account actions, security actions, and about section" width="230" />
+      <br />
+      <strong>Flexible account setup</strong>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/assets/readme/10-sign-in.png" alt="Sign in screen with email or username, Google sign in, account creation, and privacy links" width="230" />
+      <br />
+      <strong>Sign in</strong>
+    </td>
+  </tr>
+</table>
+
+<div align="center">
+  <img src="docs/assets/readme/11-desktop-guide.png" alt="Desktop guide explaining how to add Finance Manager to the phone home screen" width="920" />
+</div>
+
+### Product Scope
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/12-what-you-can-do-now.jpeg" alt="Current Finance Manager capabilities: track transactions, find movements, understand statistics, use charts, and manage access" width="420" />
+      <br />
+      <strong>What works today</strong>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/assets/readme/13-coming-next.jpeg" alt="Upcoming Finance Manager features: multiple money places, custom categories, expense bundles, multiple currencies, and faster card expenses" width="420" />
+      <br />
+      <strong>Where the product is going</strong>
+    </td>
+  </tr>
+</table>
+
+## What Makes It Interesting
+
+- It is not just a CRUD app: the main value is in the financial interpretation layer
+- The stats screen uses real backend aggregations instead of frontend mock data
+- Transaction details include contextual information such as before/after balance and category ranking
+- The app supports multiple account types without forcing every user into the same sign-in method
+- It combines product UI, backend architecture, authentication, testing, monitoring, and documentation
+
+## Tech Stack
+
+### Web App
+
+<table>
+  <tr>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/react" alt="React" height="34" />
+      <br />
+      <sub>React</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/typescript" alt="TypeScript" height="34" />
+      <br />
+      <sub>TypeScript</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/vite" alt="Vite" height="34" />
+      <br />
+      <sub>Vite</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/reactquery" alt="TanStack Query" height="34" />
+      <br />
+      <sub>TanStack Query</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/apacheecharts" alt="Apache ECharts" height="34" />
+      <br />
+      <sub>ECharts</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/framer" alt="Framer Motion" height="34" />
+      <br />
+      <sub>Framer Motion</sub>
+    </td>
+  </tr>
+</table>
+
+### Backend & Data
+
+<table>
+  <tr>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/nodedotjs" alt="Node.js" height="34" />
+      <br />
+      <sub>Node.js</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/fastify" alt="Fastify" height="34" />
+      <br />
+      <sub>Fastify</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/zod" alt="Zod" height="34" />
+      <br />
+      <sub>Zod</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/prisma" alt="Prisma" height="34" />
+      <br />
+      <sub>Prisma</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/postgresql" alt="PostgreSQL" height="34" />
+      <br />
+      <sub>PostgreSQL</sub>
+    </td>
+  </tr>
+</table>
+
+### Auth, Email & Quality
+
+<table>
+  <tr>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/google" alt="Google OAuth" height="34" />
+      <br />
+      <sub>Google OAuth</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/brevo" alt="Brevo" height="34" />
+      <br />
+      <sub>Brevo</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/vitest" alt="Vitest" height="34" />
+      <br />
+      <sub>Vitest</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/playwright/playwright-original.svg" alt="Playwright" height="34" />
+      <br />
+      <sub>Playwright</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/storybook" alt="Storybook" height="34" />
+      <br />
+      <sub>Storybook</sub>
+    </td>
+    <td align="center" width="120">
+      <img src="https://cdn.simpleicons.org/sentry" alt="Sentry" height="34" />
+      <br />
+      <sub>Sentry</sub>
+    </td>
+  </tr>
+</table>
+
+Authentication also uses secure sessions, email verification, recovery codes, and Argon2id password hashing
+
+## Documentation
+
+The original technical README has been moved out of the GitHub landing page and kept as project documentation:
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <a href="docs/api-reference.md">
+        <img src="https://api.iconify.design/lucide:terminal.svg?color=%230f766e" alt="API and setup reference" height="36" />
+        <br />
+        <strong>API & Setup</strong>
+      </a>
+      <br />
+      <sub>Endpoints, local setup, environment variables, and backend usage</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="docs/architecture.md">
+        <img src="https://api.iconify.design/lucide:blocks.svg?color=%230f766e" alt="Architecture" height="36" />
+        <br />
+        <strong>Architecture</strong>
+      </a>
+      <br />
+      <sub>Project structure, app flow, and main technical decisions</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="docs/database.md">
+        <img src="https://api.iconify.design/lucide:database.svg?color=%230f766e" alt="Database" height="36" />
+        <br />
+        <strong>Database</strong>
+      </a>
+      <br />
+      <sub>Prisma models, persisted data, relations, and migrations</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="docs/frontend.md">
+        <img src="https://api.iconify.design/lucide:panels-top-left.svg?color=%230f766e" alt="Frontend" height="36" />
+        <br />
+        <strong>Frontend</strong>
+      </a>
+      <br />
+      <sub>Mobile UI, screens, state, gestures, and design conventions</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <a href="docs/security.md">
+        <img src="https://api.iconify.design/lucide:shield-check.svg?color=%230f766e" alt="Security" height="36" />
+        <br />
+        <strong>Security</strong>
+      </a>
+      <br />
+      <sub>Authentication, sessions, rate limits, privacy, and account safety</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="docs/testing-and-observability.md">
+        <img src="https://api.iconify.design/lucide:test-tube.svg?color=%230f766e" alt="Testing and observability" height="36" />
+        <br />
+        <strong>Testing & Monitoring</strong>
+      </a>
+      <br />
+      <sub>Vitest, Playwright, Storybook, Sentry, coverage, and checks</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="docs/roadmap.md">
+        <img src="https://api.iconify.design/lucide:map.svg?color=%230f766e" alt="Roadmap" height="36" />
+        <br />
+        <strong>Roadmap</strong>
+      </a>
+      <br />
+      <sub>Current MVP scope, planned features, and product direction</sub>
+    </td>
+    <td align="center" width="25%">
+      <a href="docs/email-verification.md">
+        <img src="https://api.iconify.design/lucide:mail-check.svg?color=%230f766e" alt="Email verification" height="36" />
+        <br />
+        <strong>Email Verification</strong>
+      </a>
+      <br />
+      <sub>Brevo setup, verification codes, delivery flow, and local testing</sub>
+    </td>
+  </tr>
+</table>
+
+## Local Development
+
+```bash
+npm install
+npm run dev:api
+npm run dev:web
+```
+
+The API runs on `http://localhost:3001` and the web app runs on `http://localhost:5173` by default.
+
+Useful commands:
+
+```bash
+npm run build:web
+npm run build:api
+npm run test:unit
+npm run test:e2e
+npm run storybook:web
+```
+
+## Project Status
+
+Finance Manager is a personal MVP under active development.
+It is shared publicly as a featured portfolio project, but it is not currently open source software.
 
 ## License
 
 All rights reserved. See [LICENSE](LICENSE).
 
-## Current Phase
-
-The mobile-first authenticated experience now includes real Home, Moves, Profile,
-and Statistics screens. Statistics Overview and Charts use owner-scoped
-PostgreSQL aggregations rather than frontend fixtures. A one-time authenticated
-setup records the user's timeless starting net worth, or `0` when skipped,
-before the app opens. Accounts can be created with a verified email or with a
-username and password. Username accounts receive a one-use recovery code and
-can later add a verified email or Google without creating a second user. The
-mobile frontend lets the user choose between both account types and validates
-username availability before submission. Username registration now creates the
-account, presents its recovery code once, and enters onboarding through a
-native credential form submission so platform password managers can offer to
-save the account. Account recovery now supports email codes, username recovery
-codes, and forgotten usernames without turning either code into an authenticated
-session. Google login and Google registration are separate intents: unknown
-login identities require account-creation confirmation, while the registration
-screen also offers Google as a direct account type.
-
-Implemented:
-
-Core:
-
-- `GET /health`
-- Initial Vite/React web app scaffold
-- Mobile login, password registration, and email verification flow
-- API rate limiting for public, authenticated, financial, and administrative routes
-- Origin checks for mutating browser requests
-- Security headers through Helmet
-- Pagination limits for growing list endpoints
-- Prisma schema for users, temporary authentication state, categories, and
-  transactions
-- Initial SQL migration
-- Shared Prisma client module for the API
-
-Authentication:
-
-- `GET /auth/usernames/:username/availability`
-- `POST /auth/register`
-- `POST /auth/register/username`
-- `POST /auth/register/resend`
-- `POST /auth/register/verify`
-- `POST /auth/password-reset/email/request`
-- `POST /auth/password-reset/email/resend`
-- `POST /auth/password-reset/email/verify`
-- `POST /auth/password-reset/recovery-code/verify`
-- `POST /auth/password-reset/complete`
-- `POST /auth/password-reset/cancel`
-- `POST /auth/login`
-- `POST /auth/login/browser` (internal native-form completion)
-- `GET /auth/google/start?intent=login|register`
-- `GET /auth/google/callback`
-- `GET /auth/google/action`
-- `POST /auth/google/action/confirm`
-- `POST /auth/google/action/cancel`
-- `POST /auth/logout`
-- `GET /auth/me`
-- `POST /account/onboarding/starting-net-worth`
-- `PATCH /account`
-- `PATCH /account/password`
-- `POST /account/username/link`
-- `POST /account/username/unlink`
-- `POST /account/recovery-code`
-- `POST /account/recovery-code/activate`
-- `POST /account/email/link`
-- `DELETE /account/email/link`
-- `POST /account/email/link/resend`
-- `POST /account/email/link/verify`
-- `POST /account/email/unlink`
-- `DELETE /account/email/unlink`
-- `POST /account/email/unlink/resend`
-- `POST /account/email/unlink/verify`
-- `POST /account/google/link/start`
-- `POST /account/google/unlink/start`
-- `DELETE /account`
-- `POST /account/google/delete/start`
-
-Admin users:
-
-- `GET /admin/users`
-- `GET /admin/users/:id`
-
-Categories:
-
-- `GET /categories`
-
-Home:
-
-- `GET /home`
-
-Transactions:
-
-- `GET /transactions`
-- `GET /transactions/categories/:category`
-- `GET /transactions/:id`
-- `POST /transactions`
-- `PATCH /transactions/:id`
-- `DELETE /transactions/:id`
-
-Statistics:
-
-- `GET /statistics/months`
-- `GET /statistics/overview`
-- `GET /statistics/charts`
-- `GET /statistics/balance`
-- `GET /statistics/balance/:month/:year`
-- `GET /statistics/balance/:month`
-- `GET /statistics/balance/year/:year`
-- `GET /statistics/balance/year`
-- `GET /statistics/categories`
-- `GET /statistics/categories/type/:type`
-- `GET /statistics/categories/:month/:year`
-- `GET /statistics/categories/:month`
-- `GET /statistics/categories/year/:year`
-- `GET /statistics/categories/year`
-- `GET /statistics/categories/type/:type/:month/:year`
-- `GET /statistics/categories/type/:type/:month`
-- `GET /statistics/categories/type/:type/year/:year`
-- `GET /statistics/categories/type/:type/year`
-
-## Health Endpoint
-
-```http
-GET /health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok"
-}
-```
-
-## Run the API
-
-Node.js and npm are required.
-
-```bash
-npm install
-npm run dev:api
-```
-
-The API listens on `http://localhost:3001` by default.
-
-Run the frontend:
-
-```bash
-npm run dev:web
-```
-
-The frontend listens on `http://localhost:5173` by default.
-
-Mutating browser requests must come from an allowed origin. Local development allows common localhost origins by default. In production, configure `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
-
-Frontend product, design, and architecture decisions are tracked in `docs/frontend.md`.
-Brevo setup and the complete verification test flow are documented in
-[`docs/email-verification.md`](docs/email-verification.md).
-Automated tests, Sentry monitoring, dependency checks, and OWASP ZAP are
-documented in [`docs/testing-and-observability.md`](docs/testing-and-observability.md).
-
-## Register
-
-Start password registration:
-
-```http
-POST /auth/register
-Content-Type: application/json
-```
-
-```json
-{
-  "email": "person@example.com",
-  "name": "Alex Morgan",
-  "password": "SecurePass1!",
-  "passwordConfirmation": "SecurePass1!"
-}
-```
-
-`name` is required, trimmed, and limited to 100 characters. The two passwords
-must match exactly. The password must contain between 9 and 128 characters,
-including at least one uppercase letter, one digit, and one special character.
-
-A valid request returns `202 Accepted`:
-
-```json
-{
-  "message": "If registration can continue, a verification code has been sent."
-}
-```
-
-This response is deliberately identical when the email already belongs to an
-account or a code is still in its resend cooldown. No `User` is created yet.
-For a new registration, the API stores the normalized email, name, Argon2id
-password hash, and HMAC-protected code in `PendingRegistration`, then asks
-Brevo to deliver the code. The six-digit code expires after 10 minutes.
-
-Resend a code after the 60-second cooldown:
-
-```http
-POST /auth/register/resend
-Content-Type: application/json
-```
-
-```json
-{
-  "email": "person@example.com"
-}
-```
-
-The resend endpoint returns the same neutral `202` response whether or not a
-pending registration exists.
-
-Finish registration:
-
-```http
-POST /auth/register/verify
-Content-Type: application/json
-```
-
-```json
-{
-  "email": "person@example.com",
-  "code": "123456"
-}
-```
-
-A correct, unexpired code atomically consumes the pending registration,
-creates the `PASSWORD` user, marks the email as verified, and starts a secure
-session. It returns `201 Created` with `Account created successfully.` and the
-new user's public fields. A wrong or expired code returns the same `400`
-response; after five failed attempts a new code must be requested.
-
-Configure Brevo and the code-signing secret in `apps/api/.env` using
-[`apps/api/.env.example`](apps/api/.env.example) as the template. These values
-must exist only on the API server:
-
-```env
-BREVO_API_KEY=<brevo-api-key>
-BREVO_SENDER_EMAIL=<verified-brevo-sender-email>
-BREVO_SENDER_NAME=Finance Manager
-EMAIL_VERIFICATION_SECRET=<64-character-hex-secret>
-```
-
-If Brevo or its configuration is unavailable, code issuance returns `503` and
-the database change is rolled back so an undelivered code cannot block the
-next attempt.
-
-### Register With A Username
-
-A user can create an account without an email:
-
-```http
-GET /auth/usernames/:username/availability
-```
-
-The availability response is `{ "available": true }` or
-`{ "available": false }`. It is an advisory UX check: clients must still handle
-the unique-constraint result from registration because another request can
-claim the username between both calls.
-
-```http
-POST /auth/register/username
-Content-Type: application/json
-```
-
-```json
-{
-  "username": "alex.morgan",
-  "name": "Alex Morgan",
-  "password": "SecurePass1!",
-  "passwordConfirmation": "SecurePass1!"
-}
-```
-
-Usernames are normalized to lowercase, contain 3 to 30 characters, and may use
-letters, digits, dots, hyphens, and underscores. They must start and end with a
-letter or digit, and reserved system names are rejected. The display `name`
-remains separate and continues to be used as the person's visible name.
-
-Successful registration immediately creates the account and secure session.
-The response also contains a 16-character Base58 recovery code such as
-`7KmP-x4Td-N9qR-2WcH`. It is returned in plaintext only
-once; the database stores only its SHA-256 hash. The client must require the
-user to store it before continuing. The web app presents a dedicated one-time
-handoff screen with a copy action, keeps the plaintext only in memory, and then
-continues into authenticated onboarding.
-
-## Login
-
-```http
-POST /auth/login
-Content-Type: application/json
-```
-
-```json
-{
-  "identifier": "user@example.com",
-  "password": "SecurePass1!"
-}
-```
-
-`identifier` accepts either a normalized email or username. The web login uses
-this unified field. The legacy `email` request field remains temporarily
-accepted for older API clients.
-
-Valid credentials for an approved user return:
-
-```json
-{
-  "message": "Login successful."
-}
-```
-
-Unknown identifiers, incorrect passwords, and suspended users receive the same
-`401 Unauthorized` response. Successful login creates a secure cookie session.
-
-## Recover An Account
-
-Email recovery starts with `POST /auth/password-reset/email/request`. The same
-neutral `202` response is returned for an unknown email, an active cooldown, a
-password account, and a Google-only account. Password accounts receive a
-six-digit code; Google-only accounts receive instructions to use `Continue with
-Google`. Resend uses `/auth/password-reset/email/resend`.
-
-`POST /auth/password-reset/email/verify` validates the email-bound code. It does
-not authenticate the user: it creates a ten-minute, single-purpose grant and
-places its random token in an `HttpOnly`, `SameSite=Strict` cookie.
-
-Username recovery verifies the one-time Base58 code with
-`POST /auth/password-reset/recovery-code/verify`. Supplying `username` requires
-an exact match. Omitting it implements `Forgot your username?`; the username is
-returned only after a valid globally unique recovery-code hash is found.
-Spaces, hyphens, and other separators are ignored, while Base58 letter case
-remains significant.
-
-Both methods finish through `POST /auth/password-reset/complete` with matching
-new-password fields. The endpoint consumes the restricted grant, changes the
-password, increments `sessionVersion`, clears the current session, and sends an
-email notification when the account has an email. Recovery-code resets also
-rotate and return the replacement code. No reset automatically signs the user
-in. `/auth/password-reset/cancel` revokes an unfinished grant.
-
-An authenticated account with a username can rotate its recovery code from
-Profile. `POST /account/recovery-code` prepares a short-lived replacement while
-the current code remains valid. After the one-time screen has shown it,
-`POST /account/recovery-code/activate` atomically activates the replacement and
-can optionally revoke every other session while preserving the current device.
-
-## Link A Username
-
-An authenticated account without a username can add one to its existing user:
-
-```http
-POST /account/username/link
-Content-Type: application/json
-
-{ "username": "person" }
-```
-
-Email/password and email-plus-Google accounts already have a password, so they
-only submit the username. A Google-only account must create matching password
-fields in the same request. The endpoint validates the username and password
-again on the server, claims the username through its database unique constraint,
-and atomically stores a new recovery-code hash on the existing user. The
-plaintext 16-character Base58 recovery code is returned once in a no-store
-response and is presented before the user returns to Profile.
-
-An authenticated username account can remove that sign-in method with
-`POST /account/username/unlink` and its current password. The operation is
-allowed only when verified email login or Google remains, removes the recovery
-code atomically, rotates sessions, and returns the updated user.
-
-## Link An Email
-
-Any authenticated account without email/password sign-in can enable it on the
-existing user. Username-only accounts submit the address they want to add:
-
-```http
-POST /account/email/link
-Content-Type: application/json
-
-{ "email": "person@example.com" }
-```
-
-Google-only accounts keep Google's verified address and first submit a new
-password. Username-and-Google accounts already have a password, so an empty
-body confirms the existing Google address. The API announces delivery before
-it sends a specialized six-digit linking email.
-
-The code has the same 10-minute expiry, five-attempt limit, 60-second resend
-cooldown, neutral responses, and Brevo delivery rollback used by registration.
-If the address already belongs to another account, that owner receives a
-rate-limited security notice without any requester identity. The requester
-still receives the same timing-normalized `202` response and no code is stored,
-so the endpoint does not disclose whether the address is already registered.
-Resend with `POST /account/email/link/resend` and verify with:
-
-```http
-POST /account/email/link/verify
-Content-Type: application/json
-
-{ "code": "123456" }
-```
-
-Verification assigns or confirms the email, records `emailVerifiedAt`, and
-enables email/password login; it never creates a second account. Any username
-and Google credentials remain available. Cancelling the screen calls
-`DELETE /account/email/link`, which removes the pending code and any pending
-password hash. Alternatively,
-`POST /account/google/link/start` can link Google; for an account without an
-email, Google's verified address becomes its email and both password and
-Google authentication remain available.
-
-An account with email/password sign-in can remove that method only while a
-username or Google remains. `POST /account/email/unlink` sends a six-digit code
-to the current verified address. The code expires after 10 minutes, permits
-five attempts, and can be resent after 60 seconds through
-`POST /account/email/unlink/resend`. Confirmation uses:
-
-```http
-POST /account/email/unlink/verify
-Content-Type: application/json
-
-{ "code": "123456" }
-```
-
-Verification atomically consumes the code, increments `sessionVersion`, keeps
-the current browser signed in, and invalidates other sessions. Username
-accounts retain password access and remove the address when Google is not
-linked. Google-capable accounts retain the address as their Google identity but
-disable email/password login; when Google is the only remaining method, the
-unused password hash is also removed. Closing the verification dialog calls
-`DELETE /account/email/unlink` to cancel the pending code.
-
-## Continue With Google
-
-Google authentication starts from the browser with an explicit intent:
-
-```http
-GET /auth/google/start?intent=login
-GET /auth/google/start?intent=register
-```
-
-The backend redirects the user to Google using OAuth 2.0 / OpenID Connect. Google redirects back to:
-
-```http
-GET /auth/google/callback
-```
-
-The backend verifies the Google ID token with the configured client ID before
-trusting the email. The login intent immediately authenticates an existing
-`GOOGLE` or `PASSWORD_AND_GOOGLE` account only when Google's stable subject
-matches. A previously unknown identity returns to the landing page with a
-short, explicit confirmation before its `GOOGLE` account is created.
-
-The registration intent creates and authenticates a previously unknown Google
-identity immediately. If the selected identity already belongs to a
-Google-capable account, the registration screen asks before signing into that
-account. If its verified email belongs to a password-only account, neither
-intent authenticates or links it: the user may continue to the password screen
-with that email prefilled.
-
-These decisions use a 10-minute, one-use `PendingGoogleAuthAction`. Only its
-random token is kept in the encrypted HttpOnly session; PostgreSQL stores the
-SHA-256 token hash. The frontend retrieves, confirms, or cancels the action via
-`/auth/google/action`. Cancelling keeps the user on the landing or registration
-method screen from which Google was opened. Exact account-state feedback is
-shown only after Google has verified control of the selected address.
-
-Local Google configuration requires these values in `apps/api/.env`:
-
-```env
-WEB_APP_URL=http://localhost:5173
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
-GOOGLE_CLIENT_ID=<google-oauth-client-id>
-GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
-```
-
-The Google Cloud OAuth client must include the exact `GOOGLE_REDIRECT_URI` as an authorized redirect URI.
-
-An authenticated password account can add Google as a second sign-in method:
-
-```http
-POST /account/google/link/start
-```
-
-The endpoint returns a Google authorization URL and preserves the active
-session. For an account with an email, the shared callback requires Google's
-verified email to match it exactly. For a username-only account, the selected
-verified Google email becomes its first email. In both cases the one-use
-link-specific OAuth `state` must be valid and the Google `sub` and email must
-not belong to another user. Success keeps the password hash, stores the Google
-subject, and changes `authProvider` to `PASSWORD_AND_GOOGLE`.
-
-An account with another password-based sign-in method can remove Google after
-reauthenticating with the exact linked Google identity:
-
-```http
-POST /account/google/unlink/start
-```
-
-The callback removes the stable Google subject and changes the provider to
-`PASSWORD`. Verified email login remains attached; when Google supplied the
-address only as metadata for a username account, that address is removed too.
-The operation increments `sessionVersion`, keeps the current browser signed in,
-and invalidates older sessions and pending Google authentication actions.
-
-## Logout
-
-```http
-POST /auth/logout
-```
-
-The request must include the session cookie created by login. A valid logout returns:
-
-```json
-{
-  "message": "Logout successful."
-}
-```
-
-Calling logout without an active session returns `401 Unauthorized`:
-
-```json
-{
-  "error": "No active session."
-}
-```
-
-## List Users
-
-An active session for a user with role `ADMIN` is required:
-
-```http
-GET /admin/users
-```
-
-A successful request returns users ordered by creation date, newest first:
-
-```json
-{
-  "users": [
-    {
-      "id": "user-id",
-      "email": "user@example.com",
-      "name": "Alex Morgan",
-      "role": "USER",
-      "status": "APPROVED",
-      "createdAt": "2026-07-05T18:30:00.000Z"
-    }
-  ],
-  "pagination": {
-    "limit": 50,
-    "offset": 0,
-    "nextOffset": null
-  }
-}
-```
-
-Supports `limit` and `offset`. Default `limit` is `50`; maximum is `100`. Use `nextOffset` as the next `offset` value; `null` means there are no more results.
-
-Requests without a valid session return `401 Unauthorized`. Authenticated users without role `ADMIN` receive `403 Forbidden` with `{"error":"Administrator access required."}`.
-
-## Get User
-
-An active session for a user with role `ADMIN` and a valid user CUID are required:
-
-```http
-GET /admin/users/:id
-```
-
-A successful request returns the same public fields as the user list:
-
-```json
-{
-  "user": {
-    "id": "cmr81aoib0000kzsowdqjw84x",
-    "email": "user@example.com",
-    "name": "Alex Morgan",
-    "role": "USER",
-    "status": "APPROVED",
-    "createdAt": "2026-07-05T18:30:00.000Z"
-  }
-}
-```
-
-An invalid ID format returns `400 Bad Request`. A valid CUID without a matching user returns `404 Not Found`.
-
-## Get Current User
-
-An active session is required:
-
-```http
-GET /auth/me
-```
-
-The endpoint returns the public information for the user represented by the current session:
-
-```json
-{
-  "user": {
-    "id": "cmr81aoib0000kzsowdqjw84x",
-    "email": "user@example.com",
-    "name": "Alex Morgan",
-    "authProvider": "PASSWORD",
-    "role": "USER",
-    "status": "APPROVED",
-    "startingNetWorth": null,
-    "createdAt": "2026-07-05T18:30:00.000Z",
-    "updatedAt": null
-  }
-}
-```
-
-`updatedAt` is `null` until the user is modified for the first time. A request without a valid session returns `401 Unauthorized` with `{"error":"Authentication required."}`.
-
-## Set Starting Net Worth
-
-After the first authenticated entry, the web app blocks access to the main
-interface until this setup step is completed or skipped. The endpoint always
-derives the account from the encrypted session and accepts one of two strict
-actions.
-
-Save the amount:
-
-```http
-POST /account/onboarding/starting-net-worth
-Content-Type: application/json
-```
-
-```json
-{
-  "action": "SET",
-  "amount": "22450.00"
-}
-```
-
-The amount may be positive, zero, or negative, is limited to the range
-`-10,000,000` through `10,000,000`, and accepts at most two decimal places. The
-server records it in integer cents as a timeless profile value. It is not a
-transaction or a dated snapshot: current and historical net worth calculations
-add it to the relevant accumulated transaction flow.
-
-Skip and start calculations from zero:
-
-```json
-{
-  "action": "SKIP"
-}
-```
-
-Before the step is handled, `startingNetWorth` is `null`. Saving stores the
-provided amount; skipping stores `0`. The same endpoint can replace the value
-later, and sending `SKIP` resets it to zero without changing or deleting any
-transaction.
-
-## Update Current User
-
-Only the user represented by the active session can update their profile. The
-endpoint does not accept a user ID or email:
-
-```http
-PATCH /account
-Content-Type: application/json
-```
-
-```json
-{
-  "name": "Alex Morgan",
-  "startingNetWorth": "22450.50"
-}
-```
-
-Either field can be sent independently, or both can be updated together. At
-least one is required. The name is trimmed and must contain between 1 and 100
-characters, using the same validation as registration. `startingNetWorth`
-shares the setup range and decimal validation and replaces only the timeless
-profile baseline. Empty bodies, invalid values, unknown fields, and attempts to
-include `email` return `400 Bad Request`. A successful update returns `200 OK`
-with `Profile updated successfully.` and the updated public user object.
-
-## Change Password
-
-Only an authenticated account with password access (`PASSWORD` or
-`PASSWORD_AND_GOOGLE`) can change its password:
-
-```http
-PATCH /account/password
-Content-Type: application/json
-```
-
-```json
-{
-  "currentPassword": "Current-password1!",
-  "newPassword": "New-password2!",
-  "newPasswordConfirmation": "New-password2!"
-}
-```
-
-The new password must contain 9 to 128 characters, at least one uppercase letter, one digit, and one special character. Both new-password fields must match, and the new password must differ from the current password.
-
-An incorrect current password returns `401 Unauthorized` with `{"error":"Incorrect current password."}`. Google accounts receive `400 Bad Request` because their credentials are managed by Google. A successful change returns:
-
-```json
-{
-  "message": "Password changed successfully."
-}
-```
-
-Success rotates the current encrypted cookie and invalidates every other session for the account. The endpoint is limited to 5 attempts every 15 minutes per session or IP.
-
-## Delete Account
-
-Only the currently authenticated owner can delete their account. The endpoint does not accept a user ID:
-
-```http
-DELETE /account
-Content-Type: application/json
-```
-
-```json
-{
-  "password": "SecurePass1!"
-}
-```
-
-For accounts with password access, including linked accounts, an incorrect password returns `401 Unauthorized` with `{"error":"Incorrect password."}`. Google-only accounts require fresh Google reauthentication, while linked accounts can choose it instead of password confirmation. The browser flow starts with:
-
-```http
-POST /account/google/delete/start
-```
-
-The backend preserves the active session while Google presents its account chooser. The shared Google callback deletes a `GOOGLE` or `PASSWORD_AND_GOOGLE` account only when Google's verified email and stable `sub` identifier both match the currently authenticated user. Selecting another Google account returns to the profile without deleting data and allows the user to retry with the session email.
-
-A successful deletion returns the password endpoint response below or redirects the Google flow to the public app screen:
-
-```json
-{
-  "message": "Account deleted successfully."
-}
-```
-
-Deletion is atomic and permanent. It removes the user, all owned transactions,
-and any matching pending registration. The current session is deleted after
-the database transaction succeeds.
-
-## List Categories
-
-An active login session is required:
-
-```http
-GET /categories
-```
-
-Use `GET /categories?type=EXPENSE` or `GET /categories?type=INCOME` to filter the catalog. Each category contains the stable `id` required by transaction creation and editing:
-
-```json
-{
-  "categories": [
-    {
-      "id": "expense-groceries",
-      "name": "Groceries",
-      "type": "EXPENSE"
-    }
-  ]
-}
-```
-
-## List My Transactions
-
-An active session is required:
-
-```http
-GET /transactions
-```
-
-The endpoint returns only transactions owned by the current session user, including when that user has role `ADMIN`. Results are ordered by transaction date, newest first:
-
-```json
-{
-  "transactions": [
-    {
-      "id": "transaction-id",
-      "type": "EXPENSE",
-      "categoryId": "expense-groceries",
-      "category": {
-        "id": "expense-groceries",
-        "name": "Groceries",
-        "type": "EXPENSE"
-      },
-      "amount": "42.50",
-      "description": "Weekly groceries",
-      "date": "2026-07-05",
-      "createdAt": "2026-07-05T16:31:00.000Z"
-    }
-  ],
-  "pagination": {
-    "limit": 20,
-    "offset": 0,
-    "nextOffset": null,
-    "total": 1
-  },
-  "metadata": {
-    "accountTransactionCount": 1,
-    "minimumDate": "2026-07-05"
-  }
-}
-```
-
-Supports `limit` and `offset`; the default page size is `20` and the maximum is
-`200`. `nextOffset` is the next page position, `total` is the number of matching
-records, and `null` means there are no more results. First-page responses also
-include the account's unfiltered transaction count and oldest transaction date;
-later pages return `metadata: null`.
-
-The same request can combine `search`, `type`, comma-separated `categories`,
-`exactAmountCents` or an amount-cent range, and `exactDate` or a
-`startDate`/`endDate` range. Filtering is owner-scoped and performed in
-PostgreSQL before pagination. A user without transactions receives an empty
-array, and a request without a valid session returns `401 Unauthorized`.
-
-## List My Transactions By Category
-
-An active session is required:
-
-```http
-GET /transactions/categories/:category
-```
-
-`:category` is the category ID, for example `income-salary` or `expense-housing`. The endpoint returns only transactions owned by the current session user and assigned to that category:
-
-```json
-{
-  "transactions": [
-    {
-      "id": "transaction-id",
-      "type": "EXPENSE",
-      "categoryId": "expense-housing",
-      "category": {
-        "id": "expense-housing",
-        "name": "Housing",
-        "type": "EXPENSE"
-      },
-      "amount": "850.00",
-      "description": "Rent",
-      "date": "2026-07-01",
-      "createdAt": "2026-07-01T08:01:00.000Z"
-    }
-  ],
-  "pagination": {
-    "limit": 100,
-    "offset": 0,
-    "nextOffset": null
-  }
-}
-```
-
-Supports `limit` and `offset`. Default `limit` is `100`; maximum is `200`. A category without matching transactions returns an empty `transactions` array. Administrators receive no ownership bypass.
-
-## Get My Transaction
-
-An active session is required:
-
-```http
-GET /transactions/:id
-```
-
-The endpoint returns the requested transaction and the derived information used
-by its detail sheet only when it belongs to the current session user:
-
-```json
-{
-  "transaction": {
-    "id": "transaction-id",
-    "type": "EXPENSE",
-    "categoryId": "expense-groceries",
-    "category": {
-      "id": "expense-groceries",
-      "name": "Groceries",
-      "type": "EXPENSE"
-    },
-    "amount": "42.50",
-    "description": "Weekly groceries",
-    "date": "2026-07-05",
-    "createdAt": "2026-07-05T16:31:00.000Z"
-  },
-  "trackedBalance": {
-    "before": "1000.00",
-    "after": "957.50"
-  },
-  "contexts": {
-    "month": {
-      "categoryRank": {
-        "position": 2,
-        "total": 5
-      },
-      "typeRank": {
-        "position": 8,
-        "total": 31
-      },
-      "periodImpactPercentage": 7
-    },
-    "year": {
-      "categoryRank": {
-        "position": 5,
-        "total": 42
-      },
-      "typeRank": {
-        "position": 24,
-        "total": 214
-      },
-      "periodImpactPercentage": 0.8
-    },
-    "all": {
-      "categoryRank": {
-        "position": 14,
-        "total": 126
-      },
-      "typeRank": {
-        "position": 63,
-        "total": 642
-      },
-      "periodImpactPercentage": 0.3
-    }
-  }
-}
-```
-
-Month and year contexts are derived from the transaction's own calendar date.
-Ranks order higher amounts first; equal amounts use transaction date, creation
-timestamp, and ID as deterministic tie-breakers. Period impact is the
-transaction amount divided by all income or all expenses, according to its
-type, in that context. Positive impacts below `1%` are returned with one decimal
-and never collapse to `0%`; impacts of at least `1%` are rounded to whole
-percentages.
-
-`trackedBalance` is calculated from registered transactions ordered by
-transaction date, creation timestamp, and ID. It intentionally remains a
-transaction-ledger value that starts at zero, so it must not be interpreted as
-the user's full real-world wealth. Actual net worth is exposed separately and
-includes the configured starting value.
-
-All derived values are produced in the same database statement, so switching
-between Month, Year, and All in the interface requires no additional request. A
-missing transaction and one owned by another user both return `404 Not Found`
-with `{"error":"Transaction not found."}`. Administrators receive no ownership
-bypass.
-
-The detail sheet can share a compact text summary through the device's native
-share sheet. The message contains only the transaction type, description,
-signed amount, category, and date. It is built locally from the already loaded
-transaction and does not require another API request; browsers without Web
-Share support copy the same text to the clipboard.
-
-## Create Transaction
-
-An active login session is required:
-
-```http
-POST /transactions
-Content-Type: application/json
-```
-
-```json
-{
-  "type": "EXPENSE",
-  "categoryId": "expense-groceries",
-  "description": "Weekly groceries",
-  "amount": "42.50",
-  "date": "2026-07-05"
-}
-```
-
-`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 50 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is an optional calendar date in `YYYY-MM-DD` format and defaults to the server's current calendar date. Times and timezone offsets are rejected.
-
-The backend obtains `userId` exclusively from the session and stores the amount as integer cents. The transaction day is stored as PostgreSQL `DATE`, while `createdAt` independently records the exact creation timestamp. Transaction responses include the selected category's ID, name, and type.
-
-## Delete Transaction
-
-An active login session is required, and the transaction must belong to that user:
-
-```http
-DELETE /transactions/:id
-```
-
-A successful deletion returns `200 OK`:
-
-```json
-{
-  "message": "Transaction deleted."
-}
-```
-
-An unknown transaction ID and a transaction owned by another user both return the same `404 Not Found` response:
-
-```json
-{
-  "error": "Transaction not found."
-}
-```
-
-The authenticated interface confirms this irreversible action in a compact
-popover anchored below the transaction's Delete control. A successful deletion
-closes the detail sheet, clears private financial caches, and refreshes Home,
-Moves, and Stats.
-
-## Update Transaction
-
-An active login session is required, and the transaction must belong to that user:
-
-```http
-PATCH /transactions/:id
-Content-Type: application/json
-```
-
-Send only the fields that must change. All fields are optional, and an empty object is accepted:
-
-```json
-{
-  "categoryId": "expense-dining",
-  "description": "Updated description",
-  "amount": "35.20"
-}
-```
-
-The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
-
-The authenticated interface opens the shared transaction composer from the
-detail sheet, prefilled with the current values. It sends only changed fields,
-then invalidates the owner-scoped Home, transaction, detail, and Statistics
-queries. Visible cached data remains in place while the derived aggregates
-revalidate.
-
-## Get Home Overview
-
-An active login session is required:
-
-```http
-GET /home
-```
-
-The endpoint provides the authenticated user's Home data in one response: the all-time balance, up to three newest transactions, and activity for the server's current calendar month. It never accepts a user ID from the client.
-
-```json
-{
-  "balance": {
-    "totalIncome": "1500.00",
-    "totalSpent": "420.50",
-    "totalBalance": "1079.50",
-    "currentNetWorth": "23529.50"
-  },
-  "latestMoves": [
-    {
-      "id": "transaction-id",
-      "type": "EXPENSE",
-      "category": {
-        "id": "expense-groceries",
-        "name": "Groceries",
-        "type": "EXPENSE"
-      },
-      "amount": "42.80",
-      "description": "Weekly groceries",
-      "date": "2026-07-17"
-    }
-  ],
-  "activity": {
-    "month": 7,
-    "year": 2026,
-    "transactionCount": 4,
-    "topExpenseCategory": {
-      "id": "expense-groceries",
-      "name": "Groceries"
-    },
-    "topIncomeCategory": null
-  }
-}
-```
-
-`totalBalance` remains tracked cash flow (`income - expenses`).
-`currentNetWorth` is the timeless starting net worth plus all transactions
-through today, or `null` while the initial setup is still pending. Users without
-transactions receive zero cash-flow values, their configured starting net
-worth, an empty `latestMoves` array, a transaction count of `0`, and null top
-categories.
-
-## Get My Available Statistics Months
-
-An active login session is required:
-
-```http
-GET /statistics/months
-```
-
-The endpoint returns the distinct months that contain at least one transaction
-owned by the current user. Future transactions are excluded, and neither
-transactions nor `userId` values are exposed:
-
-```json
-{
-  "availableMonths": ["2026-04", "2026-06", "2026-07"],
-  "minimumMonth": "2026-04",
-  "maximumMonth": "2026-07"
-}
-```
-
-`minimumMonth` is `null` when the account has no transactions.
-`maximumMonth` is always the current calendar month.
-
-## Get My Statistics Overview
-
-An active login session is required. The endpoint accepts one of three periods:
-
-```http
-GET /statistics/overview
-GET /statistics/overview?period=month&month=2026-07
-GET /statistics/overview?period=year&year=2026
-GET /statistics/overview?period=all
-```
-
-Without query parameters it uses the current month. Future months and years are
-rejected. The response is designed for the numeric Stats view and contains:
-
-- income, expenses, balance, and saved percentage;
-- category amount, percentage, transaction count, and average;
-- largest movements, including the transaction previews used to open their
-  authenticated detail sheets, and monthly/yearly insights where applicable;
-- median expense, period average, and no-spend streaks. The current streak is
-  returned only for the current month, current year, and All. Both the current
-  and longest streak are historical, so they remain identical across those
-  three current-period views. Streak tracking begins with the first expense;
-  when no expense has ever been recorded, the UI omits the Expenses section.
-
-Best/Worst month or year pairs are omitted when fewer than two comparable
-periods contain income, avoiding duplicate insights with no comparative value.
-
-All calculations use only transactions owned by the authenticated user. Empty
-periods return zero values and empty category collections. Money is calculated
-in integer cents and exposed as decimal strings. Representative response
-excerpt:
-
-```json
-{
-  "overview": {
-    "period": {
-      "mode": "MONTH",
-      "key": "2026-07",
-      "startDate": "2026-07-01",
-      "endDate": "2026-07-27"
-    },
-    "money": {
-      "income": "1380.00",
-      "expenses": "2534.50",
-      "balance": "-1154.50",
-      "savingsPercentage": -84
-    }
-  }
-}
-```
-
-## Get My Statistics Charts
-
-Charts use the same period query:
-
-```http
-GET /statistics/charts
-GET /statistics/charts?period=month&month=2026-07
-GET /statistics/charts?period=year&year=2026
-GET /statistics/charts?period=all
-```
-
-The response returns chart-neutral financial series rather than ECharts
-configuration. It includes shared income/expense/balance intervals, category
-totals, category-by-interval cells, and seven weekday spending aggregates.
-The combined Cash Flow chart renders income, expenses, and balance from that
-single financial series, while Category Breakdown and Category Timeline use one
-common category aggregation.
-
-Net Worth Evolution returns daily closing points for Month and Year, and
-month-end points for All. Every point starts from the stored starting net worth
-and applies all transaction flow accumulated through that point. If setup is
-still pending, the API returns `status: "OPENING_BALANCE_REQUIRED"` and no
-points. Skipping stores a zero baseline, so the chart can still represent the
-user's complete recorded transaction history.
-
-Both aggregate endpoints derive ownership from the secure session, never accept
-`userId`, exclude dates after today, and send `Cache-Control: private, no-store`.
-
-## Get My Balance
-
-An active login session is required:
-
-```http
-GET /statistics/balance
-```
-
-The endpoint sums only the transactions owned by the current session user. Administrators receive their own balance, not a global balance:
-
-```json
-{
-  "balance": {
-    "totalIncome": "1500.00",
-    "totalSpent": "420.50",
-    "totalBalance": "1079.50"
-  }
-}
-```
-
-`totalBalance` is calculated as income minus expenses. A user without transactions receives zero values. A request without a valid session returns `401 Unauthorized`.
-
-## Get My Monthly Balance
-
-An active login session is required:
-
-```http
-GET /statistics/balance/:month/:year
-```
-
-`month` must be a number from `1` to `12`. `year` must be a number from `2000` to the current year. The year can be omitted, in which case the API uses the current year:
-
-```http
-GET /statistics/balance/6
-```
-
-Example:
-
-```http
-GET /statistics/balance/6/2026
-```
-
-Expected response:
-
-```json
-{
-  "balance": {
-    "totalIncome": "1000.00",
-    "totalSpent": "250.00",
-    "totalBalance": "750.00"
-  }
-}
-```
-
-The endpoint only sums transactions owned by the current session user and returns zero values when there are no transactions in that month.
-
-## Get My Yearly Balance
-
-An active login session is required:
-
-```http
-GET /statistics/balance/year/:year
-```
-
-`year` must be a number from `2000` to the current year. The year can be omitted, in which case the API uses the current year:
-
-```http
-GET /statistics/balance/year
-```
-
-Example:
-
-```http
-GET /statistics/balance/year/2026
-```
-
-Expected response:
-
-```json
-{
-  "balance": {
-    "totalIncome": "12000.00",
-    "totalSpent": "3600.00",
-    "totalBalance": "8400.00"
-  }
-}
-```
-
-The endpoint only sums transactions owned by the current session user and returns zero values when there are no transactions in that year.
-
-## Get My Category Percentages
-
-An active login session is required:
-
-```http
-GET /statistics/categories
-```
-
-Use a type path parameter to return only one transaction type:
-
-```http
-GET /statistics/categories/type/expense
-GET /statistics/categories/type/income
-```
-
-Use a numeric month and year to calculate category percentages only for that month:
-
-```http
-GET /statistics/categories/:month/:year
-```
-
-The year can be omitted, in which case the API uses the current year:
-
-```http
-GET /statistics/categories/6
-```
-
-Use the yearly endpoints to calculate category percentages for a full calendar year:
-
-```http
-GET /statistics/categories/year/:year
-GET /statistics/categories/year
-```
-
-Use `income` or `expense` after the fixed `type` segment to combine transaction type and period filters:
-
-```http
-GET /statistics/categories/type/expense/:month/:year
-GET /statistics/categories/type/income/:month/:year
-GET /statistics/categories/type/expense/:month
-GET /statistics/categories/type/income/:month
-GET /statistics/categories/type/expense/year/:year
-GET /statistics/categories/type/income/year/:year
-GET /statistics/categories/type/expense/year
-GET /statistics/categories/type/income/year
-```
-
-The endpoint returns only categories that have at least one transaction for the current user. Percentages are calculated within each transaction type, so expense categories add up to `100` and income categories add up to `100` independently:
-
-```json
-{
-  "categories": [
-    {
-      "category": "Groceries",
-      "type": "EXPENSE",
-      "percentage": 34
-    },
-    {
-      "category": "Transport",
-      "type": "EXPENSE",
-      "percentage": 33
-    },
-    {
-      "category": "Housing",
-      "type": "EXPENSE",
-      "percentage": 33
-    }
-  ]
-}
-```
-
-Percentages are whole numbers and are adjusted so each returned type totals exactly `100`. Empty types or periods return an empty list.
-
-## Database
-
-The API reads development configuration from `apps/api/.env`.
-
-Required values:
-
-```env
-NODE_ENV=development
-PORT=3001
-SESSION_KEY=<64-character-hexadecimal-key>
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_manager?schema=public"
-WEB_APP_URL=http://localhost:5173
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
-GOOGLE_CLIENT_ID=<google-oauth-client-id>
-GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
-```
-
-Generate Prisma Client:
-
-```bash
-npm run db:generate
-```
-
-Apply migrations after PostgreSQL is running:
-
-```bash
-npm run db:migrate
-```
-
-`CONTEXT.md` and `apps/api/.env` are local-only files and are ignored by Git.
+Copyright © Arnau Sala Araujo
