@@ -37,7 +37,9 @@ type SegmentDrag = {
   startX: number;
   startY: number;
   startIndex: number;
-  maxDistance: number;
+  segmentWidth: number;
+  minimumOffset: number;
+  maximumOffset: number;
 };
 
 const DRAG_THRESHOLD = 14;
@@ -127,7 +129,9 @@ export function SlidingSegmentedControl<Value extends string>({
       startX: event.clientX,
       startY: event.clientY,
       startIndex: optionIndex,
-      maxDistance: Math.max(0, segmentWidth - 4)
+      segmentWidth,
+      minimumOffset: -optionIndex * segmentWidth,
+      maximumOffset: (options.length - 1 - optionIndex) * segmentWidth
     };
     setIsDragging(true);
     setDragOffset(0);
@@ -152,14 +156,12 @@ export function SlidingSegmentedControl<Value extends string>({
       event.preventDefault();
     }
 
-    const minimumOffset =
-      currentDrag.startIndex > 0 ? -currentDrag.maxDistance : 0;
-    const maximumOffset =
-      currentDrag.startIndex < options.length - 1
-        ? currentDrag.maxDistance
-        : 0;
-
-    setDragOffset(Math.min(Math.max(distance, minimumOffset), maximumOffset));
+    setDragOffset(
+      Math.min(
+        Math.max(distance, currentDrag.minimumOffset),
+        currentDrag.maximumOffset
+      )
+    );
   }
 
   function finishDrag(event: ReactPointerEvent<HTMLButtonElement>) {
@@ -171,8 +173,17 @@ export function SlidingSegmentedControl<Value extends string>({
 
     const horizontalDistance = event.clientX - currentDrag.startX;
     const verticalDistance = event.clientY - currentDrag.startY;
-    const direction = horizontalDistance > 0 ? 1 : -1;
-    const nextIndex = currentDrag.startIndex + direction;
+    const segmentDistance =
+      currentDrag.segmentWidth > 0
+        ? horizontalDistance / currentDrag.segmentWidth
+        : 0;
+    const segmentDelta =
+      Math.sign(segmentDistance) *
+      Math.max(1, Math.round(Math.abs(segmentDistance)));
+    const nextIndex = Math.min(
+      Math.max(currentDrag.startIndex + segmentDelta, 0),
+      options.length - 1
+    );
     const canMove = nextIndex >= 0 && nextIndex < options.length;
     const hasHorizontalIntent =
       Math.abs(horizontalDistance) > Math.abs(verticalDistance);
