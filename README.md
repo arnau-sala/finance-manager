@@ -134,14 +134,18 @@ that explains the app and guides users toward the PWA flow.
 <div align="center">
 <table align="center" width="100%">
   <tr>
-    <td align="center" width="50%">
+    <td align="center" valign="top" width="50%">
       <img src="docs/assets/readme/12-what-you-can-do-now.jpeg" alt="Current Finance Manager capabilities: track transactions, find movements, understand statistics, use charts, and manage access" width="420" />
-      <br />
+    </td>
+    <td align="center" valign="top" width="50%">
+      <img src="docs/assets/readme/13-coming-next.jpeg" alt="Upcoming Finance Manager features: multiple money places, custom categories, expense bundles, multiple currencies, and faster card expenses" width="420" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="bottom" width="50%">
       <strong>What works today</strong>
     </td>
-    <td align="center" width="50%">
-      <img src="docs/assets/readme/13-coming-next.jpeg" alt="Upcoming Finance Manager features: multiple money places, custom categories, expense bundles, multiple currencies, and faster card expenses" width="420" />
-      <br />
+    <td align="center" valign="bottom" width="50%">
       <strong>Where the product is going</strong>
     </td>
   </tr>
