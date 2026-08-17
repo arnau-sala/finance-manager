@@ -268,7 +268,7 @@ Origin protection decisions:
 - Mutating requests (`POST`, `PUT`, `PATCH`, and `DELETE`) with an `Origin` header must come from an allowed origin.
 - Requests without an `Origin` header are allowed so Postman, CLI tools, and same-server internal calls keep working.
 - Local development allows common localhost frontend/API origins by default.
-- Production must set `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
+- Production defaults to `https://financemanager-mobile.vercel.app`. Set `ALLOWED_ORIGINS` only to add or replace origins.
 - Disallowed browser origins receive `403 Forbidden` with `{"error":"Origin not allowed."}`.
 
 Security header decisions:

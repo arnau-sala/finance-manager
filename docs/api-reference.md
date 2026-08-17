@@ -159,7 +159,7 @@ npm run dev:web
 
 The frontend listens on `http://localhost:5173` by default.
 
-Mutating browser requests must come from an allowed origin. Local development allows common localhost origins by default. In production, configure `ALLOWED_ORIGINS` as a comma-separated list, for example `https://app.example.com,https://www.example.com`.
+Mutating browser requests must come from an allowed origin. Local development allows common localhost origins by default. Production defaults to `https://financemanager-mobile.vercel.app`. Override with `ALLOWED_ORIGINS` only when extra origins are required.
 
 Frontend product, design, and architecture decisions are tracked in
 [`frontend.md`](frontend.md).
@@ -481,12 +481,16 @@ Local Google configuration requires these values in `apps/api/.env`:
 
 ```env
 WEB_APP_URL=http://localhost:5173
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 ```
 
-The Google Cloud OAuth client must include the exact `GOOGLE_REDIRECT_URI` as an authorized redirect URI.
+The Google Cloud OAuth client must be owned by `financemanager.auth@gmail.com`,
+not a personal Gmail account. Configure the consent screen support and
+developer contact to that address, and add these authorized redirect URIs:
+
+`https://financemanager-mobile.vercel.app/api/auth/google/callback`
+`http://localhost:5173/api/auth/google/callback`
 
 An authenticated password account can add Google as a second sign-in method:
 
@@ -1370,7 +1374,6 @@ PORT=3001
 SESSION_KEY=<64-character-hexadecimal-key>
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_manager?schema=public"
 WEB_APP_URL=http://localhost:5173
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 ```

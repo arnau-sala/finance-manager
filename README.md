@@ -371,6 +371,11 @@ npm run dev:web
 
 The API runs on `http://localhost:3001` and the web app runs on `http://localhost:5173` by default.
 
+Production:
+
+- Web: [https://financemanager-mobile.vercel.app](https://financemanager-mobile.vercel.app)
+- API: [https://financemanager-api.vercel.app](https://financemanager-api.vercel.app)
+
 Useful commands:
 
 ```bash

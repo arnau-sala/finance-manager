@@ -31,7 +31,6 @@ NODE_ENV=development
 PORT=3001
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/finance_manager?schema=public"
 WEB_APP_URL=http://localhost:5173
-GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google/callback
 GOOGLE_CLIENT_ID=<google-oauth-client-id>
 GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 BREVO_API_KEY=<brevo-api-key>

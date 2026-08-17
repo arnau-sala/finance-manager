@@ -16,6 +16,10 @@ import {
   type VerifiedGoogleIdentity,
 } from "../auth/google-auth-flow.js";
 import { currentLegalVersion } from "../auth/legal-acceptance.js";
+import {
+  getGoogleRedirectUri,
+  getWebAppUrl,
+} from "../config/deployment.js";
 import { db } from "../db/client.js";
 import {
   accountDeletionRateLimit,
@@ -62,15 +66,9 @@ function getGoogleOAuthConfig(): GoogleOAuthConfig | null {
   return {
     clientId,
     clientSecret,
-    redirectUri:
-      process.env.GOOGLE_REDIRECT_URI?.trim() ||
-      "http://localhost:5173/api/auth/google/callback",
-    webAppUrl: process.env.WEB_APP_URL?.trim() || "http://localhost:5173",
+    redirectUri: getGoogleRedirectUri(),
+    webAppUrl: getWebAppUrl(),
   };
-}
-
-function getConfiguredWebAppUrl() {
-  return process.env.WEB_APP_URL?.trim() || "http://localhost:5173";
 }
 
 function createGoogleClient(config: GoogleOAuthConfig) {
@@ -282,7 +280,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       if (!config) {
         return reply.redirect(
           getPublicGoogleRedirectUrl(
-            { webAppUrl: getConfiguredWebAppUrl() },
+            { webAppUrl: getWebAppUrl() },
             "not-configured",
             intent,
           ),
@@ -611,7 +609,7 @@ export const authGoogleRoutes: FastifyPluginAsync = async (app) => {
       if (!config) {
         return reply.redirect(
           getPublicGoogleRedirectUrl(
-            { webAppUrl: getConfiguredWebAppUrl() },
+            { webAppUrl: getWebAppUrl() },
             "not-configured",
             expectedPublicIntent,
           ),

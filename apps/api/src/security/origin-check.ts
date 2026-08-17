@@ -1,4 +1,6 @@
-import type { FastifyInstance, FastifyRequest } from "fastify";
+import type { FastifyInstance } from "fastify";
+
+import { getProductionAllowedOrigins } from "../config/deployment.js";
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const DEVELOPMENT_ALLOWED_ORIGINS = [
@@ -39,7 +41,7 @@ function getAllowedOrigins() {
   }
 
   if (process.env.NODE_ENV === "production") {
-    throw new Error("ALLOWED_ORIGINS must be configured in production");
+    return getProductionAllowedOrigins();
   }
 
   return DEVELOPMENT_ALLOWED_ORIGINS;
