@@ -84,8 +84,8 @@ Google providers before being added to CI.
 To run the same browser suite against a future deployment:
 
 ```powershell
-$env:E2E_BASE_URL="https://example.com"
-$env:E2E_API_URL="https://api.example.com"
+$env:E2E_BASE_URL="https://financemanager-mobile.vercel.app"
+$env:E2E_API_URL="https://financemanager-api.vercel.app"
 npm.cmd run test:e2e
 ```
 

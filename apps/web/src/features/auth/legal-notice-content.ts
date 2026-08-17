@@ -1,3 +1,5 @@
+import { authContactEmail } from "../../config/brand";
+
 export type LegalNoticeSection = {
   title: string;
   items: string[];
@@ -19,7 +21,7 @@ export const privacySections: LegalNoticeSection[] = [
     title: "Who controls your data",
     items: [
       "Finance Manager is controlled by Arnau Sala Araujo, Barcelona, Spain",
-      "Contact email: financemanager.auth@gmail.com",
+      `Contact email: ${authContactEmail}`,
       "This notice is written for users in the European Economic Area and follows the GDPR transparency principles"
     ]
   },
@@ -78,7 +80,7 @@ export const privacySections: LegalNoticeSection[] = [
       "Vercel hosts and delivers the web app and provides anonymous Web Analytics and performance measurement through Speed Insights",
       "Neon provides the PostgreSQL database that stores account, security and transaction data for the service",
       "Sentry receives sanitized error and performance reports with default personal data collection disabled; reports may include a pseudonymous account ID when a signed-in user encounters an error",
-      "Brevo sends verification, recovery and account security emails from financemanager.auth@gmail.com or a Brevo-managed sender derived from it",
+      `Brevo sends verification, recovery and account security emails from ${authContactEmail} or a Brevo-managed sender derived from it`,
       "Google provides optional Google sign-in when the user chooses it",
       "These providers may process data only as needed to provide their services, under their own security and data processing terms"
     ]
@@ -123,7 +125,7 @@ export const privacySections: LegalNoticeSection[] = [
       "You may request correction of inaccurate data",
       "You may request deletion of your account and personal data",
       "You may request restriction, portability or objection where GDPR allows it",
-      "You may contact financemanager.auth@gmail.com to exercise these rights",
+      `You may contact ${authContactEmail} to exercise these rights`,
       "You may lodge a complaint with the Spanish Data Protection Agency or your local data protection authority"
     ]
   },
@@ -139,7 +141,7 @@ export const privacySections: LegalNoticeSection[] = [
     title: "Children",
     items: [
       "Finance Manager is not directed at children under 16",
-      "If you believe a child has provided personal data without appropriate permission, contact financemanager.auth@gmail.com"
+      `If you believe a child has provided personal data without appropriate permission, contact ${authContactEmail}`
     ]
   }
 ];
@@ -215,6 +217,6 @@ export const termsSections: LegalNoticeSection[] = [
   },
   {
     title: "Contact",
-    items: ["Arnau Sala Araujo", "Barcelona, Spain", "financemanager.auth@gmail.com"]
+    items: ["Arnau Sala Araujo", "Barcelona, Spain", authContactEmail]
   }
 ];

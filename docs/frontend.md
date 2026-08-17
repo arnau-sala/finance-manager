@@ -69,9 +69,11 @@ The planned frontend deployment target is Vercel.
 
 MVP deployment assumptions:
 
-- Frontend hosted by Vercel.
-- API hosted separately.
-- Production frontend URL must be added to the API `ALLOWED_ORIGINS`.
+- Frontend hosted by Vercel at `https://financemanager-mobile.vercel.app`.
+- API hosted separately at `https://financemanager-api.vercel.app`.
+- Those origins are defined once in `apps/api/src/config/deployment.ts`. The
+  web `/api` rewrite, Google redirect URI, and production CORS default all
+  follow that file.
 - Future custom domain can point to the Vercel project.
 
 The app should be built so it can later support:

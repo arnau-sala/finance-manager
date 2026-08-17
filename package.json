@@ -46,5 +46,8 @@
     "@prisma/client": true,
     "@prisma/engines": true,
     "@sentry/cli": true
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.1"
   }
 }

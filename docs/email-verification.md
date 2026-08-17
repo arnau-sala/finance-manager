@@ -22,9 +22,9 @@ Official references:
 2. Confirm that the transactional email platform is activated for the account.
 3. Open `Settings -> Senders, Domains & Dedicated IPs -> Senders` and add a
    sender named `Finance Manager`.
-4. Use an email address that you control and complete Brevo's sender
-   verification. For production, authenticate a custom sending domain with
-   DKIM and DMARC instead of relying on a free-mail domain.
+4. Use `financemanager.auth@gmail.com` as the verified sender and complete
+   Brevo's sender verification. For production, authenticate a custom sending
+   domain with DKIM and DMARC instead of relying on a free-mail domain.
 5. Open `SMTP & API -> API Keys`, generate a v3 API key with a descriptive
    name, and copy it immediately. Brevo displays it only once.
 
