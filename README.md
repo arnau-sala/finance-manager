@@ -1,20 +1,20 @@
 # Finance Manager
 
 <div align="center">
-  <img src="apps/web/src/assets/app-splash-icon-456.jpg" alt="Finance Manager icon" width="104" height="104" />
+  <img src="docs/assets/readme/readme-header-icon.svg" alt="Finance Manager icon" width="120" height="120" style="display:block; margin:0 auto 4px auto;" />
 
-  <h3>Money, made clear</h3>
+  <h3 style="margin-top:0;">Money, made clear</h3>
   <p>
     A mobile-first personal finance app for tracking income, expenses, net worth,
     transaction history, and spending patterns from one focused interface
   </p>
 
   <p>
-    <img alt="Status" src="https://img.shields.io/badge/status-MVP%20in%20progress-0f766e?style=flat-square" />
-    <img alt="Frontend" src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-111827?style=flat-square" />
-    <img alt="Backend" src="https://img.shields.io/badge/backend-Fastify%20%2B%20Prisma-111827?style=flat-square" />
-    <img alt="Database" src="https://img.shields.io/badge/database-PostgreSQL-111827?style=flat-square" />
-    <img alt="License" src="https://img.shields.io/badge/license-All%20rights%20reserved-64748b?style=flat-square" />
+<img alt="Status" src="https://img.shields.io/badge/status-MVP%20in%20progress-22c55e?style=flat&logo=checkmarx&logoColor=white" />
+    <img alt="Frontend" src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-0ea5e9?style=flat&logo=vercel&logoColor=ffffff" />
+    <img alt="Backend" src="https://img.shields.io/badge/backend-Fastify%20%2B%20Prisma-f97316?style=flat&logo=icloud&logoColor=ffffff" />
+    <img alt="Database" src="https://img.shields.io/badge/database-PostgreSQL-6366f1?style=flat&logo=databricks&logoColor=ffffff" />
+    <img alt="License" src="https://img.shields.io/badge/license-All%20rights%20reserved-4b5563?style=flat&logo=bookstack&logoColor=ffffff" />
   </p>
 </div>
 
