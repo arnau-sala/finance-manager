@@ -290,7 +290,7 @@ The original technical README has been moved out of the GitHub landing page and 
         <strong>API & Setup</strong>
       </a>
       <br />
-      <sub>Endpoints, local setup, environment variables, and backend usage</sub>
+      <sub>Endpoints, local setup and backend usage</sub>
     </td>
     <td align="center" width="25%">
       <a href="docs/architecture.md">
