@@ -10,11 +10,11 @@
   </p>
 
   <p>
-    <img alt="Status" src="https://img.shields.io/badge/status-MVP%20in%20progress-0f766e?style=flat&logo=checkmarx&logoColor=white" />
-    <img alt="Frontend" src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-2563eb?style=flat&logo=vercel&logoColor=ffffff" />
-    <img alt="Backend" src="https://img.shields.io/badge/backend-Fastify%20%2B%20Prisma-7c3aed?style=flat&logo=icloud&logoColor=ffffff" />
-    <img alt="Database" src="https://img.shields.io/badge/database-PostgreSQL-0ea5e9?style=flat&logo=databricks&logoColor=ffffff" />
-    <img alt="License" src="https://img.shields.io/badge/license-All%20rights%20reserved-f59e0b?style=flat&logo=bookstack&logoColor=ffffff" />
+<img alt="Status" src="https://img.shields.io/badge/status-MVP%20in%20progress-22c55e?style=flat&logo=checkmarx&logoColor=white" />
+    <img alt="Frontend" src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-0ea5e9?style=flat&logo=vercel&logoColor=ffffff" />
+    <img alt="Backend" src="https://img.shields.io/badge/backend-Fastify%20%2B%20Prisma-f97316?style=flat&logo=icloud&logoColor=ffffff" />
+    <img alt="Database" src="https://img.shields.io/badge/database-PostgreSQL-6366f1?style=flat&logo=databricks&logoColor=ffffff" />
+    <img alt="License" src="https://img.shields.io/badge/license-All%20rights%20reserved-4b5563?style=flat&logo=bookstack&logoColor=ffffff" />
   </p>
 </div>
 
