@@ -212,7 +212,7 @@ that explains the app and guides users toward the PWA flow.
       <sub>Node.js</sub>
     </td>
     <td align="center" width="120">
-      <img src="https://cdn.simpleicons.org/fastify" alt="Fastify" height="44" />
+      <img src="https://cdn.simpleicons.org/fastify/9ca3af" alt="Fastify" height="44" />
       <br />
       <sub>Fastify</sub>
     </td>
