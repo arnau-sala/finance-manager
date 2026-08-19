@@ -1,9 +1,9 @@
 # Finance Manager
 
 <div align="center">
-  <img src="apps/web/src/assets/app-splash-icon-456.jpg" alt="Finance Manager icon" width="104" height="104" />
+  <img src="apps/web/public/icons/app-icon-512.png" alt="Finance Manager icon" width="132" height="132" style="display:block; margin:0 auto 4px auto;" />
 
-  <h3>Money, made clear</h3>
+  <h3 style="margin-top:0;">Money, made clear</h3>
   <p>
     A mobile-first personal finance app for tracking income, expenses, net worth,
     transaction history, and spending patterns from one focused interface
