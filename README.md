@@ -1,7 +1,7 @@
 # Finance Manager
 
 <div align="center">
-  <img src="apps/web/public/icons/app-icon-512.png" alt="Finance Manager icon" width="132" height="132" style="display:block; margin:0 auto 4px auto;" />
+  <img src="docs/assets/readme/readme-header-icon.png" alt="Finance Manager icon" width="132" height="132" style="display:block; margin:0 auto 4px auto;" />
 
   <h3 style="margin-top:0;">Money, made clear</h3>
   <p>
