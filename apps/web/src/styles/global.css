@@ -2991,9 +2991,18 @@ html.desktop-app-route
 
 .auth-registration-method-option__content strong {
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
   font-size: 17px;
   font-weight: 400;
   line-height: 1.2;
+}
+
+.auth-registration-method-option__title {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .auth-registration-method-option__content ul {
@@ -3026,6 +3035,20 @@ html.desktop-app-route
   width: 20px;
   height: 20px;
   color: var(--color-primary);
+}
+
+.auth-registration-method-option__badge {
+  flex: 0 1 auto;
+  padding: 4px 9px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
 }
 
 .auth-registration-method-note {
@@ -10125,6 +10148,15 @@ html.desktop-app-route .stats-view-stage {
 
   .auth-registration-method-option__content {
     gap: 7px;
+  }
+
+  .auth-registration-method-option__content strong {
+    gap: 6px;
+  }
+
+  .auth-registration-method-option__badge {
+    padding: 3px 7px;
+    font-size: 9px;
   }
 
   .auth-registration-method-option__content ul {

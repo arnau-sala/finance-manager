@@ -37,6 +37,7 @@ const registrationMethods = [
   {
     value: "google",
     title: "Google account",
+    recommended: true,
     benefits: [
       "Sign in with Google",
       "No password or code",
@@ -142,7 +143,16 @@ export function RegistrationMethodPage({
                   )}
                 </span>
                 <div className="auth-registration-method-option__content">
-                  <strong>{method.title}</strong>
+                  <strong>
+                    <span className="auth-registration-method-option__title">
+                      {method.title}
+                    </span>
+                    {"recommended" in method && method.recommended ? (
+                      <span className="auth-registration-method-option__badge">
+                        Suggested
+                      </span>
+                    ) : null}
+                  </strong>
                   <ul>
                     {method.benefits.map((benefit) => (
                       <li key={benefit}>
