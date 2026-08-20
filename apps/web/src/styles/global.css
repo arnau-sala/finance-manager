@@ -2959,7 +2959,7 @@ html.desktop-app-route
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 22px;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding: 20px;
   color: var(--color-text);
   background: var(--color-surface);
@@ -10139,7 +10139,7 @@ html.desktop-app-route .stats-view-stage {
   .auth-registration-method-option {
     min-height: 94px;
     grid-template-columns: 44px minmax(0, 1fr) 20px;
-    gap: 13px;
+    gap: 16px;
     padding: 14px 16px;
   }
 
