@@ -143,15 +143,15 @@ export function RegistrationMethodPage({
                   )}
                 </span>
                 <div className="auth-registration-method-option__content">
+                  {"recommended" in method && method.recommended ? (
+                    <span className="auth-registration-method-option__suggested">
+                      RECOMMENDED
+                    </span>
+                  ) : null}
                   <strong>
                     <span className="auth-registration-method-option__title">
                       {method.title}
                     </span>
-                    {"recommended" in method && method.recommended ? (
-                      <span className="auth-registration-method-option__badge">
-                        Suggested
-                      </span>
-                    ) : null}
                   </strong>
                   <ul>
                     {method.benefits.map((benefit) => (
