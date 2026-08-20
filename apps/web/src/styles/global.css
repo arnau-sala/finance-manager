@@ -2907,9 +2907,14 @@ html.desktop-app-route
 }
 
 .auth-screen--registration-method {
-  place-items: center;
-  overflow: hidden;
-  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
   padding-block: max(
     24px,
     env(safe-area-inset-top),
@@ -2917,11 +2922,15 @@ html.desktop-app-route
   );
 }
 
+.auth-screen--registration-method::-webkit-scrollbar {
+  display: none;
+}
+
 .auth-registration-method-panel {
-  height: min(640px, calc(100dvh - 120px));
-  max-height: 100%;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: min(640px, calc(100dvh - 120px));
+  grid-template-rows: auto auto auto;
   gap: 28px;
+  margin-block: auto;
 }
 
 .auth-registration-method-header {
@@ -2939,19 +2948,18 @@ html.desktop-app-route
 }
 
 .auth-registration-method-options {
-  min-height: 0;
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(116px, auto));
   gap: 16px;
 }
 
 .auth-registration-method-option {
   width: 100%;
-  min-height: 0;
+  min-height: 116px;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 22px;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding: 20px;
   color: var(--color-text);
   background: var(--color-surface);
@@ -2991,9 +2999,15 @@ html.desktop-app-route
 
 .auth-registration-method-option__content strong {
   margin: 0;
+  min-width: 0;
   font-size: 17px;
   font-weight: 400;
   line-height: 1.2;
+}
+
+.auth-registration-method-option__title {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .auth-registration-method-option__content ul {
@@ -3026,6 +3040,15 @@ html.desktop-app-route
   width: 20px;
   height: 20px;
   color: var(--color-primary);
+}
+
+.auth-registration-method-option__suggested {
+  margin-bottom: -5px;
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .auth-registration-method-note {
@@ -10095,7 +10118,7 @@ html.desktop-app-route .stats-view-stage {
   }
 
   .auth-registration-method-panel {
-    height: calc(100dvh - 104px);
+    min-height: calc(100dvh - 104px);
     gap: 18px;
   }
 
@@ -10109,12 +10132,14 @@ html.desktop-app-route .stats-view-stage {
   }
 
   .auth-registration-method-options {
+    grid-template-rows: repeat(3, minmax(94px, auto));
     gap: 10px;
   }
 
   .auth-registration-method-option {
+    min-height: 94px;
     grid-template-columns: 44px minmax(0, 1fr) 20px;
-    gap: 13px;
+    gap: 16px;
     padding: 14px 16px;
   }
 
