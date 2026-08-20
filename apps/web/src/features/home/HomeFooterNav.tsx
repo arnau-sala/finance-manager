@@ -3,11 +3,13 @@ import { homeNavItems, type HomeSectionId } from "./home-sections";
 type HomeFooterNavProps = {
   activeSection: HomeSectionId;
   onSectionSelect: (section: HomeSectionId) => void;
+  disabled?: boolean;
 };
 
 export function HomeFooterNav({
   activeSection,
-  onSectionSelect
+  onSectionSelect,
+  disabled = false
 }: HomeFooterNavProps) {
   return (
     <>
@@ -25,7 +27,14 @@ export function HomeFooterNav({
               type="button"
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
-              onClick={() => onSectionSelect(item.id)}
+              aria-disabled={disabled ? true : undefined}
+              onClick={() => {
+                if (disabled) {
+                  return;
+                }
+
+                onSectionSelect(item.id);
+              }}
             >
               <span className="home-footer-nav__icon" aria-hidden="true">
                 <Icon className="home-footer-nav__icon-svg" />

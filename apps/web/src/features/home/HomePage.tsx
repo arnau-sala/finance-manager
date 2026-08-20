@@ -55,6 +55,9 @@ export type GoogleAccountUnlinkFeedback =
 
 type HomePageProps = {
   user: SessionUser;
+  initialSection?: HomeSectionId;
+  lockSectionNavigation?: boolean;
+  allowLockedNewTransaction?: boolean;
   onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -237,6 +240,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
 
 export function HomePage({
   user,
+  initialSection,
+  lockSectionNavigation = false,
+  allowLockedNewTransaction = false,
   onProfileUpdated,
   onLogout,
   onAccountDeleted,
@@ -254,7 +260,7 @@ export function HomePage({
       googleAccountLinkFeedback ||
       googleAccountUnlinkFeedback
       ? "profile"
-      : "home"
+      : initialSection ?? "home"
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
@@ -330,6 +336,10 @@ export function HomePage({
   }, [activeSection, onInitialContentReady]);
 
   function openNewTransaction() {
+    if (lockSectionNavigation && !allowLockedNewTransaction) {
+      return;
+    }
+
     prefetchScheduler.prioritizeUserRequest();
     setTransactionBeingEdited(null);
     setIsTransactionComposerOpen(true);
@@ -375,6 +385,10 @@ export function HomePage({
   }
 
   function navigateToMoves(filters = createEmptyMovesFilters()) {
+    if (lockSectionNavigation) {
+      return;
+    }
+
     prefetchScheduler.prioritizeUserRequest();
     setScrollToTopRequest(null);
     setMovesViewState(createInitialMovesPageState(filters));
@@ -382,6 +396,10 @@ export function HomePage({
   }
 
   function changeSection(section: HomeSectionId) {
+    if (lockSectionNavigation) {
+      return;
+    }
+
     if (section === activeSection) {
       setScrollToTopRequest((current) => ({
         section,
@@ -427,26 +445,50 @@ export function HomePage({
           user,
           onProfileUpdated: finishProfileUpdate,
           onEditProfile: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsEditProfileOpen(true);
           },
           onChangePassword: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsChangePasswordOpen(true);
           },
           onAppVersion: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsAppVersionOpen(true);
           },
           onFeedback: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsGeneralFeedbackOpen(true);
           },
           onLinkEmail: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsEmailLinkOpen(true);
           },
           onLinkUsername: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsUsernameLinkOpen(true);
           },
@@ -477,6 +519,7 @@ export function HomePage({
         <HomeFooterNav
           activeSection={activeSection}
           onSectionSelect={changeSection}
+          disabled={lockSectionNavigation}
         />
       </div>
 
@@ -543,6 +586,7 @@ export function HomePage({
       <TransactionComposer
         open={isTransactionComposerOpen}
         transaction={transactionBeingEdited}
+        disablePersistence={lockSectionNavigation}
         onClose={() => setIsTransactionComposerOpen(false)}
         onCreated={finishFinancialWrite}
         onUpdated={finishFinancialWrite}

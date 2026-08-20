@@ -39,6 +39,7 @@ import {
 type TransactionComposerProps = {
   open: boolean;
   transaction: TransactionPreview | null;
+  disablePersistence?: boolean;
   onClose: () => void;
   onCreated: () => void;
   onUpdated: (transactionId: string) => void;
@@ -141,6 +142,7 @@ function getChangedFields(
 export function TransactionComposer({
   open,
   transaction,
+  disablePersistence = false,
   onClose,
   onCreated,
   onUpdated,
@@ -358,7 +360,6 @@ export function TransactionComposer({
     };
     setIsTypeDragging(true);
     setTypeDragOffset(0);
-    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function moveTypeDrag(event: ReactPointerEvent<HTMLElement>) {
@@ -375,6 +376,10 @@ export function TransactionComposer({
       Math.abs(distance) >= 4;
 
     if (hasHorizontalIntent) {
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+
       lockScrollForTypeDrag();
       event.preventDefault();
     }
@@ -506,6 +511,11 @@ export function TransactionComposer({
 
     setInvalidFields({});
     setFormError(null);
+
+    if (disablePersistence) {
+      return;
+    }
+
     setIsSubmitting(true);
     prefetchScheduler.prioritizeUserRequest();
 
