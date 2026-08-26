@@ -7,6 +7,7 @@ import {
   useState
 } from "react";
 import {
+  ArrowLeftRight,
   AtSign,
   Info,
   CalendarDays,
@@ -23,7 +24,8 @@ import {
   Pencil,
   TriangleAlert,
   Trash2,
-  UserRound
+  UserRound,
+  WalletCards
 } from "lucide-react";
 
 import { GoogleIcon } from "../../components/brand/GoogleIcon";
@@ -1075,6 +1077,26 @@ export function ProfilePage({
                   }}
                 />
               ) : null}
+            </div>
+          </section>
+
+          <section
+            className="profile-section"
+            aria-labelledby="profile-money-title"
+          >
+            <h2 id="profile-money-title">Money</h2>
+
+            <div className="profile-action-list">
+              <ProfileActionButton
+                label="USD wallet"
+                icon={<WalletCards />}
+                onClick={() => undefined}
+              />
+              <ProfileActionButton
+                label="Add exchange"
+                icon={<ArrowLeftRight />}
+                onClick={() => undefined}
+              />
             </div>
           </section>
 
