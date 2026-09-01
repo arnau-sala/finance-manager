@@ -1,8 +1,17 @@
-import { useEffect, useId, useRef } from "react";
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { useEffect, useId, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Ellipsis,
+  Pencil,
+  Share,
+  Trash2,
+  X
+} from "lucide-react";
 import { createPortal } from "react-dom";
 
 import { ActionButton } from "../../components/ui/ActionButton";
+import { formatErrorMessage } from "../../components/ui/error-message";
 import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatMoneyAmount } from "../../money/format-euro";
 import type {
@@ -16,6 +25,8 @@ type CurrencyExchangeDetailSheetProps = {
   onClose: () => void;
 };
 
+const ACTIONS_ANIMATION_MS = 220;
+
 function formatFullDate(value: string) {
   const date = parseLocalDateOnly(value);
 
@@ -27,6 +38,20 @@ function formatFullDate(value: string) {
     weekday: "long",
     month: "long",
     day: "numeric",
+    year: "numeric"
+  }).format(date);
+}
+
+function formatShareDate(value: string) {
+  const date = parseLocalDateOnly(value);
+
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
     year: "numeric"
   }).format(date);
 }
@@ -92,6 +117,20 @@ function formatRateDecimal(value: string | number) {
   return formattedValue.replace(/0+$/, "").replace(/,$/, "");
 }
 
+function formatFixedRateDecimal(value: string | number, fractionDigits: number) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return "unavailable";
+  }
+
+  return numericValue.toLocaleString("es-ES", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+    useGrouping: false
+  });
+}
+
 function getRateLabels(exchange: CurrencyExchangeListItem) {
   const basePerUsd = Number(exchange.exchangeRateBasePerUsd);
   const usdToEur = `1$ = ${formatRateDecimal(
@@ -102,6 +141,80 @@ function getRateLabels(exchange: CurrencyExchangeListItem) {
   return exchange.fromCurrency === "USD"
     ? [usdToEur, eurToUsd]
     : [eurToUsd, usdToEur];
+}
+
+function getShareRateLabel(exchange: CurrencyExchangeListItem) {
+  const basePerUsd = Number(exchange.exchangeRateBasePerUsd);
+  const usdToEur = `1$ = ${formatFixedRateDecimal(
+    exchange.exchangeRateBasePerUsd,
+    4
+  )}\u20ac`;
+  const eurToUsd = `1\u20ac = ${formatFixedRateDecimal(1 / basePerUsd, 4)}$`;
+
+  return exchange.fromCurrency === "USD"
+    ? `${usdToEur} | ${eurToUsd}`
+    : `${eurToUsd} | ${usdToEur}`;
+}
+
+function buildCurrencyExchangeShareText(exchange: CurrencyExchangeListItem) {
+  const directionPrefix = exchange.fromCurrency === "EUR" ? "\u27a1\ufe0f" : "\u2b05\ufe0f";
+  const amountPrefix = exchange.fromCurrency === "EUR" ? "\ud83d\udcb5" : "\ud83d\udcb6";
+
+  return [
+    "\ud83d\udcb1 Exchange",
+    `${directionPrefix} ${exchange.fromCurrency} to ${exchange.toCurrency}`,
+    "",
+    `${amountPrefix} ${formatCurrencyAmount(
+      exchange.fromAmount,
+      exchange.fromCurrency
+    )} to ${formatCurrencyAmount(exchange.toAmount, exchange.toCurrency)}`,
+    `\ud83d\udcc8 ${getShareRateLabel(exchange)}`,
+    "",
+    `\ud83d\udcc5 ${formatShareDate(exchange.date)}`
+  ].join("\n");
+}
+
+async function copyText(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.append(textArea);
+  textArea.select();
+
+  const copied = document.execCommand("copy");
+  textArea.remove();
+
+  if (!copied) {
+    throw new Error("Clipboard access is unavailable");
+  }
+}
+
+async function shareCurrencyExchange(exchange: CurrencyExchangeListItem) {
+  const text = buildCurrencyExchangeShareText(exchange);
+
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({
+        title: "Finance Manager",
+        text
+      });
+      return "shared";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return "cancelled";
+      }
+    }
+  }
+
+  await copyText(text);
+  return "copied";
 }
 
 function compareExchangeRank(
@@ -169,7 +282,17 @@ export function CurrencyExchangeDetailSheet({
   const titleId = useId();
   const dateId = useId();
   const renderedExchangeRef = useRef<CurrencyExchangeListItem | null>(null);
+  const shareNoticeTimerRef = useRef<number | null>(null);
   const open = exchange !== null;
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionsRendered, setActionsRendered] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [actionsInteractive, setActionsInteractive] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareNotice, setShareNotice] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
 
   if (exchange) {
     renderedExchangeRef.current = exchange;
@@ -179,8 +302,15 @@ export function CurrencyExchangeDetailSheet({
 
   useEffect(() => {
     if (!open) {
+      setActionsOpen(false);
+      setIsSharing(false);
+      setShareNotice(null);
       return;
     }
+
+    setActionsOpen(false);
+    setIsSharing(false);
+    setShareNotice(null);
 
     function closeWithEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -189,8 +319,62 @@ export function CurrencyExchangeDetailSheet({
     }
 
     window.addEventListener("keydown", closeWithEscape);
-    return () => window.removeEventListener("keydown", closeWithEscape);
-  }, [onClose, open]);
+    return () => {
+      window.removeEventListener("keydown", closeWithEscape);
+
+      if (shareNoticeTimerRef.current !== null) {
+        window.clearTimeout(shareNoticeTimerRef.current);
+        shareNoticeTimerRef.current = null;
+      }
+    };
+  }, [exchange?.id, onClose, open]);
+
+  useEffect(() => {
+    setActionsInteractive(false);
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (actionsOpen) {
+      setActionsRendered(true);
+
+      if (reduceMotion) {
+        setActionsExpanded(true);
+        setActionsInteractive(true);
+        return;
+      }
+
+      const expansionFrame = requestAnimationFrame(() => {
+        setActionsExpanded(true);
+      });
+      const interactionTimer = window.setTimeout(() => {
+        setActionsInteractive(true);
+      }, ACTIONS_ANIMATION_MS);
+
+      return () => {
+        cancelAnimationFrame(expansionFrame);
+        window.clearTimeout(interactionTimer);
+      };
+    }
+
+    setActionsExpanded(false);
+
+    if (!actionsRendered) {
+      return;
+    }
+
+    if (reduceMotion) {
+      setActionsRendered(false);
+      return;
+    }
+
+    const unmountTimer = window.setTimeout(() => {
+      setActionsRendered(false);
+    }, ACTIONS_ANIMATION_MS);
+
+    return () => window.clearTimeout(unmountTimer);
+  }, [actionsOpen, actionsRendered]);
 
   const Icon = displayedExchange?.toCurrency === "USD" ? ArrowRight : ArrowLeft;
   const [primaryRate, secondaryRate] = displayedExchange
@@ -203,6 +387,47 @@ export function CurrencyExchangeDetailSheet({
   const directionDetail = displayedExchange
     ? formatDirectionDetail(displayedExchange)
     : "";
+
+  function showShareNotice(kind: "success" | "error", message: string) {
+    if (shareNoticeTimerRef.current !== null) {
+      window.clearTimeout(shareNoticeTimerRef.current);
+      shareNoticeTimerRef.current = null;
+    }
+
+    setShareNotice({ kind, message });
+    shareNoticeTimerRef.current = window.setTimeout(() => {
+      setShareNotice(null);
+      shareNoticeTimerRef.current = null;
+    }, 2800);
+  }
+
+  async function shareDisplayedExchange() {
+    if (!displayedExchange || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+
+    try {
+      const result = await shareCurrencyExchange(displayedExchange);
+
+      if (result === "shared" || result === "copied") {
+        setActionsOpen(false);
+      }
+
+      if (result === "copied") {
+        showShareNotice("success", "Exchange copied to clipboard");
+      }
+    } catch {
+      setActionsOpen(false);
+      showShareNotice(
+        "error",
+        "Unable to share this exchange\nPlease try again"
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  }
 
   return createPortal(
     <div
@@ -230,7 +455,70 @@ export function CurrencyExchangeDetailSheet({
         </div>
 
         <div className="transaction-detail-sheet__toolbar">
-          <span aria-hidden="true" />
+          <div className="transaction-detail-sheet__more">
+            <ActionButton
+              shape="icon"
+              type="button"
+              className="transaction-detail-sheet__action-button"
+              aria-label="More exchange actions"
+              aria-haspopup="menu"
+              aria-expanded={actionsOpen}
+              title="More"
+              disabled={isSharing}
+              onClick={() => {
+                setActionsOpen((current) => !current);
+              }}
+            >
+              <Ellipsis aria-hidden="true" />
+            </ActionButton>
+
+            {actionsRendered ? (
+              <div
+                className={`transaction-detail-sheet__action-menu${
+                  actionsExpanded ? " is-open" : ""
+                }${actionsInteractive ? " is-interactive" : ""}`}
+                role="menu"
+                aria-label="Exchange actions"
+              >
+                <ActionButton
+                  shape="icon"
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--share"
+                  role="menuitem"
+                  aria-label="Share exchange"
+                  title="Share"
+                  disabled={!actionsInteractive || isSharing}
+                  onClick={shareDisplayedExchange}
+                >
+                  <Share aria-hidden="true" />
+                </ActionButton>
+                <ActionButton
+                  shape="icon"
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
+                  role="menuitem"
+                  aria-label="Edit exchange"
+                  title="Edit"
+                  disabled={!actionsInteractive}
+                  onClick={() => setActionsOpen(false)}
+                >
+                  <Pencil aria-hidden="true" />
+                </ActionButton>
+                <ActionButton
+                  shape="icon"
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--delete"
+                  role="menuitem"
+                  aria-label="Delete exchange"
+                  title="Delete"
+                  disabled={!actionsInteractive}
+                  onClick={() => setActionsOpen(false)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </ActionButton>
+              </div>
+            ) : null}
+          </div>
           <ActionButton
             shape="icon"
             type="button"
@@ -242,6 +530,18 @@ export function CurrencyExchangeDetailSheet({
             <X aria-hidden="true" />
           </ActionButton>
         </div>
+
+        {shareNotice ? (
+          <p
+            className={`transaction-detail-sheet__share-notice transaction-detail-sheet__share-notice--${shareNotice.kind}`}
+            role={shareNotice.kind === "error" ? "alert" : "status"}
+            aria-live="polite"
+          >
+            {shareNotice.kind === "error"
+              ? formatErrorMessage(shareNotice.message)
+              : shareNotice.message}
+          </p>
+        ) : null}
 
         <div className="transaction-detail-sheet__scroll-area">
           <div className="transaction-detail-sheet__content">
