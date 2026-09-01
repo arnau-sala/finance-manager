@@ -160,6 +160,24 @@ function formatEntryCount(count: number) {
   return `${count} ${count === 1 ? "entry" : "entries"}`;
 }
 
+function formatHistoryEntryCount(
+  count: number,
+  filters: UsdWalletHistoryFilters
+) {
+  const activeFilter = historyFilterOptions.find(
+    ({ key }) => filters[key]
+  );
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  if (activeFilterCount !== 1 || !activeFilter) {
+    return formatEntryCount(count);
+  }
+
+  const label = activeFilter.label.toLowerCase();
+
+  return `${count} ${count === 1 ? label : `${label}s`}`;
+}
+
 function formatAverageRatePair(value: string | null) {
   const basePerUsd = Number(value);
 
@@ -821,7 +839,10 @@ export function UsdWalletPage({
                   </div>
                   <div className="usd-wallet-history-actions">
                     <span className="usd-wallet-history-count">
-                      {formatEntryCount(historyEntries.length)}
+                      {formatHistoryEntryCount(
+                        historyEntries.length,
+                        historyFilters
+                      )}
                     </span>
                     <div
                       className="stats-cash-flow__metrics usd-wallet-history-filters"
