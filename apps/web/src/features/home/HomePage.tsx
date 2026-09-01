@@ -42,6 +42,7 @@ import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 import { RecoveryCodeResetPage } from "./RecoveryCodeResetPage";
 import { UsernameLinkFlow } from "./UsernameLinkFlow";
+import { UsdWalletPage } from "./UsdWalletPage";
 
 export type GoogleAccountDeletionFeedback = "mismatch" | "failed" | "cancelled";
 export type GoogleAccountLinkFeedback =
@@ -82,6 +83,7 @@ type HomeSectionProps = {
   onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
+  onUsdWallet: () => void;
   onAddExchange: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
@@ -196,6 +198,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onFeedback,
     onLinkEmail,
     onLinkUsername,
+    onUsdWallet,
     onAddExchange,
     onRecoveryCodeReset,
     onLogout,
@@ -222,6 +225,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onFeedback={onFeedback}
       onLinkEmail={onLinkEmail}
       onLinkUsername={onLinkUsername}
+      onUsdWallet={onUsdWallet}
       onAddExchange={onAddExchange}
       onRecoveryCodeReset={onRecoveryCodeReset}
       onLogout={onLogout}
@@ -277,6 +281,7 @@ export function HomePage({
     useState(false);
   const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
   const [isUsernameLinkOpen, setIsUsernameLinkOpen] = useState(false);
+  const [isUsdWalletOpen, setIsUsdWalletOpen] = useState(false);
   const [isAddExchangeOpen, setIsAddExchangeOpen] = useState(false);
   const [recoveryCodeReset, setRecoveryCodeReset] =
     useState<RecoveryCodeResetResult | null>(null);
@@ -331,6 +336,7 @@ export function HomePage({
     isFeatureSuggestionOpen ||
     isEmailLinkOpen ||
     isUsernameLinkOpen ||
+    isUsdWalletOpen ||
     isAddExchangeOpen ||
     recoveryCodeReset !== null ||
     isTransactionComposerOpen ||
@@ -446,6 +452,7 @@ export function HomePage({
           isFeatureSuggestionOpen ||
           isEmailLinkOpen ||
           isUsernameLinkOpen ||
+          isUsdWalletOpen ||
           recoveryCodeReset
             ? " is-account-page-open"
             : ""
@@ -503,6 +510,14 @@ export function HomePage({
 
             prefetchScheduler.prioritizeUserRequest();
             setIsUsernameLinkOpen(true);
+          },
+          onUsdWallet: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
+            prefetchScheduler.prioritizeUserRequest();
+            setIsUsdWalletOpen(true);
           },
           onAddExchange: () => {
             if (lockSectionNavigation) {
@@ -601,6 +616,13 @@ export function HomePage({
         open={isAddExchangeOpen}
         onClose={() => setIsAddExchangeOpen(false)}
         onCreated={finishExchangeWrite}
+        onSessionExpired={onSessionExpired}
+      />
+
+      <UsdWalletPage
+        open={isUsdWalletOpen}
+        userId={user.id}
+        onBack={() => setIsUsdWalletOpen(false)}
         onSessionExpired={onSessionExpired}
       />
 

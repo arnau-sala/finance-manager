@@ -125,11 +125,66 @@ function toCurrencyExchangeResponse(exchange: {
   };
 }
 
+async function getUsdWalletSummary(userId: string) {
+  const [receivedExchanges, sentExchanges, incomeTransactions, expenseTransactions] =
+    await Promise.all([
+      db.currencyExchange.aggregate({
+        where: { userId, toCurrency: "USD" },
+        _sum: { fromAmountMinor: true, toAmountMinor: true },
+        _count: { _all: true },
+      }),
+      db.currencyExchange.aggregate({
+        where: { userId, fromCurrency: "USD" },
+        _sum: { fromAmountMinor: true, toAmountMinor: true },
+        _count: { _all: true },
+      }),
+      db.transaction.aggregate({
+        where: { userId, currency: "USD", type: "INCOME" },
+        _sum: { originalAmountMinor: true, amountCents: true },
+        _count: { _all: true },
+      }),
+      db.transaction.aggregate({
+        where: { userId, currency: "USD", type: "EXPENSE" },
+        _sum: { originalAmountMinor: true, amountCents: true },
+        _count: { _all: true },
+      }),
+    ]);
+  const receivedUsdMinor =
+    (receivedExchanges._sum.toAmountMinor ?? 0) +
+    (incomeTransactions._sum.originalAmountMinor ?? 0);
+  const receivedBaseMinor =
+    (receivedExchanges._sum.fromAmountMinor ?? 0) +
+    (incomeTransactions._sum.amountCents ?? 0);
+  const spentUsdMinor = expenseTransactions._sum.originalAmountMinor ?? 0;
+  const spentBaseMinor = expenseTransactions._sum.amountCents ?? 0;
+  const exchangedOutUsdMinor = sentExchanges._sum.fromAmountMinor ?? 0;
+  const exchangedOutBaseMinor = sentExchanges._sum.toAmountMinor ?? 0;
+
+  return {
+    received: {
+      usdAmount: centsToDecimal(receivedUsdMinor),
+      baseAmount: centsToDecimal(receivedBaseMinor),
+      count:
+        receivedExchanges._count._all + incomeTransactions._count._all,
+    },
+    spent: {
+      usdAmount: centsToDecimal(spentUsdMinor),
+      baseAmount: centsToDecimal(spentBaseMinor),
+      count: expenseTransactions._count._all,
+    },
+    exchangedOut: {
+      usdAmount: centsToDecimal(exchangedOutUsdMinor),
+      baseAmount: centsToDecimal(exchangedOutBaseMinor),
+      count: sentExchanges._count._all,
+    },
+  };
+}
+
 function toUsdWalletResponse(wallet: {
   balanceMinor: number;
   costBasisMinor: number;
   averageRateBasePerUsd: string | null;
-}) {
+}, summary: Awaited<ReturnType<typeof getUsdWalletSummary>>) {
   return {
     currency: "USD",
     balance: centsToDecimal(wallet.balanceMinor),
@@ -137,6 +192,7 @@ function toUsdWalletResponse(wallet: {
     costBasis: centsToDecimal(wallet.costBasisMinor),
     costBasisMinor: wallet.costBasisMinor,
     averageRateBasePerUsd: wallet.averageRateBasePerUsd,
+    summary,
   };
 }
 
@@ -166,8 +222,11 @@ export const currencyRoutes: FastifyPluginAsync = async (app) => {
       }
 
       try {
-        const wallet = await getUsdWalletSnapshot(userId);
-        return reply.send({ wallet: toUsdWalletResponse(wallet) });
+        const [wallet, summary] = await Promise.all([
+          getUsdWalletSnapshot(userId),
+          getUsdWalletSummary(userId),
+        ]);
+        return reply.send({ wallet: toUsdWalletResponse(wallet, summary) });
       } catch (error) {
         return sendCurrencyLedgerError(reply, error);
       }

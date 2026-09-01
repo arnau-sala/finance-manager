@@ -54,6 +54,7 @@ describe("financial query keys", () => {
     const request = {
       search: "lunch",
       type: "EXPENSE" as const,
+      currency: "ALL" as const,
       categoryIds: ["expense-dining"],
       exactAmountCents: null,
       minimumAmountCents: 1000,

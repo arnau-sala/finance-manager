@@ -71,6 +71,7 @@ type ProfilePageProps = {
   onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
+  onUsdWallet: () => void;
   onAddExchange: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
@@ -195,6 +196,7 @@ export function ProfilePage({
   onFeedback,
   onLinkEmail,
   onLinkUsername,
+  onUsdWallet,
   onAddExchange,
   onRecoveryCodeReset,
   onLogout,
@@ -1092,7 +1094,7 @@ export function ProfilePage({
               <ProfileActionButton
                 label="USD wallet"
                 icon={<WalletCards />}
-                onClick={() => undefined}
+                onClick={onUsdWallet}
               />
               <ProfileActionButton
                 label="Add exchange"

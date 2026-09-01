@@ -1,0 +1,737 @@
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  ArrowDownToLine,
+  ArrowDownRight,
+  ArrowLeftRight,
+  ArrowUpRight,
+  ArrowUpFromLine,
+  ChevronRight,
+  ChevronLeft,
+  DollarSign,
+  Plus,
+  ReceiptText
+} from "lucide-react";
+
+import { ActionButton } from "../../components/ui/ActionButton";
+import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
+import { parseLocalDateOnly } from "../../dates/date-only";
+import { formatEuroAmount, formatMoneyAmount } from "../../money/format-euro";
+import {
+  CurrencyApiError,
+  currencyExchangesQueryOptions,
+  usdWalletQueryOptions,
+  type CurrencyExchangeListItem
+} from "../currency/currency-api";
+import { getCategoryIcon } from "../transactions/category-catalog";
+import { CurrencyExchangeRow } from "../transactions/CurrencyExchangeRow";
+import { createEmptyMovesFilters } from "../transactions/moves-filters";
+import {
+  createTransactionListRequest,
+  TransactionApiError,
+  transactionsQueryOptions,
+  type TransactionListItem
+} from "../transactions/transaction-api";
+
+type UsdWalletPageProps = {
+  open: boolean;
+  userId: string;
+  onBack: () => void;
+  onSessionExpired: () => void;
+};
+
+type UsdWalletHistoryFilter = "expense" | "income" | "exchange";
+
+type UsdWalletHistoryFilters = Record<UsdWalletHistoryFilter, boolean>;
+
+type UsdWalletHistoryEntry =
+  | {
+      kind: "transaction";
+      id: string;
+      date: string;
+      createdAt: string;
+      transaction: TransactionListItem;
+    }
+  | {
+      kind: "exchange";
+      id: string;
+      date: string;
+      createdAt: string;
+      exchange: CurrencyExchangeListItem;
+    };
+
+const usdTransactionFilters = {
+  ...createEmptyMovesFilters(),
+  type: "ALL" as const
+};
+
+const initialHistoryFilters: UsdWalletHistoryFilters = {
+  expense: true,
+  income: true,
+  exchange: true
+};
+
+const historyFilterOptions = [
+  {
+    key: "expense",
+    label: "Expense",
+    icon: ArrowDownRight
+  },
+  {
+    key: "income",
+    label: "Income",
+    icon: ArrowUpRight
+  },
+  {
+    key: "exchange",
+    label: "Exchange",
+    icon: ArrowLeftRight
+  }
+] as const;
+
+function getMonthKey(value: string) {
+  return value.slice(0, 7);
+}
+
+function formatMonthLabel(value: string) {
+  const date = parseLocalDateOnly(value);
+
+  if (!date) {
+    return "Unknown date";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: date.getFullYear() === new Date().getFullYear() ? undefined : "numeric"
+  }).format(date);
+}
+
+function formatShortDate(value: string) {
+  const date = parseLocalDateOnly(value);
+
+  if (!date) {
+    return "Date unavailable";
+  }
+
+  const today = new Date();
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric"
+  }).format(date);
+}
+
+function decimalAmountToMinorUnits(amount: string) {
+  const trimmedAmount = amount.trim();
+  const sign = trimmedAmount.startsWith("-") ? -1 : 1;
+  const unsignedAmount = trimmedAmount.replace(/^-/, "");
+  const [wholePart = "0", decimalPart = ""] = unsignedAmount.split(".");
+  const wholeUnits = Number.parseInt(wholePart, 10);
+  const decimalUnits = Number.parseInt(
+    decimalPart.padEnd(2, "0").slice(0, 2),
+    10
+  );
+
+  if (!Number.isFinite(wholeUnits) || !Number.isFinite(decimalUnits)) {
+    return 0;
+  }
+
+  return sign * (wholeUnits * 100 + decimalUnits);
+}
+
+function minorUnitsToDecimalAmount(amount: number) {
+  const sign = amount < 0 ? "-" : "";
+  const absoluteAmount = Math.abs(amount);
+  const wholeUnits = Math.floor(absoluteAmount / 100);
+  const decimalUnits = String(absoluteAmount % 100).padStart(2, "0");
+
+  return `${sign}${wholeUnits}.${decimalUnits}`;
+}
+
+function getExchangeTotals(exchanges: CurrencyExchangeListItem[]) {
+  return exchanges.reduce(
+    (totals, exchange) => {
+      if (exchange.toCurrency === "USD") {
+        totals.toUsdAmountMinor += decimalAmountToMinorUnits(exchange.toAmount);
+        totals.toUsdBaseAmountMinor += decimalAmountToMinorUnits(
+          exchange.fromAmount
+        );
+        totals.toUsdCount += 1;
+      }
+
+      if (exchange.toCurrency === "EUR") {
+        totals.toEurAmountMinor += decimalAmountToMinorUnits(exchange.toAmount);
+        totals.toEurUsdAmountMinor += decimalAmountToMinorUnits(
+          exchange.fromAmount
+        );
+        totals.toEurCount += 1;
+      }
+
+      return totals;
+    },
+    {
+      toUsdAmountMinor: 0,
+      toUsdBaseAmountMinor: 0,
+      toUsdCount: 0,
+      toEurAmountMinor: 0,
+      toEurUsdAmountMinor: 0,
+      toEurCount: 0
+    }
+  );
+}
+
+function formatEntryCount(count: number) {
+  return `${count} ${count === 1 ? "entry" : "entries"}`;
+}
+
+function formatExchangeRate(value: string | null) {
+  const rate = Number(value);
+
+  if (!Number.isFinite(rate) || rate <= 0) {
+    return "Rate unavailable";
+  }
+
+  return rate
+    .toFixed(6)
+    .replace(/(?:\.0+|(\.\d*?)0+)$/, "$1")
+    .replace(".", ",");
+}
+
+function formatAverageRate(value: string | null) {
+  const rate = formatExchangeRate(value);
+
+  return rate === "Rate unavailable" ? rate : `1$ = ${rate}${"\u20ac"}`;
+}
+
+function getUsdOriginalAmount(transaction: TransactionListItem) {
+  return transaction.currency === "USD"
+    ? transaction.originalAmount ?? transaction.amount
+    : transaction.amount;
+}
+
+function formatSignedUsdTransactionAmount(transaction: TransactionListItem) {
+  const amount = getUsdOriginalAmount(transaction);
+  const value = Number(amount);
+
+  if (!Number.isFinite(value)) {
+    return "Amount unavailable";
+  }
+
+  return formatMoneyAmount(
+    transaction.type === "INCOME" ? Math.abs(value) : -Math.abs(value),
+    {
+      currency: "USD",
+      showSign: true
+    }
+  );
+}
+
+function compareHistoryEntries(
+  left: UsdWalletHistoryEntry,
+  right: UsdWalletHistoryEntry
+) {
+  const dateComparison = right.date.localeCompare(left.date);
+
+  if (dateComparison !== 0) {
+    return dateComparison;
+  }
+
+  const createdAtComparison = right.createdAt.localeCompare(left.createdAt);
+
+  if (createdAtComparison !== 0) {
+    return createdAtComparison;
+  }
+
+  if (left.kind !== right.kind) {
+    return left.kind === "exchange" ? -1 : 1;
+  }
+
+  return left.id.localeCompare(right.id);
+}
+
+function UsdWalletSkeleton() {
+  return (
+    <div
+      className="usd-wallet-content"
+      aria-label="Loading USD wallet"
+      aria-busy="true"
+    >
+      <section className="stats-money usd-wallet-money">
+        <header className="stats-overview-section__header">
+          <SkeletonBlock width={94} height={18} />
+          <SkeletonBlock width={72} height={13} />
+        </header>
+
+        <div className="stats-money__content stats-money__content--skeleton">
+          <div className="stats-money__balance">
+            <SkeletonBlock width={94} height={13} />
+            <SkeletonBlock width={146} height={34} radius={8} />
+            <SkeletonBlock width={128} height={13} />
+          </div>
+
+          <div className="stats-money__breakdown">
+            <div>
+              <SkeletonBlock width={78} height={13} />
+              <SkeletonBlock width={66} height={20} />
+            </div>
+            <div>
+              <SkeletonBlock width={68} height={13} />
+              <SkeletonBlock width={58} height={20} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="usd-wallet-history-section">
+        <header className="stats-chart-section__header usd-wallet-history-header">
+          <div className="usd-wallet-history-heading">
+            <SkeletonBlock width={92} height={18} />
+            <SkeletonBlock width={48} height={12} />
+          </div>
+          <div className="stats-cash-flow__metrics usd-wallet-history-filters">
+            {Array.from({ length: 3 }, (_, index) => (
+              <SkeletonBlock width={30} height={30} radius={8} key={index} />
+            ))}
+          </div>
+        </header>
+        <ul className="moves-transaction-list usd-wallet-history-list">
+          {Array.from({ length: 3 }, (_, index) => (
+            <li className="transaction-row transaction-row--skeleton" key={index}>
+              <div className="transaction-row__content">
+                <SkeletonBlock width={36} height={36} radius="50%" />
+                <span className="transaction-row-skeleton__details">
+                  <SkeletonBlock width={118} height={14} />
+                  <SkeletonBlock width={86} height={12} />
+                </span>
+                <SkeletonBlock width={68} height={16} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function UsdWalletError() {
+  return (
+    <div className="usd-wallet-empty-state usd-wallet-empty-state--error">
+      <DollarSign aria-hidden="true" strokeWidth={1.7} />
+      <strong>Unable to load USD wallet</strong>
+      <span>Check your connection and try again</span>
+    </div>
+  );
+}
+
+function EmptyHistory({
+  title,
+  description,
+  showActions = false
+}: {
+  title: string;
+  description: string;
+  showActions?: boolean;
+}) {
+  return (
+    <div className="first-transaction-empty usd-wallet-history-empty">
+      <ReceiptText aria-hidden="true" strokeWidth={1.7} />
+      <h2>{title}</h2>
+      <p>{description}</p>
+      {showActions ? (
+        <div className="usd-wallet-history-empty__actions">
+          <ActionButton
+            className="home-new-transaction usd-wallet-history-empty__action"
+            type="button"
+            onClick={() => undefined}
+          >
+            <span className="home-new-transaction__icon" aria-hidden="true">
+              <Plus />
+            </span>
+            <span>New transaction</span>
+            <ChevronRight aria-hidden="true" />
+          </ActionButton>
+          <ActionButton
+            className="home-new-transaction usd-wallet-history-empty__action usd-wallet-history-empty__action--secondary"
+            type="button"
+            onClick={() => undefined}
+          >
+            <span className="home-new-transaction__icon" aria-hidden="true">
+              <ArrowLeftRight />
+            </span>
+            <span>New exchange</span>
+            <ChevronRight aria-hidden="true" />
+          </ActionButton>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function UsdTransactionHistoryRow({
+  transaction
+}: {
+  transaction: TransactionListItem;
+}) {
+  const Icon = getCategoryIcon(transaction.categoryId, transaction.type);
+
+  return (
+    <li className="transaction-row usd-wallet-history-row">
+      <div className="transaction-row__content">
+        <span className="transaction-row__icon" aria-hidden="true">
+          <Icon />
+        </span>
+        <span className="transaction-row__details">
+          <strong>{transaction.description}</strong>
+          <span>
+            {transaction.category.name} &middot;{" "}
+            {formatShortDate(transaction.date)}
+          </span>
+        </span>
+        <strong
+          className={`transaction-row__amount transaction-row__amount--${transaction.type.toLowerCase()}`}
+        >
+          {formatSignedUsdTransactionAmount(transaction)}
+        </strong>
+      </div>
+    </li>
+  );
+}
+
+export function UsdWalletPage({
+  open,
+  userId,
+  onBack,
+  onSessionExpired
+}: UsdWalletPageProps) {
+  const screenRef = useRef<HTMLElement>(null);
+  const [historyFilters, setHistoryFilters] =
+    useState<UsdWalletHistoryFilters>(initialHistoryFilters);
+  const transactionRequest = useMemo(
+    () =>
+      createTransactionListRequest("", usdTransactionFilters, {
+        currency: "USD"
+      }),
+    []
+  );
+  const walletQuery = useQuery({
+    ...usdWalletQueryOptions(userId),
+    enabled: open
+  });
+  const exchangesQuery = useQuery({
+    ...currencyExchangesQueryOptions(userId),
+    enabled: open
+  });
+  const transactionsQuery = useInfiniteQuery({
+    ...transactionsQueryOptions(userId, transactionRequest),
+    enabled: open
+  });
+  const transactions = useMemo(
+    () =>
+      transactionsQuery.data?.pages.flatMap((page) => page.transactions) ?? [],
+    [transactionsQuery.data]
+  );
+  const wallet = walletQuery.data ?? null;
+  const exchanges = exchangesQuery.data?.exchanges ?? [];
+  const exchangeTotals = useMemo(() => getExchangeTotals(exchanges), [exchanges]);
+  const activeHistoryFilterCount = Object.values(historyFilters).filter(
+    Boolean
+  ).length;
+  const historyEntries = useMemo<UsdWalletHistoryEntry[]>(() => {
+    const entries: UsdWalletHistoryEntry[] = [];
+
+    if (historyFilters.exchange) {
+      entries.push(
+        ...exchanges.map((exchange) => ({
+          kind: "exchange" as const,
+          id: exchange.id,
+          date: exchange.date,
+          createdAt: exchange.createdAt,
+          exchange
+        }))
+      );
+    }
+
+    entries.push(
+      ...transactions
+        .filter((transaction) =>
+          transaction.type === "INCOME"
+            ? historyFilters.income
+            : historyFilters.expense
+        )
+        .map((transaction) => ({
+          kind: "transaction" as const,
+          id: transaction.id,
+          date: transaction.date,
+          createdAt: transaction.createdAt,
+          transaction
+        }))
+    );
+
+    return entries.sort(compareHistoryEntries);
+  }, [exchanges, historyFilters, transactions]);
+  const hasLoadedHistory = exchanges.length > 0 || transactions.length > 0;
+  const canLoadMoreTransactions =
+    transactionsQuery.hasNextPage &&
+    (historyFilters.expense || historyFilters.income);
+  const hasError =
+    walletQuery.isError || exchangesQuery.isError || transactionsQuery.isError;
+  const isLoading =
+    !hasError &&
+    (walletQuery.isPending ||
+      exchangesQuery.isPending ||
+      transactionsQuery.isPending);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    screenRef.current?.scrollTo({ top: 0, left: 0 });
+  }, [open]);
+
+  useEffect(() => {
+    const errors = [
+      walletQuery.error,
+      exchangesQuery.error,
+      transactionsQuery.error
+    ];
+    const hasExpiredSession = errors.some(
+      (error) =>
+        (error instanceof CurrencyApiError ||
+          error instanceof TransactionApiError) &&
+        error.status === 401
+    );
+
+    if (hasExpiredSession) {
+      onSessionExpired();
+    }
+  }, [
+    exchangesQuery.error,
+    onSessionExpired,
+    transactionsQuery.error,
+    walletQuery.error
+  ]);
+
+  function toggleHistoryFilter(filter: UsdWalletHistoryFilter) {
+    setHistoryFilters((currentFilters) => {
+      const isOnlyActiveFilter =
+        currentFilters[filter] &&
+        Object.values(currentFilters).filter(Boolean).length === 1;
+
+      if (isOnlyActiveFilter) {
+        return currentFilters;
+      }
+
+      return {
+        ...currentFilters,
+        [filter]: !currentFilters[filter]
+      };
+    });
+  }
+
+  return (
+    <div
+      className={`account-flow-layer usd-wallet-layer${
+        open ? " is-open" : ""
+      }`}
+      aria-hidden={!open}
+      inert={!open}
+    >
+      <section
+        ref={screenRef}
+        className="auth-screen auth-screen--login auth-screen--register usd-wallet-screen"
+      >
+        <ActionButton
+          shape="icon"
+          className="auth-back-button"
+          type="button"
+          onClick={onBack}
+          aria-label="Go back"
+        >
+          <ChevronLeft aria-hidden="true" strokeWidth={1.8} />
+        </ActionButton>
+
+        <header className="usd-wallet-page-header">
+          <span aria-hidden="true" />
+          <h1 id="usd-wallet-title">USD wallet</h1>
+          <span aria-hidden="true" />
+        </header>
+
+        <section
+          className="auth-panel usd-wallet-panel"
+          aria-labelledby="usd-wallet-title"
+        >
+          {isLoading ? <UsdWalletSkeleton /> : null}
+          {hasError ? <UsdWalletError /> : null}
+
+          {!isLoading && !hasError && wallet ? (
+            <div className="usd-wallet-content">
+              <section
+                className="stats-money usd-wallet-money"
+                aria-labelledby="usd-wallet-balance-title"
+              >
+                <header className="stats-overview-section__header">
+                  <h2 id="usd-wallet-balance-title">USD balance</h2>
+                  <span>{formatAverageRate(wallet.averageRateBasePerUsd)}</span>
+                </header>
+
+                <div className="stats-money__content usd-wallet-money__content">
+                  <div className="stats-money__balance">
+                    <span>
+                      <DollarSign aria-hidden="true" />
+                      Available
+                    </span>
+                    <strong className="stats-value--positive">
+                      {formatMoneyAmount(wallet.balance, { currency: "USD" })}
+                    </strong>
+                    <p className="stats-money__saved-rate">
+                      EUR basis:{" "}
+                      <strong>{formatEuroAmount(wallet.costBasis)}</strong>
+                    </p>
+                  </div>
+
+                  <div className="stats-money__breakdown">
+                    <div>
+                      <span>
+                        <ArrowDownToLine aria-hidden="true" />
+                        € to $
+                      </span>
+                      <strong className="usd-wallet-value--neutral">
+                        {formatMoneyAmount(
+                          minorUnitsToDecimalAmount(
+                            exchangeTotals.toUsdAmountMinor
+                          ),
+                          { currency: "USD" }
+                        )}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>
+                        <ArrowUpFromLine aria-hidden="true" />
+                        $ to €
+                      </span>
+                      <strong className="usd-wallet-value--neutral">
+                        {formatMoneyAmount(
+                          minorUnitsToDecimalAmount(
+                            exchangeTotals.toEurAmountMinor
+                          ),
+                          { currency: "EUR" }
+                        )}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section
+                className="usd-wallet-history-section"
+                aria-labelledby="usd-wallet-history-title"
+              >
+                <header className="stats-chart-section__header usd-wallet-history-header">
+                  <div className="usd-wallet-history-heading">
+                    <h2 id="usd-wallet-history-title">USD history</h2>
+                  </div>
+                  <div className="usd-wallet-history-actions">
+                    <span className="usd-wallet-history-count">
+                      {formatEntryCount(historyEntries.length)}
+                    </span>
+                    <div
+                      className="stats-cash-flow__metrics usd-wallet-history-filters"
+                      role="group"
+                      aria-label="Visible USD history entries"
+                    >
+                      {historyFilterOptions.map(({ key, label, icon: Icon }) => {
+                        const isVisible = historyFilters[key];
+                        const isOnlyVisible =
+                          isVisible && activeHistoryFilterCount === 1;
+
+                        return (
+                          <button
+                            className={`stats-cash-flow__metric usd-wallet-history-filter usd-wallet-history-filter--${key}`}
+                            key={key}
+                            type="button"
+                            aria-label={`${
+                              isVisible ? "Hide" : "Show"
+                            } ${label.toLowerCase()} entries`}
+                            aria-pressed={isVisible}
+                            disabled={isOnlyVisible}
+                            title={
+                              isOnlyVisible
+                                ? `${label} must remain visible`
+                                : `${isVisible ? "Hide" : "Show"} ${label.toLowerCase()} entries`
+                            }
+                            onClick={() => toggleHistoryFilter(key)}
+                          >
+                            <Icon aria-hidden="true" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </header>
+
+                {historyEntries.length > 0 ? (
+                  <>
+                    <ul className="moves-transaction-list usd-wallet-history-list">
+                      {historyEntries.map((entry, index) => {
+                        const previousEntry = historyEntries[index - 1];
+                        const startsNewMonth =
+                          !previousEntry ||
+                          getMonthKey(previousEntry.date) !==
+                            getMonthKey(entry.date);
+
+                        return (
+                          <Fragment key={`${entry.kind}:${entry.id}`}>
+                            {startsNewMonth ? (
+                              <li className="moves-month-divider">
+                                <time dateTime={getMonthKey(entry.date)}>
+                                  {formatMonthLabel(entry.date)}
+                                </time>
+                              </li>
+                            ) : null}
+                            {entry.kind === "exchange" ? (
+                              <CurrencyExchangeRow exchange={entry.exchange} />
+                            ) : (
+                              <UsdTransactionHistoryRow
+                                transaction={entry.transaction}
+                              />
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </ul>
+                    {canLoadMoreTransactions ? (
+                      <ActionButton
+                        className="usd-wallet-load-more"
+                        type="button"
+                        disabled={transactionsQuery.isFetchingNextPage}
+                        onClick={() => void transactionsQuery.fetchNextPage()}
+                      >
+                        {transactionsQuery.isFetchingNextPage
+                          ? "Loading movements"
+                          : "Load more movements"}
+                      </ActionButton>
+                    ) : null}
+                  </>
+                ) : hasLoadedHistory ? (
+                  <EmptyHistory
+                    title="No matching movements"
+                    description="Turn on another type to see more USD history"
+                    showActions
+                  />
+                ) : (
+                  <EmptyHistory
+                    title="No USD history yet"
+                    description="Dollar movements will appear here when you add them"
+                    showActions
+                  />
+                )}
+              </section>
+            </div>
+          ) : null}
+        </section>
+      </section>
+    </div>
+  );
+}

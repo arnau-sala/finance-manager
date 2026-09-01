@@ -67,6 +67,10 @@ const optionalTypeQuerySchema = z.preprocess(
   (value) => (value === "" || value === undefined ? undefined : value),
   z.enum(["INCOME", "EXPENSE"]).optional(),
 );
+const optionalCurrencyQuerySchema = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : value),
+  z.enum(["EUR", "USD"]).optional(),
+);
 const optionalCategoryIdsQuerySchema = z.preprocess(
   (value) => {
     if (value === "" || value === undefined) {
@@ -100,6 +104,7 @@ const transactionListQuerySchema = getPaginationQuerySchema({
   .extend({
     search: optionalSearchQuerySchema,
     type: optionalTypeQuerySchema,
+    currency: optionalCurrencyQuerySchema,
     categories: optionalCategoryIdsQuerySchema,
     exactAmountCents: optionalAmountCentsQuerySchema,
     minimumAmountCents: optionalAmountCentsQuerySchema,
@@ -308,6 +313,10 @@ function getTransactionListWhere(
 
   if (query.type !== undefined) {
     conditions.push(Prisma.sql`t."type" = ${query.type}::"TransactionType"`);
+  }
+
+  if (query.currency !== undefined) {
+    conditions.push(Prisma.sql`t."currency" = ${query.currency}::"CurrencyCode"`);
   }
 
   if (query.categories !== undefined) {

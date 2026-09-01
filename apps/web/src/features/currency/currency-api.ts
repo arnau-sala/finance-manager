@@ -41,6 +41,26 @@ export type CurrencyExchangesPage = {
   };
 };
 
+export type UsdWalletSummaryItem = {
+  usdAmount: string;
+  baseAmount: string;
+  count: number;
+};
+
+export type UsdWallet = {
+  currency: "USD";
+  balance: string;
+  balanceMinor: number;
+  costBasis: string;
+  costBasisMinor: number;
+  averageRateBasePerUsd: string | null;
+  summary: {
+    received: UsdWalletSummaryItem;
+    spent: UsdWalletSummaryItem;
+    exchangedOut: UsdWalletSummaryItem;
+  };
+};
+
 export type CreateCurrencyExchangeInput = {
   fromCurrency: CurrencyCode;
   toCurrency: CurrencyCode;
@@ -130,6 +150,51 @@ async function getCurrencyExchangesPage(
   }
 
   return page;
+}
+
+async function getUsdWallet(_ownerId: string, signal?: AbortSignal) {
+  let response: Response;
+
+  try {
+    response = await fetch("/api/currency/wallets/usd", {
+      method: "GET",
+      credentials: "include",
+      signal
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
+    }
+
+    throw new CurrencyApiError(
+      "Unable to connect\nCheck your connection and try again",
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw await createCurrencyApiError(
+      response,
+      "Unable to load the USD wallet\nPlease try again"
+    );
+  }
+
+  const body = (await response.json()) as { wallet?: UsdWallet };
+
+  if (body.wallet?.currency !== "USD" || !body.wallet.summary) {
+    throw new CurrencyApiError("Invalid USD wallet response", 500);
+  }
+
+  return body.wallet;
+}
+
+export function usdWalletQueryOptions(ownerId: string) {
+  return queryOptions({
+    queryKey: financialQueryKeys.usdWallet(ownerId),
+    queryFn: ({ signal }) => getUsdWallet(ownerId, signal),
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
 }
 
 export function currencyExchangesQueryOptions(ownerId: string) {
