@@ -9,6 +9,7 @@ import type {
 
 type CurrencyExchangeRowProps = {
   exchange: CurrencyExchangeListItem;
+  onSelect?: () => void;
 };
 
 function formatExchangeDate(value: string) {
@@ -42,32 +43,51 @@ function formatCurrencyAmount(
   return formatMoneyAmount(amount, { currency });
 }
 
-export function CurrencyExchangeRow({ exchange }: CurrencyExchangeRowProps) {
+export function CurrencyExchangeRow({
+  exchange,
+  onSelect
+}: CurrencyExchangeRowProps) {
   const Icon = exchange.toCurrency === "USD" ? ArrowRight : ArrowLeft;
+  const content = (
+    <>
+      <span
+        className="transaction-row__icon currency-exchange-row__icon"
+        aria-hidden="true"
+      >
+        <Icon />
+      </span>
+      <span className="transaction-row__details currency-exchange-row__details">
+        <strong>Currency exchange</strong>
+        <span>
+          {formatCurrencyAmount(
+            exchange.fromAmount,
+            exchange.fromCurrency
+          )}{" "}
+          &middot; {formatExchangeDate(exchange.date)}
+        </span>
+      </span>
+      <span className="transaction-row__amount currency-exchange-row__amount">
+        {formatCurrencyAmount(exchange.toAmount, exchange.toCurrency)}
+      </span>
+    </>
+  );
 
   return (
     <li className="transaction-row currency-exchange-row">
-      <div className="transaction-row__content currency-exchange-row__content">
-        <span
-          className="transaction-row__icon currency-exchange-row__icon"
-          aria-hidden="true"
+      {onSelect ? (
+        <button
+          className="transaction-row__content currency-exchange-row__content"
+          type="button"
+          aria-label={`View currency exchange from ${exchange.fromCurrency} to ${exchange.toCurrency}`}
+          onClick={onSelect}
         >
-          <Icon />
-        </span>
-        <span className="transaction-row__details currency-exchange-row__details">
-          <strong>Currency exchange</strong>
-          <span>
-            {formatCurrencyAmount(
-              exchange.fromAmount,
-              exchange.fromCurrency
-            )}{" "}
-            &middot; {formatExchangeDate(exchange.date)}
-          </span>
-        </span>
-        <span className="transaction-row__amount currency-exchange-row__amount">
-          {formatCurrencyAmount(exchange.toAmount, exchange.toCurrency)}
-        </span>
-      </div>
+          {content}
+        </button>
+      ) : (
+        <div className="transaction-row__content currency-exchange-row__content">
+          {content}
+        </div>
+      )}
     </li>
   );
 }

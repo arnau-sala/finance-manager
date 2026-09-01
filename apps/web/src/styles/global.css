@@ -5050,9 +5050,9 @@ button.transaction-row__content:focus-visible {
 }
 
 .currency-exchange-row__icon {
-  color: var(--color-primary);
+  color: var(--color-text-muted);
   background: var(--color-surface-muted);
-  border-color: var(--color-primary-border);
+  border-color: var(--color-border);
 }
 
 .currency-exchange-row__details strong {
@@ -5064,7 +5064,7 @@ button.transaction-row__content:focus-visible {
 }
 
 .currency-exchange-row__amount.transaction-row__amount {
-  color: var(--color-primary);
+  color: var(--color-text);
   text-align: right;
 }
 
@@ -8068,6 +8068,11 @@ html.desktop-app-route .stats-view-stage {
   --transaction-detail-type-color: var(--color-success);
 }
 
+.transaction-detail-sheet--exchange {
+  --transaction-detail-type-color: var(--color-primary);
+  border-color: var(--color-border);
+}
+
 .transaction-detail-backdrop.is-open .transaction-detail-sheet {
   transform: translate3d(
     0,
@@ -8456,6 +8461,21 @@ html.desktop-app-route .stats-view-stage {
   font-weight: 400;
 }
 
+.currency-exchange-detail-hero__icon {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.currency-exchange-detail-hero__from {
+  margin: -1px 0 7px;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
 .transaction-detail-section {
   margin-top: 23px;
   padding-top: 15px;
@@ -8525,6 +8545,41 @@ html.desktop-app-route .stats-view-stage {
   justify-self: center;
   color: var(--color-primary);
   stroke-width: 1.7;
+}
+
+.currency-exchange-rates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.currency-exchange-rates > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.currency-exchange-rates > span:last-child {
+  text-align: right;
+}
+
+.currency-exchange-rates small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.currency-exchange-rates strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transaction-detail-section__heading {

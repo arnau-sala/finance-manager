@@ -31,6 +31,7 @@ import {
   CurrencyApiError,
   type CurrencyExchangeListItem
 } from "../currency/currency-api";
+import { CurrencyExchangeDetailSheet } from "./CurrencyExchangeDetailSheet";
 import { CurrencyExchangeRow } from "./CurrencyExchangeRow";
 import { MovesActiveFilterTags } from "./MovesActiveFilterTags";
 import { TransactionRow } from "./TransactionRow";
@@ -314,6 +315,8 @@ export function MovesPage({
   );
   const [initialFilterEditor, setInitialFilterEditor] =
     useState<MovesFilterEditor | null>(null);
+  const [selectedExchange, setSelectedExchange] =
+    useState<CurrencyExchangeListItem | null>(null);
   const [appliedFilters, setAppliedFilters] = useState<MovesFilters>(
     () => ({
       ...initialState.filters,
@@ -769,12 +772,13 @@ export function MovesPage({
   }
 
   return (
-    <section
-      ref={scrollContainer}
-      className="home-content home-content--moves"
-      aria-labelledby="moves-page-title"
-      onScroll={syncPersistedScrollTop}
-    >
+    <>
+      <section
+        ref={scrollContainer}
+        className="home-content home-content--moves"
+        aria-labelledby="moves-page-title"
+        onScroll={syncPersistedScrollTop}
+      >
       <div className="moves-page">
         <header className="moves-page__header">
           <h1 id="moves-page-title">Transactions</h1>
@@ -937,7 +941,10 @@ export function MovesPage({
                         onSelect={() => selectTransaction(entry.transaction)}
                       />
                     ) : (
-                      <CurrencyExchangeRow exchange={entry.exchange} />
+                      <CurrencyExchangeRow
+                        exchange={entry.exchange}
+                        onSelect={() => setSelectedExchange(entry.exchange)}
+                      />
                     )}
                   </Fragment>
                 );
@@ -979,6 +986,13 @@ export function MovesPage({
           />
         ) : null}
       </div>
-    </section>
+      </section>
+
+      <CurrencyExchangeDetailSheet
+        exchange={selectedExchange}
+        exchanges={currencyExchangesQuery.data?.exchanges ?? []}
+        onClose={() => setSelectedExchange(null)}
+      />
+    </>
   );
 }

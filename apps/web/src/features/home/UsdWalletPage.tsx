@@ -28,6 +28,7 @@ import {
 } from "../currency/currency-api";
 import { HomeApiError, homeOverviewQueryOptions } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
+import { CurrencyExchangeDetailSheet } from "../transactions/CurrencyExchangeDetailSheet";
 import { CurrencyExchangeRow } from "../transactions/CurrencyExchangeRow";
 import { createEmptyMovesFilters } from "../transactions/moves-filters";
 import {
@@ -492,6 +493,8 @@ export function UsdWalletPage({
   const screenRef = useRef<HTMLElement>(null);
   const [historyFilters, setHistoryFilters] =
     useState<UsdWalletHistoryFilters>(initialHistoryFilters);
+  const [selectedExchange, setSelectedExchange] =
+    useState<CurrencyExchangeListItem | null>(null);
   const transactionRequest = useMemo(
     () =>
       createTransactionListRequest("", usdTransactionFilters, {
@@ -628,6 +631,7 @@ export function UsdWalletPage({
 
   useEffect(() => {
     if (!open) {
+      setSelectedExchange(null);
       return;
     }
 
@@ -899,7 +903,12 @@ export function UsdWalletPage({
                               </li>
                             ) : null}
                             {entry.kind === "exchange" ? (
-                              <CurrencyExchangeRow exchange={entry.exchange} />
+                              <CurrencyExchangeRow
+                                exchange={entry.exchange}
+                                onSelect={() =>
+                                  setSelectedExchange(entry.exchange)
+                                }
+                              />
                             ) : (
                               <UsdTransactionHistoryRow
                                 transaction={entry.transaction}
@@ -942,6 +951,11 @@ export function UsdWalletPage({
           ) : null}
         </section>
       </section>
+      <CurrencyExchangeDetailSheet
+        exchange={selectedExchange}
+        exchanges={exchanges}
+        onClose={() => setSelectedExchange(null)}
+      />
     </div>
   );
 }
