@@ -9,9 +9,12 @@ import {
   ChevronRight,
   ChevronLeft,
   DollarSign,
+  Percent,
   Plus,
-  ReceiptText
+  ReceiptText,
+  Wallet
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
@@ -23,6 +26,7 @@ import {
   usdWalletQueryOptions,
   type CurrencyExchangeListItem
 } from "../currency/currency-api";
+import { HomeApiError, homeOverviewQueryOptions } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
 import { CurrencyExchangeRow } from "../transactions/CurrencyExchangeRow";
 import { createEmptyMovesFilters } from "../transactions/moves-filters";
@@ -43,6 +47,8 @@ type UsdWalletPageProps = {
 type UsdWalletHistoryFilter = "expense" | "income" | "exchange";
 
 type UsdWalletHistoryFilters = Record<UsdWalletHistoryFilter, boolean>;
+
+type UsdWalletInsightTone = "positive" | "negative" | "neutral" | "default";
 
 type UsdWalletHistoryEntry =
   | {
@@ -149,59 +155,83 @@ function minorUnitsToDecimalAmount(amount: number) {
   return `${sign}${wholeUnits}.${decimalUnits}`;
 }
 
-function getExchangeTotals(exchanges: CurrencyExchangeListItem[]) {
-  return exchanges.reduce(
-    (totals, exchange) => {
-      if (exchange.toCurrency === "USD") {
-        totals.toUsdAmountMinor += decimalAmountToMinorUnits(exchange.toAmount);
-        totals.toUsdBaseAmountMinor += decimalAmountToMinorUnits(
-          exchange.fromAmount
-        );
-        totals.toUsdCount += 1;
-      }
-
-      if (exchange.toCurrency === "EUR") {
-        totals.toEurAmountMinor += decimalAmountToMinorUnits(exchange.toAmount);
-        totals.toEurUsdAmountMinor += decimalAmountToMinorUnits(
-          exchange.fromAmount
-        );
-        totals.toEurCount += 1;
-      }
-
-      return totals;
-    },
-    {
-      toUsdAmountMinor: 0,
-      toUsdBaseAmountMinor: 0,
-      toUsdCount: 0,
-      toEurAmountMinor: 0,
-      toEurUsdAmountMinor: 0,
-      toEurCount: 0
-    }
-  );
-}
-
 function formatEntryCount(count: number) {
   return `${count} ${count === 1 ? "entry" : "entries"}`;
 }
 
-function formatExchangeRate(value: string | null) {
-  const rate = Number(value);
+function formatAverageRatePair(value: string | null) {
+  const basePerUsd = Number(value);
 
-  if (!Number.isFinite(rate) || rate <= 0) {
+  if (!Number.isFinite(basePerUsd) || basePerUsd <= 0) {
     return "Rate unavailable";
   }
 
-  return rate
+  return {
+    usdToEur: `1$ = ${formatRatio(basePerUsd)}${"\u20ac"}`,
+    eurToUsd: `1${"\u20ac"} = ${formatRatio(1 / basePerUsd)}$`
+  };
+}
+
+function formatRatio(value: number) {
+  return value
     .toFixed(6)
     .replace(/(?:\.0+|(\.\d*?)0+)$/, "$1")
     .replace(".", ",");
 }
 
-function formatAverageRate(value: string | null) {
-  const rate = formatExchangeRate(value);
+function formatPercentageValue(value: number | null) {
+  if (value === null || !Number.isFinite(value)) {
+    return "No data";
+  }
 
-  return rate === "Rate unavailable" ? rate : `1$ = ${rate}${"\u20ac"}`;
+  const roundedValue =
+    value >= 10 ? Math.round(value) : Math.round(value * 10) / 10;
+
+  return `${roundedValue.toString().replace(".", ",")}%`;
+}
+
+function getNetWorthShareValue(
+  costBasisMinor: number,
+  currentNetWorth: string | null
+) {
+  if (!currentNetWorth) {
+    return null;
+  }
+
+  const netWorthMinor = decimalAmountToMinorUnits(currentNetWorth);
+
+  if (netWorthMinor <= 0) {
+    return null;
+  }
+
+  return (costBasisMinor / netWorthMinor) * 100;
+}
+
+function getRemainingFromExchangedUsd({
+  exchangedInUsdMinor,
+  exchangedOutUsdMinor,
+  spentUsdMinor
+}: {
+  exchangedInUsdMinor: number;
+  exchangedOutUsdMinor: number;
+  spentUsdMinor: number;
+}) {
+  if (exchangedInUsdMinor <= 0) {
+    return {
+      amountMinor: null,
+      percentage: null
+    };
+  }
+
+  const remainingUsdMinor = Math.max(
+    0,
+    exchangedInUsdMinor - exchangedOutUsdMinor - spentUsdMinor
+  );
+
+  return {
+    amountMinor: remainingUsdMinor,
+    percentage: (remainingUsdMinor / exchangedInUsdMinor) * 100
+  };
 }
 
 function getUsdOriginalAmount(transaction: TransactionListItem) {
@@ -398,6 +428,39 @@ function UsdTransactionHistoryRow({
   );
 }
 
+function UsdWalletInsightRow({
+  icon: Icon,
+  label,
+  detail,
+  value,
+  tone = "default"
+}: {
+  icon: LucideIcon;
+  label: string;
+  detail: string;
+  value: string;
+  tone?: UsdWalletInsightTone;
+}) {
+  return (
+    <li
+      className={`stats-insight-row usd-wallet-insight-row${
+        tone === "positive" ? " stats-insight-row--positive" : ""
+      }${tone === "negative" ? " stats-insight-row--negative" : ""}${
+        tone === "neutral" ? " usd-wallet-insight-row--neutral" : ""
+      }`}
+    >
+      <span className="stats-insight-row__icon" aria-hidden="true">
+        <Icon />
+      </span>
+      <span className="stats-insight-row__details">
+        <strong>{label}</strong>
+      </span>
+      <span className="stats-insight-row__detail">{detail}</span>
+      <strong className="stats-insight-row__value">{value}</strong>
+    </li>
+  );
+}
+
 export function UsdWalletPage({
   open,
   userId,
@@ -422,6 +485,10 @@ export function UsdWalletPage({
     ...currencyExchangesQueryOptions(userId),
     enabled: open
   });
+  const overviewQuery = useQuery({
+    ...homeOverviewQueryOptions(userId),
+    enabled: open
+  });
   const transactionsQuery = useInfiniteQuery({
     ...transactionsQueryOptions(userId, transactionRequest),
     enabled: open
@@ -433,7 +500,62 @@ export function UsdWalletPage({
   );
   const wallet = walletQuery.data ?? null;
   const exchanges = exchangesQuery.data?.exchanges ?? [];
-  const exchangeTotals = useMemo(() => getExchangeTotals(exchanges), [exchanges]);
+  const usdWalletMetrics = useMemo(() => {
+    if (!wallet) {
+      return null;
+    }
+
+    const exchangedInUsdMinor = decimalAmountToMinorUnits(
+      wallet.summary.exchangedIn.usdAmount
+    );
+    const exchangedOutUsdMinor = decimalAmountToMinorUnits(
+      wallet.summary.exchangedOut.usdAmount
+    );
+    const spentUsdMinor = decimalAmountToMinorUnits(wallet.summary.spent.usdAmount);
+    const incomeUsdMinor = decimalAmountToMinorUnits(wallet.summary.income.usdAmount);
+    const remainingFromExchanged = getRemainingFromExchangedUsd({
+      exchangedInUsdMinor,
+      exchangedOutUsdMinor,
+      spentUsdMinor
+    });
+    const netWorthShare = getNetWorthShareValue(
+      wallet.costBasisMinor,
+      overviewQuery.data?.balance.currentNetWorth ?? null
+    );
+    const shouldShowNetWorthShare =
+      overviewQuery.isPending || (netWorthShare !== null && netWorthShare > 0);
+    const shouldShowRemainingFromExchanged =
+      remainingFromExchanged.amountMinor !== null &&
+      remainingFromExchanged.amountMinor > 0;
+
+    return {
+      hasVisibleDetails:
+        shouldShowNetWorthShare ||
+        spentUsdMinor > 0 ||
+        incomeUsdMinor > 0 ||
+        shouldShowRemainingFromExchanged,
+      shouldShowNetWorthShare,
+      shouldShowUsdExpenses: spentUsdMinor > 0,
+      shouldShowUsdIncome: incomeUsdMinor > 0,
+      shouldShowRemainingFromExchanged,
+      netWorthShare: overviewQuery.isPending
+        ? "Loading"
+        : formatPercentageValue(netWorthShare),
+      remainingFromExchangedAmount:
+        remainingFromExchanged.amountMinor === null
+          ? "No data"
+          : formatMoneyAmount(
+              minorUnitsToDecimalAmount(remainingFromExchanged.amountMinor),
+              { currency: "USD" }
+            ),
+      remainingFromExchangedShare: formatPercentageValue(
+        remainingFromExchanged.percentage
+      )
+    };
+  }, [overviewQuery.data?.balance.currentNetWorth, overviewQuery.isPending, wallet]);
+  const averageRatePair = formatAverageRatePair(
+    wallet?.averageRateBasePerUsd ?? null
+  );
   const activeHistoryFilterCount = Object.values(historyFilters).filter(
     Boolean
   ).length;
@@ -494,11 +616,13 @@ export function UsdWalletPage({
     const errors = [
       walletQuery.error,
       exchangesQuery.error,
+      overviewQuery.error,
       transactionsQuery.error
     ];
     const hasExpiredSession = errors.some(
       (error) =>
         (error instanceof CurrencyApiError ||
+          error instanceof HomeApiError ||
           error instanceof TransactionApiError) &&
         error.status === 401
     );
@@ -509,6 +633,7 @@ export function UsdWalletPage({
   }, [
     exchangesQuery.error,
     onSessionExpired,
+    overviewQuery.error,
     transactionsQuery.error,
     walletQuery.error
   ]);
@@ -573,7 +698,15 @@ export function UsdWalletPage({
               >
                 <header className="stats-overview-section__header">
                   <h2 id="usd-wallet-balance-title">USD balance</h2>
-                  <span>{formatAverageRate(wallet.averageRateBasePerUsd)}</span>
+                  {typeof averageRatePair === "string" ? (
+                    <span>{averageRatePair}</span>
+                  ) : (
+                    <span className="usd-wallet-average-rates">
+                      <span>{averageRatePair.usdToEur}</span>
+                      <span aria-hidden="true">|</span>
+                      <span>{averageRatePair.eurToUsd}</span>
+                    </span>
+                  )}
                 </header>
 
                 <div className="stats-money__content usd-wallet-money__content">
@@ -599,9 +732,7 @@ export function UsdWalletPage({
                       </span>
                       <strong className="usd-wallet-value--neutral">
                         {formatMoneyAmount(
-                          minorUnitsToDecimalAmount(
-                            exchangeTotals.toUsdAmountMinor
-                          ),
+                          wallet.summary.exchangedIn.usdAmount,
                           { currency: "USD" }
                         )}
                       </strong>
@@ -613,9 +744,7 @@ export function UsdWalletPage({
                       </span>
                       <strong className="usd-wallet-value--neutral">
                         {formatMoneyAmount(
-                          minorUnitsToDecimalAmount(
-                            exchangeTotals.toEurAmountMinor
-                          ),
+                          wallet.summary.exchangedOut.baseAmount,
                           { currency: "EUR" }
                         )}
                       </strong>
@@ -623,6 +752,60 @@ export function UsdWalletPage({
                   </div>
                 </div>
               </section>
+
+              {usdWalletMetrics?.hasVisibleDetails ? (
+                <section
+                  className="stats-overview-section usd-wallet-insights-section"
+                  aria-labelledby="usd-wallet-details-title"
+                >
+                  <header className="stats-overview-section__header">
+                    <h2 id="usd-wallet-details-title">USD details</h2>
+                    <span>Overview</span>
+                  </header>
+                  <ul className="stats-insights__list usd-wallet-insights-list">
+                    {usdWalletMetrics.shouldShowNetWorthShare ? (
+                      <UsdWalletInsightRow
+                        icon={Percent}
+                        label="USD share"
+                        detail="of net worth"
+                        value={usdWalletMetrics.netWorthShare}
+                        tone="neutral"
+                      />
+                    ) : null}
+                    {usdWalletMetrics.shouldShowUsdExpenses ? (
+                      <UsdWalletInsightRow
+                        icon={ArrowDownRight}
+                        label="USD expenses"
+                        detail={formatEntryCount(wallet.summary.spent.count)}
+                        value={formatMoneyAmount(wallet.summary.spent.usdAmount, {
+                          currency: "USD"
+                        })}
+                        tone="negative"
+                      />
+                    ) : null}
+                    {usdWalletMetrics.shouldShowUsdIncome ? (
+                      <UsdWalletInsightRow
+                        icon={ArrowUpRight}
+                        label="USD income"
+                        detail={formatEntryCount(wallet.summary.income.count)}
+                        value={formatMoneyAmount(wallet.summary.income.usdAmount, {
+                          currency: "USD"
+                        })}
+                        tone="positive"
+                      />
+                    ) : null}
+                    {usdWalletMetrics.shouldShowRemainingFromExchanged ? (
+                      <UsdWalletInsightRow
+                        icon={Wallet}
+                        label="Exchanged left"
+                        detail={`${usdWalletMetrics.remainingFromExchangedShare} left`}
+                        value={usdWalletMetrics.remainingFromExchangedAmount}
+                        tone="neutral"
+                      />
+                    ) : null}
+                  </ul>
+                </section>
+              ) : null}
 
               <section
                 className="usd-wallet-history-section"

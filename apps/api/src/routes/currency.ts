@@ -155,17 +155,31 @@ async function getUsdWalletSummary(userId: string) {
   const receivedBaseMinor =
     (receivedExchanges._sum.fromAmountMinor ?? 0) +
     (incomeTransactions._sum.amountCents ?? 0);
+  const exchangedInUsdMinor = receivedExchanges._sum.toAmountMinor ?? 0;
+  const exchangedInBaseMinor = receivedExchanges._sum.fromAmountMinor ?? 0;
+  const incomeUsdMinor = incomeTransactions._sum.originalAmountMinor ?? 0;
+  const incomeBaseMinor = incomeTransactions._sum.amountCents ?? 0;
   const spentUsdMinor = expenseTransactions._sum.originalAmountMinor ?? 0;
   const spentBaseMinor = expenseTransactions._sum.amountCents ?? 0;
   const exchangedOutUsdMinor = sentExchanges._sum.fromAmountMinor ?? 0;
   const exchangedOutBaseMinor = sentExchanges._sum.toAmountMinor ?? 0;
 
   return {
+    exchangedIn: {
+      usdAmount: centsToDecimal(exchangedInUsdMinor),
+      baseAmount: centsToDecimal(exchangedInBaseMinor),
+      count: receivedExchanges._count._all,
+    },
     received: {
       usdAmount: centsToDecimal(receivedUsdMinor),
       baseAmount: centsToDecimal(receivedBaseMinor),
       count:
         receivedExchanges._count._all + incomeTransactions._count._all,
+    },
+    income: {
+      usdAmount: centsToDecimal(incomeUsdMinor),
+      baseAmount: centsToDecimal(incomeBaseMinor),
+      count: incomeTransactions._count._all,
     },
     spent: {
       usdAmount: centsToDecimal(spentUsdMinor),

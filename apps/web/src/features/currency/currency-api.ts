@@ -55,7 +55,9 @@ export type UsdWallet = {
   costBasisMinor: number;
   averageRateBasePerUsd: string | null;
   summary: {
+    exchangedIn: UsdWalletSummaryItem;
     received: UsdWalletSummaryItem;
+    income: UsdWalletSummaryItem;
     spent: UsdWalletSummaryItem;
     exchangedOut: UsdWalletSummaryItem;
   };
