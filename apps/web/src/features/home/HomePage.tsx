@@ -623,6 +623,10 @@ export function HomePage({
         open={isUsdWalletOpen}
         userId={user.id}
         onBack={() => setIsUsdWalletOpen(false)}
+        onNewExchange={() => {
+          prefetchScheduler.prioritizeUserRequest();
+          setIsAddExchangeOpen(true);
+        }}
         onSessionExpired={onSessionExpired}
       />
 

@@ -1866,6 +1866,16 @@ body.app-logout-transition .confirm-dialog-backdrop {
   border-color: var(--color-primary-border);
 }
 
+.usd-wallet-history-empty__action--secondary.home-new-transaction:active:not(:disabled) {
+  color: color-mix(in srgb, var(--color-primary) 76%, var(--color-text-muted));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary-soft) 72%,
+    white
+  );
+  border-color: var(--color-primary-border);
+}
+
 .usd-wallet-history-empty__action--secondary
   .home-new-transaction__icon {
   background: color-mix(in srgb, var(--color-primary) 10%, transparent);
@@ -8645,6 +8655,7 @@ html.desktop-app-route .stats-view-stage {
 .add-exchange-composer {
   --transaction-type-color: var(--color-primary);
   --transaction-type-soft: var(--color-primary-soft);
+  z-index: 70;
 }
 
 .transaction-composer.is-open {

@@ -41,6 +41,7 @@ type UsdWalletPageProps = {
   open: boolean;
   userId: string;
   onBack: () => void;
+  onNewExchange: () => void;
   onSessionExpired: () => void;
 };
 
@@ -357,10 +358,12 @@ function UsdWalletError() {
 function EmptyHistory({
   title,
   description,
+  onNewExchange,
   showActions = false
 }: {
   title: string;
   description: string;
+  onNewExchange?: () => void;
   showActions?: boolean;
 }) {
   return (
@@ -384,7 +387,7 @@ function EmptyHistory({
           <ActionButton
             className="home-new-transaction usd-wallet-history-empty__action usd-wallet-history-empty__action--secondary"
             type="button"
-            onClick={() => undefined}
+            onClick={onNewExchange}
           >
             <span className="home-new-transaction__icon" aria-hidden="true">
               <ArrowLeftRight />
@@ -465,6 +468,7 @@ export function UsdWalletPage({
   open,
   userId,
   onBack,
+  onNewExchange,
   onSessionExpired
 }: UsdWalletPageProps) {
   const screenRef = useRef<HTMLElement>(null);
@@ -901,12 +905,14 @@ export function UsdWalletPage({
                   <EmptyHistory
                     title="No matching movements"
                     description="Turn on another type to see more USD history"
+                    onNewExchange={onNewExchange}
                     showActions
                   />
                 ) : (
                   <EmptyHistory
                     title="No USD history yet"
                     description="Dollar movements will appear here when you add them"
+                    onNewExchange={onNewExchange}
                     showActions
                   />
                 )}
