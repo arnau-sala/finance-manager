@@ -930,6 +930,8 @@ export function MovesPage({
                         categoryId={entry.transaction.categoryId}
                         categoryName={entry.transaction.category.name}
                         amount={entry.transaction.amount}
+                        currency={entry.transaction.currency}
+                        originalAmount={entry.transaction.originalAmount}
                         description={entry.transaction.description}
                         date={entry.transaction.date}
                         onSelect={() => selectTransaction(entry.transaction)}

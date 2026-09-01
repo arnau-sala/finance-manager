@@ -6,6 +6,7 @@ import { transactionCategories } from "./category-catalog";
 const MAX_AMOUNT_CENTS = 2_147_483_647n;
 const AMOUNT_PATTERN = /^\d{1,8}(?:,\d{1,2})?$/;
 export const TRANSACTION_NAME_MAX_LENGTH = 50;
+export type TransactionCurrencyCode = "EUR" | "USD";
 
 function amountToCents(amount: string) {
   const [wholePart, decimalPart = ""] = amount.split(",");
@@ -47,6 +48,8 @@ export const createTransactionSchema = z
   .object({
     amount: transactionAmountSchema,
     type: z.enum(["INCOME", "EXPENSE"]),
+    currency: z.enum(["EUR", "USD"]).default("EUR"),
+    baseAmount: transactionAmountSchema.optional(),
     description: z
       .string()
       .trim()

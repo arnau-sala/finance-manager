@@ -1,5 +1,5 @@
 import { parseLocalDateOnly } from "../../dates/date-only";
-import { formatEuroAmount } from "../../money/format-euro";
+import { formatMoneyAmount } from "../../money/format-euro";
 import type { TransactionPreview } from "./transaction-api";
 
 export type TransactionShareResult = "shared" | "copied" | "cancelled";
@@ -19,7 +19,12 @@ function formatShareDate(value: string) {
 }
 
 export function buildTransactionShareText(transaction: TransactionPreview) {
-  const amount = Number(transaction.amount);
+  const amount = Number(
+    transaction.currency === "USD"
+      ? transaction.originalAmount ?? transaction.amount
+      : transaction.amount
+  );
+  const currency = transaction.currency ?? "EUR";
   const signedAmount =
     transaction.type === "INCOME" ? Math.abs(amount) : -Math.abs(amount);
   const type =
@@ -29,7 +34,10 @@ export function buildTransactionShareText(transaction: TransactionPreview) {
     type,
     "",
     `\uD83D\uDCDD ${transaction.description}`,
-    `\uD83D\uDCB6 ${formatEuroAmount(signedAmount, { showSign: true })}`,
+    `\uD83D\uDCB6 ${formatMoneyAmount(signedAmount, {
+      currency,
+      showSign: true
+    })}`,
     "",
     `\uD83C\uDFF7\uFE0F ${transaction.category.name}`,
     `\uD83D\uDCC5 ${formatShareDate(transaction.date)}`

@@ -637,6 +637,7 @@ export function HomePage({
       />
 
       <TransactionComposer
+        userId={user.id}
         open={isTransactionComposerOpen}
         transaction={transactionBeingEdited}
         disablePersistence={lockSectionNavigation}

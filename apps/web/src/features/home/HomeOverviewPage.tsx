@@ -447,6 +447,8 @@ export function HomeOverviewPage({
                   categoryId={move.category.id}
                   categoryName={move.category.name}
                   amount={move.amount}
+                  currency={move.currency}
+                  originalAmount={move.originalAmount}
                   description={move.description}
                   date={move.date}
                   onSelect={() =>
@@ -456,6 +458,10 @@ export function HomeOverviewPage({
                       categoryId: move.category.id,
                       category: move.category,
                       amount: move.amount,
+                      currency: move.currency,
+                      originalAmount: move.originalAmount,
+                      baseAmount: move.baseAmount,
+                      exchangeRateBasePerUsd: move.exchangeRateBasePerUsd,
                       description: move.description,
                       date: move.date
                     })

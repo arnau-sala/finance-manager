@@ -837,7 +837,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         updateData.currency = BASE_CURRENCY;
         updateData.originalAmountMinor = null;
         updateData.exchangeRateBasePerUsd = null;
-        updateData.amountCents = amount;
+        updateData.amountCents = amount ?? resultingOriginalAmount;
       }
 
       try {
