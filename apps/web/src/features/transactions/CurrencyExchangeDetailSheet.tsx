@@ -22,7 +22,9 @@ import type {
 type CurrencyExchangeDetailSheetProps = {
   exchange: CurrencyExchangeListItem | null;
   exchanges: CurrencyExchangeListItem[];
+  suspended?: boolean;
   onClose: () => void;
+  onEdit?: (exchange: CurrencyExchangeListItem) => void;
 };
 
 const ACTIONS_ANIMATION_MS = 220;
@@ -277,7 +279,9 @@ function getExchangeContext(
 export function CurrencyExchangeDetailSheet({
   exchange,
   exchanges,
-  onClose
+  suspended = false,
+  onClose,
+  onEdit
 }: CurrencyExchangeDetailSheetProps) {
   const titleId = useId();
   const dateId = useId();
@@ -432,8 +436,8 @@ export function CurrencyExchangeDetailSheet({
   return createPortal(
     <div
       className={`transaction-detail-backdrop${open ? " is-open" : ""}`}
-      aria-hidden={!open}
-      inert={!open}
+      aria-hidden={!open || suspended}
+      inert={!open || suspended}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           event.preventDefault();
@@ -499,8 +503,15 @@ export function CurrencyExchangeDetailSheet({
                   role="menuitem"
                   aria-label="Edit exchange"
                   title="Edit"
-                  disabled={!actionsInteractive}
-                  onClick={() => setActionsOpen(false)}
+                  disabled={!actionsInteractive || !onEdit}
+                  onClick={() => {
+                    if (!displayedExchange || !onEdit) {
+                      return;
+                    }
+
+                    setActionsOpen(false);
+                    onEdit(displayedExchange);
+                  }}
                 >
                   <Pencil aria-hidden="true" />
                 </ActionButton>

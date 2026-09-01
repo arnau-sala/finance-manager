@@ -43,6 +43,9 @@ type UsdWalletPageProps = {
   userId: string;
   onBack: () => void;
   onNewExchange: () => void;
+  onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  editingExchangeId: string | null;
+  updatedExchange: CurrencyExchangeListItem | null;
   onSessionExpired: () => void;
 };
 
@@ -488,6 +491,9 @@ export function UsdWalletPage({
   userId,
   onBack,
   onNewExchange,
+  onExchangeEdit,
+  editingExchangeId,
+  updatedExchange,
   onSessionExpired
 }: UsdWalletPageProps) {
   const screenRef = useRef<HTMLElement>(null);
@@ -637,6 +643,25 @@ export function UsdWalletPage({
 
     screenRef.current?.scrollTo({ top: 0, left: 0 });
   }, [open]);
+
+  useEffect(() => {
+    if (!selectedExchange) {
+      return;
+    }
+
+    if (updatedExchange?.id === selectedExchange.id) {
+      setSelectedExchange(updatedExchange);
+      return;
+    }
+
+    const refreshedExchange = exchanges.find(
+      (exchange) => exchange.id === selectedExchange.id
+    );
+
+    if (refreshedExchange) {
+      setSelectedExchange(refreshedExchange);
+    }
+  }, [exchanges, selectedExchange, updatedExchange]);
 
   useEffect(() => {
     const errors = [
@@ -954,7 +979,12 @@ export function UsdWalletPage({
       <CurrencyExchangeDetailSheet
         exchange={selectedExchange}
         exchanges={exchanges}
+        suspended={
+          editingExchangeId !== null &&
+          selectedExchange?.id === editingExchangeId
+        }
         onClose={() => setSelectedExchange(null)}
+        onEdit={onExchangeEdit}
       />
     </div>
   );

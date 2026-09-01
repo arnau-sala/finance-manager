@@ -63,6 +63,9 @@ type MovesPageProps = {
   initialState: MovesPageState;
   onStateChange: (state: MovesPageState) => void;
   onNewTransaction: () => void;
+  onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  editingExchangeId: string | null;
+  updatedExchange: CurrencyExchangeListItem | null;
   onTransactionSelect: (
     transaction: TransactionPreview,
     viewportOffset: number | null
@@ -298,6 +301,9 @@ export function MovesPage({
   initialState,
   onStateChange,
   onNewTransaction,
+  onExchangeEdit,
+  editingExchangeId,
+  updatedExchange,
   onTransactionSelect,
   scrollTarget,
   onScrollTargetHandled,
@@ -558,6 +564,29 @@ export function MovesPage({
       onSessionExpired();
     }
   }, [currencyExchangesQuery.error, onSessionExpired]);
+
+  useEffect(() => {
+    if (!selectedExchange) {
+      return;
+    }
+
+    if (updatedExchange?.id === selectedExchange.id) {
+      setSelectedExchange(updatedExchange);
+      return;
+    }
+
+    const refreshedExchange = currencyExchangesQuery.data?.exchanges.find(
+      (exchange) => exchange.id === selectedExchange.id
+    );
+
+    if (refreshedExchange) {
+      setSelectedExchange(refreshedExchange);
+    }
+  }, [
+    currencyExchangesQuery.data?.exchanges,
+    selectedExchange,
+    updatedExchange
+  ]);
 
   useEffect(() => {
     cancelTransactionDetailPrefetches();
@@ -991,7 +1020,12 @@ export function MovesPage({
       <CurrencyExchangeDetailSheet
         exchange={selectedExchange}
         exchanges={currencyExchangesQuery.data?.exchanges ?? []}
+        suspended={
+          editingExchangeId !== null &&
+          selectedExchange?.id === editingExchangeId
+        }
         onClose={() => setSelectedExchange(null)}
+        onEdit={onExchangeEdit}
       />
     </>
   );

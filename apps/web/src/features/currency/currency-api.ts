@@ -71,6 +71,9 @@ export type CreateCurrencyExchangeInput = {
   date: string;
 };
 
+export type UpdateCurrencyExchangeInput =
+  Partial<CreateCurrencyExchangeInput>;
+
 export class CurrencyApiError extends Error {
   readonly status: number;
   readonly issues: readonly CurrencyApiIssue[];
@@ -216,6 +219,43 @@ export async function createCurrencyExchange(
   try {
     response = await fetch("/api/currency/exchanges", {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify(input)
+    });
+  } catch {
+    throw new CurrencyApiError(
+      "Unable to connect\nCheck your connection and try again",
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw await createCurrencyApiError(response);
+  }
+
+  const body = (await response.json()) as {
+    exchange?: CurrencyExchangeListItem;
+  };
+
+  if (!body.exchange?.id) {
+    throw new CurrencyApiError("Invalid exchange response", 500);
+  }
+
+  return body.exchange;
+}
+
+export async function updateCurrencyExchange(
+  exchangeId: string,
+  input: UpdateCurrencyExchangeInput
+) {
+  let response: Response;
+
+  try {
+    response = await fetch(`/api/currency/exchanges/${exchangeId}`, {
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json"
       },

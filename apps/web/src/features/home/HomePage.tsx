@@ -30,6 +30,7 @@ import {
 import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
+import type { CurrencyExchangeListItem } from "../currency/currency-api";
 import { AddExchangePage } from "./AddExchangePage";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
@@ -97,6 +98,9 @@ type HomeSectionProps = {
     scrollTop: number
   ) => void;
   onNewTransaction: () => void;
+  onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  editingExchangeId: string | null;
+  updatedExchange: CurrencyExchangeListItem | null;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (
     transaction: TransactionPreview,
@@ -147,6 +151,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     sectionScrollTops,
     onSectionScrollTopChange,
     onNewTransaction,
+    onExchangeEdit,
+    editingExchangeId,
+    updatedExchange,
     onTransactionSelect,
     movesScrollTarget,
     onMovesScrollTargetHandled,
@@ -158,6 +165,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       initialState={movesViewState}
       onStateChange={onMovesViewStateChange}
       onNewTransaction={onNewTransaction}
+      onExchangeEdit={onExchangeEdit}
+      editingExchangeId={editingExchangeId}
+      updatedExchange={updatedExchange}
       onTransactionSelect={onTransactionSelect}
       scrollTarget={movesScrollTarget}
       onScrollTargetHandled={onMovesScrollTargetHandled}
@@ -289,6 +299,10 @@ export function HomePage({
     useState<TransactionPreview | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
     useState<TransactionPreview | null>(null);
+  const [exchangeBeingEdited, setExchangeBeingEdited] =
+    useState<CurrencyExchangeListItem | null>(null);
+  const [lastSavedExchange, setLastSavedExchange] =
+    useState<CurrencyExchangeListItem | null>(null);
   const [movesScrollTarget, setMovesScrollTarget] =
     useState<MovesScrollTarget | null>(null);
   const movesSelectedTransactionViewportOffset = useRef<number | null>(
@@ -389,8 +403,10 @@ export function HomePage({
     });
   }
 
-  function finishExchangeWrite() {
+  function finishExchangeWrite(exchange?: CurrencyExchangeListItem) {
     setIsAddExchangeOpen(false);
+    setExchangeBeingEdited(null);
+    setLastSavedExchange(exchange ?? null);
     void invalidateAfterExchangeWrite(user.id);
   }
 
@@ -439,6 +455,26 @@ export function HomePage({
     movesSelectedTransactionViewportOffset.current =
       activeSection === "moves" ? viewportOffset : null;
     setSelectedTransaction(transaction);
+  }
+
+  function openNewExchange() {
+    if (lockSectionNavigation) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+    setExchangeBeingEdited(null);
+    setIsAddExchangeOpen(true);
+  }
+
+  function openExchangeEdit(exchange: CurrencyExchangeListItem) {
+    if (lockSectionNavigation) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+    setExchangeBeingEdited(exchange);
+    setIsAddExchangeOpen(true);
   }
 
   return (
@@ -520,12 +556,7 @@ export function HomePage({
             setIsUsdWalletOpen(true);
           },
           onAddExchange: () => {
-            if (lockSectionNavigation) {
-              return;
-            }
-
-            prefetchScheduler.prioritizeUserRequest();
-            setIsAddExchangeOpen(true);
+            openNewExchange();
           },
           onRecoveryCodeReset: setRecoveryCodeReset,
           onLogout,
@@ -536,6 +567,9 @@ export function HomePage({
           sectionScrollTops,
           onSectionScrollTopChange: updateSectionScrollTop,
           onNewTransaction: openNewTransaction,
+          onExchangeEdit: openExchangeEdit,
+          editingExchangeId: exchangeBeingEdited?.id ?? null,
+          updatedExchange: lastSavedExchange,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,
           movesScrollTarget,
@@ -614,8 +648,13 @@ export function HomePage({
 
       <AddExchangePage
         open={isAddExchangeOpen}
-        onClose={() => setIsAddExchangeOpen(false)}
+        exchange={exchangeBeingEdited}
+        onClose={() => {
+          setIsAddExchangeOpen(false);
+          setExchangeBeingEdited(null);
+        }}
         onCreated={finishExchangeWrite}
+        onUpdated={finishExchangeWrite}
         onSessionExpired={onSessionExpired}
       />
 
@@ -623,10 +662,10 @@ export function HomePage({
         open={isUsdWalletOpen}
         userId={user.id}
         onBack={() => setIsUsdWalletOpen(false)}
-        onNewExchange={() => {
-          prefetchScheduler.prioritizeUserRequest();
-          setIsAddExchangeOpen(true);
-        }}
+        onNewExchange={openNewExchange}
+        onExchangeEdit={openExchangeEdit}
+        editingExchangeId={exchangeBeingEdited?.id ?? null}
+        updatedExchange={lastSavedExchange}
         onSessionExpired={onSessionExpired}
       />
 

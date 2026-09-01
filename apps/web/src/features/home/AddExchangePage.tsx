@@ -14,14 +14,18 @@ import { getTodayDateOnly } from "../../dates/date-only";
 import { revealTrailingCaret } from "../auth/AuthPasswordField";
 import {
   createCurrencyExchange,
-  CurrencyApiError
+  CurrencyApiError,
+  type CurrencyExchangeListItem,
+  updateCurrencyExchange
 } from "../currency/currency-api";
 import { TransactionDateField } from "../transactions/TransactionDateField";
 
 type AddExchangePageProps = {
   open: boolean;
+  exchange?: CurrencyExchangeListItem | null;
   onClose: () => void;
   onCreated: () => void;
+  onUpdated?: (exchange: CurrencyExchangeListItem) => void;
   onSessionExpired: () => void;
 };
 
@@ -115,6 +119,37 @@ function formatMoneyInput(value: number) {
   return decimalPart === 0
     ? wholePart.toString()
     : `${wholePart},${decimalPart.toString().padStart(2, "0")}`;
+}
+
+function formatStoredMoneyInput(value: string) {
+  const normalizedValue = normalizeMoneyInput(value);
+
+  if (normalizedValue === null) {
+    return "";
+  }
+
+  const [wholePart, decimalPart] = normalizedValue.split(",");
+
+  if (decimalPart && Number(decimalPart) === 0) {
+    return wholePart;
+  }
+
+  return normalizedValue;
+}
+
+function amountInputToComparableCents(value: string) {
+  const normalizedValue = value.trim().replace(",", ".");
+
+  if (!/^\d+(?:\.\d{0,2})?$/.test(normalizedValue)) {
+    return null;
+  }
+
+  const [wholePart, decimalPart = ""] = normalizedValue.split(".");
+
+  return (
+    BigInt(wholePart) * 100n +
+    BigInt(decimalPart.padEnd(2, "0"))
+  ).toString();
 }
 
 function formatRateInput(value: number) {
@@ -226,10 +261,13 @@ function recalculateExchangeValues(
 
 export function AddExchangePage({
   open,
+  exchange = null,
   onClose,
   onCreated,
+  onUpdated,
   onSessionExpired
 }: AddExchangePageProps) {
+  const isEditing = exchange !== null;
   const [fromCurrency, setFromCurrency] =
     useState<ExchangeCurrency>("EUR");
   const [form, setForm] = useState<ExchangeFormState>({
@@ -249,11 +287,21 @@ export function AddExchangePage({
   const wasOpen = useRef(false);
 
   const toCurrency = getTargetCurrency(fromCurrency);
+  const hasChanges =
+    !exchange ||
+    fromCurrency !== exchange.fromCurrency ||
+    toCurrency !== exchange.toCurrency ||
+    date !== exchange.date ||
+    amountInputToComparableCents(form.values.fromAmount) !==
+      amountInputToComparableCents(exchange.fromAmount) ||
+    amountInputToComparableCents(form.values.toAmount) !==
+      amountInputToComparableCents(exchange.toAmount);
   const canSubmit =
     isFieldReady("fromAmount", form.values.fromAmount) &&
     isFieldReady("toAmount", form.values.toAmount) &&
     isFieldReady("rate", form.values.rate) &&
     date.length > 0 &&
+    hasChanges &&
     !isSubmitting;
   const fromRateBaseCurrency = toCurrency;
   const fromRateTargetCurrency = fromCurrency;
@@ -267,9 +315,15 @@ export function AddExchangePage({
           ? document.activeElement
           : null;
 
-      setFromCurrency("EUR");
+      setFromCurrency(exchange?.fromCurrency ?? "EUR");
       setForm({
-        values: INITIAL_EXCHANGE_VALUES,
+        values: exchange
+          ? {
+              fromAmount: formatStoredMoneyInput(exchange.fromAmount),
+              toAmount: formatStoredMoneyInput(exchange.toAmount),
+              rate: formatRateInput(Number(exchange.exchangeRateBasePerUsd))
+            }
+          : INITIAL_EXCHANGE_VALUES,
         derivedField: null
       });
       setRateDraft(null);
@@ -281,7 +335,7 @@ export function AddExchangePage({
         window.clearTimeout(swapAnimationTimeout.current);
         swapAnimationTimeout.current = null;
       }
-      setDate(getTodayDateOnly());
+      setDate(exchange?.date ?? getTodayDateOnly());
       scrollAreaRef.current?.scrollTo({ top: 0 });
       requestAnimationFrame(() => {
         exchangeRef.current?.focus({ preventScroll: true });
@@ -295,7 +349,7 @@ export function AddExchangePage({
     }
 
     wasOpen.current = open;
-  }, [open]);
+  }, [exchange, open]);
 
   useEffect(
     () => () => {
@@ -413,14 +467,24 @@ export function AddExchangePage({
     setIsSubmitting(true);
 
     try {
-      await createCurrencyExchange({
+      const exchangeInput = {
         fromCurrency,
         toCurrency,
         fromAmount: toApiDecimal(form.values.fromAmount),
         toAmount: toApiDecimal(form.values.toAmount),
         date
-      });
-      onCreated();
+      };
+
+      if (exchange) {
+        const updatedExchange = await updateCurrencyExchange(
+          exchange.id,
+          exchangeInput
+        );
+        onUpdated?.(updatedExchange);
+      } else {
+        await createCurrencyExchange(exchangeInput);
+        onCreated();
+      }
     } catch (error) {
       if (error instanceof CurrencyApiError && error.status === 401) {
         onSessionExpired();
@@ -476,13 +540,15 @@ export function AddExchangePage({
             shape="icon"
             className="transaction-composer__close"
             type="button"
-            aria-label="Close exchange creator"
+            aria-label={isEditing ? "Close exchange editor" : "Close exchange creator"}
             title="Close"
             onClick={onClose}
           >
             <X aria-hidden="true" />
           </ActionButton>
-          <h1 id="add-exchange-title">Add exchange</h1>
+          <h1 id="add-exchange-title">
+            {isEditing ? "Edit exchange" : "Add exchange"}
+          </h1>
           <span aria-hidden="true" />
         </div>
       </header>
@@ -611,7 +677,13 @@ export function AddExchangePage({
               {formError}
             </p>
             <ActionButton type="submit" disabled={!canSubmit}>
-              {isSubmitting ? "Adding exchange" : "Add exchange"}
+              {isSubmitting
+                ? isEditing
+                  ? "Updating exchange"
+                  : "Adding exchange"
+                : isEditing
+                  ? "Update exchange"
+                  : "Add exchange"}
             </ActionButton>
           </div>
         </footer>
