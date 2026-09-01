@@ -37,6 +37,10 @@ export const financialQueryKeys = {
       ...financialQueryKeys.transactionDetails(userId),
       transactionId
     ] as const,
+  currency: (userId: string) =>
+    [...financialQueryKeys.user(userId), "currency"] as const,
+  currencyExchanges: (userId: string) =>
+    [...financialQueryKeys.currency(userId), "exchanges"] as const,
   statistics: (userId: string) =>
     [...financialQueryKeys.user(userId), "statistics"] as const,
   statisticsAvailability: (userId: string) =>

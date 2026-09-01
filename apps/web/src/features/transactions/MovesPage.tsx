@@ -10,7 +10,8 @@ import {
 } from "react";
 import {
   keepPreviousData,
-  useInfiniteQuery
+  useInfiniteQuery,
+  useQuery
 } from "@tanstack/react-query";
 import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
@@ -25,6 +26,12 @@ import {
   getTodayDateOnly,
   parseLocalDateOnly
 } from "../../dates/date-only";
+import {
+  currencyExchangesQueryOptions,
+  CurrencyApiError,
+  type CurrencyExchangeListItem
+} from "../currency/currency-api";
+import { CurrencyExchangeRow } from "./CurrencyExchangeRow";
 import { MovesActiveFilterTags } from "./MovesActiveFilterTags";
 import { TransactionRow } from "./TransactionRow";
 import {
@@ -34,6 +41,7 @@ import {
 import {
   countActiveMovesFilters,
   createEmptyMovesFilters,
+  getActiveCategoryIds,
   type MovesFilters
 } from "./moves-filters";
 import {
@@ -114,6 +122,102 @@ function getResultLabel(count: number, isSearching: boolean) {
   }
 
   return `${count} ${count === 1 ? "transaction" : "transactions"}`;
+}
+
+type MoveListEntry =
+  | {
+      kind: "transaction";
+      id: string;
+      date: string;
+      createdAt: string;
+      transaction: TransactionPreview & { createdAt: string };
+    }
+  | {
+      kind: "exchange";
+      id: string;
+      date: string;
+      createdAt: string;
+      exchange: CurrencyExchangeListItem;
+    };
+
+function hasAmountFilter(filters: MovesFilters) {
+  return filters.amountMode === "EXACT"
+    ? filters.exactAmount.length > 0
+    : filters.minimumAmount.length > 0 ||
+        filters.maximumAmount.length > 0;
+}
+
+function hasDateFilter(filters: MovesFilters) {
+  return filters.dateMode === "EXACT"
+    ? filters.exactDate.length > 0
+    : filters.startDate.length > 0 || filters.endDate.length > 0;
+}
+
+function canShowCurrencyExchanges(
+  filters: MovesFilters,
+  normalizedSearch: string
+) {
+  return (
+    normalizedSearch.length === 0 &&
+    filters.type === "ALL" &&
+    !hasAmountFilter(filters) &&
+    getActiveCategoryIds(filters).length === 0
+  );
+}
+
+function isExchangeInDateFilter(
+  exchange: CurrencyExchangeListItem,
+  filters: MovesFilters
+) {
+  if (filters.dateMode === "EXACT") {
+    return filters.exactDate.length === 0 || exchange.date === filters.exactDate;
+  }
+
+  if (filters.startDate && exchange.date < filters.startDate) {
+    return false;
+  }
+
+  if (filters.endDate && exchange.date > filters.endDate) {
+    return false;
+  }
+
+  return true;
+}
+
+function compareMoveListEntries(left: MoveListEntry, right: MoveListEntry) {
+  const dateComparison = right.date.localeCompare(left.date);
+
+  if (dateComparison !== 0) {
+    return dateComparison;
+  }
+
+  const createdAtComparison = right.createdAt.localeCompare(left.createdAt);
+
+  if (createdAtComparison !== 0) {
+    return createdAtComparison;
+  }
+
+  if (left.kind !== right.kind) {
+    return left.kind === "exchange" ? -1 : 1;
+  }
+
+  return left.id.localeCompare(right.id);
+}
+
+function getMovementResultLabel(
+  count: number,
+  isSearching: boolean,
+  hasExchanges: boolean
+) {
+  if (!hasExchanges) {
+    return getResultLabel(count, isSearching);
+  }
+
+  if (isSearching) {
+    return `${count} ${count === 1 ? "result" : "results"}`;
+  }
+
+  return `${count} ${count === 1 ? "move" : "moves"}`;
 }
 
 function TransactionRowSkeleton() {
@@ -249,7 +353,7 @@ export function MovesPage({
   const accountTransactionCount =
     firstPage?.metadata?.accountTransactionCount ?? 0;
   const minimumTransactionDate =
-    firstPage?.metadata?.minimumDate ?? getTodayDateOnly();
+    firstPage?.metadata?.minimumDate ?? null;
   const loadingState: MovesLoadingState = transactionsQuery.isPending
     ? "loading"
     : transactionsQuery.isError
@@ -261,14 +365,104 @@ export function MovesPage({
   const normalizedSearchInput = searchQuery
     .trim()
     .toLocaleLowerCase();
+  const canShowExchangeRows = canShowCurrencyExchanges(
+    appliedFilters,
+    normalizedSearchInput
+  );
+  const currencyExchangesQuery = useQuery({
+    ...currencyExchangesQueryOptions(userId),
+    enabled: canShowExchangeRows
+  });
   const isSearchDebouncing = normalizedSearchInput !== normalizedQuery;
   const isLoadingFilteredResults =
     isSearchDebouncing ||
     (transactionsQuery.isPlaceholderData && transactionsQuery.isFetching);
+  const isLoadingExchangeRows =
+    canShowExchangeRows && currencyExchangesQuery.isPending;
   const isRestoringEditedTransaction = scrollTarget !== null;
   const isPreparingResults =
-    isLoadingFilteredResults || isRestoringEditedTransaction;
+    isLoadingFilteredResults ||
+    isLoadingExchangeRows ||
+    isRestoringEditedTransaction;
   const hasMore = transactionsQuery.hasNextPage;
+  const dateFilteredExchanges = useMemo(() => {
+    if (!canShowExchangeRows || !currencyExchangesQuery.data) {
+      return [];
+    }
+
+    return currencyExchangesQuery.data.exchanges.filter((exchange) =>
+      isExchangeInDateFilter(exchange, appliedFilters)
+    );
+  }, [appliedFilters, canShowExchangeRows, currencyExchangesQuery.data]);
+  const exchangeResultCount = canShowExchangeRows
+    ? hasDateFilter(appliedFilters)
+      ? dateFilteredExchanges.length
+      : currencyExchangesQuery.data?.pagination.total ??
+        dateFilteredExchanges.length
+    : 0;
+  const oldestLoadedTransactionDate =
+    transactions[transactions.length - 1]?.date ?? null;
+  const minimumExchangeDate =
+    canShowExchangeRows && currencyExchangesQuery.data?.exchanges.length
+      ? currencyExchangesQuery.data.exchanges[
+          currencyExchangesQuery.data.exchanges.length - 1
+        ].date
+      : null;
+  const minimumMoveDate =
+    [minimumTransactionDate, minimumExchangeDate]
+      .filter((value): value is string => value !== null)
+      .sort()[0] ?? getTodayDateOnly();
+  const visibleExchanges = useMemo(() => {
+    if (!canShowExchangeRows) {
+      return [];
+    }
+
+    if (
+      transactions.length === 0 ||
+      !transactionsQuery.hasNextPage ||
+      !oldestLoadedTransactionDate
+    ) {
+      return dateFilteredExchanges;
+    }
+
+    return dateFilteredExchanges.filter(
+      (exchange) => exchange.date >= oldestLoadedTransactionDate
+    );
+  }, [
+    canShowExchangeRows,
+    dateFilteredExchanges,
+    oldestLoadedTransactionDate,
+    transactions.length,
+    transactionsQuery.hasNextPage
+  ]);
+  const movementEntries = useMemo<MoveListEntry[]>(
+    () =>
+      [
+        ...transactions.map((transaction) => ({
+          kind: "transaction" as const,
+          id: transaction.id,
+          date: transaction.date,
+          createdAt: transaction.createdAt,
+          transaction
+        })),
+        ...visibleExchanges.map((exchange) => ({
+          kind: "exchange" as const,
+          id: exchange.id,
+          date: exchange.date,
+          createdAt: exchange.createdAt,
+          exchange
+        }))
+      ].sort(compareMoveListEntries),
+    [transactions, visibleExchanges]
+  );
+  const displayedResultCount = totalResults + exchangeResultCount;
+  const hasDisplayedExchanges = exchangeResultCount > 0;
+  const accountExchangeCount =
+    canShowExchangeRows && !currencyExchangesQuery.isError
+      ? currencyExchangesQuery.data?.pagination.total ??
+        currencyExchangesQuery.data?.exchanges.length ??
+        0
+      : 0;
 
   const registerTransactionRow = useCallback(
     (transactionId: string) => (node: HTMLLIElement | null) => {
@@ -354,6 +548,15 @@ export function MovesPage({
   }, [onSessionExpired, transactionsQuery.error]);
 
   useEffect(() => {
+    if (
+      currencyExchangesQuery.error instanceof CurrencyApiError &&
+      currencyExchangesQuery.error.status === 401
+    ) {
+      onSessionExpired();
+    }
+  }, [currencyExchangesQuery.error, onSessionExpired]);
+
+  useEffect(() => {
     cancelTransactionDetailPrefetches();
 
     return cancelTransactionDetailPrefetches;
@@ -382,7 +585,8 @@ export function MovesPage({
       !scrollTarget ||
       !scrollTarget.isReady ||
       loadingState !== "ready" ||
-      isLoadingFilteredResults
+      isLoadingFilteredResults ||
+      isLoadingExchangeRows
     ) {
       return;
     }
@@ -432,6 +636,7 @@ export function MovesPage({
     }
   }, [
     isLoadingFilteredResults,
+    isLoadingExchangeRows,
     loadingState,
     onScrollTargetHandled,
     scrollTarget,
@@ -523,7 +728,12 @@ export function MovesPage({
     return <MovesPageSkeleton scrollContainer={scrollContainer} />;
   }
 
-  if (loadingState === "ready" && accountTransactionCount === 0) {
+  if (
+    loadingState === "ready" &&
+    accountTransactionCount === 0 &&
+    !isLoadingExchangeRows &&
+    accountExchangeCount === 0
+  ) {
     return (
       <section
         ref={scrollContainer}
@@ -638,7 +848,7 @@ export function MovesPage({
           <MovesFiltersPanel
             id={FILTER_PANEL_ID}
             appliedFilters={appliedFilters}
-            minimumDate={minimumTransactionDate}
+            minimumDate={minimumMoveDate}
             initialEditor={initialFilterEditor}
             onApply={applyFilters}
             onClear={clearFilters}
@@ -665,22 +875,23 @@ export function MovesPage({
             />
           ) : (
             <p aria-live="polite">
-              {getResultLabel(
-                totalResults,
-                normalizedQuery.length > 0 || activeFilterCount > 0
+              {getMovementResultLabel(
+                displayedResultCount,
+                normalizedQuery.length > 0 || activeFilterCount > 0,
+                hasDisplayedExchanges
               )}
             </p>
           )}
         </div>
 
         {isPreparingResults ||
-        (loadingState === "ready" && transactions.length > 0) ? (
+        (loadingState === "ready" && movementEntries.length > 0) ? (
           <div className="moves-results-separator" aria-hidden="true" />
         ) : null}
 
-        {isLoadingFilteredResults ? (
+        {isLoadingFilteredResults || isLoadingExchangeRows ? (
           <TransactionResultsSkeleton />
-        ) : loadingState === "ready" && transactions.length > 0 ? (
+        ) : loadingState === "ready" && movementEntries.length > 0 ? (
           <div className="moves-results-stage">
             {isRestoringEditedTransaction ? (
               <div className="moves-results-restoring" aria-hidden="true">
@@ -693,35 +904,39 @@ export function MovesPage({
                   ? " moves-transaction-list--restoring"
                   : ""
               }`}
-              aria-label="Transaction history"
+              aria-label="Financial history"
               aria-hidden={isRestoringEditedTransaction}
             >
-              {transactions.map((transaction, index) => {
-                const previousTransaction = transactions[index - 1];
+              {movementEntries.map((entry, index) => {
+                const previousEntry = movementEntries[index - 1];
                 const startsNewMonth =
-                  !previousTransaction ||
-                  getMonthKey(previousTransaction.date) !==
-                    getMonthKey(transaction.date);
+                  !previousEntry ||
+                  getMonthKey(previousEntry.date) !==
+                    getMonthKey(entry.date);
 
                 return (
-                  <Fragment key={transaction.id}>
+                  <Fragment key={`${entry.kind}:${entry.id}`}>
                     {startsNewMonth ? (
                       <li className="moves-month-divider">
-                        <time dateTime={getMonthKey(transaction.date)}>
-                          {formatMonthLabel(transaction.date)}
+                        <time dateTime={getMonthKey(entry.date)}>
+                          {formatMonthLabel(entry.date)}
                         </time>
                       </li>
                     ) : null}
-                    <TransactionRow
-                      ref={registerTransactionRow(transaction.id)}
-                      type={transaction.type}
-                      categoryId={transaction.categoryId}
-                      categoryName={transaction.category.name}
-                      amount={transaction.amount}
-                      description={transaction.description}
-                      date={transaction.date}
-                      onSelect={() => selectTransaction(transaction)}
-                    />
+                    {entry.kind === "transaction" ? (
+                      <TransactionRow
+                        ref={registerTransactionRow(entry.transaction.id)}
+                        type={entry.transaction.type}
+                        categoryId={entry.transaction.categoryId}
+                        categoryName={entry.transaction.category.name}
+                        amount={entry.transaction.amount}
+                        description={entry.transaction.description}
+                        date={entry.transaction.date}
+                        onSelect={() => selectTransaction(entry.transaction)}
+                      />
+                    ) : (
+                      <CurrencyExchangeRow exchange={entry.exchange} />
+                    )}
                   </Fragment>
                 );
               })}

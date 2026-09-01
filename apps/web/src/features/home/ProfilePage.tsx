@@ -71,6 +71,7 @@ type ProfilePageProps = {
   onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
+  onAddExchange: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -194,6 +195,7 @@ export function ProfilePage({
   onFeedback,
   onLinkEmail,
   onLinkUsername,
+  onAddExchange,
   onRecoveryCodeReset,
   onLogout,
   onAccountDeleted,
@@ -1095,7 +1097,7 @@ export function ProfilePage({
               <ProfileActionButton
                 label="Add exchange"
                 icon={<ArrowLeftRight />}
-                onClick={() => undefined}
+                onClick={onAddExchange}
               />
             </div>
           </section>

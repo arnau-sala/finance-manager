@@ -193,16 +193,19 @@ export const currencyRoutes: FastifyPluginAsync = async (app) => {
       }
 
       const { limit, offset } = parsedQuery.data;
-      const exchanges = await db.currencyExchange.findMany({
-        where: { userId },
-        orderBy: [
-          { occurredOn: "desc" },
-          { createdAt: "desc" },
-          { id: "desc" },
-        ],
-        take: limit + 1,
-        skip: offset,
-      });
+      const [exchanges, total] = await Promise.all([
+        db.currencyExchange.findMany({
+          where: { userId },
+          orderBy: [
+            { occurredOn: "desc" },
+            { createdAt: "desc" },
+            { id: "desc" },
+          ],
+          take: limit + 1,
+          skip: offset,
+        }),
+        db.currencyExchange.count({ where: { userId } }),
+      ]);
       const items = exchanges.slice(0, limit);
       const nextOffset =
         exchanges.length > limit ? offset + items.length : null;
@@ -213,6 +216,7 @@ export const currencyRoutes: FastifyPluginAsync = async (app) => {
           limit,
           offset,
           nextOffset,
+          total,
         },
       });
     },

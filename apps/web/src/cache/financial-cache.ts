@@ -36,9 +36,16 @@ export async function invalidateAfterTransactionWrite(userId: string) {
       queryKey: financialQueryKeys.transactionDetails(userId)
     }),
     queryClient.invalidateQueries({
+      queryKey: financialQueryKeys.currency(userId)
+    }),
+    queryClient.invalidateQueries({
       queryKey: financialQueryKeys.statistics(userId)
     })
   ]);
+}
+
+export async function invalidateAfterExchangeWrite(userId: string) {
+  await invalidateAfterTransactionWrite(userId);
 }
 
 export async function invalidateAfterStartingNetWorthWrite(

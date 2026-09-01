@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import {
+  invalidateAfterExchangeWrite,
   invalidateAfterStartingNetWorthWrite,
   invalidateAfterTransactionWrite
 } from "../../cache/financial-cache";
@@ -29,6 +30,7 @@ import {
 import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
+import { AddExchangePage } from "./AddExchangePage";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import { AppVersionPage } from "./AppVersionPage";
@@ -80,6 +82,7 @@ type HomeSectionProps = {
   onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
+  onAddExchange: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -193,6 +196,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onFeedback,
     onLinkEmail,
     onLinkUsername,
+    onAddExchange,
     onRecoveryCodeReset,
     onLogout,
     onAccountDeleted,
@@ -218,6 +222,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onFeedback={onFeedback}
       onLinkEmail={onLinkEmail}
       onLinkUsername={onLinkUsername}
+      onAddExchange={onAddExchange}
       onRecoveryCodeReset={onRecoveryCodeReset}
       onLogout={onLogout}
       onAccountDeleted={onAccountDeleted}
@@ -272,6 +277,7 @@ export function HomePage({
     useState(false);
   const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
   const [isUsernameLinkOpen, setIsUsernameLinkOpen] = useState(false);
+  const [isAddExchangeOpen, setIsAddExchangeOpen] = useState(false);
   const [recoveryCodeReset, setRecoveryCodeReset] =
     useState<RecoveryCodeResetResult | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
@@ -325,6 +331,7 @@ export function HomePage({
     isFeatureSuggestionOpen ||
     isEmailLinkOpen ||
     isUsernameLinkOpen ||
+    isAddExchangeOpen ||
     recoveryCodeReset !== null ||
     isTransactionComposerOpen ||
     selectedTransaction !== null;
@@ -374,6 +381,11 @@ export function HomePage({
         );
       }
     });
+  }
+
+  function finishExchangeWrite() {
+    setIsAddExchangeOpen(false);
+    void invalidateAfterExchangeWrite(user.id);
   }
 
   function finishProfileUpdate(updatedUser: SessionUser) {
@@ -492,6 +504,14 @@ export function HomePage({
             prefetchScheduler.prioritizeUserRequest();
             setIsUsernameLinkOpen(true);
           },
+          onAddExchange: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
+            prefetchScheduler.prioritizeUserRequest();
+            setIsAddExchangeOpen(true);
+          },
           onRecoveryCodeReset: setRecoveryCodeReset,
           onLogout,
           onAccountDeleted,
@@ -574,6 +594,13 @@ export function HomePage({
         user={user}
         onProfileUpdated={finishProfileUpdate}
         onClose={() => setIsUsernameLinkOpen(false)}
+        onSessionExpired={onSessionExpired}
+      />
+
+      <AddExchangePage
+        open={isAddExchangeOpen}
+        onClose={() => setIsAddExchangeOpen(false)}
+        onCreated={finishExchangeWrite}
         onSessionExpired={onSessionExpired}
       />
 

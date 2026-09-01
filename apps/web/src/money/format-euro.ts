@@ -26,9 +26,12 @@ const signedWholeEuroNumberFormatter = new Intl.NumberFormat("es-ES", {
 
 const subtleMoneyGroupSeparator = "\u202f";
 
-type FormatEuroOptions = {
+export type MoneyCurrencyCode = "EUR" | "USD";
+
+type FormatMoneyOptions = {
   showSign?: boolean;
   fractionDigits?: 0 | 2;
+  currency?: MoneyCurrencyCode;
 };
 
 function addSubtleMoneyGrouping(formattedNumber: string) {
@@ -54,9 +57,17 @@ export function formatEuroInputAmount(value: string) {
   return `${addSubtleMoneyGrouping(normalizedValue)}\u20ac`;
 }
 
-export function formatEuroAmount(
+function getCurrencySymbol(currency: MoneyCurrencyCode) {
+  return currency === "EUR" ? "\u20ac" : "$";
+}
+
+export function formatMoneyAmount(
   value: number | string,
-  { showSign = false, fractionDigits = 2 }: FormatEuroOptions = {}
+  {
+    showSign = false,
+    fractionDigits = 2,
+    currency = "EUR"
+  }: FormatMoneyOptions = {}
 ) {
   const normalizedValue =
     typeof value === "string" ? value.trim() : value;
@@ -75,5 +86,14 @@ export function formatEuroAmount(
         ? signedEuroNumberFormatter
         : euroNumberFormatter;
 
-  return `${addSubtleMoneyGrouping(formatter.format(amount))}\u20ac`;
+  return `${addSubtleMoneyGrouping(formatter.format(amount))}${getCurrencySymbol(
+    currency
+  )}`;
+}
+
+export function formatEuroAmount(
+  value: number | string,
+  options: Omit<FormatMoneyOptions, "currency"> = {}
+) {
+  return formatMoneyAmount(value, { ...options, currency: "EUR" });
 }
