@@ -15,6 +15,7 @@ import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { ActionButton } from "../../components/ui/ActionButton";
 import { acquireDragScrollLock } from "../../components/ui/drag-scroll-lock";
 import { formatErrorMessage } from "../../components/ui/error-message";
+import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { type TransactionType } from "./category-catalog";
 import {
@@ -48,6 +49,8 @@ type TransactionComposerProps = {
 
 type InvalidFields = Partial<Record<CreateTransactionField, boolean>>;
 
+type TransactionCurrencySelection = "EUR" | "USD";
+
 type TypeDragGesture = {
   pointerId: number;
   startX: number;
@@ -66,6 +69,10 @@ const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
 
 const TYPE_DRAG_THRESHOLD = 14;
 const TYPE_DRAG_OPTIONS: readonly TransactionType[] = ["INCOME", "EXPENSE"];
+const TRANSACTION_CURRENCY_OPTIONS = [
+  { value: "EUR", label: "\u20ac" },
+  { value: "USD", label: "$" }
+] as const;
 const MINIMUM_TRANSACTION_DATE = "2026-01-01";
 
 function isCreateTransactionField(
@@ -150,6 +157,8 @@ export function TransactionComposer({
 }: TransactionComposerProps) {
   const isEditing = transaction !== null;
   const [type, setType] = useState<TransactionType>("EXPENSE");
+  const [currency, setCurrency] =
+    useState<TransactionCurrencySelection>("EUR");
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
@@ -210,6 +219,7 @@ export function TransactionComposer({
           : null;
 
       setType(transaction?.type ?? "EXPENSE");
+      setCurrency(transaction?.currency ?? "EUR");
       setAmount(
         transaction ? formatStoredAmountInput(transaction.amount) : ""
       );
@@ -626,7 +636,16 @@ export function TransactionComposer({
           <h1 id="transaction-composer-title">
             {isEditing ? "Edit transaction" : "New transaction"}
           </h1>
-          <span aria-hidden="true" />
+          <SlidingSegmentedControl
+            className="transaction-currency-toggle"
+            value={currency}
+            options={TRANSACTION_CURRENCY_OPTIONS}
+            onChange={setCurrency}
+            label="Transaction currency"
+            compact
+            allowDrag={false}
+            disabled={isSubmitting}
+          />
         </div>
       </header>
 
@@ -676,7 +695,9 @@ export function TransactionComposer({
                     onChange={(event) => updateAmount(event.target.value)}
                   />
                 </span>
-                <span aria-hidden="true">€</span>
+                <span aria-hidden="true">
+                  {currency === "EUR" ? "\u20ac" : "$"}
+                </span>
               </div>
             </div>
 

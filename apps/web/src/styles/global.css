@@ -8680,7 +8680,7 @@ html.desktop-app-route .stats-view-stage {
   width: min(100%, 440px);
   height: 44px;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 82px minmax(0, 1fr) 82px;
   align-items: center;
   margin: 0 auto;
 }
@@ -8716,6 +8716,24 @@ html.desktop-app-route .stats-view-stage {
   width: 20px;
   height: 20px;
   stroke-width: 1.8;
+}
+
+.transaction-currency-toggle.sliding-segmented-control {
+  justify-self: end;
+  width: 82px;
+  height: 40px;
+  padding: 3px;
+  background: var(--color-surface);
+}
+
+.transaction-currency-toggle .sliding-segmented-control__indicator {
+  background: var(--color-primary-soft-strong);
+  border-color: var(--color-primary-border);
+}
+
+.transaction-currency-toggle.sliding-segmented-control button {
+  padding: 0;
+  font-size: 15px;
 }
 
 .transaction-composer__form {
