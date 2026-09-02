@@ -18,6 +18,10 @@ import type {
   CurrencyCode,
   CurrencyExchangeListItem
 } from "../currency/currency-api";
+import {
+  CurrencyApiError,
+  deleteCurrencyExchange
+} from "../currency/currency-api";
 
 type CurrencyExchangeDetailSheetProps = {
   exchange: CurrencyExchangeListItem | null;
@@ -25,6 +29,8 @@ type CurrencyExchangeDetailSheetProps = {
   suspended?: boolean;
   onClose: () => void;
   onEdit?: (exchange: CurrencyExchangeListItem) => void;
+  onDeleted?: () => void;
+  onSessionExpired?: () => void;
 };
 
 const ACTIONS_ANIMATION_MS = 220;
@@ -281,17 +287,28 @@ export function CurrencyExchangeDetailSheet({
   exchanges,
   suspended = false,
   onClose,
-  onEdit
+  onEdit,
+  onDeleted,
+  onSessionExpired
 }: CurrencyExchangeDetailSheetProps) {
   const titleId = useId();
   const dateId = useId();
+  const deleteTitleId = useId();
   const renderedExchangeRef = useRef<CurrencyExchangeListItem | null>(null);
+  const deleteConfirmRef = useRef<HTMLDivElement>(null);
+  const deleteConfirmOpenRef = useRef(false);
+  const isDeletingRef = useRef(false);
+  const deleteConfirmCloseTimerRef = useRef<number | null>(null);
   const shareNoticeTimerRef = useRef<number | null>(null);
   const open = exchange !== null;
   const [actionsOpen, setActionsOpen] = useState(false);
   const [actionsRendered, setActionsRendered] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [actionsInteractive, setActionsInteractive] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmClosing, setDeleteConfirmClosing] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareNotice, setShareNotice] = useState<{
     kind: "success" | "error";
@@ -304,19 +321,80 @@ export function CurrencyExchangeDetailSheet({
 
   const displayedExchange = exchange ?? renderedExchangeRef.current;
 
+  deleteConfirmOpenRef.current = deleteConfirmOpen;
+  isDeletingRef.current = isDeleting;
+
+  function openDeleteConfirm() {
+    if (deleteConfirmCloseTimerRef.current !== null) {
+      window.clearTimeout(deleteConfirmCloseTimerRef.current);
+      deleteConfirmCloseTimerRef.current = null;
+    }
+
+    setDeleteError(null);
+    setDeleteConfirmClosing(false);
+    setDeleteConfirmOpen(true);
+  }
+
+  function closeDeleteConfirm({ immediate = false } = {}) {
+    if (deleteConfirmCloseTimerRef.current !== null) {
+      window.clearTimeout(deleteConfirmCloseTimerRef.current);
+      deleteConfirmCloseTimerRef.current = null;
+    }
+
+    if (immediate || !deleteConfirmOpenRef.current) {
+      setDeleteConfirmClosing(false);
+      setDeleteConfirmOpen(false);
+      setDeleteError(null);
+      return;
+    }
+
+    setDeleteConfirmClosing(true);
+    deleteConfirmCloseTimerRef.current = window.setTimeout(() => {
+      deleteConfirmCloseTimerRef.current = null;
+      setDeleteConfirmClosing(false);
+      setDeleteConfirmOpen(false);
+      setDeleteError(null);
+    }, ACTIONS_ANIMATION_MS);
+  }
+
+  useEffect(() => {
+    if (!deleteConfirmOpen || deleteConfirmClosing) {
+      return;
+    }
+
+    const focusFrame = requestAnimationFrame(() => {
+      deleteConfirmRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => cancelAnimationFrame(focusFrame);
+  }, [deleteConfirmClosing, deleteConfirmOpen]);
+
   useEffect(() => {
     if (!open) {
       setActionsOpen(false);
+      closeDeleteConfirm({ immediate: true });
+      setIsDeleting(false);
       setIsSharing(false);
       setShareNotice(null);
       return;
     }
 
     setActionsOpen(false);
+    closeDeleteConfirm({ immediate: true });
+    setIsDeleting(false);
     setIsSharing(false);
     setShareNotice(null);
 
     function closeWithEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && deleteConfirmOpenRef.current) {
+        event.preventDefault();
+
+        if (!isDeletingRef.current) {
+          closeDeleteConfirm();
+        }
+        return;
+      }
+
       if (event.key === "Escape") {
         onClose();
       }
@@ -329,6 +407,10 @@ export function CurrencyExchangeDetailSheet({
       if (shareNoticeTimerRef.current !== null) {
         window.clearTimeout(shareNoticeTimerRef.current);
         shareNoticeTimerRef.current = null;
+      }
+      if (deleteConfirmCloseTimerRef.current !== null) {
+        window.clearTimeout(deleteConfirmCloseTimerRef.current);
+        deleteConfirmCloseTimerRef.current = null;
       }
     };
   }, [exchange?.id, onClose, open]);
@@ -433,6 +515,36 @@ export function CurrencyExchangeDetailSheet({
     }
   }
 
+  async function confirmDeleteExchange() {
+    if (!displayedExchange || isDeleting) {
+      return;
+    }
+
+    setDeleteError(null);
+    setIsDeleting(true);
+
+    try {
+      await deleteCurrencyExchange(displayedExchange.id);
+      closeDeleteConfirm({ immediate: true });
+      setActionsOpen(false);
+      onDeleted?.();
+    } catch (error) {
+      if (error instanceof CurrencyApiError && error.status === 401) {
+        closeDeleteConfirm({ immediate: true });
+        onSessionExpired?.();
+        return;
+      }
+
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete the exchange\nPlease try again"
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
   return createPortal(
     <div
       className={`transaction-detail-backdrop${open ? " is-open" : ""}`}
@@ -442,7 +554,14 @@ export function CurrencyExchangeDetailSheet({
         if (event.target === event.currentTarget) {
           event.preventDefault();
           event.stopPropagation();
-          onClose();
+
+          if (deleteConfirmOpen) {
+            if (!isDeleting) {
+              closeDeleteConfirm();
+            }
+          } else {
+            onClose();
+          }
         }
       }}
     >
@@ -454,6 +573,21 @@ export function CurrencyExchangeDetailSheet({
         aria-describedby={displayedExchange ? dateId : undefined}
         tabIndex={-1}
       >
+        {deleteConfirmOpen ? (
+          <div
+            className="transaction-detail-sheet__delete-dismiss-layer"
+            aria-hidden="true"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+
+              if (!isDeleting) {
+                closeDeleteConfirm();
+              }
+            }}
+          />
+        ) : null}
+
         <div className="transaction-detail-sheet__drag-region" aria-hidden="true">
           <span />
         </div>
@@ -468,8 +602,9 @@ export function CurrencyExchangeDetailSheet({
               aria-haspopup="menu"
               aria-expanded={actionsOpen}
               title="More"
-              disabled={isSharing}
+              disabled={isSharing || isDeleting}
               onClick={() => {
+                closeDeleteConfirm();
                 setActionsOpen((current) => !current);
               }}
             >
@@ -491,7 +626,7 @@ export function CurrencyExchangeDetailSheet({
                   role="menuitem"
                   aria-label="Share exchange"
                   title="Share"
-                  disabled={!actionsInteractive || isSharing}
+                  disabled={!actionsInteractive || deleteConfirmOpen || isSharing}
                   onClick={shareDisplayedExchange}
                 >
                   <Share aria-hidden="true" />
@@ -503,7 +638,7 @@ export function CurrencyExchangeDetailSheet({
                   role="menuitem"
                   aria-label="Edit exchange"
                   title="Edit"
-                  disabled={!actionsInteractive || !onEdit}
+                  disabled={!actionsInteractive || deleteConfirmOpen || !onEdit}
                   onClick={() => {
                     if (!displayedExchange || !onEdit) {
                       return;
@@ -522,11 +657,68 @@ export function CurrencyExchangeDetailSheet({
                   role="menuitem"
                   aria-label="Delete exchange"
                   title="Delete"
-                  disabled={!actionsInteractive}
-                  onClick={() => setActionsOpen(false)}
+                  disabled={!actionsInteractive || deleteConfirmOpen}
+                  onClick={() => {
+                    openDeleteConfirm();
+                  }}
                 >
                   <Trash2 aria-hidden="true" />
                 </ActionButton>
+              </div>
+            ) : null}
+
+            {deleteConfirmOpen && displayedExchange ? (
+              <div
+                ref={deleteConfirmRef}
+                className={`transaction-detail-delete-confirm${
+                  deleteConfirmClosing
+                    ? " transaction-detail-delete-confirm--closing"
+                    : ""
+                }`}
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby={deleteTitleId}
+                tabIndex={-1}
+              >
+                <strong id={deleteTitleId}>Delete permanently?</strong>
+                <span className="transaction-detail-delete-confirm__summary">
+                  <span>{formatDirection(displayedExchange)}</span>
+                  <b>
+                    {formatCurrencyAmount(
+                      displayedExchange.toAmount,
+                      displayedExchange.toCurrency
+                    )}
+                  </b>
+                </span>
+
+                {deleteError ? (
+                  <p
+                    className="transaction-detail-delete-confirm__error"
+                    role="alert"
+                  >
+                    {formatErrorMessage(deleteError)}
+                  </p>
+                ) : null}
+
+                <div className="transaction-detail-delete-confirm__actions">
+                  <ActionButton
+                    type="button"
+                    disabled={isDeleting}
+                    onClick={() => {
+                      closeDeleteConfirm();
+                    }}
+                  >
+                    Cancel
+                  </ActionButton>
+                  <ActionButton
+                    type="button"
+                    className="transaction-detail-delete-confirm__submit"
+                    disabled={isDeleting}
+                    onClick={confirmDeleteExchange}
+                  >
+                    {isDeleting ? "Deleting" : "Delete"}
+                  </ActionButton>
+                </div>
               </div>
             ) : null}
           </div>

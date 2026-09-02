@@ -283,3 +283,26 @@ export async function updateCurrencyExchange(
 
   return body.exchange;
 }
+
+export async function deleteCurrencyExchange(exchangeId: string) {
+  let response: Response;
+
+  try {
+    response = await fetch(`/api/currency/exchanges/${exchangeId}`, {
+      method: "DELETE",
+      credentials: "include"
+    });
+  } catch {
+    throw new CurrencyApiError(
+      "Unable to connect\nCheck your connection and try again",
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw await createCurrencyApiError(
+      response,
+      "Unable to delete the exchange\nPlease try again"
+    );
+  }
+}

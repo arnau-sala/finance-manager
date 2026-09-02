@@ -45,6 +45,7 @@ type UsdWalletPageProps = {
   onBack: () => void;
   onNewExchange: () => void;
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  onExchangeDeleted: () => void;
   editingExchangeId: string | null;
   updatedExchange: CurrencyExchangeListItem | null;
   onTransactionSelect: (transaction: TransactionPreview) => void;
@@ -510,6 +511,7 @@ export function UsdWalletPage({
   onBack,
   onNewExchange,
   onExchangeEdit,
+  onExchangeDeleted,
   editingExchangeId,
   updatedExchange,
   onTransactionSelect,
@@ -1007,6 +1009,11 @@ export function UsdWalletPage({
         }
         onClose={() => setSelectedExchange(null)}
         onEdit={onExchangeEdit}
+        onDeleted={() => {
+          setSelectedExchange(null);
+          onExchangeDeleted();
+        }}
+        onSessionExpired={onSessionExpired}
       />
     </div>
   );

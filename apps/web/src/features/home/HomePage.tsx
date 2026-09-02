@@ -99,6 +99,7 @@ type HomeSectionProps = {
   ) => void;
   onNewTransaction: () => void;
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  onExchangeDeleted: () => void;
   editingExchangeId: string | null;
   updatedExchange: CurrencyExchangeListItem | null;
   onNavigateToMoves: (filters?: MovesFilters) => void;
@@ -152,6 +153,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSectionScrollTopChange,
     onNewTransaction,
     onExchangeEdit,
+    onExchangeDeleted,
     editingExchangeId,
     updatedExchange,
     onTransactionSelect,
@@ -166,6 +168,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onStateChange={onMovesViewStateChange}
       onNewTransaction={onNewTransaction}
       onExchangeEdit={onExchangeEdit}
+      onExchangeDeleted={onExchangeDeleted}
       editingExchangeId={editingExchangeId}
       updatedExchange={updatedExchange}
       onTransactionSelect={onTransactionSelect}
@@ -410,6 +413,11 @@ export function HomePage({
     void invalidateAfterExchangeWrite(user.id);
   }
 
+  function finishExchangeDelete() {
+    setLastSavedExchange(null);
+    void invalidateAfterExchangeWrite(user.id);
+  }
+
   function finishProfileUpdate(updatedUser: SessionUser) {
     if (updatedUser.startingNetWorth !== user.startingNetWorth) {
       void invalidateAfterStartingNetWorthWrite(user.id);
@@ -568,6 +576,7 @@ export function HomePage({
           onSectionScrollTopChange: updateSectionScrollTop,
           onNewTransaction: openNewTransaction,
           onExchangeEdit: openExchangeEdit,
+          onExchangeDeleted: finishExchangeDelete,
           editingExchangeId: exchangeBeingEdited?.id ?? null,
           updatedExchange: lastSavedExchange,
           onNavigateToMoves: navigateToMoves,
@@ -664,6 +673,7 @@ export function HomePage({
         onBack={() => setIsUsdWalletOpen(false)}
         onNewExchange={openNewExchange}
         onExchangeEdit={openExchangeEdit}
+        onExchangeDeleted={finishExchangeDelete}
         editingExchangeId={exchangeBeingEdited?.id ?? null}
         updatedExchange={lastSavedExchange}
         onTransactionSelect={openTransaction}

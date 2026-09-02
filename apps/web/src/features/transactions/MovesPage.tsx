@@ -64,6 +64,7 @@ type MovesPageProps = {
   onStateChange: (state: MovesPageState) => void;
   onNewTransaction: () => void;
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  onExchangeDeleted: () => void;
   editingExchangeId: string | null;
   updatedExchange: CurrencyExchangeListItem | null;
   onTransactionSelect: (
@@ -302,6 +303,7 @@ export function MovesPage({
   onStateChange,
   onNewTransaction,
   onExchangeEdit,
+  onExchangeDeleted,
   editingExchangeId,
   updatedExchange,
   onTransactionSelect,
@@ -1026,6 +1028,11 @@ export function MovesPage({
         }
         onClose={() => setSelectedExchange(null)}
         onEdit={onExchangeEdit}
+        onDeleted={() => {
+          setSelectedExchange(null);
+          onExchangeDeleted();
+        }}
+        onSessionExpired={onSessionExpired}
       />
     </>
   );
