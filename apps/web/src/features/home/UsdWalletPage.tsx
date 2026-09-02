@@ -12,6 +12,7 @@ import {
   Percent,
   Plus,
   ReceiptText,
+  Search,
   Wallet
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -373,10 +374,10 @@ function UsdWalletSkeleton() {
 
 function UsdWalletError() {
   return (
-    <div className="usd-wallet-empty-state usd-wallet-empty-state--error">
-      <DollarSign aria-hidden="true" strokeWidth={1.7} />
-      <strong>Unable to load USD wallet</strong>
-      <span>Check your connection and try again</span>
+    <div className="moves-empty-state" role="alert">
+      <Search aria-hidden="true" />
+      <h2>Unable to load USD wallet</h2>
+      <p>Please try again later</p>
     </div>
   );
 }
@@ -475,6 +476,21 @@ function UsdTransactionHistoryRow({
   );
 }
 
+function UsdWalletHistoryRowSkeleton() {
+  return (
+    <li className="transaction-row transaction-row--skeleton" aria-hidden="true">
+      <div className="transaction-row__content">
+        <SkeletonBlock width={36} height={36} radius="50%" />
+        <span className="transaction-row-skeleton__details">
+          <SkeletonBlock width="72%" height={14} />
+          <SkeletonBlock width="54%" height={11} />
+        </span>
+        <SkeletonBlock width={62} height={14} />
+      </div>
+    </li>
+  );
+}
+
 function UsdWalletInsightRow({
   icon: Icon,
   label,
@@ -522,6 +538,7 @@ export function UsdWalletPage({
   onSessionExpired
 }: UsdWalletPageProps) {
   const screenRef = useRef<HTMLElement>(null);
+  const loadMoreSentinel = useRef<HTMLDivElement>(null);
   const [historyFilters, setHistoryFilters] =
     useState<UsdWalletHistoryFilters>(initialHistoryFilters);
   const [selectedExchange, setSelectedExchange] =
@@ -668,6 +685,36 @@ export function UsdWalletPage({
 
     screenRef.current?.scrollTo({ top: 0, left: 0 });
   }, [open]);
+
+  useEffect(() => {
+    const root = screenRef.current;
+    const sentinel = loadMoreSentinel.current;
+
+    if (!open || !root || !sentinel || !canLoadMoreTransactions) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && !transactionsQuery.isFetching) {
+          void transactionsQuery.fetchNextPage();
+        }
+      },
+      {
+        root,
+        rootMargin: "0px 0px -80px"
+      }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    canLoadMoreTransactions,
+    open,
+    transactions.length,
+    transactionsQuery.fetchNextPage,
+    transactionsQuery.isFetching
+  ]);
 
   useEffect(() => {
     if (!selectedExchange) {
@@ -970,18 +1017,18 @@ export function UsdWalletPage({
                           </Fragment>
                         );
                       })}
+                      {transactionsQuery.isFetchingNextPage
+                        ? Array.from({ length: 3 }, (_, index) => (
+                            <UsdWalletHistoryRowSkeleton key={`loading-${index}`} />
+                          ))
+                        : null}
                     </ul>
                     {canLoadMoreTransactions ? (
-                      <ActionButton
-                        className="usd-wallet-load-more"
-                        type="button"
-                        disabled={transactionsQuery.isFetchingNextPage}
-                        onClick={() => void transactionsQuery.fetchNextPage()}
-                      >
-                        {transactionsQuery.isFetchingNextPage
-                          ? "Loading movements"
-                          : "Load more movements"}
-                      </ActionButton>
+                      <div
+                        ref={loadMoreSentinel}
+                        className="moves-load-sentinel"
+                        aria-hidden="true"
+                      />
                     ) : null}
                   </>
                 ) : hasLoadedHistory ? (

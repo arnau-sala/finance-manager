@@ -33,6 +33,20 @@ function getConfiguredAllowedOrigins() {
     .filter((origin): origin is string => Boolean(origin));
 }
 
+function isDevelopmentTunnelOrigin(origin: string) {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+
+  try {
+    const { hostname, protocol } = new URL(origin);
+
+    return protocol === "https:" && hostname.endsWith(".devtunnels.ms");
+  } catch {
+    return false;
+  }
+}
+
 function getAllowedOrigins() {
   const configuredAllowedOrigins = getConfiguredAllowedOrigins();
 
@@ -68,7 +82,10 @@ export function registerOriginCheck(app: FastifyInstance) {
     const origin =
       typeof originHeader === "string" ? normalizeOrigin(originHeader) : null;
 
-    if (!origin || !allowedOrigins.has(origin)) {
+    if (
+      !origin ||
+      (!allowedOrigins.has(origin) && !isDevelopmentTunnelOrigin(origin))
+    ) {
       return reply.code(403).send({ error: "Origin not allowed" });
     }
   });
