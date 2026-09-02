@@ -26,6 +26,9 @@ updates:
       - dependency-name: "@prisma/client"
         versions:
           - ">=7.0.0"
+      - dependency-name: "@vitejs/plugin-react"
+        versions:
+          - ">=6.0.0"
 
   - package-ecosystem: github-actions
     directory: /
