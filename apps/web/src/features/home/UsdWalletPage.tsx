@@ -35,7 +35,8 @@ import {
   createTransactionListRequest,
   TransactionApiError,
   transactionsQueryOptions,
-  type TransactionListItem
+  type TransactionListItem,
+  type TransactionPreview
 } from "../transactions/transaction-api";
 
 type UsdWalletPageProps = {
@@ -46,6 +47,7 @@ type UsdWalletPageProps = {
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
   editingExchangeId: string | null;
   updatedExchange: CurrencyExchangeListItem | null;
+  onTransactionSelect: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
 
@@ -424,31 +426,47 @@ function EmptyHistory({
 }
 
 function UsdTransactionHistoryRow({
-  transaction
+  transaction,
+  onSelect
 }: {
   transaction: TransactionListItem;
+  onSelect?: () => void;
 }) {
   const Icon = getCategoryIcon(transaction.categoryId, transaction.type);
+  const content = (
+    <>
+      <span className="transaction-row__icon" aria-hidden="true">
+        <Icon />
+      </span>
+      <span className="transaction-row__details">
+        <strong>{transaction.description}</strong>
+        <span>
+          {transaction.category.name} &middot;{" "}
+          {formatShortDate(transaction.date)}
+        </span>
+      </span>
+      <strong
+        className={`transaction-row__amount transaction-row__amount--${transaction.type.toLowerCase()}`}
+      >
+        {formatSignedUsdTransactionAmount(transaction)}
+      </strong>
+    </>
+  );
 
   return (
     <li className="transaction-row usd-wallet-history-row">
-      <div className="transaction-row__content">
-        <span className="transaction-row__icon" aria-hidden="true">
-          <Icon />
-        </span>
-        <span className="transaction-row__details">
-          <strong>{transaction.description}</strong>
-          <span>
-            {transaction.category.name} &middot;{" "}
-            {formatShortDate(transaction.date)}
-          </span>
-        </span>
-        <strong
-          className={`transaction-row__amount transaction-row__amount--${transaction.type.toLowerCase()}`}
+      {onSelect ? (
+        <button
+          className="transaction-row__content"
+          type="button"
+          aria-label={`View ${transaction.description} transaction details`}
+          onClick={onSelect}
         >
-          {formatSignedUsdTransactionAmount(transaction)}
-        </strong>
-      </div>
+          {content}
+        </button>
+      ) : (
+        <div className="transaction-row__content">{content}</div>
+      )}
     </li>
   );
 }
@@ -494,6 +512,7 @@ export function UsdWalletPage({
   onExchangeEdit,
   editingExchangeId,
   updatedExchange,
+  onTransactionSelect,
   onSessionExpired
 }: UsdWalletPageProps) {
   const screenRef = useRef<HTMLElement>(null);
@@ -937,6 +956,9 @@ export function UsdWalletPage({
                             ) : (
                               <UsdTransactionHistoryRow
                                 transaction={entry.transaction}
+                                onSelect={() =>
+                                  onTransactionSelect(entry.transaction)
+                                }
                               />
                             )}
                           </Fragment>

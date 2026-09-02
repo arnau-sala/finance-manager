@@ -666,6 +666,7 @@ export function HomePage({
         onExchangeEdit={openExchangeEdit}
         editingExchangeId={exchangeBeingEdited?.id ?? null}
         updatedExchange={lastSavedExchange}
+        onTransactionSelect={openTransaction}
         onSessionExpired={onSessionExpired}
       />
 
