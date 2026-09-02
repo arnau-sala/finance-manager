@@ -7,6 +7,10 @@ export type HomeMove = {
     type: "INCOME" | "EXPENSE";
   };
   amount: string;
+  currency?: "EUR" | "USD";
+  originalAmount?: string;
+  baseAmount?: string;
+  exchangeRateBasePerUsd?: string | null;
   description: string;
   date: string;
 };

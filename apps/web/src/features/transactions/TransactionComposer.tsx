@@ -8,6 +8,7 @@ import {
   useRef,
   useState
 } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -15,7 +16,9 @@ import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { ActionButton } from "../../components/ui/ActionButton";
 import { acquireDragScrollLock } from "../../components/ui/drag-scroll-lock";
 import { formatErrorMessage } from "../../components/ui/error-message";
+import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { getTodayDateOnly } from "../../dates/date-only";
+import { usdWalletQueryOptions } from "../currency/currency-api";
 import { type TransactionType } from "./category-catalog";
 import {
   createTransaction,
@@ -32,13 +35,16 @@ import {
 import {
   type CreateTransactionInput,
   type CreateTransactionField,
+  type CreateTransactionFormInput,
   TRANSACTION_NAME_MAX_LENGTH,
   validateCreateTransaction
 } from "./transaction-validation";
 
 type TransactionComposerProps = {
+  userId: string;
   open: boolean;
   transaction: TransactionPreview | null;
+  initialCurrency?: TransactionCurrencySelection;
   disablePersistence?: boolean;
   onClose: () => void;
   onCreated: () => void;
@@ -47,6 +53,8 @@ type TransactionComposerProps = {
 };
 
 type InvalidFields = Partial<Record<CreateTransactionField, boolean>>;
+
+type TransactionCurrencySelection = "EUR" | "USD";
 
 type TypeDragGesture = {
   pointerId: number;
@@ -59,6 +67,8 @@ type TypeDragGesture = {
 const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
   "amount",
   "type",
+  "currency",
+  "baseAmount",
   "description",
   "categoryId",
   "date"
@@ -66,6 +76,10 @@ const CREATE_TRANSACTION_FIELDS: readonly CreateTransactionField[] = [
 
 const TYPE_DRAG_THRESHOLD = 14;
 const TYPE_DRAG_OPTIONS: readonly TransactionType[] = ["INCOME", "EXPENSE"];
+const TRANSACTION_CURRENCY_OPTIONS = [
+  { value: "EUR", label: "\u20ac" },
+  { value: "USD", label: "$" }
+] as const;
 const MINIMUM_TRANSACTION_DATE = "2026-01-01";
 
 function isCreateTransactionField(
@@ -107,14 +121,59 @@ function amountToComparableCents(value: string) {
   ).toString();
 }
 
+function getTransactionEditableAmount(transaction: TransactionPreview) {
+  return transaction.currency === "USD"
+    ? transaction.originalAmount ?? transaction.amount
+    : transaction.amount;
+}
+
+function amountInputToNumber(value: string) {
+  const amount = Number(value.trim().replace(",", "."));
+
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function formatCalculatedAmountInput(value: number) {
+  return value.toFixed(2).replace(".", ",");
+}
+
+function getUsdIncomeBaseAmountInput(
+  usdAmount: string,
+  averageRateBasePerUsd: string | null | undefined
+) {
+  const parsedUsdAmount = amountInputToNumber(usdAmount);
+  const parsedRate =
+    averageRateBasePerUsd === null || averageRateBasePerUsd === undefined
+      ? null
+      : Number(averageRateBasePerUsd);
+
+  if (
+    parsedUsdAmount === null ||
+    parsedUsdAmount <= 0 ||
+    parsedRate === null ||
+    !Number.isFinite(parsedRate) ||
+    parsedRate <= 0
+  ) {
+    return usdAmount;
+  }
+
+  return formatCalculatedAmountInput(parsedUsdAmount * parsedRate);
+}
+
 function getChangedFields(
   transaction: TransactionPreview,
   input: CreateTransactionInput
 ) {
   const changes: Partial<CreateTransactionInput> = {};
+  const transactionCurrency = transaction.currency ?? "EUR";
+  const transactionAmount = getTransactionEditableAmount(transaction);
 
   if (input.type !== transaction.type) {
     changes.type = input.type;
+  }
+
+  if (input.currency !== transactionCurrency) {
+    changes.currency = input.currency;
   }
 
   if (input.categoryId !== transaction.categoryId) {
@@ -131,17 +190,34 @@ function getChangedFields(
 
   if (
     amountToComparableCents(input.amount) !==
-    amountToComparableCents(transaction.amount)
+    amountToComparableCents(transactionAmount)
   ) {
     changes.amount = input.amount;
+  }
+
+  if (changes.currency && changes.amount === undefined) {
+    changes.amount = input.amount;
+  }
+
+  if (
+    input.currency === "USD" &&
+    input.type === "INCOME" &&
+    input.baseAmount !== undefined &&
+    (changes.amount !== undefined ||
+      changes.type !== undefined ||
+      changes.currency !== undefined)
+  ) {
+    changes.baseAmount = input.baseAmount;
   }
 
   return changes;
 }
 
 export function TransactionComposer({
+  userId,
   open,
   transaction,
+  initialCurrency = "EUR",
   disablePersistence = false,
   onClose,
   onCreated,
@@ -150,6 +226,8 @@ export function TransactionComposer({
 }: TransactionComposerProps) {
   const isEditing = transaction !== null;
   const [type, setType] = useState<TransactionType>("EXPENSE");
+  const [currency, setCurrency] =
+    useState<TransactionCurrencySelection>("EUR");
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
@@ -171,15 +249,25 @@ export function TransactionComposer({
   const suppressNextComposerClick = useRef(false);
   const previousFocus = useRef<HTMLElement | null>(null);
   const wasOpen = useRef(false);
+  const usdWalletQuery = useQuery({
+    ...usdWalletQueryOptions(userId),
+    enabled:
+      open && !disablePersistence && currency === "USD" && type === "INCOME"
+  });
+  const usdIncomeRate =
+    transaction?.currency === "USD" && transaction.exchangeRateBasePerUsd
+      ? transaction.exchangeRateBasePerUsd
+      : usdWalletQuery.data?.averageRateBasePerUsd;
 
   const hasChanges =
     transaction === null ||
     type !== transaction.type ||
+    currency !== (transaction.currency ?? "EUR") ||
     selectedCategoryId !== transaction.categoryId ||
     name.trim() !== transaction.description ||
     date !== transaction.date ||
     amountToComparableCents(amount) !==
-      amountToComparableCents(transaction.amount);
+      amountToComparableCents(getTransactionEditableAmount(transaction));
   const canSubmit =
     !isSubmitting &&
     amount.length > 0 &&
@@ -210,8 +298,11 @@ export function TransactionComposer({
           : null;
 
       setType(transaction?.type ?? "EXPENSE");
+      setCurrency(transaction?.currency ?? initialCurrency);
       setAmount(
-        transaction ? formatStoredAmountInput(transaction.amount) : ""
+        transaction
+          ? formatStoredAmountInput(getTransactionEditableAmount(transaction))
+          : ""
       );
       setSelectedCategoryId(transaction?.categoryId ?? null);
       setName(transaction?.description ?? "");
@@ -231,7 +322,7 @@ export function TransactionComposer({
     }
 
     wasOpen.current = open;
-  }, [open, transaction]);
+  }, [initialCurrency, open, transaction]);
 
   useEffect(() => {
     if (!open) {
@@ -482,13 +573,23 @@ export function TransactionComposer({
       return;
     }
 
-    const parsedTransaction = validateCreateTransaction({
+    const transactionInput: CreateTransactionFormInput = {
       amount,
       type,
+      currency,
       description: name,
       categoryId: selectedCategoryId ?? "",
       date
-    });
+    };
+
+    if (currency === "USD" && type === "INCOME") {
+      transactionInput.baseAmount = getUsdIncomeBaseAmountInput(
+        amount,
+        usdIncomeRate
+      );
+    }
+
+    const parsedTransaction = validateCreateTransaction(transactionInput);
 
     if (!parsedTransaction.success) {
       const nextInvalidFields: InvalidFields = {};
@@ -626,7 +727,16 @@ export function TransactionComposer({
           <h1 id="transaction-composer-title">
             {isEditing ? "Edit transaction" : "New transaction"}
           </h1>
-          <span aria-hidden="true" />
+          <SlidingSegmentedControl
+            className="transaction-currency-toggle"
+            value={currency}
+            options={TRANSACTION_CURRENCY_OPTIONS}
+            onChange={setCurrency}
+            label="Transaction currency"
+            compact
+            allowDrag={false}
+            disabled={isSubmitting}
+          />
         </div>
       </header>
 
@@ -676,7 +786,9 @@ export function TransactionComposer({
                     onChange={(event) => updateAmount(event.target.value)}
                   />
                 </span>
-                <span aria-hidden="true">€</span>
+                <span aria-hidden="true">
+                  {currency === "EUR" ? "\u20ac" : "$"}
+                </span>
               </div>
             </div>
 

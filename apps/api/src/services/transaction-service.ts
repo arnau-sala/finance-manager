@@ -21,6 +21,9 @@ type TransactionDetailAggregateRow = {
   type: TransactionType;
   categoryId: string;
   amountCents: number;
+  currency: Transaction["currency"];
+  originalAmountMinor: number | null;
+  exchangeRateBasePerUsd: Prisma.Decimal | null;
   description: string;
   occurredOn: Date;
   createdAt: Date;
@@ -66,6 +69,16 @@ export function toTransactionResponse(
     categoryId: transaction.categoryId,
     category: transaction.category,
     amount: centsToDecimal(transaction.amountCents),
+    currency: transaction.currency,
+    originalAmount:
+      transaction.currency === "USD"
+        ? centsToDecimal(
+            transaction.originalAmountMinor ?? transaction.amountCents,
+          )
+        : centsToDecimal(transaction.amountCents),
+    baseAmount: centsToDecimal(transaction.amountCents),
+    exchangeRateBasePerUsd:
+      transaction.exchangeRateBasePerUsd?.toString() ?? null,
     description: transaction.description,
     date: formatDateOnly(transaction.occurredOn),
     createdAt: transaction.createdAt.toISOString(),
@@ -139,6 +152,9 @@ export async function getTransactionDetail(
           t."type",
           t."categoryId",
           t."amountCents",
+          t."currency",
+          t."originalAmountMinor",
+          t."exchangeRateBasePerUsd",
           t."description",
           t."occurredOn",
           t."createdAt",
@@ -196,6 +212,9 @@ export async function getTransactionDetail(
         target."type",
         target."categoryId",
         target."amountCents",
+        target."currency",
+        target."originalAmountMinor",
+        target."exchangeRateBasePerUsd",
         target."description",
         target."occurredOn",
         target."createdAt",
@@ -306,6 +325,9 @@ export async function getTransactionDetail(
         target."type",
         target."categoryId",
         target."amountCents",
+        target."currency",
+        target."originalAmountMinor",
+        target."exchangeRateBasePerUsd",
         target."description",
         target."occurredOn",
         target."createdAt",
@@ -331,6 +353,9 @@ export async function getTransactionDetail(
     type: row.type,
     categoryId: row.categoryId,
     amountCents: row.amountCents,
+    currency: row.currency,
+    originalAmountMinor: row.originalAmountMinor,
+    exchangeRateBasePerUsd: row.exchangeRateBasePerUsd,
     description: row.description,
     occurredOn: row.occurredOn,
     createdAt: row.createdAt,

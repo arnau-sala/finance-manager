@@ -10,6 +10,7 @@ type TransactionDateFieldProps = {
   minimumDate: string;
   maximumDate: string;
   onChange: (value: string) => void;
+  pickerPlacement?: "above" | "below" | "auto";
   name?: string;
   disabled?: boolean;
   selected?: boolean;
@@ -24,6 +25,7 @@ export function TransactionDateField({
   minimumDate,
   maximumDate,
   onChange,
+  pickerPlacement = "above",
   disabled = false,
   selected = value.length > 0,
   invalid = false,
@@ -68,7 +70,7 @@ export function TransactionDateField({
           onChange(nextDate);
         }}
         onClose={() => setIsPickerOpen(false)}
-        placement="above"
+        placement={pickerPlacement}
       />
     </div>
   );

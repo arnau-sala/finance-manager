@@ -7,13 +7,13 @@ import {
   getTodayDateOnly,
 } from "../dates/date-only.js";
 import { db } from "../db/client.js";
-import { centsToDecimal } from "../money/cents.js";
 import { financialReadRateLimit } from "../security/rate-limit.js";
 import {
   getUserBalance,
   getUserTransactionActivity
 } from "../services/statistics-service.js";
 import { getCurrentNetWorth } from "../services/net-worth-service.js";
+import { toTransactionResponse } from "../services/transaction-service.js";
 
 const latestMoveLimit = 3;
 
@@ -56,10 +56,16 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
             take: latestMoveLimit,
             select: {
               id: true,
+              userId: true,
               type: true,
+              categoryId: true,
               amountCents: true,
+              currency: true,
+              originalAmountMinor: true,
+              exchangeRateBasePerUsd: true,
               description: true,
               occurredOn: true,
+              createdAt: true,
               category: {
                 select: {
                   id: true,
@@ -80,14 +86,7 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
           ...balance,
           currentNetWorth
         },
-        latestMoves: latestMoves.map((move) => ({
-          id: move.id,
-          type: move.type,
-          category: move.category,
-          amount: centsToDecimal(move.amountCents),
-          description: move.description,
-          date: formatDateOnly(move.occurredOn)
-        })),
+        latestMoves: latestMoves.map(toTransactionResponse),
         activity: {
           month: period.month,
           year: period.year,

@@ -10,6 +10,7 @@ import { authMeRoutes } from "./routes/auth-me.js";
 import { authRoutes } from "./routes/auth.js";
 import { passwordRecoveryRoutes } from "./routes/password-recovery.js";
 import { categoryRoutes } from "./routes/categories.js";
+import { currencyRoutes } from "./routes/currency.js";
 import { feedbackRoutes } from "./routes/feedback.js";
 import { homeRoutes } from "./routes/home.js";
 import { statisticsRoutes } from "./routes/statistics.js";
@@ -65,6 +66,7 @@ export function buildApp() {
   app.register(passwordRecoveryRoutes);
   app.register(authMeRoutes);
   app.register(categoryRoutes);
+  app.register(currencyRoutes);
   app.register(feedbackRoutes);
   app.register(homeRoutes);
   app.register(statisticsRoutes);
