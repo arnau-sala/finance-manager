@@ -106,6 +106,54 @@ describe("financial routes", () => {
     await app.close();
   });
 
+  it("stores explicit feedback emails and trims optional landing contact data", async () => {
+    const app = await createRoutesApp();
+
+    const general = await app.inject({
+      method: "POST",
+      url: "/api/feedback",
+      payload: {
+        type: "general",
+        message: "Something feels off",
+        email: "custom@example.com",
+      },
+    });
+    expect(general.statusCode).toBe(201);
+    expect(dbMocks.feedbackCreate).toHaveBeenLastCalledWith({
+      data: {
+        type: "GENERAL",
+        message: "Something feels off",
+        userId: "user-1",
+        name: null,
+        email: "custom@example.com",
+      },
+    });
+
+    authMocks.getAuthenticatedUser.mockResolvedValueOnce(null);
+    const landing = await app.inject({
+      method: "POST",
+      url: "/api/feedback",
+      payload: {
+        type: "landing",
+        message: "Landing modal feedback",
+        name: "   ",
+        email: "   ",
+      },
+    });
+    expect(landing.statusCode).toBe(201);
+    expect(dbMocks.feedbackCreate).toHaveBeenLastCalledWith({
+      data: {
+        type: "LANDING",
+        message: "Landing modal feedback",
+        userId: null,
+        name: null,
+        email: null,
+      },
+    });
+
+    await app.close();
+  });
+
   it("rejects unauthenticated account feedback and invalid payloads", async () => {
     const app = await createRoutesApp();
     authMocks.getAuthenticatedUser.mockResolvedValue(null);
