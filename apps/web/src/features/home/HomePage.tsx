@@ -31,6 +31,7 @@ import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import type { CurrencyExchangeListItem } from "../currency/currency-api";
+import type { TransactionCurrencyCode } from "../transactions/transaction-validation";
 import { AddExchangePage } from "./AddExchangePage";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
@@ -286,6 +287,8 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [newTransactionInitialCurrency, setNewTransactionInitialCurrency] =
+    useState<TransactionCurrencyCode>("EUR");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isAppVersionOpen, setIsAppVersionOpen] = useState(false);
@@ -365,13 +368,16 @@ export function HomePage({
     }
   }, [activeSection, onInitialContentReady]);
 
-  function openNewTransaction() {
+  function openNewTransaction(
+    initialCurrency: TransactionCurrencyCode = "EUR"
+  ) {
     if (lockSectionNavigation && !allowLockedNewTransaction) {
       return;
     }
 
     prefetchScheduler.prioritizeUserRequest();
     setTransactionBeingEdited(null);
+    setNewTransactionInitialCurrency(initialCurrency);
     setIsTransactionComposerOpen(true);
   }
 
@@ -672,6 +678,7 @@ export function HomePage({
         userId={user.id}
         onBack={() => setIsUsdWalletOpen(false)}
         onNewExchange={openNewExchange}
+        onNewTransaction={() => openNewTransaction("USD")}
         onExchangeEdit={openExchangeEdit}
         onExchangeDeleted={finishExchangeDelete}
         editingExchangeId={exchangeBeingEdited?.id ?? null}
@@ -690,6 +697,7 @@ export function HomePage({
         userId={user.id}
         open={isTransactionComposerOpen}
         transaction={transactionBeingEdited}
+        initialCurrency={newTransactionInitialCurrency}
         disablePersistence={lockSectionNavigation}
         onClose={() => setIsTransactionComposerOpen(false)}
         onCreated={finishFinancialWrite}

@@ -44,6 +44,7 @@ type TransactionComposerProps = {
   userId: string;
   open: boolean;
   transaction: TransactionPreview | null;
+  initialCurrency?: TransactionCurrencySelection;
   disablePersistence?: boolean;
   onClose: () => void;
   onCreated: () => void;
@@ -216,6 +217,7 @@ export function TransactionComposer({
   userId,
   open,
   transaction,
+  initialCurrency = "EUR",
   disablePersistence = false,
   onClose,
   onCreated,
@@ -296,7 +298,7 @@ export function TransactionComposer({
           : null;
 
       setType(transaction?.type ?? "EXPENSE");
-      setCurrency(transaction?.currency ?? "EUR");
+      setCurrency(transaction?.currency ?? initialCurrency);
       setAmount(
         transaction
           ? formatStoredAmountInput(getTransactionEditableAmount(transaction))
@@ -320,7 +322,7 @@ export function TransactionComposer({
     }
 
     wasOpen.current = open;
-  }, [open, transaction]);
+  }, [initialCurrency, open, transaction]);
 
   useEffect(() => {
     if (!open) {

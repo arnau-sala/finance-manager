@@ -44,6 +44,7 @@ type UsdWalletPageProps = {
   userId: string;
   onBack: () => void;
   onNewExchange: () => void;
+  onNewTransaction: () => void;
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
   onExchangeDeleted: () => void;
   editingExchangeId: string | null;
@@ -383,11 +384,13 @@ function UsdWalletError() {
 function EmptyHistory({
   title,
   description,
+  onNewTransaction,
   onNewExchange,
   showActions = false
 }: {
   title: string;
   description: string;
+  onNewTransaction?: () => void;
   onNewExchange?: () => void;
   showActions?: boolean;
 }) {
@@ -401,7 +404,7 @@ function EmptyHistory({
           <ActionButton
             className="home-new-transaction usd-wallet-history-empty__action"
             type="button"
-            onClick={() => undefined}
+            onClick={onNewTransaction}
           >
             <span className="home-new-transaction__icon" aria-hidden="true">
               <Plus />
@@ -510,6 +513,7 @@ export function UsdWalletPage({
   userId,
   onBack,
   onNewExchange,
+  onNewTransaction,
   onExchangeEdit,
   onExchangeDeleted,
   editingExchangeId,
@@ -984,6 +988,7 @@ export function UsdWalletPage({
                   <EmptyHistory
                     title="No matching movements"
                     description="Turn on another type to see more USD history"
+                    onNewTransaction={onNewTransaction}
                     onNewExchange={onNewExchange}
                     showActions
                   />
@@ -991,6 +996,7 @@ export function UsdWalletPage({
                   <EmptyHistory
                     title="No USD history yet"
                     description="Dollar movements will appear here when you add them"
+                    onNewTransaction={onNewTransaction}
                     onNewExchange={onNewExchange}
                     showActions
                   />
