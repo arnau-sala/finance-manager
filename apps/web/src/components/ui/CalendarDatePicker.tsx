@@ -60,7 +60,7 @@ type CalendarDatePickerProps = {
   maximumDate: string;
   onSelect: (date: string) => boolean | void;
   onClose: () => void;
-  placement?: "above" | "below";
+  placement?: "above" | "below" | "auto";
 };
 
 function getDateParts(value: string) {

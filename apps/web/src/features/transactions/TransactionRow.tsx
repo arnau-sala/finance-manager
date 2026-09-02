@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 
 import { parseLocalDateOnly } from "../../dates/date-only";
-import { formatEuroAmount } from "../../money/format-euro";
+import { formatMoneyAmount, type MoneyCurrencyCode } from "../../money/format-euro";
 import { getCategoryIcon, type TransactionType } from "./category-catalog";
 
 export type TransactionRowData = {
@@ -9,6 +9,8 @@ export type TransactionRowData = {
   categoryId: string;
   categoryName: string;
   amount: string | number;
+  currency?: MoneyCurrencyCode;
+  originalAmount?: string | number;
   description: string;
   date: string;
   onSelect?: () => void;
@@ -16,10 +18,22 @@ export type TransactionRowData = {
 
 function formatTransactionAmount(
   amount: TransactionRowData["amount"],
-  type: TransactionType
+  type: TransactionType,
+  currency: MoneyCurrencyCode,
+  originalAmount?: TransactionRowData["originalAmount"]
 ) {
   const normalizedAmount =
-    typeof amount === "string" ? amount.trim() : amount;
+    typeof (currency === "USD" && originalAmount !== undefined
+      ? originalAmount
+      : amount) === "string"
+      ? String(
+          currency === "USD" && originalAmount !== undefined
+            ? originalAmount
+            : amount
+        ).trim()
+      : currency === "USD" && originalAmount !== undefined
+        ? originalAmount
+        : amount;
   const numericAmount =
     normalizedAmount === "" ? Number.NaN : Number(normalizedAmount);
 
@@ -30,7 +44,7 @@ function formatTransactionAmount(
   const signedAmount =
     type === "INCOME" ? Math.abs(numericAmount) : -Math.abs(numericAmount);
 
-  return formatEuroAmount(signedAmount, { showSign: true });
+  return formatMoneyAmount(signedAmount, { currency, showSign: true });
 }
 
 function formatTransactionDate(value: string) {
@@ -64,6 +78,8 @@ export const TransactionRow = forwardRef<HTMLLIElement, TransactionRowData>(
       categoryId,
       categoryName,
       amount,
+      currency = "EUR",
+      originalAmount,
       description,
       date,
       onSelect
@@ -85,7 +101,7 @@ export const TransactionRow = forwardRef<HTMLLIElement, TransactionRowData>(
       <span
         className={`transaction-row__amount transaction-row__amount--${type.toLowerCase()}`}
       >
-        {formatTransactionAmount(amount, type)}
+        {formatTransactionAmount(amount, type, currency, originalAmount)}
       </span>
     </>
   );

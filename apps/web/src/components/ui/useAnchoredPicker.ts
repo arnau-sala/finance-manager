@@ -24,7 +24,7 @@ type UseAnchoredPickerOptions = {
   onClose: () => void;
   positionKey?: string | number;
   anchorGap?: number;
-  placement?: "above" | "below";
+  placement?: "above" | "below" | "auto";
 };
 
 export function useAnchoredPicker({
@@ -103,8 +103,17 @@ export function useAnchoredPicker({
         (window.innerWidth - dialogWidth) / 2
       );
       const maximumTop = window.innerHeight - dialogHeight - viewportMargin;
+      const spaceAbove = anchorRect.top - viewportMargin - anchorGap;
+      const spaceBelow =
+        window.innerHeight - anchorRect.bottom - viewportMargin - anchorGap;
+      const resolvedPlacement =
+        placement === "auto"
+          ? spaceBelow >= dialogHeight || spaceBelow >= spaceAbove
+            ? "below"
+            : "above"
+          : placement;
       const requestedTop =
-        placement === "above"
+        resolvedPlacement === "above"
           ? anchorRect.top - dialogHeight - anchorGap
           : anchorRect.bottom + anchorGap;
       const top = Math.min(

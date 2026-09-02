@@ -4,7 +4,7 @@ apps/api/dist/
 apps/api/prebuilds/
 apps/api/api/prebuilds/
 apps/web/dist/
-apps/web/storybook-static/
+apps/web/storybook-static*/
 apps/web/tsconfig.tsbuildinfo
 apps/api/.env
 apps/api/.env.test

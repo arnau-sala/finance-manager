@@ -121,20 +121,31 @@ describe("transaction API clients", () => {
     const request = createTransactionListRequest("  Lunch ", filters);
     expect(request).toMatchObject({
       search: "lunch",
+      currency: "ALL",
       minimumAmountCents: 1050,
       categoryIds: ["expense-dining", "expense-health"],
     });
 
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      transactions: [],
-      pagination: { limit: 20, offset: 0, nextOffset: null, total: 0 },
-      metadata: { accountTransactionCount: 0, minimumDate: null },
-    }), { status: 200 }));
+    const usdRequest = createTransactionListRequest("", filters, {
+      currency: "USD",
+    });
+
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(new Response(JSON.stringify({
+        transactions: [],
+        pagination: { limit: 20, offset: 0, nextOffset: null, total: 0 },
+        metadata: { accountTransactionCount: 0, minimumDate: null },
+      }), { status: 200 }))
+    );
     vi.stubGlobal("fetch", fetchMock);
     const options = transactionsQueryOptions("user-1", request);
     await options.queryFn?.({ pageParam: 0, signal: undefined } as never);
     expect(String(fetchMock.mock.calls[0][0])).toContain("minimumAmountCents=1050");
     expect(String(fetchMock.mock.calls[0][0])).toContain("categories=expense-dining%2Cexpense-health");
+
+    const usdOptions = transactionsQueryOptions("user-1", usdRequest);
+    await usdOptions.queryFn?.({ pageParam: 0, signal: undefined } as never);
+    expect(String(fetchMock.mock.calls[1][0])).toContain("currency=USD");
   });
 
   it("creates, updates and deletes transactions with encoded identifiers", async () => {

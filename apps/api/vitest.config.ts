@@ -25,6 +25,7 @@ export default defineConfig({
         "src/routes/categories.ts",
         "src/routes/feedback.ts",
         "src/services/net-worth-service.ts",
+        "src/services/currency-ledger-service.ts",
         "src/services/statistics-period.ts",
         "src/services/transaction-service.ts",
       ],

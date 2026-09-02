@@ -71,7 +71,7 @@ export function FatalErrorFallback() {
             disabled={!sessionChecked}
             onClick={() => setFeedbackOpen(true)}
           >
-            {sessionChecked ? "Report error" : "Preparing feedback"}
+            Report error
           </ActionButton>
         </div>
       </main>

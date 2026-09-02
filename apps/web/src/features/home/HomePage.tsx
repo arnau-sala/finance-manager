@@ -7,6 +7,7 @@ import {
 } from "react";
 
 import {
+  invalidateAfterExchangeWrite,
   invalidateAfterStartingNetWorthWrite,
   invalidateAfterTransactionWrite
 } from "../../cache/financial-cache";
@@ -29,6 +30,9 @@ import {
 import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
+import type { CurrencyExchangeListItem } from "../currency/currency-api";
+import type { TransactionCurrencyCode } from "../transactions/transaction-validation";
+import { AddExchangePage } from "./AddExchangePage";
 import { HomeFooterNav } from "./HomeFooterNav";
 import { HomeOverviewPage } from "./HomeOverviewPage";
 import { AppVersionPage } from "./AppVersionPage";
@@ -40,6 +44,7 @@ import type { HomeSectionId } from "./home-sections";
 import { ProfilePage } from "./ProfilePage";
 import { RecoveryCodeResetPage } from "./RecoveryCodeResetPage";
 import { UsernameLinkFlow } from "./UsernameLinkFlow";
+import { UsdWalletPage } from "./UsdWalletPage";
 
 export type GoogleAccountDeletionFeedback = "mismatch" | "failed" | "cancelled";
 export type GoogleAccountLinkFeedback =
@@ -55,6 +60,9 @@ export type GoogleAccountUnlinkFeedback =
 
 type HomePageProps = {
   user: SessionUser;
+  initialSection?: HomeSectionId;
+  lockSectionNavigation?: boolean;
+  allowLockedNewTransaction?: boolean;
   onProfileUpdated: (user: SessionUser) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -77,6 +85,8 @@ type HomeSectionProps = {
   onFeedback: () => void;
   onLinkEmail: () => void;
   onLinkUsername: () => void;
+  onUsdWallet: () => void;
+  onAddExchange: () => void;
   onRecoveryCodeReset: (result: RecoveryCodeResetResult) => void;
   onLogout: () => Promise<void>;
   onAccountDeleted: () => void;
@@ -89,6 +99,10 @@ type HomeSectionProps = {
     scrollTop: number
   ) => void;
   onNewTransaction: () => void;
+  onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
+  onExchangeDeleted: () => void;
+  editingExchangeId: string | null;
+  updatedExchange: CurrencyExchangeListItem | null;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (
     transaction: TransactionPreview,
@@ -139,6 +153,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     sectionScrollTops,
     onSectionScrollTopChange,
     onNewTransaction,
+    onExchangeEdit,
+    onExchangeDeleted,
+    editingExchangeId,
+    updatedExchange,
     onTransactionSelect,
     movesScrollTarget,
     onMovesScrollTargetHandled,
@@ -150,6 +168,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       initialState={movesViewState}
       onStateChange={onMovesViewStateChange}
       onNewTransaction={onNewTransaction}
+      onExchangeEdit={onExchangeEdit}
+      onExchangeDeleted={onExchangeDeleted}
+      editingExchangeId={editingExchangeId}
+      updatedExchange={updatedExchange}
       onTransactionSelect={onTransactionSelect}
       scrollTarget={movesScrollTarget}
       onScrollTargetHandled={onMovesScrollTargetHandled}
@@ -190,6 +212,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onFeedback,
     onLinkEmail,
     onLinkUsername,
+    onUsdWallet,
+    onAddExchange,
     onRecoveryCodeReset,
     onLogout,
     onAccountDeleted,
@@ -215,6 +239,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onFeedback={onFeedback}
       onLinkEmail={onLinkEmail}
       onLinkUsername={onLinkUsername}
+      onUsdWallet={onUsdWallet}
+      onAddExchange={onAddExchange}
       onRecoveryCodeReset={onRecoveryCodeReset}
       onLogout={onLogout}
       onAccountDeleted={onAccountDeleted}
@@ -237,6 +263,9 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
 
 export function HomePage({
   user,
+  initialSection,
+  lockSectionNavigation = false,
+  allowLockedNewTransaction = false,
   onProfileUpdated,
   onLogout,
   onAccountDeleted,
@@ -254,10 +283,12 @@ export function HomePage({
       googleAccountLinkFeedback ||
       googleAccountUnlinkFeedback
       ? "profile"
-      : "home"
+      : initialSection ?? "home"
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [newTransactionInitialCurrency, setNewTransactionInitialCurrency] =
+    useState<TransactionCurrencyCode>("EUR");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isAppVersionOpen, setIsAppVersionOpen] = useState(false);
@@ -266,12 +297,18 @@ export function HomePage({
     useState(false);
   const [isEmailLinkOpen, setIsEmailLinkOpen] = useState(false);
   const [isUsernameLinkOpen, setIsUsernameLinkOpen] = useState(false);
+  const [isUsdWalletOpen, setIsUsdWalletOpen] = useState(false);
+  const [isAddExchangeOpen, setIsAddExchangeOpen] = useState(false);
   const [recoveryCodeReset, setRecoveryCodeReset] =
     useState<RecoveryCodeResetResult | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionPreview | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
     useState<TransactionPreview | null>(null);
+  const [exchangeBeingEdited, setExchangeBeingEdited] =
+    useState<CurrencyExchangeListItem | null>(null);
+  const [lastSavedExchange, setLastSavedExchange] =
+    useState<CurrencyExchangeListItem | null>(null);
   const [movesScrollTarget, setMovesScrollTarget] =
     useState<MovesScrollTarget | null>(null);
   const movesSelectedTransactionViewportOffset = useRef<number | null>(
@@ -319,6 +356,8 @@ export function HomePage({
     isFeatureSuggestionOpen ||
     isEmailLinkOpen ||
     isUsernameLinkOpen ||
+    isUsdWalletOpen ||
+    isAddExchangeOpen ||
     recoveryCodeReset !== null ||
     isTransactionComposerOpen ||
     selectedTransaction !== null;
@@ -329,9 +368,16 @@ export function HomePage({
     }
   }, [activeSection, onInitialContentReady]);
 
-  function openNewTransaction() {
+  function openNewTransaction(
+    initialCurrency: TransactionCurrencyCode = "EUR"
+  ) {
+    if (lockSectionNavigation && !allowLockedNewTransaction) {
+      return;
+    }
+
     prefetchScheduler.prioritizeUserRequest();
     setTransactionBeingEdited(null);
+    setNewTransactionInitialCurrency(initialCurrency);
     setIsTransactionComposerOpen(true);
   }
 
@@ -366,6 +412,18 @@ export function HomePage({
     });
   }
 
+  function finishExchangeWrite(exchange?: CurrencyExchangeListItem) {
+    setIsAddExchangeOpen(false);
+    setExchangeBeingEdited(null);
+    setLastSavedExchange(exchange ?? null);
+    void invalidateAfterExchangeWrite(user.id);
+  }
+
+  function finishExchangeDelete() {
+    setLastSavedExchange(null);
+    void invalidateAfterExchangeWrite(user.id);
+  }
+
   function finishProfileUpdate(updatedUser: SessionUser) {
     if (updatedUser.startingNetWorth !== user.startingNetWorth) {
       void invalidateAfterStartingNetWorthWrite(user.id);
@@ -375,6 +433,10 @@ export function HomePage({
   }
 
   function navigateToMoves(filters = createEmptyMovesFilters()) {
+    if (lockSectionNavigation) {
+      return;
+    }
+
     prefetchScheduler.prioritizeUserRequest();
     setScrollToTopRequest(null);
     setMovesViewState(createInitialMovesPageState(filters));
@@ -382,6 +444,10 @@ export function HomePage({
   }
 
   function changeSection(section: HomeSectionId) {
+    if (lockSectionNavigation) {
+      return;
+    }
+
     if (section === activeSection) {
       setScrollToTopRequest((current) => ({
         section,
@@ -405,6 +471,26 @@ export function HomePage({
     setSelectedTransaction(transaction);
   }
 
+  function openNewExchange() {
+    if (lockSectionNavigation) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+    setExchangeBeingEdited(null);
+    setIsAddExchangeOpen(true);
+  }
+
+  function openExchangeEdit(exchange: CurrencyExchangeListItem) {
+    if (lockSectionNavigation) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+    setExchangeBeingEdited(exchange);
+    setIsAddExchangeOpen(true);
+  }
+
   return (
     <main className="home-screen">
       <div
@@ -416,6 +502,7 @@ export function HomePage({
           isFeatureSuggestionOpen ||
           isEmailLinkOpen ||
           isUsernameLinkOpen ||
+          isUsdWalletOpen ||
           recoveryCodeReset
             ? " is-account-page-open"
             : ""
@@ -427,28 +514,63 @@ export function HomePage({
           user,
           onProfileUpdated: finishProfileUpdate,
           onEditProfile: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsEditProfileOpen(true);
           },
           onChangePassword: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsChangePasswordOpen(true);
           },
           onAppVersion: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsAppVersionOpen(true);
           },
           onFeedback: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsGeneralFeedbackOpen(true);
           },
           onLinkEmail: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsEmailLinkOpen(true);
           },
           onLinkUsername: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
             prefetchScheduler.prioritizeUserRequest();
             setIsUsernameLinkOpen(true);
+          },
+          onUsdWallet: () => {
+            if (lockSectionNavigation) {
+              return;
+            }
+
+            prefetchScheduler.prioritizeUserRequest();
+            setIsUsdWalletOpen(true);
+          },
+          onAddExchange: () => {
+            openNewExchange();
           },
           onRecoveryCodeReset: setRecoveryCodeReset,
           onLogout,
@@ -459,6 +581,10 @@ export function HomePage({
           sectionScrollTops,
           onSectionScrollTopChange: updateSectionScrollTop,
           onNewTransaction: openNewTransaction,
+          onExchangeEdit: openExchangeEdit,
+          onExchangeDeleted: finishExchangeDelete,
+          editingExchangeId: exchangeBeingEdited?.id ?? null,
+          updatedExchange: lastSavedExchange,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,
           movesScrollTarget,
@@ -477,6 +603,7 @@ export function HomePage({
         <HomeFooterNav
           activeSection={activeSection}
           onSectionSelect={changeSection}
+          disabled={lockSectionNavigation}
         />
       </div>
 
@@ -534,6 +661,32 @@ export function HomePage({
         onSessionExpired={onSessionExpired}
       />
 
+      <AddExchangePage
+        open={isAddExchangeOpen}
+        exchange={exchangeBeingEdited}
+        onClose={() => {
+          setIsAddExchangeOpen(false);
+          setExchangeBeingEdited(null);
+        }}
+        onCreated={finishExchangeWrite}
+        onUpdated={finishExchangeWrite}
+        onSessionExpired={onSessionExpired}
+      />
+
+      <UsdWalletPage
+        open={isUsdWalletOpen}
+        userId={user.id}
+        onBack={() => setIsUsdWalletOpen(false)}
+        onNewExchange={openNewExchange}
+        onNewTransaction={() => openNewTransaction("USD")}
+        onExchangeEdit={openExchangeEdit}
+        onExchangeDeleted={finishExchangeDelete}
+        editingExchangeId={exchangeBeingEdited?.id ?? null}
+        updatedExchange={lastSavedExchange}
+        onTransactionSelect={openTransaction}
+        onSessionExpired={onSessionExpired}
+      />
+
       <RecoveryCodeResetPage
         result={recoveryCodeReset}
         onDone={() => setRecoveryCodeReset(null)}
@@ -541,8 +694,11 @@ export function HomePage({
       />
 
       <TransactionComposer
+        userId={user.id}
         open={isTransactionComposerOpen}
         transaction={transactionBeingEdited}
+        initialCurrency={newTransactionInitialCurrency}
+        disablePersistence={lockSectionNavigation}
         onClose={() => setIsTransactionComposerOpen(false)}
         onCreated={finishFinancialWrite}
         onUpdated={finishFinancialWrite}

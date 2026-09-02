@@ -6,6 +6,7 @@ export type StatisticsPeriodCacheKey =
 export type TransactionListCacheKey = {
   search: string;
   type: "ALL" | "INCOME" | "EXPENSE";
+  currency: "ALL" | "EUR" | "USD";
   categoryIds: readonly string[];
   exactAmountCents: number | null;
   minimumAmountCents: number | null;
@@ -37,6 +38,12 @@ export const financialQueryKeys = {
       ...financialQueryKeys.transactionDetails(userId),
       transactionId
     ] as const,
+  currency: (userId: string) =>
+    [...financialQueryKeys.user(userId), "currency"] as const,
+  usdWallet: (userId: string) =>
+    [...financialQueryKeys.currency(userId), "wallet", "usd"] as const,
+  currencyExchanges: (userId: string) =>
+    [...financialQueryKeys.currency(userId), "exchanges"] as const,
   statistics: (userId: string) =>
     [...financialQueryKeys.user(userId), "statistics"] as const,
   statisticsAvailability: (userId: string) =>

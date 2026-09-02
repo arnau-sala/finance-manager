@@ -24,7 +24,10 @@ import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedCon
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { prefetchScheduler } from "../../cache/prefetch-scheduler";
 import { parseLocalDateOnly } from "../../dates/date-only";
-import { formatEuroAmount } from "../../money/format-euro";
+import {
+  formatEuroAmount,
+  formatMoneyAmount
+} from "../../money/format-euro";
 import { getCategoryIcon } from "./category-catalog";
 import {
   deleteTransaction,
@@ -278,6 +281,16 @@ function TransactionBalanceValue({
   );
 }
 
+function getTransactionDisplayAmount(transaction: TransactionPreview | null) {
+  if (!transaction) {
+    return 0;
+  }
+
+  return transaction.currency === "USD"
+    ? transaction.originalAmount ?? transaction.amount
+    : transaction.amount;
+}
+
 export function TransactionDetailSheet({
   ownerId,
   transaction,
@@ -371,7 +384,8 @@ export function TransactionDetailSheet({
       : "expenses";
   const typeImpactCollection =
     displayedTransaction?.type === "INCOME" ? "income" : "expenses";
-  const displayedAmount = Number(displayedTransaction?.amount ?? 0);
+  const displayedAmount = Number(getTransactionDisplayAmount(displayedTransaction));
+  const displayedCurrency = displayedTransaction?.currency ?? "EUR";
   const signedAmount =
     displayedTransaction?.type === "INCOME"
       ? Math.abs(displayedAmount)
@@ -939,7 +953,10 @@ export function TransactionDetailSheet({
                 <span className="transaction-detail-delete-confirm__summary">
                   <span>{displayedTransaction.description}</span>
                   <b>
-                    {formatEuroAmount(signedAmount, { showSign: true })}
+                    {formatMoneyAmount(signedAmount, {
+                      currency: displayedCurrency,
+                      showSign: true
+                    })}
                   </b>
                 </span>
 
@@ -1021,7 +1038,10 @@ export function TransactionDetailSheet({
                     value={displayedTransaction.description}
                   />
                   <strong>
-                    {formatEuroAmount(signedAmount, { showSign: true })}
+                    {formatMoneyAmount(signedAmount, {
+                      currency: displayedCurrency,
+                      showSign: true
+                    })}
                   </strong>
                   <time id={dateId} dateTime={displayedTransaction.date}>
                     {formatFullDate(displayedTransaction.date)}

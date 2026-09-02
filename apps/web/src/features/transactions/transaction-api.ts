@@ -39,6 +39,10 @@ export type TransactionListItem = {
     type: "INCOME" | "EXPENSE";
   };
   amount: string;
+  currency?: "EUR" | "USD";
+  originalAmount?: string;
+  baseAmount?: string;
+  exchangeRateBasePerUsd?: string | null;
   description: string;
   date: string;
   createdAt: string;
@@ -117,7 +121,8 @@ function parseAmountCents(value: string) {
 
 export function createTransactionListRequest(
   search: string,
-  filters: MovesFilters
+  filters: MovesFilters,
+  options: { currency?: "EUR" | "USD" } = {}
 ): TransactionListCacheKey {
   const exactAmountCents =
     filters.amountMode === "EXACT" && filters.exactAmount
@@ -135,6 +140,7 @@ export function createTransactionListRequest(
   return {
     search: search.trim().toLocaleLowerCase(),
     type: filters.type,
+    currency: options.currency ?? "ALL",
     categoryIds: [...getActiveCategoryIds(filters)].sort(),
     exactAmountCents,
     minimumAmountCents,
@@ -206,6 +212,11 @@ function createTransactionsQuery(
     query,
     "type",
     request.type === "ALL" ? null : request.type
+  );
+  addOptionalQueryValue(
+    query,
+    "currency",
+    request.currency === "ALL" ? null : request.currency
   );
   addOptionalQueryValue(
     query,

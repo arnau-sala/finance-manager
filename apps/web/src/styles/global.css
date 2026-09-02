@@ -1620,6 +1620,317 @@ body.app-logout-transition .confirm-dialog-backdrop {
   height: 19px;
 }
 
+.auth-screen.usd-wallet-screen {
+  place-items: start center;
+  padding-top: calc(max(10px, env(safe-area-inset-top)) + 72px);
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.usd-wallet-screen::-webkit-scrollbar {
+  display: none;
+}
+
+.auth-panel.usd-wallet-panel {
+  width: min(100%, 440px);
+  display: grid;
+  gap: 0;
+  padding-bottom: 0;
+}
+
+.auth-header.auth-password-reset-header.usd-wallet-header {
+  gap: 15px;
+}
+
+.usd-wallet-page-header {
+  position: absolute;
+  z-index: 1;
+  top: max(18px, env(safe-area-inset-top));
+  left: 50%;
+  width: min(100%, 440px);
+  height: 44px;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  padding:
+    0
+    max(16px, env(safe-area-inset-right))
+    0
+    max(16px, env(safe-area-inset-left));
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.usd-wallet-page-header h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 17px;
+  line-height: 1.3;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usd-wallet-content {
+  --stats-section-gap: 30px;
+  --stats-section-line-gap: 8px;
+  --stats-money-balance-font-size: 30px;
+  --stats-money-breakdown-font-size: 15px;
+  display: grid;
+  gap: var(--stats-section-gap);
+}
+
+.usd-wallet-money__content {
+  --stats-money-divider-x: 49%;
+}
+
+.usd-wallet-money .stats-money__saved-rate {
+  white-space: normal;
+}
+
+.usd-wallet-average-rates {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stats-money .usd-wallet-value--neutral {
+  color: var(--color-primary);
+}
+
+.usd-wallet-insights-section {
+  min-width: 0;
+}
+
+.usd-wallet-insights-list {
+  grid-template-columns: 20px minmax(108px, 1fr) minmax(70px, auto) minmax(
+      104px,
+      auto
+    );
+  column-gap: 10px;
+}
+
+.usd-wallet-insight-row {
+  min-width: 0;
+}
+
+.usd-wallet-insight-row--neutral .stats-insight-row__value {
+  color: var(--color-primary);
+}
+
+.usd-wallet-insight-row .stats-insight-row__value {
+  font-size: 16px;
+  line-height: 20px;
+}
+
+.usd-wallet-history-section {
+  display: grid;
+  gap: 0;
+}
+
+.usd-wallet-history-heading {
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+
+.usd-wallet-history-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.usd-wallet-history-count {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usd-wallet-history-filters {
+  flex: 0 0 auto;
+  gap: 5px;
+}
+
+.usd-wallet-history-filter--income[aria-pressed="true"] {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.usd-wallet-history-filter--expense[aria-pressed="true"] {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 28%, transparent);
+}
+
+.usd-wallet-history-filter--exchange[aria-pressed="true"] {
+  color: var(--color-category-3);
+  background: var(--color-category-3-soft);
+  border-color: color-mix(
+    in srgb,
+    var(--color-category-3) 32%,
+    transparent
+  );
+}
+
+.usd-wallet-history-section > header {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.usd-wallet-history-section > .usd-wallet-history-header {
+  align-items: center;
+}
+
+.usd-wallet-history-section > header > span {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.usd-wallet-history-section .usd-wallet-history-list {
+  display: grid;
+  margin: 8px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.usd-wallet-history-row {
+  min-width: 0;
+}
+
+.usd-wallet-history-empty {
+  min-height: 330px;
+  padding: 30px 20px;
+}
+
+.usd-wallet-history-empty h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.usd-wallet-history-empty > p {
+  max-width: 300px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.usd-wallet-history-empty__actions {
+  width: min(100%, 320px);
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.usd-wallet-history-empty__action.home-new-transaction {
+  width: 100%;
+}
+
+.usd-wallet-history-empty__action--secondary.home-new-transaction {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.usd-wallet-history-empty__action--secondary.home-new-transaction:active:not(:disabled) {
+  color: color-mix(in srgb, var(--color-primary) 76%, var(--color-text-muted));
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary-soft) 72%,
+    white
+  );
+  border-color: var(--color-primary-border);
+}
+
+.usd-wallet-history-empty__action--secondary
+  .home-new-transaction__icon {
+  background: color-mix(in srgb, var(--color-primary) 10%, transparent);
+}
+
+.usd-wallet-load-more {
+  width: 100%;
+  height: 46px;
+  margin-top: 4px;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.usd-wallet-empty-state {
+  min-height: 116px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  padding: 18px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  text-align: center;
+}
+
+.usd-wallet-empty-state > svg {
+  width: 24px;
+  height: 24px;
+  color: var(--color-primary);
+}
+
+.usd-wallet-empty-state strong {
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 400;
+}
+
+.usd-wallet-empty-state span {
+  max-width: 260px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 400;
+}
+
+.usd-wallet-empty-state--error {
+  min-height: 220px;
+}
+
 .feature-suggestion-screen {
   place-items: start center;
   padding-top: max(68px, env(safe-area-inset-top));
@@ -2907,9 +3218,14 @@ html.desktop-app-route
 }
 
 .auth-screen--registration-method {
-  place-items: center;
-  overflow: hidden;
-  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  scrollbar-width: none;
   padding-block: max(
     24px,
     env(safe-area-inset-top),
@@ -2917,11 +3233,15 @@ html.desktop-app-route
   );
 }
 
+.auth-screen--registration-method::-webkit-scrollbar {
+  display: none;
+}
+
 .auth-registration-method-panel {
-  height: min(640px, calc(100dvh - 120px));
-  max-height: 100%;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: min(640px, calc(100dvh - 120px));
+  grid-template-rows: auto auto auto;
   gap: 28px;
+  margin-block: auto;
 }
 
 .auth-registration-method-header {
@@ -2939,19 +3259,18 @@ html.desktop-app-route
 }
 
 .auth-registration-method-options {
-  min-height: 0;
   display: grid;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(116px, auto));
   gap: 16px;
 }
 
 .auth-registration-method-option {
   width: 100%;
-  min-height: 0;
+  min-height: 116px;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) 22px;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding: 20px;
   color: var(--color-text);
   background: var(--color-surface);
@@ -2991,9 +3310,15 @@ html.desktop-app-route
 
 .auth-registration-method-option__content strong {
   margin: 0;
+  min-width: 0;
   font-size: 17px;
   font-weight: 400;
   line-height: 1.2;
+}
+
+.auth-registration-method-option__title {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .auth-registration-method-option__content ul {
@@ -3026,6 +3351,15 @@ html.desktop-app-route
   width: 20px;
   height: 20px;
   color: var(--color-primary);
+}
+
+.auth-registration-method-option__suggested {
+  margin-bottom: -5px;
+  color: var(--color-primary);
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 .auth-registration-method-note {
@@ -4222,6 +4556,7 @@ body.segmented-drag-scroll-lock .home-content--stats,
 body.segmented-drag-scroll-lock .transaction-composer__scroll-area,
 body.segmented-drag-scroll-lock .transaction-detail-sheet__scroll-area,
 body.segmented-drag-scroll-lock .app-version-screen,
+body.segmented-drag-scroll-lock .usd-wallet-screen,
 body.segmented-drag-scroll-lock .feature-suggestion-screen,
 body.segmented-drag-scroll-lock .auth-screen--password-reset,
 body.segmented-drag-scroll-lock .auth-screen--registration-method {
@@ -4708,6 +5043,29 @@ button.transaction-row__content:focus-visible {
 
 .transaction-row__amount--expense {
   color: var(--color-danger);
+}
+
+.currency-exchange-row__content {
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+}
+
+.currency-exchange-row__icon {
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border-color: var(--color-border);
+}
+
+.currency-exchange-row__details strong {
+  color: var(--color-text);
+}
+
+.currency-exchange-row__details > span {
+  color: var(--color-text-muted);
+}
+
+.currency-exchange-row__amount.transaction-row__amount {
+  color: var(--color-text);
+  text-align: right;
 }
 
 .moves-page {
@@ -7710,6 +8068,11 @@ html.desktop-app-route .stats-view-stage {
   --transaction-detail-type-color: var(--color-success);
 }
 
+.transaction-detail-sheet--exchange {
+  --transaction-detail-type-color: var(--color-primary);
+  border-color: var(--color-border);
+}
+
 .transaction-detail-backdrop.is-open .transaction-detail-sheet {
   transform: translate3d(
     0,
@@ -8098,6 +8461,21 @@ html.desktop-app-route .stats-view-stage {
   font-weight: 400;
 }
 
+.currency-exchange-detail-hero__icon {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.currency-exchange-detail-hero__from {
+  margin: -1px 0 7px;
+  color: var(--color-text-muted);
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
 .transaction-detail-section {
   margin-top: 23px;
   padding-top: 15px;
@@ -8167,6 +8545,41 @@ html.desktop-app-route .stats-view-stage {
   justify-self: center;
   color: var(--color-primary);
   stroke-width: 1.7;
+}
+
+.currency-exchange-rates {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+}
+
+.currency-exchange-rates > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.currency-exchange-rates > span:last-child {
+  text-align: right;
+}
+
+.currency-exchange-rates small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.currency-exchange-rates strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .transaction-detail-section__heading {
@@ -8294,6 +8707,12 @@ html.desktop-app-route .stats-view-stage {
   z-index: 60;
 }
 
+.add-exchange-composer {
+  --transaction-type-color: var(--color-primary);
+  --transaction-type-soft: var(--color-primary-soft);
+  z-index: 70;
+}
+
 .transaction-composer.is-open {
   visibility: visible;
   pointer-events: auto;
@@ -8316,7 +8735,7 @@ html.desktop-app-route .stats-view-stage {
   width: min(100%, 440px);
   height: 44px;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 82px minmax(0, 1fr) 82px;
   align-items: center;
   margin: 0 auto;
 }
@@ -8352,6 +8771,24 @@ html.desktop-app-route .stats-view-stage {
   width: 20px;
   height: 20px;
   stroke-width: 1.8;
+}
+
+.transaction-currency-toggle.sliding-segmented-control {
+  justify-self: end;
+  width: 82px;
+  height: 40px;
+  padding: 3px;
+  background: var(--color-surface);
+}
+
+.transaction-currency-toggle .sliding-segmented-control__indicator {
+  background: var(--color-primary-soft-strong);
+  border-color: var(--color-primary-border);
+}
+
+.transaction-currency-toggle.sliding-segmented-control button {
+  padding: 0;
+  font-size: 15px;
 }
 
 .transaction-composer__form {
@@ -8464,6 +8901,238 @@ html.desktop-app-route .stats-view-stage {
   font-size: 42px;
   line-height: 1;
   font-weight: 300;
+}
+
+.add-exchange-content {
+  grid-template-rows: none;
+  align-content: center;
+  gap: 16px;
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
+.add-exchange-content .text-field--composer {
+  --text-field-font-size: 14px;
+}
+
+.add-exchange-direction {
+  min-width: 0;
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.add-exchange-direction__currency {
+  min-width: 0;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+}
+
+.add-exchange-direction__currency span {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 400;
+}
+
+.add-exchange-direction__currency strong {
+  color: var(--color-text);
+  font-size: 17px;
+  line-height: 1.2;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.add-exchange-direction__currency strong span {
+  color: var(--color-text-muted);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.add-exchange-direction__swap {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+}
+
+.add-exchange-direction__swap.is-animating {
+  pointer-events: none;
+}
+
+.add-exchange-direction__swap svg {
+  width: 19px;
+  height: 19px;
+  transform: rotate(var(--add-exchange-swap-rotation, 0deg));
+  transform-origin: center;
+  transition: transform 380ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.add-exchange-columns {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.add-exchange-currency-card {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 0;
+}
+
+.add-exchange-currency-card__field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.add-exchange-currency-card__label {
+  min-height: 24px;
+  display: grid;
+  place-items: end center;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.15;
+  font-weight: 400;
+  text-align: center;
+}
+
+.add-exchange-currency-card__control {
+  position: relative;
+  min-width: 0;
+}
+
+.add-exchange-currency-card__input {
+  padding-right: 32px;
+  padding-left: 32px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.add-exchange-currency-card__input:focus::placeholder {
+  color: transparent;
+}
+
+.add-exchange-currency-card__symbol {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 7px;
+  bottom: 0;
+  width: 26px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 400;
+  pointer-events: none;
+}
+
+.add-exchange-currency-card__status {
+  min-height: 13px;
+  color: var(--color-primary);
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 400;
+  text-align: center;
+  opacity: 0;
+}
+
+.add-exchange-currency-card__status.is-visible {
+  opacity: 1;
+}
+
+.add-exchange-currency-card__rate {
+  min-width: 0;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.add-exchange-rate-control {
+  width: min(100%, 132px);
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.add-exchange-rate-control__field {
+  position: relative;
+  flex: 0 1 94px;
+  min-width: 0;
+  display: inline-flex;
+}
+
+.add-exchange-rate-control__input {
+  width: 100%;
+  height: 30px;
+  padding: 0 24px 0 10px;
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  outline: none;
+  font: inherit;
+  font-size: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.add-exchange-rate-control__input:focus {
+  border-color: var(--color-primary);
+}
+
+.add-exchange-rate-control__input::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.48;
+}
+
+.add-exchange-rate-control__input:focus::placeholder {
+  color: transparent;
+}
+
+.add-exchange-rate-control__symbol {
+  position: absolute;
+  top: 0;
+  right: 6px;
+  bottom: 0;
+  width: 18px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
 }
 
 .sliding-segmented-control {
@@ -9969,6 +10638,10 @@ html.desktop-app-route .stats-view-stage {
       max(20px, env(safe-area-inset-left));
   }
 
+  .auth-screen.usd-wallet-screen {
+    padding-top: calc(max(6px, env(safe-area-inset-top)) + 66px);
+  }
+
   .transaction-composer__amount-entry,
   .transaction-composer__amount-value {
     min-height: 44px;
@@ -10095,7 +10768,7 @@ html.desktop-app-route .stats-view-stage {
   }
 
   .auth-registration-method-panel {
-    height: calc(100dvh - 104px);
+    min-height: calc(100dvh - 104px);
     gap: 18px;
   }
 
@@ -10109,12 +10782,14 @@ html.desktop-app-route .stats-view-stage {
   }
 
   .auth-registration-method-options {
+    grid-template-rows: repeat(3, minmax(94px, auto));
     gap: 10px;
   }
 
   .auth-registration-method-option {
+    min-height: 94px;
     grid-template-columns: 44px minmax(0, 1fr) 20px;
-    gap: 13px;
+    gap: 16px;
     padding: 14px 16px;
   }
 

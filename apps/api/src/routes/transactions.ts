@@ -1,8 +1,9 @@
 import {
+  type CurrencyCode,
   Prisma,
   type TransactionType,
 } from "@prisma/client";
-import type { FastifyPluginAsync } from "fastify";
+import type { FastifyPluginAsync, FastifyReply } from "fastify";
 import { z } from "zod";
 
 import { getAuthenticatedUserId } from "../auth/authenticated-user.js";
@@ -21,6 +22,13 @@ import {
   financialWriteRateLimit,
 } from "../security/rate-limit.js";
 import {
+  getUsdIncomeRateBasePerUsd,
+  rebuildUsdLedger,
+  BASE_CURRENCY,
+  USD_CURRENCY,
+  CurrencyLedgerError,
+} from "../services/currency-ledger-service.js";
+import {
   getTransactionDetail,
   toTransactionResponse,
 } from "../services/transaction-service.js";
@@ -31,6 +39,9 @@ type TransactionWithCategoryRow = {
   type: TransactionType;
   categoryId: string;
   amountCents: number;
+  currency: CurrencyCode;
+  originalAmountMinor: number | null;
+  exchangeRateBasePerUsd: Prisma.Decimal | null;
   description: string;
   occurredOn: Date;
   createdAt: Date;
@@ -55,6 +66,10 @@ const optionalSearchQuerySchema = z.preprocess(
 const optionalTypeQuerySchema = z.preprocess(
   (value) => (value === "" || value === undefined ? undefined : value),
   z.enum(["INCOME", "EXPENSE"]).optional(),
+);
+const optionalCurrencyQuerySchema = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : value),
+  z.enum(["EUR", "USD"]).optional(),
 );
 const optionalCategoryIdsQuerySchema = z.preprocess(
   (value) => {
@@ -89,6 +104,7 @@ const transactionListQuerySchema = getPaginationQuerySchema({
   .extend({
     search: optionalSearchQuerySchema,
     type: optionalTypeQuerySchema,
+    currency: optionalCurrencyQuerySchema,
     categories: optionalCategoryIdsQuerySchema,
     exactAmountCents: optionalAmountCentsQuerySchema,
     minimumAmountCents: optionalAmountCentsQuerySchema,
@@ -161,6 +177,7 @@ const amountSchema = z
   .transform((amount) => Number(decimalToCents(amount)));
 
 const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
+const currencyCodeSchema = z.enum(["EUR", "USD"]);
 const transactionDescriptionSchema = z.string().trim().min(1).max(50);
 const transactionDateSchema = z.iso.date().transform(parseDateOnly);
 
@@ -171,8 +188,43 @@ const createTransactionBodySchema = z
     description: transactionDescriptionSchema,
     date: transactionDateSchema.optional(),
     amount: amountSchema,
+    currency: currencyCodeSchema.default("EUR"),
+    baseAmount: amountSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((transaction, context) => {
+    if (transaction.currency === "EUR" && transaction.baseAmount !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["baseAmount"],
+        message: "EUR transactions do not need a base amount",
+      });
+    }
+
+    if (
+      transaction.currency === "USD" &&
+      transaction.type === "EXPENSE" &&
+      transaction.baseAmount !== undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["baseAmount"],
+        message: "USD expenses use the wallet cost basis",
+      });
+    }
+
+    if (
+      transaction.currency === "USD" &&
+      transaction.type === "INCOME" &&
+      transaction.baseAmount === undefined
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["baseAmount"],
+        message: "USD income requires a EUR base amount",
+      });
+    }
+  });
 
 const updateTransactionBodySchema = z
   .object({
@@ -181,6 +233,8 @@ const updateTransactionBodySchema = z
     description: transactionDescriptionSchema.optional(),
     date: transactionDateSchema.optional(),
     amount: amountSchema.optional(),
+    currency: currencyCodeSchema.optional(),
+    baseAmount: amountSchema.optional(),
   })
   .strict();
 
@@ -203,6 +257,9 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
     type: row.type,
     categoryId: row.categoryId,
     amountCents: row.amountCents,
+    currency: row.currency,
+    originalAmountMinor: row.originalAmountMinor,
+    exchangeRateBasePerUsd: row.exchangeRateBasePerUsd,
     description: row.description,
     occurredOn: row.occurredOn,
     createdAt: row.createdAt,
@@ -212,6 +269,32 @@ function toTransactionWithCategory(row: TransactionWithCategoryRow) {
       type: row.categoryType,
     },
   };
+}
+
+function sendCurrencyLedgerError(reply: FastifyReply, error: unknown) {
+  if (!(error instanceof CurrencyLedgerError)) {
+    throw error;
+  }
+
+  const statusCode =
+    error.code === "UNSUPPORTED_CURRENCY_PAIR" ||
+    error.code === "INVALID_USD_INCOME_BASIS"
+      ? 400
+      : 409;
+
+  return reply.code(statusCode).send({ error: error.message });
+}
+
+function getUsdIncomeBaseAmountCents(input: {
+  usdAmountCents: number;
+  baseAmountCents: number;
+}) {
+  getUsdIncomeRateBasePerUsd({
+    usdAmountMinor: input.usdAmountCents,
+    baseAmountMinor: input.baseAmountCents,
+  });
+
+  return input.baseAmountCents;
 }
 
 function getTransactionListWhere(
@@ -230,6 +313,10 @@ function getTransactionListWhere(
 
   if (query.type !== undefined) {
     conditions.push(Prisma.sql`t."type" = ${query.type}::"TransactionType"`);
+  }
+
+  if (query.currency !== undefined) {
+    conditions.push(Prisma.sql`t."currency" = ${query.currency}::"CurrencyCode"`);
   }
 
   if (query.categories !== undefined) {
@@ -314,6 +401,9 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
               t."type" AS "type",
               t."categoryId" AS "categoryId",
               t."amountCents" AS "amountCents",
+              t."currency" AS "currency",
+              t."originalAmountMinor" AS "originalAmountMinor",
+              t."exchangeRateBasePerUsd" AS "exchangeRateBasePerUsd",
               t."description" AS "description",
               t."occurredOn" AS "occurredOn",
               t."createdAt" AS "createdAt",
@@ -399,6 +489,9 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           t."type" AS "type",
           t."categoryId" AS "categoryId",
           t."amountCents" AS "amountCents",
+          t."currency" AS "currency",
+          t."originalAmountMinor" AS "originalAmountMinor",
+          t."exchangeRateBasePerUsd" AS "exchangeRateBasePerUsd",
           t."description" AS "description",
           t."occurredOn" AS "occurredOn",
           t."createdAt" AS "createdAt",
@@ -497,15 +590,65 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           .send({ error: "Invalid category for transaction type" });
       }
 
+      const occurredOn =
+        parsedBody.data.date ?? parseDateOnly(getTodayDateOnly());
+
+      if (parsedBody.data.currency === "USD") {
+        try {
+          const transaction = await db.$transaction(async (client) => {
+            const baseAmountCents =
+              parsedBody.data.type === "INCOME"
+                ? getUsdIncomeBaseAmountCents({
+                    usdAmountCents: parsedBody.data.amount,
+                    baseAmountCents: parsedBody.data.baseAmount ?? 0,
+                  })
+                : 1;
+            const exchangeRateBasePerUsd =
+              parsedBody.data.type === "INCOME"
+                ? getUsdIncomeRateBasePerUsd({
+                    usdAmountMinor: parsedBody.data.amount,
+                    baseAmountMinor: baseAmountCents,
+                  })
+                : null;
+            const createdTransaction = await client.transaction.create({
+              data: {
+                userId,
+                type: parsedBody.data.type,
+                categoryId: category.id,
+                amountCents: baseAmountCents,
+                currency: USD_CURRENCY,
+                originalAmountMinor: parsedBody.data.amount,
+                exchangeRateBasePerUsd,
+                description: parsedBody.data.description,
+                occurredOn,
+              },
+            });
+
+            await rebuildUsdLedger(userId, client);
+
+            return client.transaction.findUniqueOrThrow({
+              where: { id: createdTransaction.id },
+              include: { category: true },
+            });
+          });
+
+          return reply.code(201).send({
+            transaction: toTransactionResponse(transaction),
+          });
+        } catch (error) {
+          return sendCurrencyLedgerError(reply, error);
+        }
+      }
+
       const transaction = await db.transaction.create({
         data: {
           userId,
           type: parsedBody.data.type,
           categoryId: category.id,
           amountCents: parsedBody.data.amount,
+          currency: BASE_CURRENCY,
           description: parsedBody.data.description,
-          occurredOn:
-            parsedBody.data.date ?? parseDateOnly(getTodayDateOnly()),
+          occurredOn,
         },
       });
 
@@ -534,18 +677,33 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid transaction id" });
       }
 
-      const deletion = await db.transaction.deleteMany({
+      const transaction = await db.transaction.findFirst({
         where: {
           id: parsedParams.data.id,
           userId,
         },
+        select: { id: true, currency: true },
       });
 
-      if (deletion.count === 0) {
+      if (!transaction) {
         return reply.code(404).send({ error: "Transaction not found" });
       }
 
-      return reply.send({ message: "Transaction deleted" });
+      try {
+        await db.$transaction(async (client) => {
+          await client.transaction.delete({
+            where: { id: transaction.id },
+          });
+
+          if (transaction.currency === USD_CURRENCY) {
+            await rebuildUsdLedger(userId, client);
+          }
+        });
+
+        return reply.send({ message: "Transaction deleted" });
+      } catch (error) {
+        return sendCurrencyLedgerError(reply, error);
+      }
     },
   );
 
@@ -588,6 +746,9 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           id: true,
           type: true,
           categoryId: true,
+          amountCents: true,
+          currency: true,
+          originalAmountMinor: true,
         },
       });
 
@@ -599,9 +760,18 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         return reply.send({ message: "Transaction updated" });
       }
 
-      const { type, categoryId, description, date, amount } = parsedBody.data;
+      const {
+        type,
+        categoryId,
+        description,
+        date,
+        amount,
+        currency,
+        baseAmount,
+      } = parsedBody.data;
       const resultingType = type ?? transaction.type;
       const resultingCategoryId = categoryId ?? transaction.categoryId;
+      const resultingCurrency = currency ?? transaction.currency;
       const category = await db.category.findFirst({
         where: {
           id: resultingCategoryId,
@@ -616,25 +786,88 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           .send({ error: "Invalid category for transaction type" });
       }
 
-      const update = await db.transaction.updateMany({
-        where: {
-          id: parsedParams.data.id,
-          userId,
-        },
-        data: {
-          type,
-          categoryId,
-          description,
-          occurredOn: date,
-          amountCents: amount,
-        },
-      });
-
-      if (update.count === 0) {
-        return reply.code(404).send({ error: "Transaction not found" });
+      if (resultingCurrency === BASE_CURRENCY && baseAmount !== undefined) {
+        return reply
+          .code(400)
+          .send({ error: "EUR transactions do not need a base amount" });
       }
 
-      return reply.send({ message: "Transaction updated" });
+      if (
+        resultingCurrency === USD_CURRENCY &&
+        resultingType === "EXPENSE" &&
+        baseAmount !== undefined
+      ) {
+        return reply
+          .code(400)
+          .send({ error: "USD expenses use the wallet cost basis" });
+      }
+
+      const existingOriginalAmount =
+        transaction.currency === USD_CURRENCY
+          ? transaction.originalAmountMinor ?? transaction.amountCents
+          : transaction.amountCents;
+      const resultingOriginalAmount = amount ?? existingOriginalAmount;
+      const updateData: Prisma.TransactionUncheckedUpdateManyInput = {
+        type,
+        categoryId,
+        description,
+        occurredOn: date,
+      };
+
+      if (resultingCurrency === USD_CURRENCY) {
+        updateData.currency = USD_CURRENCY;
+        updateData.originalAmountMinor = resultingOriginalAmount;
+
+        if (resultingType === "INCOME") {
+          const resultingBaseAmount =
+            baseAmount ??
+            (transaction.currency === USD_CURRENCY
+              ? transaction.amountCents
+              : transaction.amountCents);
+          updateData.amountCents = resultingBaseAmount;
+          updateData.exchangeRateBasePerUsd = getUsdIncomeRateBasePerUsd({
+            usdAmountMinor: resultingOriginalAmount,
+            baseAmountMinor: resultingBaseAmount,
+          });
+        } else {
+          updateData.amountCents = 1;
+          updateData.exchangeRateBasePerUsd = null;
+        }
+      } else {
+        updateData.currency = BASE_CURRENCY;
+        updateData.originalAmountMinor = null;
+        updateData.exchangeRateBasePerUsd = null;
+        updateData.amountCents = amount ?? resultingOriginalAmount;
+      }
+
+      try {
+        const update = await db.$transaction(async (client) => {
+          const result = await client.transaction.updateMany({
+            where: {
+              id: parsedParams.data.id,
+              userId,
+            },
+            data: updateData,
+          });
+
+          if (
+            transaction.currency === USD_CURRENCY ||
+            resultingCurrency === USD_CURRENCY
+          ) {
+            await rebuildUsdLedger(userId, client);
+          }
+
+          return result;
+        });
+
+        if (update.count === 0) {
+          return reply.code(404).send({ error: "Transaction not found" });
+        }
+
+        return reply.send({ message: "Transaction updated" });
+      } catch (error) {
+        return sendCurrencyLedgerError(reply, error);
+      }
     },
   );
 };
