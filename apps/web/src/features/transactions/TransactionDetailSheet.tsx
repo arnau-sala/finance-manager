@@ -303,6 +303,60 @@ function getUsdTransactionEuroEquivalent(
   return Number.isFinite(equivalent) ? equivalent : null;
 }
 
+function formatRateDecimal(value: string | number) {
+  const numericValue = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return "unavailable";
+  }
+
+  const formattedValue = numericValue.toLocaleString("es-ES", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 8,
+    useGrouping: false
+  });
+
+  if (!formattedValue.includes(",")) {
+    return formattedValue;
+  }
+
+  return formattedValue.replace(/0+$/, "").replace(/,$/, "");
+}
+
+function getUsdTransactionRateLabels(transaction: TransactionPreview | null) {
+  if (!transaction || transaction.currency !== "USD") {
+    return null;
+  }
+
+  const explicitRate =
+    transaction.exchangeRateBasePerUsd === null ||
+    transaction.exchangeRateBasePerUsd === undefined
+      ? null
+      : Number(transaction.exchangeRateBasePerUsd);
+  const originalAmount = Number(transaction.originalAmount);
+  const baseAmount = Number(transaction.baseAmount ?? transaction.amount);
+  const calculatedRate =
+    Number.isFinite(originalAmount) &&
+    originalAmount > 0 &&
+    Number.isFinite(baseAmount) &&
+    baseAmount > 0
+      ? baseAmount / originalAmount
+      : null;
+  const basePerUsd =
+    explicitRate !== null && Number.isFinite(explicitRate) && explicitRate > 0
+      ? explicitRate
+      : calculatedRate;
+
+  if (basePerUsd === null || !Number.isFinite(basePerUsd) || basePerUsd <= 0) {
+    return null;
+  }
+
+  return {
+    exchangeRate: `1$ = ${formatRateDecimal(basePerUsd)}\u20ac`,
+    reverse: `1\u20ac = ${formatRateDecimal(1 / basePerUsd)}$`
+  };
+}
+
 export function TransactionDetailSheet({
   ownerId,
   transaction,
@@ -403,6 +457,7 @@ export function TransactionDetailSheet({
       ? Math.abs(displayedAmount)
       : -Math.abs(displayedAmount);
   const euroEquivalent = getUsdTransactionEuroEquivalent(displayedTransaction);
+  const usdRateLabels = getUsdTransactionRateLabels(displayedTransaction);
 
   onCloseRef.current = onClose;
   suspendedRef.current = suspended;
@@ -1095,6 +1150,24 @@ export function TransactionDetailSheet({
                     </span>
                   </div>
                 </section>
+
+                {usdRateLabels ? (
+                  <section
+                    className="transaction-detail-section"
+                    aria-label="Exchange rates"
+                  >
+                    <div className="currency-exchange-rates">
+                      <span>
+                        <small>Exchange rate</small>
+                        <strong>{usdRateLabels.exchangeRate}</strong>
+                      </span>
+                      <span>
+                        <small>Reverse</small>
+                        <strong>{usdRateLabels.reverse}</strong>
+                      </span>
+                    </div>
+                  </section>
+                ) : null}
 
                 <section
                   className="transaction-detail-section transaction-detail-context"
