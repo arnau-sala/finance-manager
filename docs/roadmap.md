@@ -184,6 +184,30 @@
 - Restrict `:type` to `income` or `expense`.
 - Combine transaction type and period filters in the same category-percentage query.
 
+## Phase 9: EUR/USD Currency Support
+
+- Add a `CurrencyCode` enum with `EUR` and `USD`.
+- Keep EUR as the base accounting currency for global balances, net worth, and
+  statistics.
+- Extend transactions with `currency`, `originalAmountMinor`, and
+  `exchangeRateBasePerUsd`.
+- Store EUR transactions exactly as before, while USD transactions keep the
+  visible dollar amount and the EUR accounting value used by totals.
+- Add the `CurrencyExchange` model for dated EUR-to-USD and USD-to-EUR
+  exchanges.
+- Calculate `exchangeRateBasePerUsd` from the two real amounts entered by the
+  user and persist it with high decimal precision.
+- Rebuild the USD ledger after exchange creation, editing, deletion, and USD
+  transaction changes so cost basis stays consistent.
+- Add authenticated currency endpoints for the USD wallet snapshot and exchange
+  CRUD.
+- Add the USD wallet screen with balance, EUR basis, compact currency metrics,
+  a unified movement history, and exchange/transaction detail entry points.
+- Add full exchange creation, editing, deletion, sharing, and history display
+  flows.
+- Allow New Transaction and Edit Transaction to choose EUR or USD. USD expenses
+  consume the current wallet cost basis; USD income requires a EUR base amount.
+
 ## Phase 10: Statistics Experience
 
 - Add authenticated `GET /statistics/overview` for the complete numeric view.

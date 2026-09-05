@@ -70,6 +70,11 @@ npm run db:deploy
 
 ## Current Models
 
+`CurrencyCode` currently supports `EUR` and `USD`. EUR is the base accounting
+currency used by global balances, net worth, and statistics. USD records keep
+their visible dollar amount while also storing the EUR value used for base
+calculations.
+
 `User` stores registered users, their required display name, role/status, and
 authentication provider. A user must have at least one login identifier:
 `email` or `username`; PostgreSQL enforces this invariant with a check
@@ -193,8 +198,8 @@ before an activation transaction replaces the currently valid hash.
 
 `User.updatedAt` starts as null. Prisma fills it automatically when the user is modified for the first time.
 
-Deleting a user removes transactions, recovery code, pending email link,
-email-link conflict-notice state,
+Deleting a user removes transactions, currency exchanges, recovery code,
+pending email link, email-link conflict-notice state,
 pending password reset, password-reset grant, and referenced Google auth
 actions through `ON DELETE CASCADE`, and explicitly removes any matching
 `PendingRegistration` when the user has an email.
@@ -207,13 +212,49 @@ Income categories: Allowance, Benefits, Freelance, Gifts, Investments, Salary, S
 
 Category responses place expenses first. Within each type, names are alphabetical with `Other` always last.
 
-`Transaction` stores the first financial records. Each row contains an immutable owner `userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description, occurrence date `occurredOn`, creation timestamp `createdAt`, and `amountCents` as a positive integer. Decimal money is never stored as floating point.
+`Transaction` stores financial records. Each row contains an immutable owner
+`userId`, required `categoryId`, type `INCOME` or `EXPENSE`, description,
+occurrence date `occurredOn`, creation timestamp `createdAt`, and
+`amountCents` as a positive integer. Decimal money is never stored as floating
+point.
+
+For EUR transactions, `amountCents` is the visible EUR amount and `currency`
+defaults to `EUR`. `originalAmountMinor` and `exchangeRateBasePerUsd` remain
+null.
+
+For USD transactions, `currency` is `USD`, `originalAmountMinor` stores the
+visible dollar cents, and `amountCents` stores the EUR accounting value used by
+Home, Statistics, net worth, and balances. `exchangeRateBasePerUsd` stores the
+EUR-per-USD rate used for that transaction with `DECIMAL(38, 20)` precision.
+USD expenses receive this basis from the funded USD wallet ledger. USD incomes
+require an explicit EUR basis so the app can increase both the USD wallet and
+the EUR accounting totals consistently.
 
 `occurredOn` uses PostgreSQL `DATE` and represents only the financial calendar day. It has no time or timezone. `createdAt` remains a full timestamp recording when the row was created and provides deterministic ordering for transactions sharing the same occurrence date.
 
 `Transaction.userId` references `User.id` with `ON DELETE CASCADE`, ensuring account deletion removes every owned transaction. `Transaction.categoryId` references `Category.id` with `ON DELETE RESTRICT`, protecting the predefined catalog while transactions still use a category. The API validates that the category exists and matches the transaction type before writes.
 
-The `(userId, occurredOn)` index supports the user-scoped chronological transaction list, while the `categoryId` index supports category filtering and statistics joins. Listing orders equal dates by `createdAt` and filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
+The `(userId, occurredOn)` index supports the user-scoped chronological transaction list, `(userId, currency, occurredOn)` supports USD wallet scans, while the `categoryId` index supports category filtering and statistics joins. Listing orders equal dates by `createdAt` and filters by the authenticated `userId`; editing and deletion filter by both `id` and that same owner ID.
+
+`CurrencyExchange` stores dated currency conversions owned by one user. It
+contains `fromCurrency`, `toCurrency`, `fromAmountMinor`, `toAmountMinor`,
+`exchangeRateBasePerUsd`, `occurredOn`, `createdAt`, and `updatedAt`. The
+current product supports only EUR-to-USD and USD-to-EUR, with a database check
+ensuring the two currencies are different and both amounts are positive.
+
+The exchange rate is derived from the two real amounts entered by the user
+rather than trusting a rounded display value. EUR-to-USD divides EUR minor
+units by USD minor units; USD-to-EUR divides received EUR minor units by sent
+USD minor units. The result is persisted as `DECIMAL(38, 20)` so the app can
+display a compact rate while retaining precise accounting data.
+
+The USD wallet is derived, not stored. Rebuilding the ledger orders exchanges
+and USD transactions by financial date, event priority, creation time, and ID.
+EUR-to-USD exchanges add USD balance and EUR cost basis. USD-to-EUR exchanges
+remove a proportional share of the current USD cost basis. USD expenses also
+remove proportional cost basis, while USD income adds USD and its user-provided
+EUR basis. If an operation would spend or exchange more USD than available, the
+write is rejected and the previous ledger remains intact.
 
 Cash-flow balances, percentages, category chart points, medians, averages, and
 streaks are derived from `Transaction`; they are not persisted as duplicate

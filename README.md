@@ -6,7 +6,7 @@
   <h3 style="margin-top:0;">Money, made clear</h3>
   <p>
     A mobile-first personal finance app for tracking income, expenses, net worth,
-    transaction history, and spending patterns from one focused interface
+    transaction history, multi-currency movements, and spending patterns from one focused interface
   </p>
 
   <p>
@@ -24,7 +24,7 @@
 
 Finance Manager is a personal finance product built as a polished mobile web app.
 It is designed around quick daily use: add transactions fast, review recent moves,
-understand where money is going, and explore statistics without feeling like a spreadsheet.
+understand where money is going, handle euro and dollar movements, and explore statistics without feeling like a spreadsheet.
 
 The project started as a personal tool, but it is being developed with the standards of a real product:
 secure authentication, owner-scoped financial data, production monitoring, automated tests, a documented API,
@@ -135,10 +135,10 @@ that explains the app and guides users toward the PWA flow.
 <table align="center" width="100%">
   <tr>
     <td align="center" valign="top" width="50%">
-      <img src="docs/assets/readme/12-what-you-can-do-now.jpeg" alt="Current Finance Manager capabilities: track transactions, find movements, understand statistics, use charts, and manage access" width="420" />
+      <img src="docs/assets/readme/12-what-you-can-do-now.jpeg" alt="Current Finance Manager capabilities: track transactions, find movements, understand statistics, use charts, multiple currencies, and manage access" width="420" />
     </td>
     <td align="center" valign="top" width="50%">
-      <img src="docs/assets/readme/13-coming-next.jpeg" alt="Upcoming Finance Manager features: multiple money places, custom categories, expense bundles, multiple currencies, and faster card expenses" width="420" />
+      <img src="docs/assets/readme/13-coming-next.jpeg" alt="Upcoming Finance Manager features: multiple money places, custom categories, expense bundles, and faster card expenses" width="420" />
     </td>
   </tr>
   <tr>
@@ -157,6 +157,7 @@ that explains the app and guides users toward the PWA flow.
 - It is not just a CRUD app: the main value is in the financial interpretation layer
 - The stats screen uses real backend aggregations instead of frontend mock data
 - Transaction details include contextual information such as before/after balance and category ranking
+- Multi-currency support lets users record EUR/USD transactions and exchange history while keeping EUR-based totals consistent
 - The app supports multiple account types without forcing every user into the same sign-in method
 - It combines product UI, backend architecture, authentication, testing, monitoring, and documentation
 

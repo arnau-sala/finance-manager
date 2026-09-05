@@ -1,4 +1,4 @@
-# Frontend Guide
+﻿# Frontend Guide
 
 This document is the living reference for the Finance Manager frontend. It records product, design, and architecture decisions so the interface can grow screen by screen without losing consistency.
 
@@ -647,7 +647,11 @@ If the Home request reports an expired session, the authenticated interface is b
 
 Transaction category icons come from `lucide-react` and are mapped by stable category ID rather than display name. The same map is used by latest moves and the top expense/income activity metrics. Every predefined category has a specific icon; missing or unknown categories fall back to an upward income arrow or downward expense arrow.
 
-Euro amounts use one shared frontend formatter. They use a decimal comma, omit digit grouping and place the currency symbol directly after the number, for example `1234,56€`, `+100,00€`, and `-42,80€`.
+Money amounts use one shared frontend formatter. They use a decimal comma,
+thin visual grouping for thousands, and place the currency symbol directly
+after the number, for example `1 234,56€`, `+100,00€`, `-42,80€`, and
+`25,00$`. EUR is the base accounting currency; USD transactions keep their
+visible dollar amount while backend totals use the corresponding EUR value.
 
 The Home layout uses five intrinsic grid rows with a minimum gap. Available vertical space is distributed between those rows on tall screens; when their content exceeds the viewport, the Home content region becomes vertically scrollable while the footer remains fixed.
 - Recent transactions.
@@ -666,6 +670,7 @@ action that opened it.
 Fields:
 
 - Amount.
+- Currency: EUR or USD.
 - Type: income or expense.
 - Name, stored through the API's `description` field.
 - Category.
@@ -679,6 +684,12 @@ UX notes:
   Horizontal navigation gestures outside this control remain disabled.
 - Income and expense use restrained semantic green and red treatments while the
   save action continues to use the petroleum brand color.
+- A compact EUR/USD segmented control in the upper-right mirrors the existing
+  List/Charts switch style. Opening the composer defaults to EUR unless a
+  specific flow, such as USD Wallet, requests USD.
+- Changing the selected currency updates the symbol beside the amount. USD
+  expenses consume the funded USD wallet cost basis on the backend, while USD
+  income asks for its EUR basis so global EUR totals remain accurate.
 - The amount input uses the mobile decimal keyboard and the fields retain their
   natural form order for previous/next keyboard navigation.
 - The Name control starts at one line and grows automatically up to three full
@@ -745,6 +756,13 @@ Current behavior:
   those values when reopened.
 - A `401 Unauthorized` response opens the shared expired-session dialog.
 
+Currency exchanges appear in chronological movement lists when relevant. They
+use the same row rhythm as transactions but a neutral icon treatment, an
+exchange title, the amount sent plus date in the subtitle, and the received
+amount on the right. Opening an exchange shows a ticket-style detail sheet with
+Share, Edit, and Delete actions, full rate information, and global context for
+exchanges in the same direction.
+
 When the account has no transactions, Moves retains the `Transactions` title
 but hides its result count, search, filters, and history. It uses the same first
 transaction empty state and shared New Transaction composer as Stats. After a
@@ -760,6 +778,7 @@ Final MVP content:
 - Paginated transaction list.
 - Category filter.
 - Transaction detail entry point.
+- Currency exchange rows and detail entry point.
 - Empty states.
 
 ### 11. Transaction Detail And Edit
@@ -803,7 +822,9 @@ show brief feedback.
 Edit opens the same full-screen transaction composer used for creation above
 the detail sheet; the detail remains mounted but inert underneath. Every field
 is prefilled, the save action stays disabled until a value changes, and
-changing the transaction type clears the incompatible category. The client
+changing the transaction type clears the incompatible category. The selected
+currency is also prefilled; changing only the currency is enough to enable the
+save action. The client
 repeats the creation validations and sends only changed fields through
 `PATCH /transactions/:id`.
 
@@ -819,7 +840,44 @@ cancel only the confirmation. While the authenticated `DELETE` request is in
 progress, every confirmation control is disabled; success closes the detail and
 refreshes every financial view, while failures remain visible in the popover.
 
-### 12. Statistics
+### 12. USD Wallet
+
+Purpose: manage the user's USD balance without turning currency exchange into a
+normal transaction.
+
+The USD Wallet is reachable from Profile's Money section. It uses the same
+screen spacing, typography, dividers, empty states, and infinite-loading
+patterns as the rest of the authenticated app. The page starts with a compact
+`USD balance` section showing available USD, the EUR basis, and summarized
+money moved from EUR to USD and from USD to EUR.
+
+An intermediate details section shows only non-zero USD metrics: share of net
+worth, USD expenses, USD income, and exchanged USD left. The global average
+exchange rate is shown beside the USD balance as both `1$ = X€` and
+`1€ = X$`, separated by a vertical divider.
+
+The `USD history` section merges USD transactions and currency exchanges into
+one chronological list. Three icon toggles control whether incomes, expenses,
+and exchanges are visible; at least one remains enabled. Result counts use
+singular and plural labels such as `1 exchange`, `3 exchanges`, or the total
+entry count when multiple types are active. Additional pages load
+automatically as the user scrolls, matching the Transactions screen.
+
+When no matching USD movements exist, the empty state matches the transaction
+empty state and offers actions for creating the first USD transaction or the
+first exchange. New Exchange opens the Add Exchange screen from the bottom and
+returns to USD Wallet after closing or saving. New Transaction opens the shared
+transaction composer with USD preselected.
+
+Add/Edit Exchange is a focused full-screen form. EUR-to-USD is the default,
+with a reversible currency-order control. The user enters any two values among
+amount deposited, amount received, and the displayed exchange rates; the
+remaining values are calculated immediately. Rates display up to six decimals
+in the form, while the backend stores the precise EUR-per-USD rate with high
+decimal precision. The switch icon rotates during direction changes and the
+submit action enables only when the exchange is valid.
+
+### 13. Statistics
 
 Purpose: show simple financial insights.
 
@@ -945,7 +1003,7 @@ The deterministic statistics fixture files remain in the repository as visual
 development references, but production components do not import or bundle
 them.
 
-### 13. Account
+### 14. Account
 
 Purpose: user profile and session controls.
 
@@ -991,7 +1049,7 @@ The change-password modal requires the current password and two copies of the ne
 
 Logout keeps the confirmation dialog visible while the request is pending. Only after the API confirms that the session has ended does the private screen slide to the right, revealing the public access screen underneath. Failed and cancelled attempts do not trigger the transition.
 
-### 14. Admin
+### 15. Admin
 
 Purpose: operational review tools.
 
@@ -1026,8 +1084,9 @@ Baseline requirements:
 
 The Vite/React shell, theme, authentication, verified password registration,
 email and recovery-code password reset, onboarding, Home, transaction creation
-and management, Statistics, and Profile flows are implemented. Administrative
-screens remain outside the current mobile MVP frontend.
+and management, EUR/USD currency support, USD Wallet, Statistics, and Profile
+flows are implemented. Administrative screens remain outside the current mobile
+MVP frontend.
 
 Each completed screen includes its relevant loading, error, empty, and API
 states rather than relying on static preview data.
