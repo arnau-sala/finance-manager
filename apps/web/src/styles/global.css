@@ -8417,6 +8417,7 @@ html.desktop-app-route .stats-view-stage {
   border-color: var(--color-primary-border);
 }
 
+.transaction-detail-hero__secondary-amount,
 .currency-exchange-detail-hero__from {
   margin: -1px 0 7px;
   color: var(--color-text-muted);
