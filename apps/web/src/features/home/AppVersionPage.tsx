@@ -45,6 +45,11 @@ const currentFeatures = [
     icon: PieChart
   },
   {
+    title: "Multiple currencies",
+    description: "Add euro and dollar movements with exchange tracking",
+    icon: DollarSign
+  },
+  {
     title: "Manage access",
     description: "Use email, Google or username sign-in methods",
     icon: ShieldCheck
@@ -66,11 +71,6 @@ const futureFeatures = [
     title: "Expense bundles",
     description: "Group related income or expenses under one total",
     icon: StickyNotes
-  },
-  {
-    title: "Multiple currencies",
-    description: "Work with more than one currency when needed",
-    icon: DollarSign
   },
   {
     title: "Faster card expenses",

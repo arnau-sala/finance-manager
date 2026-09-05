@@ -88,13 +88,16 @@ Shows the phone setup guide and desktop positioning.
 
 Source: App version screen
 
-Shows the current user-facing capabilities in a compact visual format.
+Shows the current user-facing capabilities in a compact visual format,
+including the implemented multi-currency feature.
 
 ### `13-coming-next.jpeg`
 
 Source: App version screen
 
 Shows the planned roadmap items that explain where the product is going next.
+Multiple currencies no longer appears here because EUR/USD support is now part
+of the current product scope.
 
 ## Not Used
 

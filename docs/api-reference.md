@@ -12,7 +12,9 @@ The mobile-first authenticated experience now includes real Home, Moves, Profile
 and Statistics screens. Statistics Overview and Charts use owner-scoped
 PostgreSQL aggregations rather than frontend fixtures. A one-time authenticated
 setup records the user's timeless starting net worth, or `0` when skipped,
-before the app opens. Accounts can be created with a verified email or with a
+before the app opens. The app also supports EUR/USD transaction entry, dated
+currency exchanges, a USD wallet, and EUR-based accounting for global totals.
+Accounts can be created with a verified email or with a
 username and password. Username accounts receive a one-use recovery code and
 can later add a verified email or Google without creating a second user. The
 mobile frontend lets the user choose between both account types and validates
@@ -104,6 +106,14 @@ Transactions:
 - `POST /transactions`
 - `PATCH /transactions/:id`
 - `DELETE /transactions/:id`
+
+Currency:
+
+- `GET /currency/wallets/usd`
+- `GET /currency/exchanges`
+- `POST /currency/exchanges`
+- `PATCH /currency/exchanges/:id`
+- `DELETE /currency/exchanges/:id`
 
 Statistics:
 
@@ -803,6 +813,9 @@ The endpoint returns only transactions owned by the current session user, includ
         "type": "EXPENSE"
       },
       "amount": "42.50",
+      "currency": "EUR",
+      "originalAmount": null,
+      "exchangeRateBasePerUsd": null,
       "description": "Weekly groceries",
       "date": "2026-07-05",
       "createdAt": "2026-07-05T16:31:00.000Z"
@@ -856,6 +869,9 @@ GET /transactions/categories/:category
         "type": "EXPENSE"
       },
       "amount": "850.00",
+      "currency": "EUR",
+      "originalAmount": null,
+      "exchangeRateBasePerUsd": null,
       "description": "Rent",
       "date": "2026-07-01",
       "createdAt": "2026-07-01T08:01:00.000Z"
@@ -894,6 +910,9 @@ by its detail sheet only when it belongs to the current session user:
       "type": "EXPENSE"
     },
     "amount": "42.50",
+    "currency": "EUR",
+    "originalAmount": null,
+    "exchangeRateBasePerUsd": null,
     "description": "Weekly groceries",
     "date": "2026-07-05",
     "createdAt": "2026-07-05T16:31:00.000Z"
@@ -948,11 +967,10 @@ type, in that context. Positive impacts below `1%` are returned with one decimal
 and never collapse to `0%`; impacts of at least `1%` are rounded to whole
 percentages.
 
-`trackedBalance` is calculated from registered transactions ordered by
-transaction date, creation timestamp, and ID. It intentionally remains a
-transaction-ledger value that starts at zero, so it must not be interpreted as
-the user's full real-world wealth. Actual net worth is exposed separately and
-includes the configured starting value.
+`trackedBalance` is calculated from the user's configured starting net worth
+plus registered transactions ordered by transaction date, creation timestamp,
+and ID. For USD transactions, the visible `originalAmount` remains in dollars
+while `amount` is the EUR accounting value used for the before/after balance.
 
 All derived values are produced in the same database statement, so switching
 between Month, Year, and All in the interface requires no additional request. A
@@ -981,13 +999,37 @@ Content-Type: application/json
   "categoryId": "expense-groceries",
   "description": "Weekly groceries",
   "amount": "42.50",
+  "currency": "EUR",
   "date": "2026-07-05"
 }
 ```
 
-`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 50 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `date` is an optional calendar date in `YYYY-MM-DD` format and defaults to the server's current calendar date. Times and timezone offsets are rejected.
+`type` must be `INCOME` or `EXPENSE`. `categoryId` is required and must reference a category of the same type. `description` is required and limited to 50 characters. `amount` must be positive with at most two decimal places; sending it as a string is recommended for exact decimal input. `currency` defaults to `EUR` and currently accepts `EUR` or `USD`. `date` is an optional calendar date in `YYYY-MM-DD` format and defaults to the server's current calendar date. Times and timezone offsets are rejected.
 
-The backend obtains `userId` exclusively from the session and stores the amount as integer cents. The transaction day is stored as PostgreSQL `DATE`, while `createdAt` independently records the exact creation timestamp. Transaction responses include the selected category's ID, name, and type.
+EUR transactions do not accept `baseAmount`; `amount` is both the visible value
+and the EUR accounting value. USD expenses use `amount` as the visible dollar
+amount and derive the EUR accounting amount from the funded USD wallet cost
+basis, so `baseAmount` is rejected. USD incomes require `baseAmount` to record
+the EUR basis that backs the received dollars:
+
+```json
+{
+  "type": "INCOME",
+  "categoryId": "income-freelance",
+  "description": "US client",
+  "amount": "250.00",
+  "currency": "USD",
+  "baseAmount": "216.70",
+  "date": "2026-08-12"
+}
+```
+
+The backend obtains `userId` exclusively from the session and stores money as
+integer minor units. For USD rows, responses expose `originalAmount` as the
+visible USD amount and `amount` as the EUR accounting value. The transaction
+day is stored as PostgreSQL `DATE`, while `createdAt` independently records the
+exact creation timestamp. Transaction responses include the selected
+category's ID, name, and type.
 
 ## Delete Transaction
 
@@ -1016,7 +1058,7 @@ An unknown transaction ID and a transaction owned by another user both return th
 The authenticated interface confirms this irreversible action in a compact
 popover anchored below the transaction's Delete control. A successful deletion
 closes the detail sheet, clears private financial caches, and refreshes Home,
-Moves, and Stats.
+Moves, USD Wallet, and Stats.
 
 ## Update Transaction
 
@@ -1033,17 +1075,183 @@ Send only the fields that must change. All fields are optional, and an empty obj
 {
   "categoryId": "expense-dining",
   "description": "Updated description",
-  "amount": "35.20"
+  "amount": "35.20",
+  "currency": "USD"
 }
 ```
 
-The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
+The available fields and validation rules are the same as for transaction creation. Required values cannot be cleared, so values such as an empty `description` are rejected. The resulting category must match the resulting transaction type; changing between `INCOME` and `EXPENSE` therefore requires a compatible `categoryId`. Changing to or from USD rebuilds the user's USD ledger and can fail with `409` if the resulting history would spend or exchange more USD than available. A successful edit returns `200 OK` with `{"message":"Transaction updated."}`. Missing and foreign-owned transaction IDs return the same `404` response used by deletion.
 
 The authenticated interface opens the shared transaction composer from the
 detail sheet, prefilled with the current values. It sends only changed fields,
-then invalidates the owner-scoped Home, transaction, detail, and Statistics
-queries. Visible cached data remains in place while the derived aggregates
-revalidate.
+then invalidates the owner-scoped Home, transaction, detail, USD Wallet, and
+Statistics queries. Visible cached data remains in place while the derived
+aggregates revalidate.
+
+## Get USD Wallet
+
+An active login session is required:
+
+```http
+GET /currency/wallets/usd
+```
+
+The endpoint rebuilds the owner-scoped USD ledger from currency exchanges and
+USD transactions, then returns the current wallet snapshot and compact
+summary:
+
+```json
+{
+  "wallet": {
+    "currency": "USD",
+    "balance": "521.82",
+    "balanceMinor": 52182,
+    "costBasis": "452.48",
+    "costBasisMinor": 45248,
+    "averageRateBasePerUsd": "0.86713688474819000000",
+    "summary": {
+      "exchangedIn": {
+        "usdAmount": "576.82",
+        "baseAmount": "500.01",
+        "count": 1
+      },
+      "received": {
+        "usdAmount": "576.82",
+        "baseAmount": "500.01",
+        "count": 1
+      },
+      "income": {
+        "usdAmount": "0.00",
+        "baseAmount": "0.00",
+        "count": 0
+      },
+      "spent": {
+        "usdAmount": "55.00",
+        "baseAmount": "47.53",
+        "count": 3
+      },
+      "exchangedOut": {
+        "usdAmount": "0.00",
+        "baseAmount": "0.00",
+        "count": 0
+      }
+    }
+  }
+}
+```
+
+`balance` is the remaining visible USD. `costBasis` is the EUR value still
+allocated to that remaining USD. `averageRateBasePerUsd` is the current
+weighted EUR-per-USD basis, or `null` when no USD remains. If the historical
+ledger is impossible, for example because it spends more USD than was available
+at that point, the endpoint returns `409`.
+
+## List Currency Exchanges
+
+An active login session is required:
+
+```http
+GET /currency/exchanges
+```
+
+The endpoint returns only exchanges owned by the current user, ordered by
+financial date, creation time, and ID, newest first:
+
+```json
+{
+  "exchanges": [
+    {
+      "id": "exchange-id",
+      "fromCurrency": "EUR",
+      "toCurrency": "USD",
+      "fromAmount": "500.01",
+      "toAmount": "576.82",
+      "exchangeRateBasePerUsd": "0.86683887521237100000",
+      "date": "2026-08-01",
+      "createdAt": "2026-08-01T09:00:00.000Z",
+      "updatedAt": "2026-08-01T09:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "limit": 50,
+    "offset": 0,
+    "nextOffset": null,
+    "total": 1
+  }
+}
+```
+
+Supports `limit` and `offset`; default `limit` is `50` and the maximum is
+`200`.
+
+## Create Currency Exchange
+
+An active login session is required:
+
+```http
+POST /currency/exchanges
+Content-Type: application/json
+```
+
+```json
+{
+  "fromCurrency": "EUR",
+  "toCurrency": "USD",
+  "fromAmount": "500.01",
+  "toAmount": "576.82",
+  "date": "2026-08-01"
+}
+```
+
+Only EUR-to-USD and USD-to-EUR exchanges are currently supported. The two
+currencies must be different, both amounts must be positive decimals with at
+most two places, and `date` defaults to today when omitted. The backend derives
+`exchangeRateBasePerUsd` from the two real amounts and stores it with high
+precision. Creating an exchange rebuilds the USD ledger atomically. If the
+exchange would make the ledger impossible, the write is rejected with `409`.
+
+Successful creation returns `201 Created` with the stored exchange.
+
+## Update Currency Exchange
+
+An active login session is required, and the exchange must belong to that user:
+
+```http
+PATCH /currency/exchanges/:id
+Content-Type: application/json
+```
+
+```json
+{
+  "fromAmount": "600.00",
+  "toAmount": "691.02",
+  "date": "2026-08-02"
+}
+```
+
+Send only changed fields. At least one field is required. The resulting pair
+must still be EUR-to-USD or USD-to-EUR and must pass the same validation used by
+creation. The ledger is rebuilt inside the same database transaction, so
+invalid histories are rejected without partially changing the exchange.
+
+## Delete Currency Exchange
+
+An active login session is required, and the exchange must belong to that user:
+
+```http
+DELETE /currency/exchanges/:id
+```
+
+A successful deletion returns:
+
+```json
+{
+  "message": "Currency exchange deleted"
+}
+```
+
+Deleting an exchange also rebuilds the USD ledger. Missing and foreign-owned
+exchanges return `404 Not Found` with `{"error":"Currency exchange not found"}`.
 
 ## Get Home Overview
 
@@ -1073,6 +1281,9 @@ The endpoint provides the authenticated user's Home data in one response: the al
         "type": "EXPENSE"
       },
       "amount": "42.80",
+      "currency": "EUR",
+      "originalAmount": null,
+      "exchangeRateBasePerUsd": null,
       "description": "Weekly groceries",
       "date": "2026-07-17"
     }
@@ -1149,7 +1360,8 @@ periods contain income, avoiding duplicate insights with no comparative value.
 
 All calculations use only transactions owned by the authenticated user. Empty
 periods return zero values and empty category collections. Money is calculated
-in integer cents and exposed as decimal strings. Representative response
+in integer cents, using EUR as the base currency for USD rows, and exposed as
+decimal strings. Representative response
 excerpt:
 
 ```json

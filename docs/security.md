@@ -360,12 +360,23 @@ Transaction security decisions:
 - Deletion filters by transaction ID and authenticated `userId` in one database operation.
 - Partial editing applies the same ownership filter and validates every supplied field.
 - Empty edits verify ownership and succeed without changing stored data.
+- Transaction currency is limited to `EUR` and `USD`. EUR remains the base
+  accounting currency; USD rows keep the visible dollar amount separately from
+  the EUR value used by totals.
+- USD expenses cannot provide their own EUR basis; the API derives it from the
+  authenticated user's funded USD wallet. USD incomes must provide a positive
+  EUR basis.
 - Native sharing is initiated locally and includes only type, description,
   signed amount, category, and date. It does not expose transaction IDs,
   ownership identifiers, tracked balances, ranks, or an authenticated URL.
+- `GET /currency/wallets/usd` and `/currency/exchanges` derive ownership only
+  from the encrypted session and never accept `userId`.
+- Currency exchange creation, editing, and deletion filter by the authenticated
+  owner and rebuild the USD ledger atomically. Operations that would create a
+  negative USD balance are rejected without persisting partial writes.
 - Category-filtered transaction reads filter by category ID and authenticated `userId`.
 - Missing and foreign-owned transaction IDs return the same `404` response, preventing ownership disclosure.
-- All financial query keys include the authenticated `userId`; no private cache is persisted outside memory. Transaction and starting-net-worth writes invalidate the relevant owner-scoped query families, while logout, account deletion, and session expiration clear the full authenticated cache.
+- All financial query keys include the authenticated `userId`; no private cache is persisted outside memory. Transaction, currency exchange, and starting-net-worth writes invalidate the relevant owner-scoped query families, while logout, account deletion, and session expiration clear the full authenticated cache.
 - New speculative reads pause while the installed web app is hidden. Returning after three minutes discards cached financial data and pending prefetches before Home is loaded again.
 - Statistics endpoints must filter transactions by the authenticated `userId`.
 - `GET /statistics/balance` returns only the caller's own totals, including for administrators.
@@ -377,4 +388,5 @@ Transaction security decisions:
 - `GET /statistics/overview` and `GET /statistics/charts` derive their owner only from the encrypted session, reject future periods, and never return `userId`. Overview returns compact previews only for the caller's largest income and expense so the authenticated detail flow can open those transactions; it does not expose transaction history.
 - Aggregate financial responses disable shared/browser HTTP storage with `Cache-Control: private, no-store`; the frontend keeps only short-lived owner-keyed in-memory entries and clears them when the session ends.
 - `GET /home` derives ownership from the authenticated session and returns only that user's cash-flow balance, current net worth, latest transactions, and current-month activity; it does not accept or expose `userId`.
-- Future reads and mutations must always filter transactions by the authenticated `userId`.
+- Future reads and mutations must always filter transactions and financial
+  account records by the authenticated `userId`.
