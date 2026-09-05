@@ -120,6 +120,12 @@ type HomeSectionProps = {
   onGoogleAccountUnlinkFeedbackHandled: () => void;
 };
 
+function normalizeTransactionInitialCurrency(
+  currency: unknown
+): TransactionCurrencyCode {
+  return currency === "USD" ? "USD" : "EUR";
+}
+
 const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode> = {
   home: ({
     user,
@@ -368,17 +374,22 @@ export function HomePage({
     }
   }, [activeSection, onInitialContentReady]);
 
-  function openNewTransaction(
-    initialCurrency: TransactionCurrencyCode = "EUR"
-  ) {
+  function openNewTransaction(initialCurrency: unknown = "EUR") {
     if (lockSectionNavigation && !allowLockedNewTransaction) {
       return;
     }
 
     prefetchScheduler.prioritizeUserRequest();
     setTransactionBeingEdited(null);
-    setNewTransactionInitialCurrency(initialCurrency);
+    setNewTransactionInitialCurrency(
+      normalizeTransactionInitialCurrency(initialCurrency)
+    );
     setIsTransactionComposerOpen(true);
+  }
+
+  function closeTransactionComposer() {
+    setIsTransactionComposerOpen(false);
+    setNewTransactionInitialCurrency("EUR");
   }
 
   function finishFinancialWrite(updatedTransactionId?: string) {
@@ -400,7 +411,7 @@ export function HomePage({
       setMovesScrollTarget(scrollTarget);
     }
 
-    setIsTransactionComposerOpen(false);
+    closeTransactionComposer();
     void invalidateAfterTransactionWrite(user.id).finally(() => {
       if (scrollTarget) {
         setMovesScrollTarget((current) =>
@@ -580,7 +591,7 @@ export function HomePage({
           scrollToTopSignal: activeScrollToTopSignal,
           sectionScrollTops,
           onSectionScrollTopChange: updateSectionScrollTop,
-          onNewTransaction: openNewTransaction,
+          onNewTransaction: () => openNewTransaction(),
           onExchangeEdit: openExchangeEdit,
           onExchangeDeleted: finishExchangeDelete,
           editingExchangeId: exchangeBeingEdited?.id ?? null,
@@ -699,7 +710,7 @@ export function HomePage({
         transaction={transactionBeingEdited}
         initialCurrency={newTransactionInitialCurrency}
         disablePersistence={lockSectionNavigation}
-        onClose={() => setIsTransactionComposerOpen(false)}
+        onClose={closeTransactionComposer}
         onCreated={finishFinancialWrite}
         onUpdated={finishFinancialWrite}
         onSessionExpired={onSessionExpired}

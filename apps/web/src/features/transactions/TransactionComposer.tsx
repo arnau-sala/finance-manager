@@ -82,6 +82,12 @@ const TRANSACTION_CURRENCY_OPTIONS = [
 ] as const;
 const MINIMUM_TRANSACTION_DATE = "2026-01-01";
 
+function normalizeTransactionCurrency(
+  currency: unknown
+): TransactionCurrencySelection {
+  return currency === "USD" ? "USD" : "EUR";
+}
+
 function isCreateTransactionField(
   field: unknown
 ): field is CreateTransactionField {
@@ -227,7 +233,9 @@ export function TransactionComposer({
   const isEditing = transaction !== null;
   const [type, setType] = useState<TransactionType>("EXPENSE");
   const [currency, setCurrency] =
-    useState<TransactionCurrencySelection>("EUR");
+    useState<TransactionCurrencySelection>(() =>
+      normalizeTransactionCurrency(initialCurrency)
+    );
   const [amount, setAmount] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
     null
@@ -298,7 +306,9 @@ export function TransactionComposer({
           : null;
 
       setType(transaction?.type ?? "EXPENSE");
-      setCurrency(transaction?.currency ?? initialCurrency);
+      setCurrency(
+        normalizeTransactionCurrency(transaction?.currency ?? initialCurrency)
+      );
       setAmount(
         transaction
           ? formatStoredAmountInput(getTransactionEditableAmount(transaction))
@@ -402,6 +412,12 @@ export function TransactionComposer({
     setSelectedCategoryId(null);
     clearFieldError("type");
     clearFieldError("categoryId");
+  }
+
+  function selectCurrency(nextCurrency: TransactionCurrencySelection) {
+    setCurrency(normalizeTransactionCurrency(nextCurrency));
+    clearFieldError("currency");
+    clearFieldError("baseAmount");
   }
 
   function getTypeSegmentMaxDistance() {
@@ -731,7 +747,7 @@ export function TransactionComposer({
             className="transaction-currency-toggle"
             value={currency}
             options={TRANSACTION_CURRENCY_OPTIONS}
-            onChange={setCurrency}
+            onChange={selectCurrency}
             label="Transaction currency"
             compact
             allowDrag={false}

@@ -39,6 +39,7 @@ apps/api
       auth-google.ts
       auth.ts
       categories.ts
+      currency.ts
       auth-me.ts
       home.ts
       password-recovery.ts
@@ -66,6 +67,7 @@ The active database models cover authentication and financial records:
 - `PasswordResetGrant`
 - `Category`
 - `Transaction`
+- `CurrencyExchange`
 
 Password registration is split into code issuance and code verification:
 
@@ -201,6 +203,20 @@ uses its own session-bound OAuth state and delegates the account mutation to
 
 Phase 6 currently supports transaction creation, partial editing, deletion, and a global predefined category catalog. `GET /categories` exposes stable category IDs, while transaction routes validate that referenced categories exist and match the transaction type. `Transaction` now has Prisma relations to `User` and `Category`; scalar `userId` remains internal for ownership filters, while `categoryId` is still returned because the client needs it for category-based views. The financial day is stored as `occurredOn` using PostgreSQL `DATE`; the public API exposes it as `date: "YYYY-MM-DD"`, while `createdAt` remains the exact technical timestamp.
 
+Transactions also support a focused EUR/USD currency layer. EUR remains the
+base accounting currency used by Home, Statistics, net worth, and historical
+balances. EUR rows store their visible value directly in `amountCents`. USD
+rows store the visible dollar amount in `originalAmountMinor`, the EUR
+accounting value in `amountCents`, and the applied EUR-per-USD basis in
+`exchangeRateBasePerUsd`.
+
+`routes/currency.ts` owns the authenticated USD wallet and currency exchange
+contracts: wallet snapshot, paginated exchange listing, exchange creation,
+editing, and deletion. `CurrencyExchange` is intentionally separate from
+`Transaction` because buying or selling dollars is not treated as income or
+expense. The frontend can still render both kinds of records in one movement
+history by merging their owner-scoped, date-ordered responses.
+
 Transaction reads and mutations derive `userId` exclusively from the secure session. Listing, category-filtered listing, and detail retrieval therefore return only the caller's transactions, with no administrative bypass. ID-based operations combine the transaction ID with that `userId`, so a missing transaction and a transaction owned by another user are indistinguishable to the caller. Empty edits verify ownership and succeed without writing. Financial account containers remain deferred.
 
 `services/transaction-service.ts` owns the transaction response serializer and
@@ -211,6 +227,15 @@ uses `occurredOn`, `createdAt`, and `id`, while equal-amount rankings use those
 fields as deterministic tie-breakers. Derived values are intentionally not
 stored because backdated edits and deletions would invalidate later balances
 and ranks.
+
+`services/currency-ledger-service.ts` owns USD accounting. It rebuilds the
+wallet from all owner-scoped exchanges and USD transactions in chronological
+order. EUR-to-USD exchanges add USD balance and EUR cost basis. USD-to-EUR
+exchanges remove a proportional share of the current cost basis. USD expenses
+consume proportional cost basis and persist the resulting EUR amount on the
+transaction. USD income requires a caller-provided EUR basis and adds both USD
+and EUR basis to the ledger. Any mutation that would make the wallet negative
+throws a domain error and rolls back the write.
 
 The frontend uses one owner-keyed TanStack Query cache for Home, transaction
 pages, transaction details, Statistics Overview, Statistics Charts, and period
@@ -306,13 +331,13 @@ previous-month, and All reports are then prefetched in descending likelihood,
 with All Charts last because it is the heaviest speculative read. Navigating
 through arbitrary periods does not recursively prefetch their charts.
 
-Financial writes invalidate Home, transaction, detail, and Statistics query
-families by key. Logout, account deletion, and session expiration clear the
-complete authenticated cache. When the installed web app is hidden, new
-prefetches pause. Returning within three minutes resumes the existing cache;
-after three minutes the cache and queue are discarded and authenticated Home
-starts from a clean read. Browser HTTP caching remains disabled for private
-financial responses.
+Financial writes invalidate Home, transaction, detail, USD wallet, currency
+exchange, and Statistics query families by key. Logout, account deletion, and
+session expiration clear the complete authenticated cache. When the installed
+web app is hidden, new prefetches pause. Returning within three minutes resumes
+the existing cache; after three minutes the cache and queue are discarded and
+authenticated Home starts from a clean read. Browser HTTP caching remains
+disabled for private financial responses.
 
 Starting net worth is stored on `User` only as nullable signed integer cents. A
 null value means the initial setup is pending; saving or skipping replaces it
