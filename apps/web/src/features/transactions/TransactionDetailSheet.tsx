@@ -291,6 +291,18 @@ function getTransactionDisplayAmount(transaction: TransactionPreview | null) {
     : transaction.amount;
 }
 
+function getUsdTransactionEuroEquivalent(
+  transaction: TransactionPreview | null
+) {
+  if (!transaction || transaction.currency !== "USD") {
+    return null;
+  }
+
+  const equivalent = Number(transaction.baseAmount ?? transaction.amount);
+
+  return Number.isFinite(equivalent) ? equivalent : null;
+}
+
 export function TransactionDetailSheet({
   ownerId,
   transaction,
@@ -390,6 +402,7 @@ export function TransactionDetailSheet({
     displayedTransaction?.type === "INCOME"
       ? Math.abs(displayedAmount)
       : -Math.abs(displayedAmount);
+  const euroEquivalent = getUsdTransactionEuroEquivalent(displayedTransaction);
 
   onCloseRef.current = onClose;
   suspendedRef.current = suspended;
@@ -1043,6 +1056,13 @@ export function TransactionDetailSheet({
                       showSign: true
                     })}
                   </strong>
+                  {euroEquivalent !== null ? (
+                    <span className="transaction-detail-hero__secondary-amount">
+                      {formatMoneyAmount(Math.abs(euroEquivalent), {
+                        currency: "EUR"
+                      })}
+                    </span>
+                  ) : null}
                   <time id={dateId} dateTime={displayedTransaction.date}>
                     {formatFullDate(displayedTransaction.date)}
                   </time>
