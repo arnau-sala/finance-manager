@@ -21,9 +21,16 @@ import { scheduleHomePrefetches } from "../../cache/financial-prefetch";
 import type { SessionUser } from "../auth/auth-api";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import { TransactionRow } from "../transactions/TransactionRow";
+import { TransactionGroupRow } from "../transactions/TransactionGroupRow";
+import {
+  transactionGroupsQueryOptions,
+  TransactionGroupApiError,
+  type TransactionGroupListItem
+} from "../transactions/transaction-groups-api";
 import {
   homeOverviewQueryOptions,
   HomeApiError,
+  type HomeMove,
 } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
 import {
@@ -42,7 +49,12 @@ type HomeOverviewPageProps = {
   onNewTransaction: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
+  onTransactionGroupSelect: (group: TransactionGroupListItem) => void;
 };
+
+type HomeLatestMoveEntry =
+  | { kind: "transaction"; move: HomeMove }
+  | { kind: "group"; group: TransactionGroupListItem };
 
 function getNetWorthVisibilityStorageKey(userId: string) {
   return `finance-manager:home-net-worth-hidden:${userId}`;

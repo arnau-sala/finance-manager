@@ -27,6 +27,7 @@ import {
   rebuildUsdLedger,
   USD_CURRENCY,
 } from "../services/currency-ledger-service.js";
+import { getNetOperationSummary } from "../services/financial-operations.js";
 import { toTransactionResponse } from "../services/transaction-service.js";
 
 const MIN_GROUP_TRANSACTIONS = 2;
@@ -88,10 +89,16 @@ const amountSchema = z
 
 const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 const currencyCodeSchema = z.enum(["EUR", "USD"]);
-const groupTitleSchema = z.string().trim().min(1).max(100);
+const groupTitleSchema = z.string().trim().min(1).max(30);
 const groupTransactionTitleSchema = z.string().trim().min(1).max(50);
 const transactionGroupDateSchema = z.iso.date().transform(parseDateOnly);
 const groupParamsSchema = z.object({ id: z.string().trim().min(1) }).strict();
+const groupListQuerySchema = z
+  .object({
+    limit: z.coerce.number().int().min(1).max(200).default(100),
+    offset: z.coerce.number().int().min(0).default(0),
+  })
+  .strict();
 const groupTransactionParamsSchema = z
   .object({
     id: z.string().trim().min(1),
@@ -167,6 +174,18 @@ const createTransactionGroupBodySchema = z
   })
   .strict();
 
+const createTransactionGroupFromTransactionBodySchema = z
+  .object({
+    title: groupTitleSchema,
+    categoryId: z.string().trim().min(1),
+    date: transactionGroupDateSchema.optional(),
+    transactions: z
+      .array(groupTransactionInputSchema)
+      .min(MIN_GROUP_TRANSACTIONS - 1)
+      .max(MAX_GROUP_TRANSACTIONS - 1),
+  })
+  .strict();
+
 const updateTransactionGroupBodySchema = z
   .object({
     title: groupTitleSchema.optional(),
@@ -201,17 +220,8 @@ function sendCurrencyLedgerError(reply: FastifyReply, error: unknown) {
   return reply.code(statusCode).send({ error: error.message });
 }
 
-function getSignedAmountCents(transaction: Pick<Transaction, "type" | "amountCents">) {
-  return transaction.type === "INCOME"
-    ? transaction.amountCents
-    : -transaction.amountCents;
-}
-
 function toTransactionGroupResponse(group: TransactionGroupWithDetails) {
-  const netTotalCents = group.transactions.reduce(
-    (total, transaction) => total + getSignedAmountCents(transaction),
-    0,
-  );
+  const { netTotalCents } = getNetOperationSummary(group.transactions);
 
   return {
     id: group.id,
@@ -436,6 +446,50 @@ async function dissolveGroupIfNeeded(
 
 export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
   app.get(
+    "/transaction-groups",
+    { config: { rateLimit: financialReadRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required" });
+      }
+
+      const parsedQuery = groupListQuerySchema.safeParse(request.query);
+
+      if (!parsedQuery.success) {
+        return reply.code(400).send({ error: "Invalid transaction group query" });
+      }
+
+      const { limit, offset } = parsedQuery.data;
+      const groups = await db.transactionGroup.findMany({
+        where: { userId },
+        orderBy: [{ occurredOn: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+        include: {
+          category: { select: { id: true, name: true, type: true } },
+          transactions: {
+            orderBy: [{ groupOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+            include: { category: { select: { id: true, name: true, type: true } } },
+          },
+        },
+        take: limit + 1,
+        skip: offset,
+      });
+      const items = groups.slice(0, limit);
+
+      return reply.send({
+        groups: items.map(toTransactionGroupResponse),
+        pagination: {
+          limit,
+          offset,
+          nextOffset: groups.length > limit ? offset + limit : null,
+          total: offset + items.length + (groups.length > limit ? 1 : 0),
+        },
+      });
+    },
+  );
+
+  app.get(
     "/transaction-groups/:id",
     { config: { rateLimit: financialReadRateLimit } },
     async (request, reply) => {
@@ -531,6 +585,118 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(201).send({
           group: group ? toTransactionGroupResponse(group) : null,
         });
+      } catch (error) {
+        return sendCurrencyLedgerError(reply, error);
+      }
+    },
+  );
+
+  app.post(
+    "/transaction-groups/from-transaction/:id",
+    { config: { rateLimit: financialWriteRateLimit } },
+    async (request, reply) => {
+      const userId = await getAuthenticatedUserId(request);
+
+      if (!userId) {
+        return reply.code(401).send({ error: "Authentication required" });
+      }
+
+      const parsedParams = groupParamsSchema.safeParse(request.params);
+
+      if (!parsedParams.success) {
+        return reply.code(400).send({ error: "Invalid transaction id" });
+      }
+
+      const parsedBody = createTransactionGroupFromTransactionBodySchema.safeParse(
+        request.body,
+      );
+
+      if (!parsedBody.success) {
+        return reply.code(400).send({
+          error: "Invalid transaction group data",
+          issues: parsedBody.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        });
+      }
+
+      const category = await getCategory(parsedBody.data.categoryId);
+
+      if (!category) {
+        return reply.code(400).send({ error: "Invalid transaction group category" });
+      }
+
+      const occurredOn =
+        parsedBody.data.date ?? parseDateOnly(getTodayDateOnly());
+      const includesUsdTransaction = parsedBody.data.transactions.some(
+        (transaction) => transaction.currency === USD_CURRENCY,
+      );
+
+      try {
+        const group = await db.$transaction(async (client) => {
+          const sourceTransaction = await client.transaction.findFirst({
+            where: {
+              id: parsedParams.data.id,
+              userId,
+              groupId: null,
+            },
+            select: {
+              id: true,
+              currency: true,
+            },
+          });
+
+          if (!sourceTransaction) {
+            return null;
+          }
+
+          const createdGroup = await client.transactionGroup.create({
+            data: {
+              userId,
+              title: parsedBody.data.title,
+              categoryId: category.id,
+              occurredOn,
+            },
+          });
+
+          await client.transaction.update({
+            where: { id: sourceTransaction.id },
+            data: {
+              groupId: createdGroup.id,
+              groupOrder: 0,
+              categoryId: category.id,
+              occurredOn,
+            },
+          });
+
+          await Promise.all(
+            parsedBody.data.transactions.map((transaction, index) =>
+              client.transaction.create({
+                data: getTransactionCreateData({
+                  userId,
+                  groupId: createdGroup.id,
+                  groupOrder: index + 1,
+                  categoryId: category.id,
+                  occurredOn,
+                  transaction,
+                }),
+              }),
+            ),
+          );
+
+          if (sourceTransaction.currency === USD_CURRENCY || includesUsdTransaction) {
+            await rebuildUsdLedger(userId, client);
+          }
+
+          return getTransactionGroup(client, userId, createdGroup.id);
+        });
+
+        if (!group) {
+          return reply.code(404).send({ error: "Transaction not found" });
+        }
+
+        return reply.code(201).send({ group: toTransactionGroupResponse(group) });
       } catch (error) {
         return sendCurrencyLedgerError(reply, error);
       }
