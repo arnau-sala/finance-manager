@@ -183,6 +183,9 @@ export function TransactionGroupComposer({
   }, [group, open, seedTransaction]);
 
   const netTotal = getNetTotal(lines);
+  const hasTransactionContent = lines.some(
+    (line) => line.title.trim().length > 0 || parseAmount(line.amount) > 0
+  );
   const canAddLine = lines.length < 10;
   const canSubmit =
     title.trim().length > 0 &&
@@ -405,9 +408,8 @@ export function TransactionGroupComposer({
               onChange={setDate}
             />
 
-            {lines.length > 0 ? (
+            {hasTransactionContent ? (
               <section className="transaction-group-net" aria-label="Group net total">
-                <span>Net total</span>
                 <strong
                   className={
                     netTotal > 0
