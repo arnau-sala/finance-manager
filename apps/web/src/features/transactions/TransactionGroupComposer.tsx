@@ -150,6 +150,7 @@ export function TransactionGroupComposer({
   const [categoryType, setCategoryType] = useState<TransactionType>("EXPENSE");
   const [categoryId, setCategoryId] = useState("");
   const [date, setDate] = useState(getTodayDateOnly());
+  const [hasSelectedDate, setHasSelectedDate] = useState(false);
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [editingLineDraft, setEditingLineDraft] = useState<DraftLine | null>(
@@ -179,6 +180,7 @@ export function TransactionGroupComposer({
       setCategoryId(group.categoryId);
       setCategoryType(group.category.type);
       setDate(group.date);
+      setHasSelectedDate(true);
       setLines(group.transactions.map(createLineFromGroupTransaction));
       setEditingLineId(null);
       setEditingLineDraft(null);
@@ -191,6 +193,7 @@ export function TransactionGroupComposer({
       setCategoryId(seedTransaction.categoryId);
       setCategoryType(seedTransaction.category.type);
       setDate(seedTransaction.date);
+      setHasSelectedDate(true);
       setLines([createLineFromTransaction(seedTransaction)]);
       setEditingLineId(null);
       setEditingLineDraft(null);
@@ -202,6 +205,7 @@ export function TransactionGroupComposer({
     setCategoryId("");
     setCategoryType("EXPENSE");
     setDate(getTodayDateOnly());
+    setHasSelectedDate(false);
     setLines([]);
     setEditingLineId(null);
     setEditingLineDraft(null);
@@ -707,7 +711,11 @@ export function TransactionGroupComposer({
               value={date}
               minimumDate={MINIMUM_TRANSACTION_DATE}
               maximumDate={getTodayDateOnly()}
-              onChange={setDate}
+              selected={hasSelectedDate}
+              onChange={(nextDate) => {
+                setDate(nextDate);
+                setHasSelectedDate(true);
+              }}
             />
 
             {hasTransactionContent ? (
