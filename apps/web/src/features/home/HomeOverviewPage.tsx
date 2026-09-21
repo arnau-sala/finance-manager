@@ -30,7 +30,7 @@ import {
 import {
   homeOverviewQueryOptions,
   HomeApiError,
-  type HomeMove,
+  type HomeMove
 } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
 import {
@@ -204,9 +204,11 @@ export function HomeOverviewPage({
   onScrollTopChange,
   onNewTransaction,
   onNavigateToMoves,
-  onTransactionSelect
+  onTransactionSelect,
+  onTransactionGroupSelect
 }: HomeOverviewPageProps) {
   const overviewQuery = useQuery(homeOverviewQueryOptions(user.id));
+  const transactionGroupsQuery = useQuery(transactionGroupsQueryOptions(user.id));
   const overview = overviewQuery.data ?? null;
   const netWorthAnimationTimeout = useRef<number | null>(null);
   const scrollContainer = useRef<HTMLElement>(null);
@@ -264,6 +266,15 @@ export function HomeOverviewPage({
       onSessionExpired();
     }
   }, [onSessionExpired, overviewQuery.error]);
+
+  useEffect(() => {
+    if (
+      transactionGroupsQuery.error instanceof TransactionGroupApiError &&
+      transactionGroupsQuery.error.status === 401
+    ) {
+      onSessionExpired();
+    }
+  }, [onSessionExpired, transactionGroupsQuery.error]);
 
   useEffect(() => {
     if (!overviewQuery.isPending) {
@@ -332,7 +343,34 @@ export function HomeOverviewPage({
     );
   }
 
-  const latestMoves = overview.latestMoves;
+  const latestMoves: HomeLatestMoveEntry[] = [
+    ...overview.latestMoves.map((move) => ({
+      kind: "transaction" as const,
+      move
+    })),
+    ...(transactionGroupsQuery.data?.groups ?? []).map((group) => ({
+      kind: "group" as const,
+      group
+    }))
+  ]
+    .sort((left, right) => {
+      const leftDate =
+        left.kind === "transaction" ? left.move.date : left.group.date;
+      const rightDate =
+        right.kind === "transaction" ? right.move.date : right.group.date;
+
+      if (leftDate !== rightDate) {
+        return rightDate.localeCompare(leftDate);
+      }
+
+      const leftCreatedAt =
+        left.kind === "transaction" ? left.move.id : left.group.createdAt;
+      const rightCreatedAt =
+        right.kind === "transaction" ? right.move.id : right.group.createdAt;
+
+      return rightCreatedAt.localeCompare(leftCreatedAt);
+    })
+    .slice(0, 3);
   const hasStartingNetWorth = overview.balance.currentNetWorth !== null;
   const balanceLabel = hasStartingNetWorth ? "Net worth" : "Tracked balance";
   const balanceAmount = formatEuroAmount(
@@ -451,10 +489,22 @@ export function HomeOverviewPage({
           </div>
 
           <ul className="home-move-list">
-            {latestMoves.map((move) => {
+            {latestMoves.map((entry) => {
+              if (entry.kind === "group") {
+                return (
+                  <TransactionGroupRow
+                    key={`group-${entry.group.id}`}
+                    group={entry.group}
+                    onSelect={() => onTransactionGroupSelect(entry.group)}
+                  />
+                );
+              }
+
+              const { move } = entry;
+
               return (
                 <TransactionRow
-                  key={move.id}
+                  key={`transaction-${move.id}`}
                   type={move.type}
                   categoryId={move.category.id}
                   categoryName={move.category.name}

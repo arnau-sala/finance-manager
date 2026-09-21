@@ -141,7 +141,8 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     onSectionScrollTopChange,
     onNewTransaction,
     onNavigateToMoves,
-    onTransactionSelect
+    onTransactionSelect,
+    onTransactionGroupSelect
   }) => (
     <HomeOverviewPage
       user={user}
@@ -155,6 +156,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       onNewTransaction={onNewTransaction}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
+      onTransactionGroupSelect={onTransactionGroupSelect}
     />
   ),
   moves: ({
