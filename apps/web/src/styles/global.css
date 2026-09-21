@@ -4753,6 +4753,13 @@ body.segmented-drag-scroll-lock .auth-screen--registration-method {
   gap: 5px;
 }
 
+.home-primary-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  align-items: stretch;
+  gap: 10px;
+}
+
 .home-new-transaction {
   width: 100%;
   height: 52px;
@@ -4773,22 +4780,28 @@ body.segmented-drag-scroll-lock .auth-screen--registration-method {
   -webkit-tap-highlight-color: transparent;
 }
 
+.home-primary-actions .home-new-transaction {
+  min-width: 0;
+}
+
+.home-primary-actions .home-new-group {
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+}
+
 .home-new-transaction__icon {
   width: 28px;
   height: 28px;
   display: grid;
   place-items: center;
-  background: color-mix(
-    in srgb,
-    var(--color-on-primary) 14%,
-    transparent
-  );
+  background: transparent;
   border-radius: 50%;
 }
 
 .home-new-transaction__icon svg {
-  width: 17px;
-  height: 17px;
+  width: 21px;
+  height: 21px;
   stroke-width: 2;
 }
 
@@ -5098,9 +5111,6 @@ button.transaction-row__content:focus-visible {
   display: grid;
   place-items: center;
   padding: 0;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  border: 1px solid var(--color-primary-border);
   border-radius: 50%;
   cursor: pointer;
   touch-action: manipulation;

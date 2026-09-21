@@ -6,6 +6,7 @@ import {
   Eye,
   EyeClosed,
   EyeOff,
+  LayersPlus,
   Plus,
   ReceiptEuro,
   RefreshCw,
@@ -47,6 +48,7 @@ type HomeOverviewPageProps = {
   initialScrollTop: number;
   onScrollTopChange: (scrollTop: number) => void;
   onNewTransaction: () => void;
+  onNewTransactionGroup: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
   onTransactionGroupSelect: (group: TransactionGroupListItem) => void;
@@ -203,6 +205,7 @@ export function HomeOverviewPage({
   initialScrollTop,
   onScrollTopChange,
   onNewTransaction,
+  onNewTransactionGroup,
   onNavigateToMoves,
   onTransactionSelect,
   onTransactionGroupSelect
@@ -464,17 +467,30 @@ export function HomeOverviewPage({
           </p>
         </section>
 
-        <ActionButton
-          className="home-new-transaction"
-          type="button"
-          onClick={onNewTransaction}
-        >
-          <span className="home-new-transaction__icon" aria-hidden="true">
-            <Plus />
-          </span>
-          <span>New transaction</span>
-          <ChevronRight aria-hidden="true" />
-        </ActionButton>
+        <div className="home-primary-actions">
+          <ActionButton
+            className="home-new-transaction"
+            type="button"
+            onClick={onNewTransaction}
+          >
+            <span className="home-new-transaction__icon" aria-hidden="true">
+              <Plus />
+            </span>
+            <span>New transaction</span>
+            <ChevronRight aria-hidden="true" />
+          </ActionButton>
+          <ActionButton
+            className="home-new-transaction home-new-group"
+            type="button"
+            aria-label="New transaction group"
+            title="New transaction group"
+            onClick={onNewTransactionGroup}
+          >
+            <span className="home-new-transaction__icon" aria-hidden="true">
+              <LayersPlus />
+            </span>
+          </ActionButton>
+        </div>
 
         <section
           className="home-recent-moves"

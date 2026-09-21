@@ -13,7 +13,7 @@ import {
   useInfiniteQuery,
   useQuery
 } from "@tanstack/react-query";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { LayersPlus, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
@@ -877,7 +877,7 @@ export function MovesPage({
                 title="New transaction group"
                 onClick={onNewTransactionGroup}
               >
-                <Plus aria-hidden="true" />
+                <LayersPlus aria-hidden="true" />
               </ActionButton>
             </div>
           </header>
@@ -922,7 +922,7 @@ export function MovesPage({
               title="New transaction group"
               onClick={onNewTransactionGroup}
             >
-              <Plus aria-hidden="true" />
+              <LayersPlus aria-hidden="true" />
             </ActionButton>
           </div>
         </header>

@@ -140,6 +140,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     sectionScrollTops,
     onSectionScrollTopChange,
     onNewTransaction,
+    onNewTransactionGroup,
     onNavigateToMoves,
     onTransactionSelect,
     onTransactionGroupSelect
@@ -154,6 +155,7 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
         onSectionScrollTopChange("home", scrollTop)
       }
       onNewTransaction={onNewTransaction}
+      onNewTransactionGroup={onNewTransactionGroup}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
       onTransactionGroupSelect={onTransactionGroupSelect}
