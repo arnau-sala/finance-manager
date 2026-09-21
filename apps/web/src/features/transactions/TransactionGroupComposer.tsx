@@ -44,7 +44,8 @@ const CURRENCY_OPTIONS: readonly SlidingSegmentOption<TransactionCurrencyCode>[]
   { value: "USD", label: "$" }
 ];
 const CATEGORY_TYPE_DRAG_THRESHOLD_PX = 18;
-const CATEGORY_TYPE_AXIS_THRESHOLD_PX = 4;
+const CATEGORY_TYPE_AXIS_THRESHOLD_PX = 8;
+const CATEGORY_CLICK_SUPPRESSION_MS = 120;
 
 type DraftLine = TransactionGroupLineInput & {
   id: string;
@@ -161,6 +162,7 @@ export function TransactionGroupComposer({
   const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
   const categoryTypeSurfaceRef = useRef<HTMLDivElement>(null);
   const suppressNextCategoryClick = useRef(false);
+  const suppressNextCategoryClickTimeout = useRef<number | null>(null);
   const categoryTypeDrag = useRef<{
     pointerId: number;
     startX: number;
@@ -174,6 +176,12 @@ export function TransactionGroupComposer({
 
   useEffect(() => {
     if (!open) return;
+
+    suppressNextCategoryClick.current = false;
+    if (suppressNextCategoryClickTimeout.current !== null) {
+      window.clearTimeout(suppressNextCategoryClickTimeout.current);
+      suppressNextCategoryClickTimeout.current = null;
+    }
 
     if (group) {
       setTitle(group.title);
@@ -216,6 +224,9 @@ export function TransactionGroupComposer({
     () => () => {
       releaseCategoryTypeScrollLock.current?.();
       releaseCategoryTypeScrollLock.current = null;
+      if (suppressNextCategoryClickTimeout.current !== null) {
+        window.clearTimeout(suppressNextCategoryClickTimeout.current);
+      }
     },
     []
   );
@@ -246,6 +257,19 @@ export function TransactionGroupComposer({
     if (selected?.type !== nextType) {
       setCategoryId("");
     }
+  }
+
+  function suppressCategoryClickBriefly() {
+    suppressNextCategoryClick.current = true;
+
+    if (suppressNextCategoryClickTimeout.current !== null) {
+      window.clearTimeout(suppressNextCategoryClickTimeout.current);
+    }
+
+    suppressNextCategoryClickTimeout.current = window.setTimeout(() => {
+      suppressNextCategoryClick.current = false;
+      suppressNextCategoryClickTimeout.current = null;
+    }, CATEGORY_CLICK_SUPPRESSION_MS);
   }
 
   function startCategoryTypeDrag(
@@ -280,7 +304,7 @@ export function TransactionGroupComposer({
     if (drag.mode === "pending") {
       const hasHorizontalIntent =
         Math.abs(horizontalDistance) > Math.abs(verticalDistance) &&
-        Math.abs(horizontalDistance) >= CATEGORY_TYPE_AXIS_THRESHOLD_PX;
+        Math.abs(horizontalDistance) >= CATEGORY_TYPE_DRAG_THRESHOLD_PX;
       const hasVerticalIntent =
         Math.abs(verticalDistance) > Math.abs(horizontalDistance) &&
         Math.abs(verticalDistance) >= CATEGORY_TYPE_AXIS_THRESHOLD_PX;
@@ -342,7 +366,9 @@ export function TransactionGroupComposer({
           ? "EXPENSE"
           : drag.startType;
 
-    suppressNextCategoryClick.current = wasDragged;
+    if (wasDragged) {
+      suppressCategoryClickBriefly();
+    }
     selectCategoryType(nextType);
     categoryTypeDrag.current = null;
     setIsCategoryTypeDragging(false);
@@ -607,6 +633,10 @@ export function TransactionGroupComposer({
                 }
 
                 suppressNextCategoryClick.current = false;
+                if (suppressNextCategoryClickTimeout.current !== null) {
+                  window.clearTimeout(suppressNextCategoryClickTimeout.current);
+                  suppressNextCategoryClickTimeout.current = null;
+                }
                 event.preventDefault();
                 event.stopPropagation();
               }}
