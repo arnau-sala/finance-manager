@@ -11,7 +11,20 @@ import { centsToDecimal } from "../money/cents.js";
 
 export type TransactionCategory = Pick<Category, "id" | "name" | "type">;
 
-export type TransactionWithCategory = Transaction & {
+export type TransactionWithCategory = Pick<
+  Transaction,
+  | "id"
+  | "userId"
+  | "type"
+  | "categoryId"
+  | "amountCents"
+  | "currency"
+  | "originalAmountMinor"
+  | "exchangeRateBasePerUsd"
+  | "description"
+  | "occurredOn"
+  | "createdAt"
+> & {
   category: TransactionCategory;
 };
 
@@ -166,6 +179,7 @@ export async function getTransactionDetail(
         INNER JOIN "User" u ON u."id" = t."userId"
         WHERE t."id" = ${transactionId}
           AND t."userId" = ${userId}
+          AND t."groupId" IS NULL
       ),
       candidates AS (
         SELECT
@@ -205,6 +219,7 @@ export async function getTransactionDetail(
         FROM target
         INNER JOIN "Transaction" candidate
           ON candidate."userId" = target."userId"
+          AND candidate."groupId" IS NULL
       )
       SELECT
         target."id",

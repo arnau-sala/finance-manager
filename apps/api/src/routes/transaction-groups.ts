@@ -622,7 +622,11 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           return reply.code(404).send({ error: "Transaction group not found" });
         }
 
-        return reply.send({ group: toTransactionGroupResponse(result) });
+        return reply.send({
+          group: toTransactionGroupResponse(
+            result as TransactionGroupWithDetails,
+          ),
+        });
       } catch (error) {
         return sendCurrencyLedgerError(reply, error);
       }
@@ -923,7 +927,11 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           });
         }
 
-        return reply.send({ group: toTransactionGroupResponse(result) });
+        return reply.send({
+          group: toTransactionGroupResponse(
+            result as TransactionGroupWithDetails,
+          ),
+        });
       } catch (error) {
         return sendCurrencyLedgerError(reply, error);
       }

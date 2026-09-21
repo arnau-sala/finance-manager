@@ -33,3 +33,57 @@ ALTER TABLE "TransactionGroup" ADD CONSTRAINT "TransactionGroup_categoryId_fkey"
 
 -- AddForeignKey
 ALTER TABLE "Transaction" ADD CONSTRAINT "Transaction_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "TransactionGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- CreateView
+CREATE VIEW "FinancialOperation" AS
+SELECT
+    t."id" AS "id",
+    t."userId" AS "userId",
+    'TRANSACTION'::text AS "sourceType",
+    t."id" AS "sourceId",
+    t."type" AS "type",
+    t."categoryId" AS "categoryId",
+    t."amountCents"::bigint AS "amountCents",
+    CASE
+        WHEN t."type" = 'INCOME'::"TransactionType" THEN t."amountCents"::bigint
+        ELSE -t."amountCents"::bigint
+    END AS "signedAmountCents",
+    t."description" AS "description",
+    t."occurredOn" AS "occurredOn",
+    t."createdAt" AS "createdAt"
+FROM "Transaction" t
+WHERE t."groupId" IS NULL
+
+UNION ALL
+
+SELECT
+    g."id" AS "id",
+    g."userId" AS "userId",
+    'TRANSACTION_GROUP'::text AS "sourceType",
+    g."id" AS "sourceId",
+    CASE
+        WHEN group_totals."signedAmountCents" > 0 THEN 'INCOME'::"TransactionType"
+        WHEN group_totals."signedAmountCents" < 0 THEN 'EXPENSE'::"TransactionType"
+        ELSE NULL
+    END AS "type",
+    g."categoryId" AS "categoryId",
+    ABS(group_totals."signedAmountCents") AS "amountCents",
+    group_totals."signedAmountCents" AS "signedAmountCents",
+    g."title" AS "description",
+    g."occurredOn" AS "occurredOn",
+    g."createdAt" AS "createdAt"
+FROM "TransactionGroup" g
+LEFT JOIN LATERAL (
+    SELECT
+        COALESCE(
+            SUM(
+                CASE
+                    WHEN t."type" = 'INCOME'::"TransactionType" THEN t."amountCents"::bigint
+                    ELSE -t."amountCents"::bigint
+                END
+            ),
+            0
+        ) AS "signedAmountCents"
+    FROM "Transaction" t
+    WHERE t."groupId" = g."id"
+) group_totals ON TRUE;
