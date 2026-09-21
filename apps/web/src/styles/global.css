@@ -9322,6 +9322,140 @@ html.desktop-app-route .stats-view-stage {
   font-weight: 400;
 }
 
+.transaction-category-picker__heading {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+  padding: 0 var(--text-field-padding);
+}
+
+.transaction-category-picker__heading > span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-category-picker--group .transaction-category-picker__heading {
+  cursor: grab;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-group-category-drag-surface {
+  cursor: grab;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-category-picker--group
+  .transaction-category-picker__heading.is-dragging,
+.transaction-group-category-drag-surface.is-dragging {
+  cursor: grabbing;
+}
+
+.transaction-group-category-type-toggle {
+  position: relative;
+  width: auto;
+  height: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.transaction-group-category-type-toggle--income {
+  --category-type-active-color: var(--color-success);
+}
+
+.transaction-group-category-type-toggle--expense {
+  --category-type-active-color: var(--color-danger);
+}
+
+.transaction-group-category-type-toggle > span {
+  display: none;
+}
+
+.transaction-category-picker__heading.is-dragging
+  .transaction-group-category-type-toggle
+  > span {
+  display: none;
+}
+
+.transaction-group-category-type-toggle button {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.transaction-group-category-type-toggle button[aria-pressed="true"] {
+  color: var(--category-type-active-color);
+}
+
+.transaction-group-category-type-toggle svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 1.9;
+}
+
+.transaction-group-category-window {
+  height: calc(
+    var(--transaction-category-option-height) * 3 +
+      var(--transaction-category-grid-gap) * 2
+  );
+  overflow: hidden;
+}
+
+.transaction-group-category-track {
+  width: 200%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  transform: translate3d(
+    calc(var(--category-track-base, 0%) + var(--category-type-drag-offset, 0px)),
+    0,
+    0
+  );
+  transition: transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.transaction-group-category-drag-surface.is-dragging
+  .transaction-group-category-track {
+  transition: none;
+}
+
+.transaction-group-category-panel {
+  height: calc(
+    var(--transaction-category-option-height) * 3 +
+      var(--transaction-category-grid-gap) * 2
+  );
+}
+
+.transaction-group-category-panel--income {
+  align-content: center;
+}
+
+.transaction-group-category-panel--expense {
+  align-content: start;
+}
+
 .transaction-category-picker[aria-invalid="true"] legend {
   color: var(--color-danger);
 }
@@ -9612,6 +9746,10 @@ html.desktop-app-route .stats-view-stage {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+}
+
+.transaction-group-line-editor__actions--new {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .transaction-group-line-editor__actions button {

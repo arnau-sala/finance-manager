@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode, Ref } from "react";
 
 import {
   transactionCategories,
@@ -14,6 +14,10 @@ type TransactionCategoryPickerProps = {
   invalid?: boolean;
   describedBy?: string;
   headerAction?: ReactNode;
+  headingProps?: HTMLAttributes<HTMLDivElement> & {
+    ref?: Ref<HTMLDivElement>;
+  };
+  className?: string;
 };
 
 export function TransactionCategoryPicker({
@@ -24,7 +28,9 @@ export function TransactionCategoryPicker({
   disabled = false,
   invalid = false,
   describedBy,
-  headerAction
+  headerAction,
+  headingProps,
+  className
 }: TransactionCategoryPickerProps) {
   const categories = transactionCategories.filter(
     (category) => category.type === type
@@ -32,7 +38,7 @@ export function TransactionCategoryPicker({
 
   return (
     <fieldset
-      className="transaction-category-picker"
+      className={`transaction-category-picker${className ? ` ${className}` : ""}`}
       disabled={disabled}
       aria-invalid={invalid || undefined}
       aria-describedby={describedBy}
@@ -40,7 +46,12 @@ export function TransactionCategoryPicker({
       {headerAction ? (
         <>
           <legend className="sr-only">{legend}</legend>
-          <div className="transaction-category-picker__heading">
+          <div
+            {...headingProps}
+            className={`transaction-category-picker__heading${
+              headingProps?.className ? ` ${headingProps.className}` : ""
+            }`}
+          >
             <span>{legend}</span>
             {headerAction}
           </div>

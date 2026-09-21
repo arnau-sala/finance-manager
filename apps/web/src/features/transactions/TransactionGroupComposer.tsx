@@ -1,16 +1,22 @@
-import { useEffect, useState } from "react";
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import { createPortal } from "react-dom";
-import { Plus, Trash2, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Plus, Trash2, X } from "lucide-react";
 
 import { invalidateAfterTransactionWrite } from "../../cache/financial-cache";
 import { ActionButton } from "../../components/ui/ActionButton";
+import { acquireDragScrollLock } from "../../components/ui/drag-scroll-lock";
 import {
   SlidingSegmentedControl,
   type SlidingSegmentOption
 } from "../../components/ui/SlidingSegmentedControl";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { formatMoneyAmount } from "../../money/format-euro";
-import { TransactionCategoryPicker } from "./TransactionCategoryPicker";
 import { TransactionDateField } from "./TransactionDateField";
 import { TransactionTypeSwitch } from "./TransactionTypeSwitch";
 import type { TransactionPreview } from "./transaction-api";
@@ -37,6 +43,8 @@ const CURRENCY_OPTIONS: readonly SlidingSegmentOption<TransactionCurrencyCode>[]
   { value: "EUR", label: "\u20ac" },
   { value: "USD", label: "$" }
 ];
+const CATEGORY_TYPE_DRAG_THRESHOLD_PX = 18;
+const CATEGORY_TYPE_AXIS_THRESHOLD_PX = 4;
 
 type DraftLine = TransactionGroupLineInput & {
   id: string;
@@ -144,9 +152,24 @@ export function TransactionGroupComposer({
   const [date, setDate] = useState(getTodayDateOnly());
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
+  const [editingLineDraft, setEditingLineDraft] = useState<DraftLine | null>(
+    null
+  );
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
+  const categoryTypeSurfaceRef = useRef<HTMLDivElement>(null);
+  const suppressNextCategoryClick = useRef(false);
+  const categoryTypeDrag = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    startType: TransactionType;
+    mode: "pending" | "horizontal" | "vertical";
+  } | null>(null);
+  const releaseCategoryTypeScrollLock = useRef<(() => void) | null>(null);
+  const [categoryTypeDragOffset, setCategoryTypeDragOffset] = useState(0);
+  const [isCategoryTypeDragging, setIsCategoryTypeDragging] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -158,6 +181,7 @@ export function TransactionGroupComposer({
       setDate(group.date);
       setLines(group.transactions.map(createLineFromGroupTransaction));
       setEditingLineId(null);
+      setEditingLineDraft(null);
       setFormError("");
       return;
     }
@@ -169,6 +193,7 @@ export function TransactionGroupComposer({
       setDate(seedTransaction.date);
       setLines([createLineFromTransaction(seedTransaction)]);
       setEditingLineId(null);
+      setEditingLineDraft(null);
       setFormError("");
       return;
     }
@@ -179,8 +204,17 @@ export function TransactionGroupComposer({
     setDate(getTodayDateOnly());
     setLines([]);
     setEditingLineId(null);
+    setEditingLineDraft(null);
     setFormError("");
   }, [group, open, seedTransaction]);
+
+  useEffect(
+    () => () => {
+      releaseCategoryTypeScrollLock.current?.();
+      releaseCategoryTypeScrollLock.current = null;
+    },
+    []
+  );
 
   const netTotal = getNetTotal(lines);
   const hasTransactionContent = lines.some(
@@ -197,12 +231,186 @@ export function TransactionGroupComposer({
     lines.every(
       (line) => line.title.trim().length > 0 && parseAmount(line.amount) > 0
     ) &&
+    editingLineDraft === null &&
     !isSubmitting;
 
-  function updateLine(lineId: string, patch: Partial<DraftLine>) {
-    setLines((current) =>
-      current.map((line) => (line.id === lineId ? { ...line, ...patch } : line))
+  function selectCategoryType(nextType: TransactionType) {
+    setCategoryType(nextType);
+    const selected = transactionCategories.find(
+      (category) => category.id === categoryId
     );
+    if (selected?.type !== nextType) {
+      setCategoryId("");
+    }
+  }
+
+  function startCategoryTypeDrag(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    if (event.button !== 0 || isSubmitting) {
+      return;
+    }
+
+    categoryTypeDrag.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      mode: "pending",
+      startType: categoryType
+    };
+    setCategoryTypeDragOffset(0);
+  }
+
+  function moveCategoryTypeDrag(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    const drag = categoryTypeDrag.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const horizontalDistance = event.clientX - drag.startX;
+    const verticalDistance = event.clientY - drag.startY;
+
+    if (drag.mode === "pending") {
+      const hasHorizontalIntent =
+        Math.abs(horizontalDistance) > Math.abs(verticalDistance) &&
+        Math.abs(horizontalDistance) >= CATEGORY_TYPE_AXIS_THRESHOLD_PX;
+      const hasVerticalIntent =
+        Math.abs(verticalDistance) > Math.abs(horizontalDistance) &&
+        Math.abs(verticalDistance) >= CATEGORY_TYPE_AXIS_THRESHOLD_PX;
+
+      if (hasVerticalIntent) {
+        drag.mode = "vertical";
+        categoryTypeDrag.current = null;
+        setIsCategoryTypeDragging(false);
+        setCategoryTypeDragOffset(0);
+        return;
+      }
+
+      if (!hasHorizontalIntent) {
+        return;
+      }
+
+      drag.mode = "horizontal";
+      setIsCategoryTypeDragging(true);
+      releaseCategoryTypeScrollLock.current ??= acquireDragScrollLock();
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+
+    if (drag.mode !== "horizontal") {
+      return;
+    }
+
+    event.preventDefault();
+    const maxOffset = categoryTypeSurfaceRef.current?.clientWidth ?? 320;
+    const minOffset = drag.startType === "INCOME" ? -maxOffset : 0;
+    const maxDirectionalOffset = drag.startType === "EXPENSE" ? maxOffset : 0;
+
+    setCategoryTypeDragOffset(
+      Math.max(minOffset, Math.min(maxDirectionalOffset, horizontalDistance))
+    );
+  }
+
+  function finishCategoryTypeDrag(
+    event: ReactPointerEvent<HTMLDivElement>
+  ) {
+    const drag = categoryTypeDrag.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (drag.mode !== "horizontal") {
+      categoryTypeDrag.current = null;
+      setIsCategoryTypeDragging(false);
+      setCategoryTypeDragOffset(0);
+      return;
+    }
+
+    const offset = event.clientX - drag.startX;
+    const wasDragged = Math.abs(offset) > CATEGORY_TYPE_DRAG_THRESHOLD_PX;
+    const nextType =
+      drag.startType === "EXPENSE" && offset > CATEGORY_TYPE_DRAG_THRESHOLD_PX
+        ? "INCOME"
+        : drag.startType === "INCOME" && offset < -CATEGORY_TYPE_DRAG_THRESHOLD_PX
+          ? "EXPENSE"
+          : drag.startType;
+
+    suppressNextCategoryClick.current = wasDragged;
+    selectCategoryType(nextType);
+    categoryTypeDrag.current = null;
+    setIsCategoryTypeDragging(false);
+    setCategoryTypeDragOffset(0);
+    releaseCategoryTypeScrollLock.current?.();
+    releaseCategoryTypeScrollLock.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function cancelCategoryTypeDrag(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = categoryTypeDrag.current;
+
+    if (!drag || drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    categoryTypeDrag.current = null;
+    setIsCategoryTypeDragging(false);
+    setCategoryTypeDragOffset(0);
+    releaseCategoryTypeScrollLock.current?.();
+    releaseCategoryTypeScrollLock.current = null;
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function startEditingLine(line: DraftLine) {
+    setEditingLineId(line.id);
+    setEditingLineDraft({ ...line });
+  }
+
+  function startAddingLine() {
+    const line = createEmptyLine();
+    setEditingLineId(line.id);
+    setEditingLineDraft(line);
+  }
+
+  function updateEditingLine(patch: Partial<DraftLine>) {
+    setEditingLineDraft((current) =>
+      current ? { ...current, ...patch } : current
+    );
+  }
+
+  function cancelEditingLine() {
+    setEditingLineId(null);
+    setEditingLineDraft(null);
+  }
+
+  function confirmEditingLine() {
+    if (!editingLineDraft) {
+      cancelEditingLine();
+      return;
+    }
+
+    setLines((current) => {
+      const existingIndex = current.findIndex(
+        (line) => line.id === editingLineDraft.id
+      );
+
+      if (existingIndex < 0) {
+        return [...current, editingLineDraft];
+      }
+
+      return current.map((line) =>
+        line.id === editingLineDraft.id ? editingLineDraft : line
+      );
+    });
+    cancelEditingLine();
   }
 
   async function saveGroup() {
@@ -299,7 +507,7 @@ export function TransactionGroupComposer({
 
   function deleteLine(lineId: string) {
     setLines((current) => current.filter((line) => line.id !== lineId));
-    setEditingLineId(null);
+    cancelEditingLine();
   }
 
   function moveLine(fromId: string, toId: string) {
@@ -319,7 +527,9 @@ export function TransactionGroupComposer({
 
   return createPortal(
     <section
-      className={`transaction-composer transaction-composer--group${open ? " is-open" : ""}`}
+      className={`transaction-composer transaction-composer--group${
+        categoryType === "INCOME" ? " transaction-composer--income" : ""
+      }${open ? " is-open" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="transaction-group-composer-title"
@@ -378,26 +588,118 @@ export function TransactionGroupComposer({
               />
             </div>
 
-            <TransactionTypeSwitch
-              value={categoryType}
-              onChange={(nextType) => {
-                if (nextType === "ALL") return;
-                setCategoryType(nextType);
-                const selected = transactionCategories.find(
-                  (category) => category.id === categoryId
-                );
-                if (selected?.type !== nextType) {
-                  setCategoryId("");
+            <div
+              ref={categoryTypeSurfaceRef}
+              className={`transaction-group-category-drag-surface${
+                isCategoryTypeDragging ? " is-dragging" : ""
+              }`}
+              onPointerDown={startCategoryTypeDrag}
+              onPointerMove={moveCategoryTypeDrag}
+              onPointerUp={finishCategoryTypeDrag}
+              onPointerCancel={cancelCategoryTypeDrag}
+              onClickCapture={(event) => {
+                if (!suppressNextCategoryClick.current) {
+                  return;
                 }
-              }}
-              label="Group category type"
-            />
 
-            <TransactionCategoryPicker
-              type={categoryType}
-              selectedCategoryIds={categoryId ? [categoryId] : []}
-              onCategorySelect={setCategoryId}
-            />
+                suppressNextCategoryClick.current = false;
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
+              <fieldset
+                className={`transaction-category-picker transaction-category-picker--group transaction-category-picker--group-${categoryType.toLowerCase()}`}
+              >
+                <legend className="sr-only">Category</legend>
+                <div
+                  className={`transaction-category-picker__heading${
+                    isCategoryTypeDragging ? " is-dragging" : ""
+                  }`}
+                >
+                  <span>Category</span>
+                  <div
+                    className={`transaction-group-category-type-toggle transaction-group-category-type-toggle--${categoryType.toLowerCase()}`}
+                    style={
+                      {
+                        "--category-type-drag-offset": `${categoryTypeDragOffset}px`
+                      } as CSSProperties
+                    }
+                    aria-label="Group category type"
+                  >
+                    <span aria-hidden="true" />
+                    <button
+                      type="button"
+                      aria-label="Use income categories"
+                      aria-pressed={categoryType === "INCOME"}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectCategoryType("INCOME");
+                      }}
+                    >
+                      <ArrowUpRight aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Use expense categories"
+                      aria-pressed={categoryType === "EXPENSE"}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        selectCategoryType("EXPENSE");
+                      }}
+                    >
+                      <ArrowDownRight aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="transaction-group-category-window">
+                  <div
+                    className="transaction-group-category-track"
+                    style={
+                      {
+                        "--category-track-base":
+                          categoryType === "INCOME" ? "0%" : "-50%",
+                        "--category-type-drag-offset": `${categoryTypeDragOffset}px`
+                      } as CSSProperties
+                    }
+                  >
+                    {(["INCOME", "EXPENSE"] as const).map((panelType) => (
+                      <div
+                        className={`transaction-category-grid transaction-group-category-panel transaction-group-category-panel--${panelType.toLowerCase()}`}
+                        key={panelType}
+                      >
+                        {transactionCategories
+                          .filter((category) => category.type === panelType)
+                          .map((category) => {
+                            const Icon = category.icon;
+                            const isSelected = category.id === categoryId;
+
+                            return (
+                              <button
+                                key={category.id}
+                                className={`transaction-category-option${
+                                  isSelected ? " is-selected" : ""
+                                }`}
+                                type="button"
+                                aria-pressed={isSelected}
+                                onClick={() => setCategoryId(category.id)}
+                              >
+                                <span
+                                  className="transaction-category-option__icon"
+                                  aria-hidden="true"
+                                >
+                                  <Icon />
+                                </span>
+                                <span>{category.name}</span>
+                              </button>
+                            );
+                          })}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </fieldset>
+            </div>
 
             <TransactionDateField
               id="transaction-group-date"
@@ -429,6 +731,8 @@ export function TransactionGroupComposer({
               <ul>
                 {lines.map((line) => {
                   const isEditingLine = editingLineId === line.id;
+                  const editableLine =
+                    isEditingLine && editingLineDraft ? editingLineDraft : line;
 
                   return (
                     <li
@@ -446,17 +750,17 @@ export function TransactionGroupComposer({
                           <input
                             className="text-field text-field--composer"
                             placeholder="Title"
-                            value={line.title}
+                            value={editableLine.title}
                             maxLength={50}
                             onChange={(event) =>
-                              updateLine(line.id, { title: event.target.value })
+                              updateEditingLine({ title: event.target.value })
                             }
                           />
                           <TransactionTypeSwitch
-                            value={line.type}
+                            value={editableLine.type}
                             onChange={(nextType) => {
                               if (nextType !== "ALL") {
-                                updateLine(line.id, { type: nextType });
+                                updateEditingLine({ type: nextType });
                               }
                             }}
                             compact
@@ -466,24 +770,24 @@ export function TransactionGroupComposer({
                             className="text-field text-field--composer"
                             inputMode="decimal"
                             placeholder="Amount"
-                            value={line.amount}
+                            value={editableLine.amount}
                             onChange={(event) =>
-                              updateLine(line.id, {
+                              updateEditingLine({
                                 amount: normalizeDecimalInput(event.target.value)
                               })
                             }
                           />
                           <SlidingSegmentedControl
                             className="transaction-currency-toggle"
-                            value={line.currency}
+                            value={editableLine.currency}
                             options={CURRENCY_OPTIONS}
-                            onChange={(currency) => updateLine(line.id, { currency })}
+                            onChange={(currency) => updateEditingLine({ currency })}
                             label="Line currency"
                             compact
                             allowDrag={false}
                           />
                           <div className="transaction-group-line-editor__actions">
-                            <ActionButton type="button" onClick={() => setEditingLineId(null)}>
+                            <ActionButton type="button" onClick={cancelEditingLine}>
                               Cancel
                             </ActionButton>
                             {lines.length > 1 ? (
@@ -496,8 +800,8 @@ export function TransactionGroupComposer({
                                 Delete
                               </ActionButton>
                             ) : null}
-                            <ActionButton type="button" onClick={() => setEditingLineId(null)}>
-                              {line.persistedId ? "Save" : "Add"}
+                            <ActionButton type="button" onClick={confirmEditingLine}>
+                              Save
                             </ActionButton>
                           </div>
                         </div>
@@ -505,7 +809,7 @@ export function TransactionGroupComposer({
                         <button
                           className="transaction-group-line"
                           type="button"
-                          onClick={() => setEditingLineId(line.id)}
+                          onClick={() => startEditingLine(line)}
                         >
                           <span>{line.title || "Untitled"}</span>
                           <strong
@@ -527,16 +831,66 @@ export function TransactionGroupComposer({
                     </li>
                   );
                 })}
-                {canAddLine ? (
+                {editingLineDraft &&
+                !lines.some((line) => line.id === editingLineDraft.id) ? (
+                  <li>
+                    <div className="transaction-group-line-editor">
+                      <input
+                        className="text-field text-field--composer"
+                        placeholder="Title"
+                        value={editingLineDraft.title}
+                        maxLength={50}
+                        onChange={(event) =>
+                          updateEditingLine({ title: event.target.value })
+                        }
+                      />
+                      <TransactionTypeSwitch
+                        value={editingLineDraft.type}
+                        onChange={(nextType) => {
+                          if (nextType !== "ALL") {
+                            updateEditingLine({ type: nextType });
+                          }
+                        }}
+                        compact
+                        label="Line type"
+                      />
+                      <input
+                        className="text-field text-field--composer"
+                        inputMode="decimal"
+                        placeholder="Amount"
+                        value={editingLineDraft.amount}
+                        onChange={(event) =>
+                          updateEditingLine({
+                            amount: normalizeDecimalInput(event.target.value)
+                          })
+                        }
+                      />
+                      <SlidingSegmentedControl
+                        className="transaction-currency-toggle"
+                        value={editingLineDraft.currency}
+                        options={CURRENCY_OPTIONS}
+                        onChange={(currency) => updateEditingLine({ currency })}
+                        label="Line currency"
+                        compact
+                        allowDrag={false}
+                      />
+                      <div className="transaction-group-line-editor__actions transaction-group-line-editor__actions--new">
+                        <ActionButton type="button" onClick={cancelEditingLine}>
+                          Cancel
+                        </ActionButton>
+                        <ActionButton type="button" onClick={confirmEditingLine}>
+                          Add
+                        </ActionButton>
+                      </div>
+                    </div>
+                  </li>
+                ) : null}
+                {canAddLine && !editingLineDraft ? (
                   <li>
                     <button
                       className="transaction-group-line transaction-group-line--add"
                       type="button"
-                      onClick={() => {
-                        const line = createEmptyLine();
-                        setLines((current) => [...current, line]);
-                        setEditingLineId(line.id);
-                      }}
+                      onClick={startAddingLine}
                     >
                       <Plus aria-hidden="true" />
                       <span>Add transaction</span>
