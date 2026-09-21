@@ -80,6 +80,7 @@ model User {
   updatedAt             DateTime?    @updatedAt
 
   transactions            Transaction[]
+  transactionGroups       TransactionGroup[]
   currencyExchanges       CurrencyExchange[]
   recoveryCode            AccountRecoveryCode?
   pendingEmailLink        PendingEmailLink?
@@ -213,13 +214,32 @@ model Category {
   name         String
   type         TransactionType
   transactions Transaction[]
+  transactionGroups TransactionGroup[]
 
   @@unique([name, type])
+}
+
+model TransactionGroup {
+  id          String        @id @default(cuid())
+  userId      String
+  title       String        @db.VarChar(100)
+  categoryId  String
+  occurredOn  DateTime      @db.Date
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category      @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  transactions Transaction[]
+
+  @@index([userId, occurredOn])
+  @@index([categoryId])
 }
 
 model Transaction {
   id                     String          @id @default(cuid())
   userId                 String
+  groupId                String?
+  groupOrder             Int?
   type                   TransactionType
   categoryId             String
   amountCents            Int
@@ -231,9 +251,11 @@ model Transaction {
   createdAt              DateTime        @default(now())
   user                   User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   category               Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  group                  TransactionGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@index([userId, occurredOn])
   @@index([userId, currency, occurredOn])
+  @@index([groupId, groupOrder])
   @@index([categoryId])
 }
 
