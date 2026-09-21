@@ -142,7 +142,7 @@ export function TransactionGroupComposer({
   const [categoryType, setCategoryType] = useState<TransactionType>("EXPENSE");
   const [categoryId, setCategoryId] = useState("");
   const [date, setDate] = useState(getTodayDateOnly());
-  const [lines, setLines] = useState<DraftLine[]>([createEmptyLine()]);
+  const [lines, setLines] = useState<DraftLine[]>([]);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,7 +167,7 @@ export function TransactionGroupComposer({
       setCategoryId(seedTransaction.categoryId);
       setCategoryType(seedTransaction.category.type);
       setDate(seedTransaction.date);
-      setLines([createLineFromTransaction(seedTransaction), createEmptyLine()]);
+      setLines([createLineFromTransaction(seedTransaction)]);
       setEditingLineId(null);
       setFormError("");
       return;
@@ -177,7 +177,7 @@ export function TransactionGroupComposer({
     setCategoryId("");
     setCategoryType("EXPENSE");
     setDate(getTodayDateOnly());
-    setLines([createEmptyLine()]);
+    setLines([]);
     setEditingLineId(null);
     setFormError("");
   }, [group, open, seedTransaction]);
@@ -508,7 +508,13 @@ export function TransactionGroupComposer({
                           onClick={() => setEditingLineId(line.id)}
                         >
                           <span>{line.title || "Untitled"}</span>
-                          <strong>
+                          <strong
+                            className={
+                              line.type === "INCOME"
+                                ? "transaction-row__amount--income"
+                                : "transaction-row__amount--expense"
+                            }
+                          >
                             {formatMoneyAmount(
                               line.type === "INCOME"
                                 ? parseAmount(line.amount)
