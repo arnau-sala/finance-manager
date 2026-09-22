@@ -693,9 +693,7 @@ export function TransactionGroupDetailSheet({
                   aria-label="Share group"
                   title="Share"
                   disabled={confirmDelete || isDeleting}
-                  onClick={() => {
-                    setActionsOpen(false);
-                  }}
+                  onClick={() => {}}
                 >
                   <Share aria-hidden="true" />
                 </ActionButton>
@@ -708,8 +706,8 @@ export function TransactionGroupDetailSheet({
                   title="Edit"
                   disabled={confirmDelete || isDeleting}
                   onClick={() => {
-                    setActionsOpen(false);
                     onEdit(detailGroup);
+                    onClose();
                   }}
                 >
                   <Pencil aria-hidden="true" />
@@ -723,7 +721,6 @@ export function TransactionGroupDetailSheet({
                   title="Delete"
                   disabled={confirmDelete || isDeleting}
                   onClick={() => {
-                    setActionsOpen(false);
                     setConfirmDelete(true);
                   }}
                 >
