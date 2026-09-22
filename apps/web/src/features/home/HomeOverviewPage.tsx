@@ -306,8 +306,13 @@ export function HomeOverviewPage({
     : overviewQuery.isError
       ? "error"
       : "ready";
+  const hasExpiredSession =
+    (overviewQuery.error instanceof HomeApiError &&
+      overviewQuery.error.status === 401) ||
+    (transactionGroupsQuery.error instanceof TransactionGroupApiError &&
+      transactionGroupsQuery.error.status === 401);
 
-  if (loadingState === "loading") {
+  if (loadingState === "loading" || hasExpiredSession) {
     return <HomeOverviewSkeleton />;
   }
 

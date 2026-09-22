@@ -183,6 +183,43 @@ function lineToInput(line: DraftLine): TransactionGroupLineInput {
   return input;
 }
 
+function normalizeAmountForComparison(value: string | number | undefined) {
+  const amount = Number(String(value ?? "").replace(",", "."));
+
+  return Number.isFinite(amount) ? amount.toFixed(2) : "";
+}
+
+function hasGroupLineChanged(
+  line: DraftLine,
+  transaction: TransactionGroupListItem["transactions"][number]
+) {
+  const input = lineToInput(line);
+  const existingCurrency = transaction.currency ?? "EUR";
+  const existingAmount = transaction.originalAmount ?? transaction.amount;
+  const shouldCompareBaseAmount = input.baseAmount !== undefined;
+
+  return (
+    input.type !== transaction.type ||
+    input.title !== transaction.description ||
+    input.currency !== existingCurrency ||
+    normalizeAmountForComparison(input.amount) !==
+      normalizeAmountForComparison(existingAmount) ||
+    (shouldCompareBaseAmount &&
+      normalizeAmountForComparison(input.baseAmount) !==
+        normalizeAmountForComparison(transaction.baseAmount))
+  );
+}
+
+function haveGroupTransactionIdsChanged(
+  previousIds: readonly string[],
+  nextIds: readonly string[]
+) {
+  return (
+    previousIds.length !== nextIds.length ||
+    previousIds.some((id, index) => id !== nextIds[index])
+  );
+}
+
 export function TransactionGroupComposer({
   userId,
   open,
@@ -1017,20 +1054,43 @@ export function TransactionGroupComposer({
           await createTransactionGroup(payload);
         }
       } else {
-        await updateTransactionGroup(group.id, {
-          title: title.trim(),
-          categoryId,
-          date
-        });
+        const trimmedTitle = title.trim();
+        const groupMetadataChanged =
+          trimmedTitle !== group.title ||
+          categoryId !== group.categoryId ||
+          date !== group.date;
+
+        if (groupMetadataChanged) {
+          await updateTransactionGroup(group.id, {
+            title: trimmedTitle,
+            categoryId,
+            date
+          });
+        }
 
         const currentPersistedIds = new Set(
           group.transactions.map((transaction) => transaction.id)
         );
+        const existingTransactionsById = new Map(
+          group.transactions.map((transaction) => [transaction.id, transaction])
+        );
         const nextPersistedIdsByDraftId = new Map<string, string>();
+        const updateRequests: Promise<unknown>[] = [];
 
         for (const line of lines) {
           if (line.persistedId) {
-            await updateGroupTransaction(group.id, line.persistedId, lineToInput(line));
+            const existingTransaction = existingTransactionsById.get(
+              line.persistedId
+            );
+
+            if (
+              existingTransaction &&
+              hasGroupLineChanged(line, existingTransaction)
+            ) {
+              updateRequests.push(
+                updateGroupTransaction(group.id, line.persistedId, lineToInput(line))
+              );
+            }
           } else {
             const response = await addGroupTransaction(group.id, lineToInput(line));
             const createdLine = response.group.transactions.find(
@@ -1044,6 +1104,8 @@ export function TransactionGroupComposer({
           }
         }
 
+        await Promise.all(updateRequests);
+
         const persistedIds = new Set(
           lines.flatMap((line) => {
             const persistedId =
@@ -1051,19 +1113,25 @@ export function TransactionGroupComposer({
             return persistedId ? [persistedId] : [];
           })
         );
-        for (const existing of group.transactions) {
-          if (!persistedIds.has(existing.id)) {
-            await deleteGroupTransaction(group.id, existing.id);
-          }
-        }
+        await Promise.all(
+          group.transactions
+            .filter((existing) => !persistedIds.has(existing.id))
+            .map((existing) => deleteGroupTransaction(group.id, existing.id))
+        );
 
         const orderedTransactionIds = lines.flatMap((line) => {
           const persistedId =
             line.persistedId ?? nextPersistedIdsByDraftId.get(line.id);
           return persistedId ? [persistedId] : [];
         });
+        const previousTransactionIds = group.transactions.map(
+          (transaction) => transaction.id
+        );
 
-        if (orderedTransactionIds.length >= 2) {
+        if (
+          orderedTransactionIds.length >= 2 &&
+          haveGroupTransactionIdsChanged(previousTransactionIds, orderedTransactionIds)
+        ) {
           await reorderGroupTransactions(group.id, orderedTransactionIds);
         }
       }
