@@ -46,10 +46,55 @@ const CURRENCY_OPTIONS: readonly SlidingSegmentOption<TransactionCurrencyCode>[]
 const CATEGORY_TYPE_DRAG_THRESHOLD_PX = 18;
 const CATEGORY_TYPE_AXIS_THRESHOLD_PX = 8;
 const CATEGORY_CLICK_SUPPRESSION_MS = 120;
+const LINE_REORDER_HOLD_MS = 160;
+const LINE_REORDER_MOVE_TOLERANCE_PX = 7;
+const LINE_REORDER_AUTO_SCROLL_EDGE_PX = 82;
+const LINE_REORDER_AUTO_SCROLL_MAX_SPEED_PX = 18;
+const LINE_REORDER_MIDPOINT_THRESHOLD_PX = 3;
 
 type DraftLine = TransactionGroupLineInput & {
   id: string;
   persistedId?: string;
+};
+
+type LineReorderItemGeometry = {
+  id: string;
+  index: number;
+  centerY: number;
+  height: number;
+};
+
+type LineReorderGesture = {
+  pointerId: number;
+  lineId: string;
+  startX: number;
+  startY: number;
+  startIndex: number;
+  previewIndex: number;
+  minOffset: number;
+  maxOffset: number;
+  slotOffset: number;
+  itemCenterY: number;
+  itemTop: number;
+  itemBottom: number;
+  startScrollTop: number;
+  latestClientY: number;
+  latestOffsetY: number;
+  direction: "UP" | "DOWN" | null;
+  autoScrollFrame: number | null;
+  autoScrollVelocity: number;
+  active: boolean;
+  trigger: HTMLElement;
+  pressTimer: number | null;
+  geometry: LineReorderItemGeometry[];
+};
+
+type LineReorderState = {
+  lineId: string;
+  offsetY: number;
+  startIndex: number;
+  previewIndex: number;
+  slotOffset: number;
 };
 
 type TransactionGroupComposerProps = {
@@ -159,8 +204,14 @@ export function TransactionGroupComposer({
   );
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [draggedLineId, setDraggedLineId] = useState<string | null>(null);
+  const [lineReorder, setLineReorder] = useState<LineReorderState | null>(null);
   const categoryTypeSurfaceRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const lineItemRefs = useRef(new Map<string, HTMLLIElement>());
+  const lineReorderGesture = useRef<LineReorderGesture | null>(null);
+  const releaseLineReorderScrollLock = useRef<(() => void) | null>(null);
+  const suppressNextLineClick = useRef(false);
+  const suppressNextLineClickTimeout = useRef<number | null>(null);
   const suppressNextCategoryClick = useRef(false);
   const suppressNextCategoryClickTimeout = useRef<number | null>(null);
   const categoryTypeDrag = useRef<{
@@ -178,9 +229,19 @@ export function TransactionGroupComposer({
     if (!open) return;
 
     suppressNextCategoryClick.current = false;
+    cancelLineReorder();
+    const resetScrollFrame = window.requestAnimationFrame(() => {
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTop = 0;
+      }
+    });
     if (suppressNextCategoryClickTimeout.current !== null) {
       window.clearTimeout(suppressNextCategoryClickTimeout.current);
       suppressNextCategoryClickTimeout.current = null;
+    }
+    if (suppressNextLineClickTimeout.current !== null) {
+      window.clearTimeout(suppressNextLineClickTimeout.current);
+      suppressNextLineClickTimeout.current = null;
     }
 
     if (group) {
@@ -218,14 +279,20 @@ export function TransactionGroupComposer({
     setEditingLineId(null);
     setEditingLineDraft(null);
     setFormError("");
+
+    return () => window.cancelAnimationFrame(resetScrollFrame);
   }, [group, open, seedTransaction]);
 
   useEffect(
     () => () => {
       releaseCategoryTypeScrollLock.current?.();
       releaseCategoryTypeScrollLock.current = null;
+      cancelLineReorder();
       if (suppressNextCategoryClickTimeout.current !== null) {
         window.clearTimeout(suppressNextCategoryClickTimeout.current);
+      }
+      if (suppressNextLineClickTimeout.current !== null) {
+        window.clearTimeout(suppressNextLineClickTimeout.current);
       }
     },
     []
@@ -443,6 +510,484 @@ export function TransactionGroupComposer({
     cancelEditingLine();
   }
 
+  function setLineItemRef(lineId: string, node: HTMLLIElement | null) {
+    if (node) {
+      lineItemRefs.current.set(lineId, node);
+      return;
+    }
+
+    lineItemRefs.current.delete(lineId);
+  }
+
+  function getLineGap() {
+    const firstLine = lines[0]
+      ? lineItemRefs.current.get(lines[0].id)
+      : null;
+    const secondLine = lines[1]
+      ? lineItemRefs.current.get(lines[1].id)
+      : null;
+
+    if (!firstLine || !secondLine) {
+      return 8;
+    }
+
+    const firstRect = firstLine.getBoundingClientRect();
+    const secondRect = secondLine.getBoundingClientRect();
+
+    return Math.max(0, secondRect.top - firstRect.bottom);
+  }
+
+  function getLineReorderPreviewIndex(
+    gesture: LineReorderGesture,
+    offsetY: number
+  ) {
+    const draggedTop = gesture.itemTop + offsetY;
+    const draggedBottom = gesture.itemBottom + offsetY;
+    const direction = gesture.direction ?? (offsetY < 0 ? "UP" : "DOWN");
+
+    if (direction === "UP") {
+      return gesture.geometry.reduce((index, item) => {
+        if (item.id === gesture.lineId) {
+          return index;
+        }
+
+        const currentCenterY =
+          item.centerY + getStaticLineReorderOffset(gesture, item.index);
+        const shouldStayBefore =
+          draggedTop > currentCenterY - LINE_REORDER_MIDPOINT_THRESHOLD_PX;
+
+        return shouldStayBefore ? index + 1 : index;
+      }, 0);
+    }
+
+    return gesture.geometry.reduce((index, item) => {
+      if (item.id === gesture.lineId) {
+        return index;
+      }
+
+      const currentCenterY =
+        item.centerY + getStaticLineReorderOffset(gesture, item.index);
+      const hasPassedItem =
+        draggedBottom > currentCenterY + LINE_REORDER_MIDPOINT_THRESHOLD_PX;
+
+      return hasPassedItem ? index + 1 : index;
+    }, 0);
+  }
+
+  function getStaticLineReorderOffset(
+    gesture: LineReorderGesture,
+    index: number
+  ) {
+    if (
+      gesture.previewIndex > gesture.startIndex &&
+      index > gesture.startIndex &&
+      index <= gesture.previewIndex
+    ) {
+      return -gesture.slotOffset;
+    }
+
+    if (
+      gesture.previewIndex < gesture.startIndex &&
+      index >= gesture.previewIndex &&
+      index < gesture.startIndex
+    ) {
+      return gesture.slotOffset;
+    }
+
+    return 0;
+  }
+
+  function getLineReorderOffsetFromPointer(gesture: LineReorderGesture) {
+    const scrollDelta =
+      (scrollAreaRef.current?.scrollTop ?? gesture.startScrollTop) -
+      gesture.startScrollTop;
+    const pointerDelta = gesture.latestClientY - gesture.startY;
+
+    return Math.max(
+      gesture.minOffset,
+      Math.min(gesture.maxOffset, pointerDelta + scrollDelta)
+    );
+  }
+
+  function updateLineReorderState(gesture: LineReorderGesture) {
+    const offsetY = getLineReorderOffsetFromPointer(gesture);
+
+    if (offsetY > gesture.latestOffsetY) {
+      gesture.direction = "DOWN";
+    } else if (offsetY < gesture.latestOffsetY) {
+      gesture.direction = "UP";
+    }
+
+    const previewIndex = getLineReorderPreviewIndex(gesture, offsetY);
+
+    gesture.latestOffsetY = offsetY;
+    gesture.previewIndex = previewIndex;
+    setLineReorder({
+      lineId: gesture.lineId,
+      offsetY,
+      startIndex: gesture.startIndex,
+      previewIndex,
+      slotOffset: gesture.slotOffset
+    });
+  }
+
+  function getLineReorderAutoScrollVelocity(gesture: LineReorderGesture) {
+    const scrollArea = scrollAreaRef.current;
+
+    if (!scrollArea) {
+      return 0;
+    }
+
+    const rect = scrollArea.getBoundingClientRect();
+    const topDistance = gesture.latestClientY - rect.top;
+    const bottomDistance = rect.bottom - gesture.latestClientY;
+    const canScrollUp = scrollArea.scrollTop > 0;
+    const canScrollDown =
+      scrollArea.scrollTop + scrollArea.clientHeight < scrollArea.scrollHeight;
+
+    if (topDistance < LINE_REORDER_AUTO_SCROLL_EDGE_PX && canScrollUp) {
+      const intensity =
+        (LINE_REORDER_AUTO_SCROLL_EDGE_PX - Math.max(0, topDistance)) /
+        LINE_REORDER_AUTO_SCROLL_EDGE_PX;
+
+      return -Math.max(
+        1,
+        Math.round(intensity * LINE_REORDER_AUTO_SCROLL_MAX_SPEED_PX)
+      );
+    }
+
+    if (bottomDistance < LINE_REORDER_AUTO_SCROLL_EDGE_PX && canScrollDown) {
+      const intensity =
+        (LINE_REORDER_AUTO_SCROLL_EDGE_PX - Math.max(0, bottomDistance)) /
+        LINE_REORDER_AUTO_SCROLL_EDGE_PX;
+
+      return Math.max(
+        1,
+        Math.round(intensity * LINE_REORDER_AUTO_SCROLL_MAX_SPEED_PX)
+      );
+    }
+
+    return 0;
+  }
+
+  function stopLineReorderAutoScroll(gesture: LineReorderGesture) {
+    if (gesture.autoScrollFrame !== null) {
+      window.cancelAnimationFrame(gesture.autoScrollFrame);
+      gesture.autoScrollFrame = null;
+    }
+
+    gesture.autoScrollVelocity = 0;
+  }
+
+  function scheduleLineReorderAutoScroll(gesture: LineReorderGesture) {
+    gesture.autoScrollVelocity = getLineReorderAutoScrollVelocity(gesture);
+
+    if (gesture.autoScrollVelocity === 0) {
+      stopLineReorderAutoScroll(gesture);
+      return;
+    }
+
+    if (gesture.autoScrollFrame !== null) {
+      return;
+    }
+
+    const tick = () => {
+      const currentGesture = lineReorderGesture.current;
+      const scrollArea = scrollAreaRef.current;
+
+      if (!currentGesture || !currentGesture.active || !scrollArea) {
+        if (currentGesture) {
+          currentGesture.autoScrollFrame = null;
+          currentGesture.autoScrollVelocity = 0;
+        }
+        return;
+      }
+
+      currentGesture.autoScrollVelocity =
+        getLineReorderAutoScrollVelocity(currentGesture);
+
+      if (currentGesture.autoScrollVelocity === 0) {
+        currentGesture.autoScrollFrame = null;
+        return;
+      }
+
+      const previousScrollTop = scrollArea.scrollTop;
+
+      scrollArea.scrollTop += currentGesture.autoScrollVelocity;
+
+      if (scrollArea.scrollTop !== previousScrollTop) {
+        updateLineReorderState(currentGesture);
+      }
+
+      currentGesture.autoScrollFrame = window.requestAnimationFrame(tick);
+    };
+
+    gesture.autoScrollFrame = window.requestAnimationFrame(tick);
+  }
+
+  function activateLineReorder(pointerId: number) {
+    const gesture = lineReorderGesture.current;
+
+    if (!gesture || gesture.pointerId !== pointerId || gesture.active) {
+      return;
+    }
+
+    const lineElements = lines
+      .map((line, index) => {
+        const element = lineItemRefs.current.get(line.id);
+
+        return element ? { line, index, element } : null;
+      })
+      .filter(
+        (
+          item
+        ): item is { line: DraftLine; index: number; element: HTMLLIElement } =>
+          item !== null
+      );
+    const draggedElement = lineItemRefs.current.get(gesture.lineId);
+
+    if (!draggedElement || lineElements.length < 2) {
+      cancelLineReorder();
+      return;
+    }
+
+    const geometry = lineElements.map(({ line, index, element }) => {
+      const rect = element.getBoundingClientRect();
+
+      return {
+        id: line.id,
+        index,
+        centerY: rect.top + rect.height / 2,
+        height: rect.height
+      };
+    });
+    const draggedRect = draggedElement.getBoundingClientRect();
+    const firstRect = lineElements[0].element.getBoundingClientRect();
+    const lastRect =
+      lineElements[lineElements.length - 1].element.getBoundingClientRect();
+    const gap = getLineGap();
+    const startIndex = lines.findIndex((line) => line.id === gesture.lineId);
+
+    if (startIndex < 0) {
+      cancelLineReorder();
+      return;
+    }
+
+    const nextGesture: LineReorderGesture = {
+      ...gesture,
+      active: true,
+      startIndex,
+      previewIndex: startIndex,
+      minOffset: firstRect.top - draggedRect.top,
+      maxOffset: lastRect.bottom - draggedRect.bottom,
+      slotOffset: draggedRect.height + gap,
+      itemCenterY: draggedRect.top + draggedRect.height / 2,
+      itemTop: draggedRect.top,
+      itemBottom: draggedRect.bottom,
+      startScrollTop: scrollAreaRef.current?.scrollTop ?? 0,
+      latestClientY: gesture.latestClientY,
+      latestOffsetY: 0,
+      direction: null,
+      autoScrollFrame: null,
+      autoScrollVelocity: 0,
+      geometry,
+      pressTimer: null
+    };
+
+    lineReorderGesture.current = nextGesture;
+    suppressNextLineClickBriefly();
+    releaseLineReorderScrollLock.current ??= acquireDragScrollLock();
+    nextGesture.trigger.setPointerCapture(pointerId);
+    setLineReorder({
+      lineId: nextGesture.lineId,
+      offsetY: 0,
+      startIndex,
+      previewIndex: startIndex,
+      slotOffset: nextGesture.slotOffset
+    });
+    scheduleLineReorderAutoScroll(nextGesture);
+  }
+
+  function startLineReorder(
+    event: ReactPointerEvent<HTMLButtonElement>,
+    lineId: string
+  ) {
+    if (
+      event.button !== 0 ||
+      isSubmitting ||
+      editingLineDraft !== null ||
+      lines.length < 2
+    ) {
+      return;
+    }
+
+    const startIndex = lines.findIndex((line) => line.id === lineId);
+
+    if (startIndex < 0) {
+      return;
+    }
+
+    cancelLineReorder();
+    const pointerId = event.pointerId;
+    const trigger = event.currentTarget;
+    const pressTimer = window.setTimeout(() => {
+      activateLineReorder(pointerId);
+    }, LINE_REORDER_HOLD_MS);
+
+    lineReorderGesture.current = {
+      pointerId,
+      lineId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startIndex,
+      previewIndex: startIndex,
+      minOffset: 0,
+      maxOffset: 0,
+      slotOffset: 0,
+      itemCenterY: 0,
+      itemTop: 0,
+      itemBottom: 0,
+      startScrollTop: scrollAreaRef.current?.scrollTop ?? 0,
+      latestClientY: event.clientY,
+      latestOffsetY: 0,
+      direction: null,
+      autoScrollFrame: null,
+      autoScrollVelocity: 0,
+      active: false,
+      trigger,
+      pressTimer,
+      geometry: []
+    };
+  }
+
+  function moveLineReorder(event: ReactPointerEvent<HTMLButtonElement>) {
+    const gesture = lineReorderGesture.current;
+
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const deltaX = event.clientX - gesture.startX;
+    const deltaY = event.clientY - gesture.startY;
+
+    if (!gesture.active) {
+      if (
+        Math.abs(deltaX) >= LINE_REORDER_MOVE_TOLERANCE_PX ||
+        Math.abs(deltaY) >= LINE_REORDER_MOVE_TOLERANCE_PX
+      ) {
+        cancelLineReorder();
+      }
+
+      return;
+    }
+
+    event.preventDefault();
+    gesture.latestClientY = event.clientY;
+    updateLineReorderState(gesture);
+    scheduleLineReorderAutoScroll(gesture);
+  }
+
+  function suppressNextLineClickBriefly() {
+    suppressNextLineClick.current = true;
+
+    if (suppressNextLineClickTimeout.current !== null) {
+      window.clearTimeout(suppressNextLineClickTimeout.current);
+    }
+
+    suppressNextLineClickTimeout.current = window.setTimeout(() => {
+      suppressNextLineClick.current = false;
+      suppressNextLineClickTimeout.current = null;
+    }, 220);
+  }
+
+  function cancelLineReorder() {
+    const gesture = lineReorderGesture.current;
+
+    if (gesture && gesture.pressTimer !== null) {
+      window.clearTimeout(gesture.pressTimer);
+    }
+
+    if (gesture) {
+      stopLineReorderAutoScroll(gesture);
+    }
+
+    if (
+      gesture?.active &&
+      gesture.trigger.hasPointerCapture(gesture.pointerId)
+    ) {
+      gesture.trigger.releasePointerCapture(gesture.pointerId);
+    }
+
+    lineReorderGesture.current = null;
+    releaseLineReorderScrollLock.current?.();
+    releaseLineReorderScrollLock.current = null;
+    setLineReorder(null);
+  }
+
+  function finishLineReorder(event: ReactPointerEvent<HTMLButtonElement>) {
+    const gesture = lineReorderGesture.current;
+
+    if (!gesture || gesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (gesture.pressTimer !== null) {
+      window.clearTimeout(gesture.pressTimer);
+    }
+
+    if (!gesture.active) {
+      lineReorderGesture.current = null;
+      return;
+    }
+
+    event.preventDefault();
+    suppressNextLineClickBriefly();
+    const targetIndex = gesture.previewIndex;
+    const lineId = gesture.lineId;
+
+    setLines((current) => {
+      const fromIndex = current.findIndex((line) => line.id === lineId);
+
+      if (fromIndex < 0 || fromIndex === targetIndex) {
+        return current;
+      }
+
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(Math.min(targetIndex, next.length), 0, moved);
+      return next;
+    });
+    cancelLineReorder();
+  }
+
+  function getLineReorderOffset(lineId: string, index: number) {
+    if (!lineReorder) {
+      return 0;
+    }
+
+    if (lineReorder.lineId === lineId) {
+      return lineReorder.offsetY;
+    }
+
+    if (
+      lineReorder.previewIndex > lineReorder.startIndex &&
+      index > lineReorder.startIndex &&
+      index <= lineReorder.previewIndex
+    ) {
+      return -lineReorder.slotOffset;
+    }
+
+    if (
+      lineReorder.previewIndex < lineReorder.startIndex &&
+      index >= lineReorder.previewIndex &&
+      index < lineReorder.startIndex
+    ) {
+      return lineReorder.slotOffset;
+    }
+
+    return 0;
+  }
+
   async function saveGroup() {
     if (!canSubmit) {
       setFormError("Add a title, category and at least two valid transactions");
@@ -540,21 +1085,6 @@ export function TransactionGroupComposer({
     cancelEditingLine();
   }
 
-  function moveLine(fromId: string, toId: string) {
-    if (fromId === toId) return;
-    setLines((current) => {
-      const fromIndex = current.findIndex((line) => line.id === fromId);
-      const toIndex = current.findIndex((line) => line.id === toId);
-
-      if (fromIndex < 0 || toIndex < 0) return current;
-
-      const next = [...current];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
-  }
-
   return createPortal(
     <section
       className={`transaction-composer transaction-composer--group${
@@ -593,7 +1123,7 @@ export function TransactionGroupComposer({
           void saveGroup();
         }}
       >
-        <div className="transaction-composer__scroll-area">
+        <div ref={scrollAreaRef} className="transaction-composer__scroll-area">
           <div className="transaction-composer__content">
             <div className="transaction-composer__field">
               <div className="transaction-composer__field-heading">
@@ -766,22 +1296,26 @@ export function TransactionGroupComposer({
 
             <section className="transaction-group-lines">
               <h2>Transactions</h2>
-              <ul>
-                {lines.map((line) => {
+              <ul className={lineReorder ? "is-reordering" : undefined}>
+                {lines.map((line, index) => {
                   const isEditingLine = editingLineId === line.id;
                   const editableLine =
                     isEditingLine && editingLineDraft ? editingLineDraft : line;
+                  const reorderOffset = getLineReorderOffset(line.id, index);
+                  const isReorderingLine = lineReorder?.lineId === line.id;
 
                   return (
                     <li
                       key={line.id}
-                      draggable={!isEditingLine}
-                      onDragStart={() => setDraggedLineId(line.id)}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                        if (draggedLineId) moveLine(draggedLineId, line.id);
-                      }}
-                      onDragEnd={() => setDraggedLineId(null)}
+                      ref={(node) => setLineItemRef(line.id, node)}
+                      className={`transaction-group-line-item${
+                        isReorderingLine ? " is-reordering" : ""
+                      }${reorderOffset !== 0 ? " is-shifted" : ""}`}
+                      style={
+                        {
+                          "--line-reorder-offset": `${reorderOffset}px`
+                        } as CSSProperties
+                      }
                     >
                       {isEditingLine ? (
                         <div className="transaction-group-line-editor">
@@ -847,7 +1381,33 @@ export function TransactionGroupComposer({
                         <button
                           className="transaction-group-line"
                           type="button"
-                          onClick={() => startEditingLine(line)}
+                          onPointerDown={(event) =>
+                            startLineReorder(event, line.id)
+                          }
+                          onPointerMove={moveLineReorder}
+                          onPointerUp={finishLineReorder}
+                          onPointerCancel={cancelLineReorder}
+                          onLostPointerCapture={() => {
+                            if (lineReorderGesture.current?.lineId === line.id) {
+                              cancelLineReorder();
+                            }
+                          }}
+                          onClick={(event) => {
+                            if (suppressNextLineClick.current) {
+                              suppressNextLineClick.current = false;
+                              if (suppressNextLineClickTimeout.current !== null) {
+                                window.clearTimeout(
+                                  suppressNextLineClickTimeout.current
+                                );
+                                suppressNextLineClickTimeout.current = null;
+                              }
+                              event.preventDefault();
+                              event.stopPropagation();
+                              return;
+                            }
+
+                            startEditingLine(line);
+                          }}
                         >
                           <span>{line.title || "Untitled"}</span>
                           <strong

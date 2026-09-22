@@ -225,6 +225,10 @@ export function TransactionGroupDetailSheet({
         backdropRef.current.scrollTop = 0;
       }
 
+      if (scrollAreaRef.current) {
+        scrollAreaRef.current.scrollTop = 0;
+      }
+
       setIsVisible(true);
     });
 
