@@ -32,6 +32,11 @@ import { getCategoryIcon } from "../transactions/category-catalog";
 import { CurrencyExchangeDetailSheet } from "../transactions/CurrencyExchangeDetailSheet";
 import { CurrencyExchangeRow } from "../transactions/CurrencyExchangeRow";
 import { createEmptyMovesFilters } from "../transactions/moves-filters";
+import { TransactionGroupRow } from "../transactions/TransactionGroupRow";
+import {
+  transactionGroupsQueryOptions,
+  type TransactionGroupListItem
+} from "../transactions/transaction-groups-api";
 import {
   createTransactionListRequest,
   TransactionApiError,
@@ -51,6 +56,7 @@ type UsdWalletPageProps = {
   editingExchangeId: string | null;
   updatedExchange: CurrencyExchangeListItem | null;
   onTransactionSelect: (transaction: TransactionPreview) => void;
+  onTransactionGroupSelect: (group: TransactionGroupListItem) => void;
   onSessionExpired: () => void;
 };
 
@@ -67,6 +73,13 @@ type UsdWalletHistoryEntry =
       date: string;
       createdAt: string;
       transaction: TransactionListItem;
+    }
+  | {
+      kind: "group";
+      id: string;
+      date: string;
+      createdAt: string;
+      group: TransactionGroupListItem;
     }
   | {
       kind: "exchange";
@@ -535,6 +548,7 @@ export function UsdWalletPage({
   editingExchangeId,
   updatedExchange,
   onTransactionSelect,
+  onTransactionGroupSelect,
   onSessionExpired
 }: UsdWalletPageProps) {
   const screenRef = useRef<HTMLElement>(null);
@@ -566,10 +580,21 @@ export function UsdWalletPage({
     ...transactionsQueryOptions(userId, transactionRequest),
     enabled: open
   });
+  const transactionGroupsQuery = useQuery({
+    ...transactionGroupsQueryOptions(userId),
+    enabled: open
+  });
   const transactions = useMemo(
     () =>
       transactionsQuery.data?.pages.flatMap((page) => page.transactions) ?? [],
     [transactionsQuery.data]
+  );
+  const usdGroups = useMemo(
+    () =>
+      (transactionGroupsQuery.data?.groups ?? []).filter(
+        (group) => group.displayCurrency === "USD"
+      ),
+    [transactionGroupsQuery.data?.groups]
   );
   const wallet = walletQuery.data ?? null;
   const exchanges = exchangesQuery.data?.exchanges ?? [];
@@ -663,19 +688,46 @@ export function UsdWalletPage({
         }))
     );
 
+    entries.push(
+      ...usdGroups
+        .filter((group) => {
+          if (group.netTotalCents > 0) {
+            return historyFilters.income;
+          }
+
+          if (group.netTotalCents < 0) {
+            return historyFilters.expense;
+          }
+
+          return historyFilters.income || historyFilters.expense;
+        })
+        .map((group) => ({
+          kind: "group" as const,
+          id: group.id,
+          date: group.date,
+          createdAt: group.createdAt,
+          group
+        }))
+    );
+
     return entries.sort(compareHistoryEntries);
-  }, [exchanges, historyFilters, transactions]);
-  const hasLoadedHistory = exchanges.length > 0 || transactions.length > 0;
+  }, [exchanges, historyFilters, transactions, usdGroups]);
+  const hasLoadedHistory =
+    exchanges.length > 0 || transactions.length > 0 || usdGroups.length > 0;
   const canLoadMoreTransactions =
     transactionsQuery.hasNextPage &&
     (historyFilters.expense || historyFilters.income);
   const hasError =
-    walletQuery.isError || exchangesQuery.isError || transactionsQuery.isError;
+    walletQuery.isError ||
+    exchangesQuery.isError ||
+    transactionsQuery.isError ||
+    transactionGroupsQuery.isError;
   const isLoading =
     !hasError &&
     (walletQuery.isPending ||
       exchangesQuery.isPending ||
-      transactionsQuery.isPending);
+      transactionsQuery.isPending ||
+      transactionGroupsQuery.isPending);
 
   useEffect(() => {
     if (!open) {
@@ -1004,6 +1056,13 @@ export function UsdWalletPage({
                                 exchange={entry.exchange}
                                 onSelect={() =>
                                   setSelectedExchange(entry.exchange)
+                                }
+                              />
+                            ) : entry.kind === "group" ? (
+                              <TransactionGroupRow
+                                group={entry.group}
+                                onSelect={() =>
+                                  onTransactionGroupSelect(entry.group)
                                 }
                               />
                             ) : (

@@ -742,6 +742,7 @@ export function HomePage({
         editingExchangeId={exchangeBeingEdited?.id ?? null}
         updatedExchange={lastSavedExchange}
         onTransactionSelect={openTransaction}
+        onTransactionGroupSelect={openTransactionGroup}
         onSessionExpired={onSessionExpired}
       />
 
