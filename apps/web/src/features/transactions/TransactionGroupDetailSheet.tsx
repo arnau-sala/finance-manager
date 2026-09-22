@@ -24,7 +24,11 @@ import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
 import { SlidingSegmentedControl } from "../../components/ui/SlidingSegmentedControl";
 import { formatErrorMessage } from "../../components/ui/error-message";
 import { parseLocalDateOnly } from "../../dates/date-only";
-import { formatEuroAmount, formatMoneyAmount } from "../../money/format-euro";
+import {
+  formatEuroAmount,
+  formatMoneyAmount,
+  type MoneyCurrencyCode
+} from "../../money/format-euro";
 import { getCategoryIcon } from "./category-catalog";
 import {
   deleteTransactionGroup,
@@ -84,6 +88,53 @@ function formatPeriodImpact(value: number) {
   }
 
   return `${Math.round(value).toLocaleString("es-ES")}%`;
+}
+
+function formatRateDecimal(value: number) {
+  const formattedValue = value.toLocaleString("es-ES", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 8
+  });
+
+  if (!formattedValue.includes(",")) {
+    return formattedValue;
+  }
+
+  return formattedValue.replace(/0+$/, "").replace(/,$/, "");
+}
+
+function getUsdGroupRateLabels(group: TransactionGroupListItem) {
+  if (group.displayCurrency !== "USD") {
+    return null;
+  }
+
+  const explicitRate =
+    group.displayExchangeRateBasePerUsd === null ||
+    group.displayExchangeRateBasePerUsd === undefined
+      ? null
+      : Number(group.displayExchangeRateBasePerUsd);
+  const displayAmount = Number(group.displayNetTotal ?? group.netTotal);
+  const baseAmount = Number(group.displayBaseAmount ?? group.netTotal);
+  const calculatedRate =
+    Number.isFinite(displayAmount) &&
+    Math.abs(displayAmount) > 0 &&
+    Number.isFinite(baseAmount) &&
+    Math.abs(baseAmount) > 0
+      ? Math.abs(baseAmount) / Math.abs(displayAmount)
+      : null;
+  const basePerUsd =
+    explicitRate !== null && Number.isFinite(explicitRate) && explicitRate > 0
+      ? explicitRate
+      : calculatedRate;
+
+  if (basePerUsd === null || !Number.isFinite(basePerUsd) || basePerUsd <= 0) {
+    return null;
+  }
+
+  return {
+    exchangeRate: `1$ = ${formatRateDecimal(basePerUsd)}\u20ac`,
+    reverse: `1\u20ac = ${formatRateDecimal(1 / basePerUsd)}$`
+  };
 }
 
 function formatContextPeriod(
@@ -428,6 +479,15 @@ export function TransactionGroupDetailSheet({
     detailGroup.category.type
   );
   const netTotal = Number(detailGroup.netTotal);
+  const displayCurrency = (detailGroup.displayCurrency ?? "EUR") as MoneyCurrencyCode;
+  const displayNetTotal = Number(detailGroup.displayNetTotal ?? detailGroup.netTotal);
+  const displayNetTotalCents =
+    detailGroup.displayNetTotalCents ?? detailGroup.netTotalCents;
+  const euroEquivalent =
+    displayCurrency === "USD"
+      ? Number(detailGroup.displayBaseAmount ?? detailGroup.netTotal)
+      : null;
+  const usdRateLabels = getUsdGroupRateLabels(detailGroup);
   const amountTone =
     netTotal > 0 ? "income" : netTotal < 0 ? "expense" : "neutral";
   const lineCount = detailGroup.transactions.length;
@@ -738,7 +798,12 @@ export function TransactionGroupDetailSheet({
             <strong>Delete permanently?</strong>
             <span className="transaction-detail-delete-confirm__summary">
               <span>{detailGroup.title}</span>
-              <b>{formatEuroAmount(netTotal, { showSign: netTotal !== 0 })}</b>
+              <b>
+                {formatMoneyAmount(displayNetTotal, {
+                  currency: displayCurrency,
+                  showSign: displayNetTotalCents !== 0
+                })}
+              </b>
             </span>
             {deleteError ? (
               <p className="transaction-detail-delete-confirm__error">
@@ -788,10 +853,20 @@ export function TransactionGroupDetailSheet({
               </p>
               <h2 id="transaction-group-detail-title">{detailGroup.title}</h2>
               <strong>
-                {netTotal === 0
-                  ? formatEuroAmount(0)
-                  : formatEuroAmount(netTotal, { showSign: true })}
+                {displayNetTotalCents === 0
+                  ? formatMoneyAmount(0, { currency: displayCurrency })
+                  : formatMoneyAmount(displayNetTotal, {
+                      currency: displayCurrency,
+                      showSign: true
+                    })}
               </strong>
+              {euroEquivalent !== null ? (
+                <span className="transaction-detail-hero__secondary-amount">
+                  {formatMoneyAmount(Math.abs(euroEquivalent), {
+                    currency: "EUR"
+                  })}
+                </span>
+              ) : null}
               <time dateTime={detailGroup.date}>
                 {formatDate(detailGroup.date)}
               </time>
@@ -865,6 +940,24 @@ export function TransactionGroupDetailSheet({
                 </span>
               </div>
             </section>
+
+            {usdRateLabels ? (
+              <section
+                className="transaction-detail-section"
+                aria-label="Exchange rates"
+              >
+                <div className="currency-exchange-rates">
+                  <span>
+                    <small>Exchange rate</small>
+                    <strong>{usdRateLabels.exchangeRate}</strong>
+                  </span>
+                  <span>
+                    <small>Reverse</small>
+                    <strong>{usdRateLabels.reverse}</strong>
+                  </span>
+                </div>
+              </section>
+            ) : null}
 
             <section
               className="transaction-detail-section transaction-detail-context"

@@ -40,6 +40,11 @@ export type TransactionGroupListItem = {
   date: string;
   netTotal: string;
   netTotalCents: number;
+  displayCurrency?: TransactionCurrencyCode;
+  displayNetTotal?: string;
+  displayNetTotalCents?: number;
+  displayBaseAmount?: string;
+  displayExchangeRateBasePerUsd?: string | null;
   transactions: TransactionListItem[];
   createdAt: string;
   updatedAt: string;

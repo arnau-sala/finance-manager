@@ -25,6 +25,7 @@ import {
   CurrencyLedgerError,
   getUsdIncomeRateBasePerUsd,
   rebuildUsdLedger,
+  roundDecimalToMinorUnits,
   USD_CURRENCY,
 } from "../services/currency-ledger-service.js";
 import { getNetOperationSummary } from "../services/financial-operations.js";
@@ -182,12 +183,13 @@ const groupTransactionInputSchema = z
     if (
       transaction.currency === USD_CURRENCY &&
       transaction.type === "INCOME" &&
-      transaction.baseAmount === undefined
+      transaction.baseAmount !== undefined &&
+      transaction.baseAmount <= 0
     ) {
       context.addIssue({
         code: "custom",
         path: ["baseAmount"],
-        message: "USD income requires a EUR base amount",
+        message: "USD income requires a positive EUR base amount",
       });
     }
   });
@@ -263,8 +265,119 @@ function sendCurrencyLedgerError(reply: FastifyReply, error: unknown) {
   return reply.code(statusCode).send({ error: error.message });
 }
 
+function getTransactionOriginalAmountMinor(transaction: Transaction) {
+  return transaction.currency === USD_CURRENCY
+    ? transaction.originalAmountMinor ?? transaction.amountCents
+    : transaction.amountCents;
+}
+
+function getGroupDisplayRateBasePerUsd(
+  transactions: readonly Transaction[],
+) {
+  const totals = transactions.reduce(
+    (total, transaction) => {
+      if (transaction.currency !== USD_CURRENCY) {
+        return total;
+      }
+
+      const originalAmountMinor = getTransactionOriginalAmountMinor(transaction);
+
+      if (originalAmountMinor <= 0 || transaction.amountCents <= 0) {
+        return total;
+      }
+
+      return {
+        baseAmountMinor: total.baseAmountMinor + Math.abs(transaction.amountCents),
+        usdAmountMinor: total.usdAmountMinor + Math.abs(originalAmountMinor),
+      };
+    },
+    { baseAmountMinor: 0, usdAmountMinor: 0 },
+  );
+
+  if (totals.baseAmountMinor <= 0 || totals.usdAmountMinor <= 0) {
+    return null;
+  }
+
+  return new Prisma.Decimal(totals.baseAmountMinor).div(totals.usdAmountMinor);
+}
+
+function getGroupDisplayCurrency(transactions: readonly Transaction[]) {
+  const byType = (type: TransactionType) =>
+    transactions.reduce(
+      (totals, transaction) => {
+        if (transaction.type !== type) {
+          return totals;
+        }
+
+        const amountCents = Math.abs(transaction.amountCents);
+
+        if (transaction.currency === USD_CURRENCY) {
+          return { ...totals, usd: totals.usd + amountCents };
+        }
+
+        return { ...totals, eur: totals.eur + amountCents };
+      },
+      { eur: 0, usd: 0 },
+    );
+
+  const expenses = byType("EXPENSE");
+
+  if (expenses.eur > 0 || expenses.usd > 0) {
+    return expenses.usd > expenses.eur ? USD_CURRENCY : BASE_CURRENCY;
+  }
+
+  const incomes = byType("INCOME");
+
+  return incomes.usd > incomes.eur ? USD_CURRENCY : BASE_CURRENCY;
+}
+
+function getTransactionGroupDisplaySummary(
+  transactions: readonly Transaction[],
+  netTotalCents: number,
+) {
+  const displayCurrency = getGroupDisplayCurrency(transactions);
+
+  if (displayCurrency !== USD_CURRENCY) {
+    return {
+      displayCurrency,
+      displayNetTotal: centsToDecimal(netTotalCents),
+      displayNetTotalCents: netTotalCents,
+      displayBaseAmount: centsToDecimal(netTotalCents),
+      displayExchangeRateBasePerUsd: null,
+    };
+  }
+
+  const displayRateBasePerUsd = getGroupDisplayRateBasePerUsd(transactions);
+
+  if (displayRateBasePerUsd === null || displayRateBasePerUsd.lte(0)) {
+    return {
+      displayCurrency: BASE_CURRENCY,
+      displayNetTotal: centsToDecimal(netTotalCents),
+      displayNetTotalCents: netTotalCents,
+      displayBaseAmount: centsToDecimal(netTotalCents),
+      displayExchangeRateBasePerUsd: null,
+    };
+  }
+
+  const displayNetTotalCents = roundDecimalToMinorUnits(
+    new Prisma.Decimal(netTotalCents).div(displayRateBasePerUsd),
+  );
+
+  return {
+    displayCurrency,
+    displayNetTotal: centsToDecimal(displayNetTotalCents),
+    displayNetTotalCents,
+    displayBaseAmount: centsToDecimal(netTotalCents),
+    displayExchangeRateBasePerUsd: displayRateBasePerUsd.toString(),
+  };
+}
+
 function toTransactionGroupResponse(group: TransactionGroupWithDetails) {
   const { netTotalCents } = getNetOperationSummary(group.transactions);
+  const displaySummary = getTransactionGroupDisplaySummary(
+    group.transactions,
+    netTotalCents,
+  );
 
   return {
     id: group.id,
@@ -274,6 +387,7 @@ function toTransactionGroupResponse(group: TransactionGroupWithDetails) {
     date: formatDateOnly(group.occurredOn),
     netTotal: centsToDecimal(netTotalCents),
     netTotalCents,
+    ...displaySummary,
     transactions: group.transactions.map((transaction) =>
       toTransactionResponse({
         ...transaction,
@@ -692,7 +806,9 @@ function getTransactionCreateData(input: {
 
   if (transaction.currency === USD_CURRENCY) {
     const amountCents =
-      transaction.type === "INCOME" ? (transaction.baseAmount ?? 0) : 1;
+      transaction.type === "INCOME"
+        ? (transaction.baseAmount ?? transaction.amount)
+        : transaction.amount;
     const exchangeRateBasePerUsd =
       transaction.type === "INCOME"
         ? getUsdIncomeRateBasePerUsd({
@@ -734,7 +850,11 @@ function getTransactionCreateData(input: {
 function getTransactionUpdateData(input: {
   existing: Pick<
     Transaction,
-    "type" | "currency" | "amountCents" | "originalAmountMinor"
+    | "type"
+    | "currency"
+    | "amountCents"
+    | "originalAmountMinor"
+    | "exchangeRateBasePerUsd"
   >;
   transaction: z.infer<typeof updateGroupTransactionInputSchema>;
 }): Prisma.TransactionUncheckedUpdateInput {
@@ -782,15 +902,24 @@ function getTransactionUpdateData(input: {
 
   if (resultingType === "INCOME") {
     const resultingBaseAmount =
-      input.transaction.baseAmount ?? input.existing.amountCents;
+      input.transaction.baseAmount ??
+      (input.existing.currency === USD_CURRENCY
+        ? input.existing.amountCents
+        : resultingOriginalAmount);
     updateData.amountCents = resultingBaseAmount;
     updateData.exchangeRateBasePerUsd = getUsdIncomeRateBasePerUsd({
       usdAmountMinor: resultingOriginalAmount,
       baseAmountMinor: resultingBaseAmount,
     });
   } else {
-    updateData.amountCents = 1;
-    updateData.exchangeRateBasePerUsd = null;
+    updateData.amountCents =
+      input.transaction.amount !== undefined
+        ? resultingOriginalAmount
+        : input.existing.amountCents;
+    updateData.exchangeRateBasePerUsd =
+      input.existing.currency === USD_CURRENCY
+        ? input.existing.exchangeRateBasePerUsd
+        : null;
   }
 
   return updateData;
@@ -1399,6 +1528,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
               amountCents: true,
               currency: true,
               originalAmountMinor: true,
+              exchangeRateBasePerUsd: true,
             },
           });
 

@@ -16,6 +16,7 @@ type CurrencyLedgerClient = Prisma.TransactionClient;
 type LedgerTransaction = Pick<
   Transaction,
   | "id"
+  | "groupId"
   | "type"
   | "amountCents"
   | "currency"
@@ -165,6 +166,7 @@ async function loadUsdLedgerEvents(client: CurrencyLedgerClient, userId: string)
       where: { userId, currency: USD_CURRENCY },
       select: {
         id: true,
+        groupId: true,
         type: true,
         amountCents: true,
         currency: true,
@@ -233,6 +235,7 @@ export async function rebuildUsdLedger(
     options.persistTransactionAllocations ?? true;
   let usdBalanceMinor = 0;
   let eurCostBasisMinor = toDecimal(0);
+  let lastKnownRateBasePerUsd: Prisma.Decimal | null = null;
   const events = await loadUsdLedgerEvents(client, userId);
 
   for (const event of events) {
@@ -245,6 +248,7 @@ export async function rebuildUsdLedger(
       ) {
         usdBalanceMinor += exchange.toAmountMinor;
         eurCostBasisMinor = eurCostBasisMinor.add(exchange.fromAmountMinor);
+        lastKnownRateBasePerUsd = exchange.exchangeRateBasePerUsd;
         continue;
       }
 
@@ -268,6 +272,7 @@ export async function rebuildUsdLedger(
           .div(usdBalanceMinor);
         usdBalanceMinor -= exchange.fromAmountMinor;
         eurCostBasisMinor = eurCostBasisMinor.minus(costBasisRemoved);
+        lastKnownRateBasePerUsd = exchange.exchangeRateBasePerUsd;
         continue;
       }
 
@@ -288,6 +293,7 @@ export async function rebuildUsdLedger(
 
       usdBalanceMinor += usdAmountMinor;
       eurCostBasisMinor = eurCostBasisMinor.add(transaction.amountCents);
+      lastKnownRateBasePerUsd = exchangeRateBasePerUsd;
       if (persistTransactionAllocations) {
         await applyTransactionAccountingUpdate(client, transaction, {
           amountCents: transaction.amountCents,
@@ -298,23 +304,28 @@ export async function rebuildUsdLedger(
       continue;
     }
 
-    if (usdAmountMinor > usdBalanceMinor) {
+    if (usdAmountMinor > usdBalanceMinor && transaction.groupId === null) {
       throw new CurrencyLedgerError(
         "INSUFFICIENT_USD_BALANCE",
         "This transaction uses more USD than the wallet had available",
       );
     }
 
-    if (usdBalanceMinor === 0) {
+    if (usdBalanceMinor === 0 && transaction.groupId === null) {
       throw new CurrencyLedgerError(
         "INSUFFICIENT_USD_BALANCE",
         "This transaction requires a funded USD wallet",
       );
     }
 
-    const costBasisRemoved = eurCostBasisMinor
-      .mul(usdAmountMinor)
-      .div(usdBalanceMinor);
+    const fallbackRate =
+      lastKnownRateBasePerUsd ??
+      transaction.exchangeRateBasePerUsd ??
+      toDecimal(1);
+    const costBasisRemoved =
+      usdBalanceMinor > 0 && usdAmountMinor <= usdBalanceMinor
+        ? eurCostBasisMinor.mul(usdAmountMinor).div(usdBalanceMinor)
+        : toDecimal(usdAmountMinor).mul(fallbackRate);
     const amountCents = roundDecimalToMinorUnits(costBasisRemoved);
     const exchangeRateBasePerUsd = normalizeRate(
       costBasisRemoved.div(usdAmountMinor),
@@ -322,6 +333,7 @@ export async function rebuildUsdLedger(
 
     usdBalanceMinor -= usdAmountMinor;
     eurCostBasisMinor = eurCostBasisMinor.minus(costBasisRemoved);
+    lastKnownRateBasePerUsd = exchangeRateBasePerUsd;
     if (persistTransactionAllocations) {
       await applyTransactionAccountingUpdate(client, transaction, {
         amountCents,

@@ -1,5 +1,5 @@
 import { parseLocalDateOnly } from "../../dates/date-only";
-import { formatEuroAmount } from "../../money/format-euro";
+import { formatMoneyAmount, type MoneyCurrencyCode } from "../../money/format-euro";
 import { getCategoryIcon } from "./category-catalog";
 import type { TransactionGroupListItem } from "./transaction-groups-api";
 
@@ -43,10 +43,16 @@ export function TransactionGroupRow({
   const tone = getGroupAmountTone(group.netTotalCents);
   const Icon = getCategoryIcon(group.categoryId, group.category.type);
   const stackCount = group.transactions.length > 2 ? 3 : 2;
+  const displayCurrency = (group.displayCurrency ?? "EUR") as MoneyCurrencyCode;
+  const displayNetTotal = group.displayNetTotal ?? group.netTotal;
+  const displayNetTotalCents = group.displayNetTotalCents ?? group.netTotalCents;
   const amount =
-    group.netTotalCents === 0
-      ? formatEuroAmount(0)
-      : formatEuroAmount(Number(group.netTotal), { showSign: true });
+    displayNetTotalCents === 0
+      ? formatMoneyAmount(0, { currency: displayCurrency })
+      : formatMoneyAmount(Number(displayNetTotal), {
+          currency: displayCurrency,
+          showSign: true
+        });
   const content = (
     <>
       <span

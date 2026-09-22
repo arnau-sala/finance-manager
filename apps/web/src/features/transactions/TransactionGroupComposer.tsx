@@ -163,7 +163,10 @@ function createLineFromGroupTransaction(transaction: TransactionGroupListItem["t
 
 function getNetTotal(lines: readonly DraftLine[]) {
   return lines.reduce((total, line) => {
-    const amount = parseAmount(line.amount);
+    const amount =
+      line.currency === "USD" && line.baseAmount
+        ? parseAmount(String(line.baseAmount))
+        : parseAmount(line.amount);
     return total + (line.type === "INCOME" ? amount : -amount);
   }, 0);
 }
@@ -176,8 +179,8 @@ function lineToInput(line: DraftLine): TransactionGroupLineInput {
     currency: line.currency
   };
 
-  if (line.currency === "USD" && line.type === "INCOME" && line.baseAmount) {
-    input.baseAmount = line.baseAmount;
+  if (line.currency === "USD" && line.type === "INCOME") {
+    input.baseAmount = line.baseAmount || input.amount;
   }
 
   return input;
