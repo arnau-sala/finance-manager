@@ -52,6 +52,49 @@ type TransactionGroupWithDetails = TransactionGroup & {
   transactions: GroupTransaction[];
 };
 
+type TransactionGroupDetailAggregateRow = {
+  id: string;
+  userId: string;
+  title: string;
+  categoryId: string;
+  occurredOn: Date;
+  createdAt: Date;
+  categoryName: string;
+  categoryType: TransactionType;
+  startingNetWorthCents: number | null;
+  netTotalCents: number;
+  amountCents: number;
+  operationType: TransactionType;
+  trackedBalanceBeforeCents: bigint;
+  monthCategoryPosition: bigint;
+  monthCategoryTotal: bigint;
+  monthTypePosition: bigint;
+  monthTypeTotal: bigint;
+  monthTypeAmountCents: bigint;
+  yearCategoryPosition: bigint;
+  yearCategoryTotal: bigint;
+  yearTypePosition: bigint;
+  yearTypeTotal: bigint;
+  yearTypeAmountCents: bigint;
+  allCategoryPosition: bigint;
+  allCategoryTotal: bigint;
+  allTypePosition: bigint;
+  allTypeTotal: bigint;
+  allTypeAmountCents: bigint;
+};
+
+type TransactionGroupDetailContext = {
+  categoryRank: {
+    position: number;
+    total: number;
+  };
+  typeRank: {
+    position: number;
+    total: number;
+  };
+  periodImpactPercentage: number;
+};
+
 function decimalToCents(amount: string) {
   const [wholePart, decimalPart = ""] = amount.split(".");
   return BigInt(wholePart) * 100n + BigInt(decimalPart.padEnd(2, "0"));
@@ -242,6 +285,60 @@ function toTransactionGroupResponse(group: TransactionGroupWithDetails) {
   };
 }
 
+function toSafeNumber(value: bigint) {
+  const number = Number(value);
+
+  if (!Number.isSafeInteger(number)) {
+    throw new Error("Transaction group detail aggregate exceeds the safe range");
+  }
+
+  return number;
+}
+
+function getPeriodImpactPercentage(
+  amountCents: number,
+  periodTypeAmountCents: bigint,
+) {
+  const totalCents = toSafeNumber(periodTypeAmountCents);
+
+  if (totalCents <= 0) {
+    return 0;
+  }
+
+  const percentage = (amountCents / totalCents) * 100;
+
+  if (percentage < 1) {
+    const roundedPercentage = Math.round(percentage * 10) / 10;
+    return roundedPercentage === 0 ? 0.1 : roundedPercentage;
+  }
+
+  return Math.round(percentage);
+}
+
+function createDetailContext(
+  amountCents: number,
+  categoryPosition: bigint,
+  categoryTotal: bigint,
+  typePosition: bigint,
+  typeTotal: bigint,
+  typeAmountCents: bigint,
+): TransactionGroupDetailContext {
+  return {
+    categoryRank: {
+      position: toSafeNumber(categoryPosition),
+      total: toSafeNumber(categoryTotal),
+    },
+    typeRank: {
+      position: toSafeNumber(typePosition),
+      total: toSafeNumber(typeTotal),
+    },
+    periodImpactPercentage: getPeriodImpactPercentage(
+      amountCents,
+      typeAmountCents,
+    ),
+  };
+}
+
 async function getTransactionGroup(
   client: TransactionGroupClient,
   userId: string,
@@ -257,6 +354,323 @@ async function getTransactionGroup(
       },
     },
   });
+}
+
+async function getTransactionGroupDetail(userId: string, groupId: string) {
+  const rows = await db.$queryRaw<TransactionGroupDetailAggregateRow[]>(
+    Prisma.sql`
+      WITH group_operations AS (
+        SELECT
+          g."id",
+          g."userId",
+          'GROUP'::text AS "operationKind",
+          g."categoryId",
+          CASE
+            WHEN COALESCE(
+              SUM(
+                CASE
+                  WHEN t."type" = 'INCOME'::"TransactionType" THEN t."amountCents"
+                  ELSE -t."amountCents"
+                END
+              ),
+              0
+            ) > 0 THEN 'INCOME'::"TransactionType"
+            ELSE 'EXPENSE'::"TransactionType"
+          END AS "operationType",
+          ABS(
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN t."type" = 'INCOME'::"TransactionType" THEN t."amountCents"
+                  ELSE -t."amountCents"
+                END
+              ),
+              0
+            )
+          )::integer AS "amountCents",
+          COALESCE(
+            SUM(
+              CASE
+                WHEN t."type" = 'INCOME'::"TransactionType" THEN t."amountCents"
+                ELSE -t."amountCents"
+              END
+            ),
+            0
+          )::integer AS "signedAmountCents",
+          g."occurredOn",
+          g."createdAt"
+        FROM "TransactionGroup" g
+        LEFT JOIN "Transaction" t ON t."groupId" = g."id"
+        WHERE g."userId" = ${userId}
+        GROUP BY
+          g."id",
+          g."userId",
+          g."categoryId",
+          g."occurredOn",
+          g."createdAt"
+      ),
+      standalone_operations AS (
+        SELECT
+          t."id",
+          t."userId",
+          'TRANSACTION'::text AS "operationKind",
+          t."categoryId",
+          t."type" AS "operationType",
+          t."amountCents" AS "amountCents",
+          CASE
+            WHEN t."type" = 'INCOME'::"TransactionType" THEN t."amountCents"
+            ELSE -t."amountCents"
+          END AS "signedAmountCents",
+          t."occurredOn",
+          t."createdAt"
+        FROM "Transaction" t
+        WHERE t."userId" = ${userId}
+          AND t."groupId" IS NULL
+      ),
+      operations AS (
+        SELECT * FROM standalone_operations
+        UNION ALL
+        SELECT * FROM group_operations
+      ),
+      target AS (
+        SELECT
+          g."id",
+          g."userId",
+          g."title",
+          g."categoryId",
+          g."occurredOn",
+          g."createdAt",
+          c."name" AS "categoryName",
+          c."type" AS "categoryType",
+          u."startingNetWorthCents" AS "startingNetWorthCents",
+          operations."signedAmountCents" AS "netTotalCents",
+          operations."amountCents",
+          operations."operationType"
+        FROM "TransactionGroup" g
+        INNER JOIN operations
+          ON operations."id" = g."id"
+          AND operations."operationKind" = 'GROUP'
+        INNER JOIN "Category" c ON c."id" = g."categoryId"
+        INNER JOIN "User" u ON u."id" = g."userId"
+        WHERE g."id" = ${groupId}
+          AND g."userId" = ${userId}
+      ),
+      candidates AS (
+        SELECT
+          candidate."operationType",
+          candidate."categoryId",
+          candidate."amountCents",
+          candidate."signedAmountCents",
+          (
+            candidate."occurredOn",
+            candidate."createdAt",
+            candidate."operationKind",
+            candidate."id"
+          ) < (
+            target."occurredOn",
+            target."createdAt",
+            'GROUP'::text,
+            target."id"
+          ) AS "isBefore",
+          (
+            candidate."amountCents" > target."amountCents"
+            OR (
+              candidate."amountCents" = target."amountCents"
+              AND (
+                candidate."occurredOn",
+                candidate."createdAt",
+                candidate."operationKind",
+                candidate."id"
+              ) > (
+                target."occurredOn",
+                target."createdAt",
+                'GROUP'::text,
+                target."id"
+              )
+            )
+          ) AS "ranksAhead",
+          candidate."categoryId" = target."categoryId" AS "sameCategory",
+          candidate."operationType" = target."operationType" AS "sameType",
+          DATE_TRUNC('month', candidate."occurredOn") =
+            DATE_TRUNC('month', target."occurredOn") AS "inMonth",
+          DATE_TRUNC('year', candidate."occurredOn") =
+            DATE_TRUNC('year', target."occurredOn") AS "inYear"
+        FROM target
+        INNER JOIN operations candidate ON TRUE
+      )
+      SELECT
+        target."id",
+        target."userId",
+        target."title",
+        target."categoryId",
+        target."occurredOn",
+        target."createdAt",
+        target."categoryName",
+        target."categoryType",
+        target."startingNetWorthCents",
+        target."netTotalCents",
+        target."amountCents",
+        target."operationType",
+        COALESCE(
+          SUM(
+            CASE
+              WHEN candidates."isBefore" THEN candidates."signedAmountCents"
+              ELSE 0
+            END
+          ),
+          0
+        )::bigint AS "trackedBalanceBeforeCents",
+        (
+          COUNT(*) FILTER (
+            WHERE candidates."sameCategory"
+              AND candidates."inMonth"
+              AND candidates."ranksAhead"
+          ) + 1
+        )::bigint AS "monthCategoryPosition",
+        COUNT(*) FILTER (
+          WHERE candidates."sameCategory"
+            AND candidates."inMonth"
+        )::bigint AS "monthCategoryTotal",
+        (
+          COUNT(*) FILTER (
+            WHERE candidates."sameType"
+              AND candidates."inMonth"
+              AND candidates."ranksAhead"
+          ) + 1
+        )::bigint AS "monthTypePosition",
+        COUNT(*) FILTER (
+          WHERE candidates."sameType"
+            AND candidates."inMonth"
+        )::bigint AS "monthTypeTotal",
+        COALESCE(
+          SUM(candidates."amountCents") FILTER (
+            WHERE candidates."sameType"
+              AND candidates."inMonth"
+          ),
+          0
+        )::bigint AS "monthTypeAmountCents",
+        (
+          COUNT(*) FILTER (
+            WHERE candidates."sameCategory"
+              AND candidates."inYear"
+              AND candidates."ranksAhead"
+          ) + 1
+        )::bigint AS "yearCategoryPosition",
+        COUNT(*) FILTER (
+          WHERE candidates."sameCategory"
+            AND candidates."inYear"
+        )::bigint AS "yearCategoryTotal",
+        (
+          COUNT(*) FILTER (
+            WHERE candidates."sameType"
+              AND candidates."inYear"
+              AND candidates."ranksAhead"
+          ) + 1
+        )::bigint AS "yearTypePosition",
+        COUNT(*) FILTER (
+          WHERE candidates."sameType"
+            AND candidates."inYear"
+        )::bigint AS "yearTypeTotal",
+        COALESCE(
+          SUM(candidates."amountCents") FILTER (
+            WHERE candidates."sameType"
+              AND candidates."inYear"
+          ),
+          0
+        )::bigint AS "yearTypeAmountCents",
+        (
+          COUNT(*) FILTER (
+            WHERE candidates."sameCategory"
+              AND candidates."ranksAhead"
+          ) + 1
+        )::bigint AS "allCategoryPosition",
+        COUNT(*) FILTER (
+          WHERE candidates."sameCategory"
+        )::bigint AS "allCategoryTotal",
+        (
+          COUNT(*) FILTER (
+            WHERE candidates."sameType"
+              AND candidates."ranksAhead"
+          ) + 1
+        )::bigint AS "allTypePosition",
+        COUNT(*) FILTER (
+          WHERE candidates."sameType"
+        )::bigint AS "allTypeTotal",
+        COALESCE(
+          SUM(candidates."amountCents") FILTER (
+            WHERE candidates."sameType"
+          ),
+          0
+        )::bigint AS "allTypeAmountCents"
+      FROM target
+      INNER JOIN candidates ON TRUE
+      GROUP BY
+        target."id",
+        target."userId",
+        target."title",
+        target."categoryId",
+        target."occurredOn",
+        target."createdAt",
+        target."categoryName",
+        target."categoryType",
+        target."startingNetWorthCents",
+        target."netTotalCents",
+        target."amountCents",
+        target."operationType"
+    `,
+  );
+  const row = rows[0];
+
+  if (!row) {
+    return null;
+  }
+
+  const group = await getTransactionGroup(db, userId, row.id);
+
+  if (!group) {
+    return null;
+  }
+
+  const trackedBalanceBeforeCents = toSafeNumber(
+    row.trackedBalanceBeforeCents,
+  ) + (row.startingNetWorthCents ?? 0);
+
+  return {
+    group: toTransactionGroupResponse(group),
+    operationType: row.operationType,
+    trackedBalance: {
+      before: centsToDecimal(trackedBalanceBeforeCents),
+      after: centsToDecimal(
+        trackedBalanceBeforeCents + row.netTotalCents,
+      ),
+    },
+    contexts: {
+      month: createDetailContext(
+        row.amountCents,
+        row.monthCategoryPosition,
+        row.monthCategoryTotal,
+        row.monthTypePosition,
+        row.monthTypeTotal,
+        row.monthTypeAmountCents,
+      ),
+      year: createDetailContext(
+        row.amountCents,
+        row.yearCategoryPosition,
+        row.yearCategoryTotal,
+        row.yearTypePosition,
+        row.yearTypeTotal,
+        row.yearTypeAmountCents,
+      ),
+      all: createDetailContext(
+        row.amountCents,
+        row.allCategoryPosition,
+        row.allCategoryTotal,
+        row.allTypePosition,
+        row.allTypeTotal,
+        row.allTypeAmountCents,
+      ),
+    },
+  };
 }
 
 async function getCategory(categoryId: string) {
@@ -511,7 +925,13 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(404).send({ error: "Transaction group not found" });
       }
 
-      return reply.send({ group: toTransactionGroupResponse(group) });
+      const detail = await getTransactionGroupDetail(userId, parsedParams.data.id);
+
+      if (!detail) {
+        return reply.code(404).send({ error: "Transaction group not found" });
+      }
+
+      return reply.send(detail);
     },
   );
 

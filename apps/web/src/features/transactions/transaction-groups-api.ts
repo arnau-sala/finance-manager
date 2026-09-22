@@ -3,9 +3,11 @@ import { queryOptions } from "@tanstack/react-query";
 import { financialQueryKeys } from "../../cache/financial-query-keys";
 import {
   FINANCIAL_DATA_GC_TIME_MS,
-  FINANCIAL_DATA_STALE_TIME_MS
+  FINANCIAL_DATA_STALE_TIME_MS,
+  TRANSACTION_DETAIL_GC_TIME_MS
 } from "../../cache/query-client";
 import type { TransactionListItem } from "./transaction-api";
+import type { TransactionDetailContext } from "./transaction-api";
 import type { TransactionCurrencyCode } from "./transaction-validation";
 
 type ApiIssue = { field?: string; message?: string };
@@ -50,6 +52,20 @@ export type TransactionGroupsPage = {
     offset: number;
     nextOffset: number | null;
     total: number;
+  };
+};
+
+export type TransactionGroupDetail = {
+  group: TransactionGroupListItem;
+  operationType: "INCOME" | "EXPENSE";
+  trackedBalance: {
+    before: string;
+    after: string;
+  };
+  contexts: {
+    month: TransactionDetailContext;
+    year: TransactionDetailContext;
+    all: TransactionDetailContext;
   };
 };
 
@@ -130,6 +146,31 @@ export function transactionGroupsQueryOptions(userId: string) {
     queryFn: ({ signal }) => getTransactionGroups(signal),
     staleTime: FINANCIAL_DATA_STALE_TIME_MS,
     gcTime: FINANCIAL_DATA_GC_TIME_MS
+  });
+}
+
+export async function getTransactionGroupDetail(
+  _ownerId: string,
+  groupId: string,
+  signal?: AbortSignal
+) {
+  return sendGroupRequest<TransactionGroupDetail>(
+    `/api/transaction-groups/${encodeURIComponent(groupId)}`,
+    { method: "GET", signal },
+    "Unable to load transaction group details\nPlease try again"
+  );
+}
+
+export function transactionGroupDetailQueryOptions(
+  ownerId: string,
+  groupId: string
+) {
+  return queryOptions({
+    queryKey: financialQueryKeys.transactionGroupDetail(ownerId, groupId),
+    queryFn: ({ signal }) =>
+      getTransactionGroupDetail(ownerId, groupId, signal),
+    staleTime: FINANCIAL_DATA_STALE_TIME_MS,
+    gcTime: TRANSACTION_DETAIL_GC_TIME_MS
   });
 }
 
