@@ -1,7 +1,6 @@
-import { Layers } from "lucide-react";
-
 import { parseLocalDateOnly } from "../../dates/date-only";
 import { formatEuroAmount } from "../../money/format-euro";
+import { getCategoryIcon } from "./category-catalog";
 import type { TransactionGroupListItem } from "./transaction-groups-api";
 
 function formatGroupDate(value: string) {
@@ -42,14 +41,32 @@ export function TransactionGroupRow({
   onSelect?: () => void;
 }) {
   const tone = getGroupAmountTone(group.netTotalCents);
+  const Icon = getCategoryIcon(group.categoryId, group.category.type);
+  const stackCount = group.transactions.length > 2 ? 3 : 2;
   const amount =
     group.netTotalCents === 0
       ? formatEuroAmount(0)
       : formatEuroAmount(Number(group.netTotal), { showSign: true });
   const content = (
     <>
-      <span className="transaction-row__icon transaction-row__icon--group" aria-hidden="true">
-        <Layers />
+      <span
+        className={`transaction-group-row-icon transaction-group-row-icon--${stackCount}`}
+        aria-hidden="true"
+      >
+        {Array.from({ length: stackCount }, (_, index) => {
+          const isFront = index === stackCount - 1;
+
+          return (
+            <span
+              className={`transaction-group-row-icon__circle${
+                isFront ? " transaction-group-row-icon__circle--front" : ""
+              }`}
+              key={index}
+            >
+              {isFront ? <Icon /> : null}
+            </span>
+          );
+        })}
       </span>
       <span className="transaction-row__details">
         <strong>{group.title}</strong>
