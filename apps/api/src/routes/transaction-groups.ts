@@ -23,7 +23,6 @@ import {
 import {
   BASE_CURRENCY,
   CurrencyLedgerError,
-  getUsdIncomeRateBasePerUsd,
   rebuildUsdLedger,
   roundDecimalToMinorUnits,
   USD_CURRENCY,
@@ -805,28 +804,16 @@ function getTransactionCreateData(input: {
   const { transaction } = input;
 
   if (transaction.currency === USD_CURRENCY) {
-    const amountCents =
-      transaction.type === "INCOME"
-        ? (transaction.baseAmount ?? transaction.amount)
-        : transaction.amount;
-    const exchangeRateBasePerUsd =
-      transaction.type === "INCOME"
-        ? getUsdIncomeRateBasePerUsd({
-            usdAmountMinor: transaction.amount,
-            baseAmountMinor: amountCents,
-          })
-        : null;
-
     return {
       userId: input.userId,
       groupId: input.groupId,
       groupOrder: input.groupOrder,
       type: transaction.type,
       categoryId: input.categoryId,
-      amountCents,
+      amountCents: 1,
       currency: USD_CURRENCY,
       originalAmountMinor: transaction.amount,
-      exchangeRateBasePerUsd,
+      exchangeRateBasePerUsd: null,
       description: transaction.title,
       occurredOn: input.occurredOn,
     };
@@ -901,20 +888,25 @@ function getTransactionUpdateData(input: {
   updateData.originalAmountMinor = resultingOriginalAmount;
 
   if (resultingType === "INCOME") {
-    const resultingBaseAmount =
-      input.transaction.baseAmount ??
-      (input.existing.currency === USD_CURRENCY
-        ? input.existing.amountCents
-        : resultingOriginalAmount);
-    updateData.amountCents = resultingBaseAmount;
-    updateData.exchangeRateBasePerUsd = getUsdIncomeRateBasePerUsd({
-      usdAmountMinor: resultingOriginalAmount,
-      baseAmountMinor: resultingBaseAmount,
-    });
+    updateData.amountCents =
+      input.transaction.amount !== undefined ||
+      input.transaction.currency !== undefined ||
+      input.transaction.type !== undefined ||
+      input.transaction.baseAmount !== undefined
+        ? 1
+        : input.existing.amountCents;
+    updateData.exchangeRateBasePerUsd =
+      input.transaction.amount !== undefined ||
+      input.transaction.currency !== undefined ||
+      input.transaction.type !== undefined ||
+      input.transaction.baseAmount !== undefined
+        ? null
+        : input.existing.exchangeRateBasePerUsd;
   } else {
     updateData.amountCents =
-      input.transaction.amount !== undefined
-        ? resultingOriginalAmount
+      input.transaction.amount !== undefined ||
+      input.existing.currency !== USD_CURRENCY
+        ? 1
         : input.existing.amountCents;
     updateData.exchangeRateBasePerUsd =
       input.existing.currency === USD_CURRENCY
@@ -1004,6 +996,12 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
         return reply.code(400).send({ error: "Invalid transaction group query" });
       }
 
+      try {
+        await rebuildUsdLedger(userId);
+      } catch (error) {
+        return sendCurrencyLedgerError(reply, error);
+      }
+
       const { limit, offset } = parsedQuery.data;
       const groups = await db.transactionGroup.findMany({
         where: { userId },
@@ -1046,6 +1044,12 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
 
       if (!parsedParams.success) {
         return reply.code(400).send({ error: "Invalid transaction group id" });
+      }
+
+      try {
+        await rebuildUsdLedger(userId);
+      } catch (error) {
+        return sendCurrencyLedgerError(reply, error);
       }
 
       const group = await getTransactionGroup(db, userId, parsedParams.data.id);

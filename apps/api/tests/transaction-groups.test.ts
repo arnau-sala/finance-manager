@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import { Prisma } from "@prisma/client";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 const authMocks = vi.hoisted(() => ({
@@ -218,6 +219,137 @@ describe("transaction groups", () => {
     expect(dbMocks.transactionCreate).toHaveBeenNthCalledWith(2, expect.objectContaining({
       data: expect.objectContaining({ groupOrder: 1, description: "Friend" }),
     }));
+    await app.close();
+  });
+
+  it("converts grouped USD expenses to EUR basis before group totals are used", async () => {
+    dbMocks.transactionGroupCreate.mockResolvedValue({ id: "group-1" });
+    dbMocks.currencyExchangeFindMany.mockResolvedValue([
+      {
+        id: "exchange-1",
+        fromCurrency: "EUR",
+        toCurrency: "USD",
+        fromAmountMinor: 5000,
+        toAmountMinor: 10000,
+        exchangeRateBasePerUsd: new Prisma.Decimal("0.5"),
+        occurredOn: new Date("2026-01-01T00:00:00.000Z"),
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+    ]);
+    dbMocks.transactionFindMany.mockResolvedValue([
+      {
+        id: "line-usd",
+        groupId: "group-1",
+        type: "EXPENSE",
+        amountCents: 1,
+        currency: "USD",
+        originalAmountMinor: 5000,
+        exchangeRateBasePerUsd: null,
+        occurredOn,
+        createdAt,
+      },
+    ]);
+    dbMocks.transactionGroupFindFirst.mockResolvedValue(createGroup([
+      { id: "line-eur", type: "EXPENSE", amountCents: 1000, groupOrder: 0 },
+      { id: "line-usd", type: "EXPENSE", amountCents: 2500, groupOrder: 1 },
+    ]));
+    const app = await createApp();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/transaction-groups",
+      payload: {
+        title: "Trip",
+        categoryId: "cat-1",
+        date: "2026-01-10",
+        transactions: [
+          { title: "Coffee", type: "EXPENSE", amount: "10.00", currency: "EUR" },
+          { title: "Taxi", type: "EXPENSE", amount: "50.00", currency: "USD" },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().group.netTotal).toBe("-35.00");
+    expect(dbMocks.transactionCreate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      data: expect.objectContaining({
+        amountCents: 1,
+        currency: "USD",
+        originalAmountMinor: 5000,
+      }),
+    }));
+    expect(dbMocks.transactionUpdate).toHaveBeenCalledWith({
+      where: { id: "line-usd" },
+      data: expect.objectContaining({
+        amountCents: 2500,
+        originalAmountMinor: 5000,
+      }),
+    });
+    await app.close();
+  });
+
+  it("converts grouped USD income with the historical rate before summing the group", async () => {
+    dbMocks.transactionGroupCreate.mockResolvedValue({ id: "group-1" });
+    dbMocks.currencyExchangeFindMany.mockResolvedValue([
+      {
+        id: "exchange-1",
+        fromCurrency: "EUR",
+        toCurrency: "USD",
+        fromAmountMinor: 5000,
+        toAmountMinor: 10000,
+        exchangeRateBasePerUsd: new Prisma.Decimal("0.5"),
+        occurredOn: new Date("2026-01-01T00:00:00.000Z"),
+        createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      },
+    ]);
+    dbMocks.transactionFindMany.mockResolvedValue([
+      {
+        id: "line-usd",
+        groupId: "group-1",
+        type: "INCOME",
+        amountCents: 1,
+        currency: "USD",
+        originalAmountMinor: 3300,
+        exchangeRateBasePerUsd: null,
+        occurredOn,
+        createdAt,
+      },
+    ]);
+    dbMocks.transactionGroupFindFirst.mockResolvedValue(createGroup([
+      { id: "line-eur", type: "EXPENSE", amountCents: 300, groupOrder: 0 },
+      { id: "line-usd", type: "INCOME", amountCents: 1650, groupOrder: 1 },
+    ]));
+    const app = await createApp();
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/transaction-groups",
+      payload: {
+        title: "Example with two transactions",
+        categoryId: "cat-1",
+        date: "2026-01-10",
+        transactions: [
+          { title: "Example expense", type: "EXPENSE", amount: "3.00", currency: "EUR" },
+          { title: "Example income", type: "INCOME", amount: "33.00", currency: "USD" },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().group.netTotal).toBe("13.50");
+    expect(dbMocks.transactionCreate).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      data: expect.objectContaining({
+        amountCents: 1,
+        currency: "USD",
+        originalAmountMinor: 3300,
+        exchangeRateBasePerUsd: null,
+      }),
+    }));
+    expect(dbMocks.transactionUpdate).toHaveBeenCalledWith({
+      where: { id: "line-usd" },
+      data: expect.objectContaining({
+        amountCents: 1650,
+        originalAmountMinor: 3300,
+      }),
+    });
     await app.close();
   });
 

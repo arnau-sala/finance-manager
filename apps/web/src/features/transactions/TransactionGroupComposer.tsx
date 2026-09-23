@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ArrowDownRight, ArrowUpRight, Plus, Trash2, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { invalidateAfterTransactionWrite } from "../../cache/financial-cache";
 import { ActionButton } from "../../components/ui/ActionButton";
@@ -19,6 +20,7 @@ import {
 } from "../../components/ui/SlidingSegmentedControl";
 import { getTodayDateOnly } from "../../dates/date-only";
 import { formatMoneyAmount } from "../../money/format-euro";
+import { usdWalletQueryOptions } from "../currency/currency-api";
 import { TransactionDateField } from "./TransactionDateField";
 import { TransactionTypeSwitch } from "./TransactionTypeSwitch";
 import type { TransactionPreview } from "./transaction-api";
@@ -137,6 +139,33 @@ function parseAmount(value: string) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function formatCalculatedAmountInput(value: number) {
+  return value.toFixed(2).replace(".", ",");
+}
+
+function getValidUsdRate(averageRateBasePerUsd: string | null | undefined) {
+  const rate =
+    averageRateBasePerUsd === null || averageRateBasePerUsd === undefined
+      ? null
+      : Number(averageRateBasePerUsd);
+
+  return rate !== null && Number.isFinite(rate) && rate > 0 ? rate : null;
+}
+
+function getUsdEstimatedBaseAmount(
+  usdAmount: string,
+  averageRateBasePerUsd: string | null | undefined
+) {
+  const amount = parseAmount(usdAmount);
+  const rate = getValidUsdRate(averageRateBasePerUsd);
+
+  if (amount <= 0 || rate === null) {
+    return usdAmount;
+  }
+
+  return formatCalculatedAmountInput(amount * rate);
+}
+
 function isDraftLineValid(line: DraftLine) {
   return line.title.trim().length > 0 && parseAmount(line.amount) > 0;
 }
@@ -179,29 +208,38 @@ function createLineFromGroupTransaction(transaction: TransactionGroupListItem["t
   };
 }
 
-function getNetTotal(lines: readonly DraftLine[]) {
+function getEstimatedLineBaseAmount(
+  line: DraftLine,
+  averageRateBasePerUsd: string | null | undefined
+) {
+  if (line.currency !== "USD") {
+    return parseAmount(line.amount);
+  }
+
+  if (line.baseAmount) {
+    return parseAmount(String(line.baseAmount));
+  }
+
+  return parseAmount(getUsdEstimatedBaseAmount(line.amount, averageRateBasePerUsd));
+}
+
+function getNetTotal(
+  lines: readonly DraftLine[],
+  averageRateBasePerUsd: string | null | undefined
+) {
   return lines.reduce((total, line) => {
-    const amount =
-      line.currency === "USD" && line.baseAmount
-        ? parseAmount(String(line.baseAmount))
-        : parseAmount(line.amount);
+    const amount = getEstimatedLineBaseAmount(line, averageRateBasePerUsd);
     return total + (line.type === "INCOME" ? amount : -amount);
   }, 0);
 }
 
 function lineToInput(line: DraftLine): TransactionGroupLineInput {
-  const input: TransactionGroupLineInput = {
+  return {
     type: line.type,
     title: line.title.trim(),
     amount: toApiAmount(line.amount),
     currency: line.currency
   };
-
-  if (line.currency === "USD" && line.type === "INCOME") {
-    input.baseAmount = line.baseAmount || input.amount;
-  }
-
-  return input;
 }
 
 function normalizeAmountForComparison(value: string | number | undefined) {
@@ -355,6 +393,12 @@ export function TransactionGroupComposer({
   const [categoryTypeDragOffset, setCategoryTypeDragOffset] = useState(0);
   const [isCategoryTypeDragging, setIsCategoryTypeDragging] = useState(false);
   const groupTitleInput = useRef<HTMLTextAreaElement>(null);
+  const usdWalletQuery = useQuery({
+    ...usdWalletQueryOptions(userId),
+    enabled: open
+  });
+  const averageRateBasePerUsd =
+    usdWalletQuery.data?.averageRateBasePerUsd ?? null;
 
   useEffect(() => {
     if (!open) return;
@@ -510,7 +554,7 @@ export function TransactionGroupComposer({
     return () => window.cancelAnimationFrame(frame);
   }, [editingLineId, lineDeleteConfirm, open]);
 
-  const netTotal = getNetTotal(lines);
+  const netTotal = getNetTotal(lines, averageRateBasePerUsd);
   const hasTransactionContent = lines.some(
     (line) => line.title.trim().length > 0 || parseAmount(line.amount) > 0
   );
@@ -1319,11 +1363,18 @@ export function TransactionGroupComposer({
               hasGroupLineChanged(line, existingTransaction)
             ) {
               updateRequests.push(
-                updateGroupTransaction(group.id, line.persistedId, lineToInput(line))
+                updateGroupTransaction(
+                  group.id,
+                  line.persistedId,
+                  lineToInput(line)
+                )
               );
             }
           } else {
-            const response = await addGroupTransaction(group.id, lineToInput(line));
+            const response = await addGroupTransaction(
+              group.id,
+              lineToInput(line)
+            );
             const createdLine = response.group.transactions.find(
               (transaction) => !currentPersistedIds.has(transaction.id)
             );
