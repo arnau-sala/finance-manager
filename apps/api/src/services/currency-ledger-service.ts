@@ -284,6 +284,9 @@ export async function rebuildUsdLedger(
 
     const { transaction } = event;
     const usdAmountMinor = getUsdTransactionOriginalAmount(transaction);
+    const transactionGroupId = (transaction as { groupId?: string | null }).groupId;
+    const isStandaloneTransaction =
+      transactionGroupId === null || transactionGroupId === undefined;
 
     if (transaction.type === "INCOME") {
       const exchangeRateBasePerUsd = getUsdIncomeRateBasePerUsd({
@@ -304,14 +307,14 @@ export async function rebuildUsdLedger(
       continue;
     }
 
-    if (usdAmountMinor > usdBalanceMinor && transaction.groupId === null) {
+    if (usdAmountMinor > usdBalanceMinor && isStandaloneTransaction) {
       throw new CurrencyLedgerError(
         "INSUFFICIENT_USD_BALANCE",
         "This transaction uses more USD than the wallet had available",
       );
     }
 
-    if (usdBalanceMinor === 0 && transaction.groupId === null) {
+    if (usdBalanceMinor === 0 && isStandaloneTransaction) {
       throw new CurrencyLedgerError(
         "INSUFFICIENT_USD_BALANCE",
         "This transaction requires a funded USD wallet",
