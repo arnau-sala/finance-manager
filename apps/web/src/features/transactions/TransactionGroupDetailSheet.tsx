@@ -609,16 +609,12 @@ export function TransactionGroupDetailSheet({
 
   function getMaxSheetScroll() {
     const backdrop = backdropRef.current;
-    const sheet = sheetRef.current;
 
-    if (!backdrop || !sheet) {
+    if (!backdrop) {
       return 0;
     }
 
-    return Math.max(
-      0,
-      sheet.offsetTop + sheet.offsetHeight - backdrop.clientHeight
-    );
+    return Math.max(0, backdrop.scrollHeight - backdrop.clientHeight);
   }
 
   function clampSheetScroll() {

@@ -8087,7 +8087,7 @@ html.desktop-app-route .stats-view-stage {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: none;
-  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: auto;
   padding:
     max(16px, env(safe-area-inset-top))
     max(8px, env(safe-area-inset-right))
