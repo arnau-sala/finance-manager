@@ -129,6 +129,10 @@ function parseAmount(value: string) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function isDraftLineValid(line: DraftLine) {
+  return line.title.trim().length > 0 && parseAmount(line.amount) > 0;
+}
+
 function createDraftId() {
   return `draft-${Math.random().toString(36).slice(2)}`;
 }
@@ -297,6 +301,9 @@ export function TransactionGroupComposer({
   const [lines, setLines] = useState<DraftLine[]>([]);
   const [editingLineId, setEditingLineId] = useState<string | null>(null);
   const [editingLineDraft, setEditingLineDraft] = useState<DraftLine | null>(
+    null
+  );
+  const [linePendingDeleteId, setLinePendingDeleteId] = useState<string | null>(
     null
   );
   const [formError, setFormError] = useState("");
@@ -482,9 +489,7 @@ export function TransactionGroupComposer({
     date.length > 0 &&
     lines.length >= 2 &&
     lines.length <= 10 &&
-    lines.every(
-      (line) => line.title.trim().length > 0 && parseAmount(line.amount) > 0
-    ) &&
+    lines.every(isDraftLineValid) &&
     editingLineDraft === null;
   const hasUnsavedGroupChanges =
     !group || hasEditedGroupChanged(group, title, categoryId, date, lines);
@@ -644,12 +649,14 @@ export function TransactionGroupComposer({
   }
 
   function startEditingLine(line: DraftLine) {
+    setLinePendingDeleteId(null);
     setEditingLineId(line.id);
     setEditingLineDraft({ ...line });
   }
 
   function startAddingLine() {
     const line = createEmptyLine();
+    setLinePendingDeleteId(null);
     setEditingLineId(line.id);
     setEditingLineDraft(line);
   }
@@ -661,6 +668,7 @@ export function TransactionGroupComposer({
   }
 
   function cancelEditingLine() {
+    setLinePendingDeleteId(null);
     setEditingLineId(null);
     setEditingLineDraft(null);
   }
@@ -668,6 +676,10 @@ export function TransactionGroupComposer({
   function confirmEditingLine() {
     if (!editingLineDraft) {
       cancelEditingLine();
+      return;
+    }
+
+    if (!isDraftLineValid(editingLineDraft)) {
       return;
     }
 
@@ -1290,6 +1302,7 @@ export function TransactionGroupComposer({
 
   function deleteLine(lineId: string) {
     setLines((current) => current.filter((line) => line.id !== lineId));
+    setLinePendingDeleteId(null);
     cancelEditingLine();
   }
 
@@ -1517,6 +1530,13 @@ export function TransactionGroupComposer({
                   const isEditingLine = editingLineId === line.id;
                   const editableLine =
                     isEditingLine && editingLineDraft ? editingLineDraft : line;
+                  const isEditableLineValid = isDraftLineValid(editableLine);
+                  const isLineDeleteConfirmOpen =
+                    linePendingDeleteId === line.id;
+                  const editableLineSignedAmount =
+                    editableLine.type === "INCOME"
+                      ? parseAmount(editableLine.amount)
+                      : -parseAmount(editableLine.amount);
                   const reorderOffset = getLineReorderOffset(line.id, index);
                   const isReorderingLine = lineReorder?.lineId === line.id;
 
@@ -1608,7 +1628,7 @@ export function TransactionGroupComposer({
                             <ActionButton
                               type="button"
                               className="transaction-group-line-editor__action-delete"
-                              onClick={() => deleteLine(line.id)}
+                              onClick={() => setLinePendingDeleteId(line.id)}
                             >
                               <Trash2 aria-hidden="true" />
                               Delete
@@ -1616,11 +1636,45 @@ export function TransactionGroupComposer({
                             <ActionButton
                               type="button"
                               className="transaction-group-line-editor__action-primary"
+                              disabled={!isEditableLineValid}
                               onClick={confirmEditingLine}
                             >
                               Save
                             </ActionButton>
                           </div>
+                          {isLineDeleteConfirmOpen ? (
+                            <div
+                              className="transaction-detail-delete-confirm transaction-group-line-delete-confirm"
+                              role="alertdialog"
+                              aria-modal="false"
+                            >
+                              <strong>Delete permanently?</strong>
+                              <span className="transaction-detail-delete-confirm__summary">
+                                <span>{editableLine.title || "Untitled"}</span>
+                                <b>
+                                  {formatMoneyAmount(editableLineSignedAmount, {
+                                    showSign: true,
+                                    currency: editableLine.currency
+                                  })}
+                                </b>
+                              </span>
+                              <div className="transaction-detail-delete-confirm__actions">
+                                <ActionButton
+                                  type="button"
+                                  onClick={() => setLinePendingDeleteId(null)}
+                                >
+                                  Cancel
+                                </ActionButton>
+                                <ActionButton
+                                  type="button"
+                                  className="transaction-detail-delete-confirm__submit"
+                                  onClick={() => deleteLine(line.id)}
+                                >
+                                  Delete
+                                </ActionButton>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       ) : (
                         <button
@@ -1751,6 +1805,7 @@ export function TransactionGroupComposer({
                         <ActionButton
                           type="button"
                           className="transaction-group-line-editor__action-primary"
+                          disabled={!isDraftLineValid(editingLineDraft)}
                           onClick={confirmEditingLine}
                         >
                           Add

@@ -10027,8 +10027,20 @@ html.desktop-app-route .stats-view-stage {
   cursor: pointer;
 }
 
+.transaction-group-line-editor__actions button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
 .transaction-group-line-editor__actions
   .transaction-group-line-editor__action-primary {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.transaction-group-line-editor__actions
+  .transaction-group-line-editor__action-primary:disabled {
   color: var(--color-on-primary);
   background: var(--color-primary);
   border-color: var(--color-primary);
