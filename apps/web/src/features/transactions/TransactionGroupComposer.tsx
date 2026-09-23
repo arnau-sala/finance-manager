@@ -227,6 +227,21 @@ function hasGroupLineChanged(
   );
 }
 
+function hasDraftLineChanged(line: DraftLine, originalLine: DraftLine) {
+  const input = lineToInput(line);
+  const originalInput = lineToInput(originalLine);
+
+  return (
+    input.type !== originalInput.type ||
+    input.title !== originalInput.title ||
+    input.currency !== originalInput.currency ||
+    normalizeAmountForComparison(input.amount) !==
+      normalizeAmountForComparison(originalInput.amount) ||
+    normalizeAmountForComparison(input.baseAmount) !==
+      normalizeAmountForComparison(originalInput.baseAmount)
+  );
+}
+
 function haveGroupTransactionIdsChanged(
   previousIds: readonly string[],
   nextIds: readonly string[]
@@ -1604,6 +1619,8 @@ export function TransactionGroupComposer({
                   const editableLine =
                     isEditingLine && editingLineDraft ? editingLineDraft : line;
                   const isEditableLineValid = isDraftLineValid(editableLine);
+                  const hasEditableLineChanged =
+                    !isEditingLine || hasDraftLineChanged(editableLine, line);
                   const reorderOffset = getLineReorderOffset(line.id, index);
                   const isReorderingLine = lineReorder?.lineId === line.id;
 
@@ -1705,7 +1722,9 @@ export function TransactionGroupComposer({
                             <ActionButton
                               type="button"
                               className="transaction-group-line-editor__action-primary"
-                              disabled={!isEditableLineValid}
+                              disabled={
+                                !isEditableLineValid || !hasEditableLineChanged
+                              }
                               onClick={confirmEditingLine}
                             >
                               Save
