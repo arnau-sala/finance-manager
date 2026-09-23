@@ -36,7 +36,7 @@ type TopMovementRow = {
   categoryId: string;
   categoryName: string;
   categoryType: TransactionType;
-  amountCents: number;
+  amountCents: bigint | number;
   description: string;
   date: string;
 };
@@ -96,18 +96,18 @@ type TimelineInterval = {
 
 function getPeriodFilter(period: ResolvedStatisticsPeriod) {
   return Prisma.sql`
-    AND t."occurredOn" >= ${period.from}::date
-    AND t."occurredOn" < ${period.to}::date
+    AND operation."occurredOn" >= ${period.from}::date
+    AND operation."occurredOn" < ${period.to}::date
   `;
 }
 
 async function getFirstTransactionDate(userId: string, today: string) {
   const [row] = await db.$queryRaw<TransactionStartRow[]>(
     Prisma.sql`
-      SELECT TO_CHAR(MIN(t."occurredOn"), 'YYYY-MM-DD') AS "firstDate"
-      FROM "Transaction" t
-      WHERE t."userId" = ${userId}
-        AND t."occurredOn" <= ${today}::date
+      SELECT TO_CHAR(MIN(operation."occurredOn"), 'YYYY-MM-DD') AS "firstDate"
+      FROM "FinancialOperation" operation
+      WHERE operation."userId" = ${userId}
+        AND operation."occurredOn" <= ${today}::date
     `
   );
 
@@ -134,25 +134,25 @@ async function getMonthlyTotals(
   const rows = await db.$queryRaw<MonthlyTotalRow[]>(
     Prisma.sql`
       SELECT
-        TO_CHAR(DATE_TRUNC('month', t."occurredOn"), 'YYYY-MM') AS "month",
+        TO_CHAR(DATE_TRUNC('month', operation."occurredOn"), 'YYYY-MM') AS "month",
         COALESCE(
-          SUM(t."amountCents") FILTER (
-            WHERE t."type" = 'INCOME'::"TransactionType"
+          SUM(operation."amountCents") FILTER (
+            WHERE operation."type" = 'INCOME'::"TransactionType"
           ),
           0
         ) AS "incomeCents",
         COALESCE(
-          SUM(t."amountCents") FILTER (
-            WHERE t."type" = 'EXPENSE'::"TransactionType"
+          SUM(operation."amountCents") FILTER (
+            WHERE operation."type" = 'EXPENSE'::"TransactionType"
           ),
           0
         ) AS "expenseCents",
         COUNT(*) AS "transactionCount"
-      FROM "Transaction" t
-      WHERE t."userId" = ${userId}
+      FROM "FinancialOperation" operation
+      WHERE operation."userId" = ${userId}
         ${getPeriodFilter(period)}
-      GROUP BY DATE_TRUNC('month', t."occurredOn")
-      ORDER BY DATE_TRUNC('month', t."occurredOn") ASC
+      GROUP BY DATE_TRUNC('month', operation."occurredOn")
+      ORDER BY DATE_TRUNC('month', operation."occurredOn") ASC
     `
   );
   const totalsByMonth = new Map(
@@ -291,14 +291,15 @@ async function getCategoryTotals(
       SELECT
         c."id" AS "categoryId",
         c."name" AS "category",
-        t."type" AS "type",
-        SUM(t."amountCents") AS "amountCents",
+        operation."type" AS "type",
+        SUM(operation."amountCents") AS "amountCents",
         COUNT(*) AS "transactionCount"
-      FROM "Transaction" t
-      INNER JOIN "Category" c ON c."id" = t."categoryId"
-      WHERE t."userId" = ${userId}
+      FROM "FinancialOperation" operation
+      INNER JOIN "Category" c ON c."id" = operation."categoryId"
+      WHERE operation."userId" = ${userId}
+        AND operation."type" IS NOT NULL
         ${getPeriodFilter(period)}
-      GROUP BY c."id", c."name", t."type"
+      GROUP BY c."id", c."name", operation."type"
     `
   );
 
@@ -322,25 +323,26 @@ async function getTopMovements(
         ranked."date"
       FROM (
         SELECT
-          t."id",
-          t."type",
-          t."categoryId",
+          operation."id",
+          operation."type",
+          operation."categoryId",
           c."name" AS "categoryName",
           c."type" AS "categoryType",
-          t."amountCents",
-          t."description",
-          TO_CHAR(t."occurredOn", 'YYYY-MM-DD') AS "date",
+          operation."amountCents",
+          operation."description",
+          TO_CHAR(operation."occurredOn", 'YYYY-MM-DD') AS "date",
           ROW_NUMBER() OVER (
-            PARTITION BY t."type"
+            PARTITION BY operation."type"
             ORDER BY
-              t."amountCents" DESC,
-              t."occurredOn" DESC,
-              t."createdAt" DESC,
-            t."id" DESC
+              operation."amountCents" DESC,
+              operation."occurredOn" DESC,
+              operation."createdAt" DESC,
+              operation."id" DESC
           ) AS "position"
-        FROM "Transaction" t
-        INNER JOIN "Category" c ON c."id" = t."categoryId"
-        WHERE t."userId" = ${userId}
+        FROM "FinancialOperation" operation
+        INNER JOIN "Category" c ON c."id" = operation."categoryId"
+        WHERE operation."userId" = ${userId}
+          AND operation."type" IS NOT NULL
           ${getPeriodFilter(period)}
       ) ranked
       WHERE ranked."position" = 1
@@ -356,11 +358,11 @@ async function getExpenseAggregate(
   const [aggregate] = await db.$queryRaw<ExpenseAggregateRow[]>(
     Prisma.sql`
       WITH expense_days AS (
-        SELECT DISTINCT t."occurredOn"::date AS "expenseDate"
-        FROM "Transaction" t
-        WHERE t."userId" = ${userId}
-          AND t."type" = 'EXPENSE'::"TransactionType"
-          AND t."occurredOn" <= ${today}::date
+        SELECT DISTINCT operation."occurredOn"::date AS "expenseDate"
+        FROM "FinancialOperation" operation
+        WHERE operation."userId" = ${userId}
+          AND operation."type" = 'EXPENSE'::"TransactionType"
+          AND operation."occurredOn" <= ${today}::date
       ),
       streak_boundaries AS (
         SELECT "expenseDate" AS "boundaryDate"
@@ -397,7 +399,7 @@ async function getExpenseAggregate(
         COALESCE(
           ROUND(
             PERCENTILE_CONT(0.5) WITHIN GROUP (
-              ORDER BY t."amountCents"
+              ORDER BY operation."amountCents"
             )
           ),
           0
@@ -422,9 +424,9 @@ async function getExpenseAggregate(
           SELECT TO_CHAR("endDate", 'YYYY-MM-DD')
           FROM longest_streak
         ) AS "longestStreakEndDate"
-      FROM "Transaction" t
-      WHERE t."userId" = ${userId}
-        AND t."type" = 'EXPENSE'::"TransactionType"
+      FROM "FinancialOperation" operation
+      WHERE operation."userId" = ${userId}
+        AND operation."type" = 'EXPENSE'::"TransactionType"
         ${getPeriodFilter(period)}
     `
   );
@@ -674,7 +676,7 @@ export async function getStatisticsOverview(
             name: movement.categoryName,
             type: movement.categoryType
           },
-          amount: centsToDecimal(movement.amountCents),
+          amount: centsToDecimal(Number(movement.amountCents)),
           description: movement.description,
           date: movement.date
         }
@@ -747,17 +749,17 @@ export async function getStatisticsOverview(
 function getTimelineBucketExpression(mode: ResolvedStatisticsPeriod["mode"]) {
   if (mode === "MONTH") {
     return Prisma.sql`
-      TO_CHAR(t."occurredOn", 'YYYY-MM') ||
+      TO_CHAR(operation."occurredOn", 'YYYY-MM') ||
       ':week-' ||
-      (((EXTRACT(DAY FROM t."occurredOn")::int - 1) / 7) + 1)::text
+      (((EXTRACT(DAY FROM operation."occurredOn")::int - 1) / 7) + 1)::text
     `;
   }
 
   if (mode === "YEAR") {
-    return Prisma.sql`TO_CHAR(DATE_TRUNC('month', t."occurredOn"), 'YYYY-MM')`;
+    return Prisma.sql`TO_CHAR(DATE_TRUNC('month', operation."occurredOn"), 'YYYY-MM')`;
   }
 
-  return Prisma.sql`TO_CHAR(DATE_TRUNC('year', t."occurredOn"), 'YYYY')`;
+  return Prisma.sql`TO_CHAR(DATE_TRUNC('year', operation."occurredOn"), 'YYYY')`;
 }
 
 async function getCategoryIntervalTotals(
@@ -771,18 +773,19 @@ async function getCategoryIntervalTotals(
       SELECT
         c."id" AS "categoryId",
         c."name" AS "category",
-        t."type" AS "type",
+        operation."type" AS "type",
         ${bucket} AS "intervalKey",
-        SUM(t."amountCents") AS "amountCents",
+        SUM(operation."amountCents") AS "amountCents",
         COUNT(*) AS "transactionCount"
-      FROM "Transaction" t
-      INNER JOIN "Category" c ON c."id" = t."categoryId"
-      WHERE t."userId" = ${userId}
+      FROM "FinancialOperation" operation
+      INNER JOIN "Category" c ON c."id" = operation."categoryId"
+      WHERE operation."userId" = ${userId}
+        AND operation."type" IS NOT NULL
         ${getPeriodFilter(period)}
       GROUP BY
         c."id",
         c."name",
-        t."type",
+        operation."type",
         ${bucket}
       ORDER BY "intervalKey" ASC
     `
@@ -945,14 +948,14 @@ async function getWeekdaySpending(
   const rows = await db.$queryRaw<WeekdaySpendingRow[]>(
     Prisma.sql`
       SELECT
-        EXTRACT(ISODOW FROM t."occurredOn")::int AS "weekday",
-        SUM(t."amountCents") AS "amountCents",
+        EXTRACT(ISODOW FROM operation."occurredOn")::int AS "weekday",
+        SUM(operation."amountCents") AS "amountCents",
         COUNT(*) AS "transactionCount"
-      FROM "Transaction" t
-      WHERE t."userId" = ${userId}
-        AND t."type" = 'EXPENSE'::"TransactionType"
+      FROM "FinancialOperation" operation
+      WHERE operation."userId" = ${userId}
+        AND operation."type" = 'EXPENSE'::"TransactionType"
         ${getPeriodFilter(period)}
-      GROUP BY EXTRACT(ISODOW FROM t."occurredOn")
+      GROUP BY EXTRACT(ISODOW FROM operation."occurredOn")
     `
   );
   const totalsByWeekday = new Map(

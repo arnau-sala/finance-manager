@@ -14,6 +14,7 @@ import { currencyRoutes } from "./routes/currency.js";
 import { feedbackRoutes } from "./routes/feedback.js";
 import { homeRoutes } from "./routes/home.js";
 import { statisticsRoutes } from "./routes/statistics.js";
+import { transactionGroupRoutes } from "./routes/transaction-groups.js";
 import { transactionRoutes } from "./routes/transactions.js";
 import { registerApiErrorMonitoring } from "./observability/sentry.js";
 import { registerOriginCheck } from "./security/origin-check.js";
@@ -70,6 +71,7 @@ export function buildApp() {
   app.register(feedbackRoutes);
   app.register(homeRoutes);
   app.register(statisticsRoutes);
+  app.register(transactionGroupRoutes);
   app.register(transactionRoutes);
   registerSafeErrorResponses(app);
   registerApiErrorMonitoring(app);

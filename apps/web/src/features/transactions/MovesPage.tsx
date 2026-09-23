@@ -13,7 +13,7 @@ import {
   useInfiniteQuery,
   useQuery
 } from "@tanstack/react-query";
-import { Plus, Search, SlidersHorizontal, X } from "lucide-react";
+import { LayersPlus, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { ActionButton } from "../../components/ui/ActionButton";
 import { SkeletonBlock } from "../../components/ui/SkeletonBlock";
@@ -34,6 +34,7 @@ import {
 import { CurrencyExchangeDetailSheet } from "./CurrencyExchangeDetailSheet";
 import { CurrencyExchangeRow } from "./CurrencyExchangeRow";
 import { MovesActiveFilterTags } from "./MovesActiveFilterTags";
+import { TransactionGroupRow } from "./TransactionGroupRow";
 import { TransactionRow } from "./TransactionRow";
 import {
   MovesFiltersPanel,
@@ -53,6 +54,11 @@ import {
 } from "./transaction-api";
 import { FirstTransactionEmptyState } from "./FirstTransactionEmptyState";
 import { TRANSACTION_NAME_MAX_LENGTH } from "./transaction-validation";
+import {
+  transactionGroupsQueryOptions,
+  TransactionGroupApiError,
+  type TransactionGroupListItem
+} from "./transaction-groups-api";
 
 const FILTER_PANEL_ID = "moves-filter-panel";
 
@@ -63,6 +69,7 @@ type MovesPageProps = {
   initialState: MovesPageState;
   onStateChange: (state: MovesPageState) => void;
   onNewTransaction: () => void;
+  onNewTransactionGroup: () => void;
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
   onExchangeDeleted: () => void;
   editingExchangeId: string | null;
@@ -71,6 +78,7 @@ type MovesPageProps = {
     transaction: TransactionPreview,
     viewportOffset: number | null
   ) => void;
+  onTransactionGroupSelect: (group: TransactionGroupListItem) => void;
   scrollTarget: MovesScrollTarget | null;
   onScrollTargetHandled: () => void;
   scrollToTopSignal: number;
@@ -143,6 +151,13 @@ type MoveListEntry =
       date: string;
       createdAt: string;
       exchange: CurrencyExchangeListItem;
+    }
+  | {
+      kind: "group";
+      id: string;
+      date: string;
+      createdAt: string;
+      group: TransactionGroupListItem;
     };
 
 function hasAmountFilter(filters: MovesFilters) {
@@ -302,11 +317,13 @@ export function MovesPage({
   initialState,
   onStateChange,
   onNewTransaction,
+  onNewTransactionGroup,
   onExchangeEdit,
   onExchangeDeleted,
   editingExchangeId,
   updatedExchange,
   onTransactionSelect,
+  onTransactionGroupSelect,
   scrollTarget,
   onScrollTargetHandled,
   scrollToTopSignal,
@@ -384,6 +401,7 @@ export function MovesPage({
     ...currencyExchangesQueryOptions(userId),
     enabled: canShowExchangeRows
   });
+  const transactionGroupsQuery = useQuery(transactionGroupsQueryOptions(userId));
   const isSearchDebouncing = normalizedSearchInput !== normalizedQuery;
   const isLoadingFilteredResults =
     isSearchDebouncing ||
@@ -394,6 +412,7 @@ export function MovesPage({
   const isPreparingResults =
     isLoadingFilteredResults ||
     isLoadingExchangeRows ||
+    transactionGroupsQuery.isPending ||
     isRestoringEditedTransaction;
   const hasMore = transactionsQuery.hasNextPage;
   const dateFilteredExchanges = useMemo(() => {
@@ -447,8 +466,50 @@ export function MovesPage({
     transactionsQuery.hasNextPage
   ]);
   const movementEntries = useMemo<MoveListEntry[]>(
-    () =>
-      [
+    () => {
+      const normalizedSearch = normalizedQuery;
+      const activeCategoryIds = getActiveCategoryIds(appliedFilters);
+      const visibleGroups =
+        transactionGroupsQuery.data?.groups.filter((group) => {
+          if (
+            normalizedSearch &&
+            !group.title.toLocaleLowerCase().includes(normalizedSearch)
+          ) {
+            return false;
+          }
+
+          if (appliedFilters.type !== "ALL") {
+            if (
+              (appliedFilters.type === "INCOME" && group.netTotalCents <= 0) ||
+              (appliedFilters.type === "EXPENSE" && group.netTotalCents >= 0)
+            ) {
+              return false;
+            }
+          }
+
+          if (
+            activeCategoryIds.length > 0 &&
+            !activeCategoryIds.includes(group.categoryId)
+          ) {
+            return false;
+          }
+
+          if (appliedFilters.dateMode === "EXACT" && appliedFilters.exactDate) {
+            return group.date === appliedFilters.exactDate;
+          }
+
+          if (appliedFilters.startDate && group.date < appliedFilters.startDate) {
+            return false;
+          }
+
+          if (appliedFilters.endDate && group.date > appliedFilters.endDate) {
+            return false;
+          }
+
+          return true;
+        }) ?? [];
+
+      return [
         ...transactions.map((transaction) => ({
           kind: "transaction" as const,
           id: transaction.id,
@@ -462,11 +523,20 @@ export function MovesPage({
           date: exchange.date,
           createdAt: exchange.createdAt,
           exchange
+        })),
+        ...visibleGroups.map((group) => ({
+          kind: "group" as const,
+          id: group.id,
+          date: group.date,
+          createdAt: group.createdAt,
+          group
         }))
-      ].sort(compareMoveListEntries),
-    [transactions, visibleExchanges]
+      ].sort(compareMoveListEntries);
+    },
+    [appliedFilters, normalizedQuery, transactionGroupsQuery.data?.groups, transactions, visibleExchanges]
   );
-  const displayedResultCount = totalResults + exchangeResultCount;
+  const groupResultCount = transactionGroupsQuery.data?.groups.length ?? 0;
+  const displayedResultCount = totalResults + exchangeResultCount + groupResultCount;
   const hasDisplayedExchanges = exchangeResultCount > 0;
   const accountExchangeCount =
     canShowExchangeRows && !currencyExchangesQuery.isError
@@ -566,6 +636,15 @@ export function MovesPage({
       onSessionExpired();
     }
   }, [currencyExchangesQuery.error, onSessionExpired]);
+
+  useEffect(() => {
+    if (
+      transactionGroupsQuery.error instanceof TransactionGroupApiError &&
+      transactionGroupsQuery.error.status === 401
+    ) {
+      onSessionExpired();
+    }
+  }, [onSessionExpired, transactionGroupsQuery.error]);
 
   useEffect(() => {
     if (!selectedExchange) {
@@ -766,7 +845,8 @@ export function MovesPage({
     loadingState === "ready" &&
     accountTransactionCount === 0 &&
     !isLoadingExchangeRows &&
-    accountExchangeCount === 0
+    accountExchangeCount === 0 &&
+    groupResultCount === 0
   ) {
     return (
       <section
@@ -788,6 +868,16 @@ export function MovesPage({
                 onClick={onNewTransaction}
               >
                 <Plus aria-hidden="true" />
+              </ActionButton>
+              <ActionButton
+                shape="icon"
+                className="moves-new-transaction-button moves-new-group-button"
+                type="button"
+                aria-label="New transaction group"
+                title="New transaction group"
+                onClick={onNewTransactionGroup}
+              >
+                <LayersPlus aria-hidden="true" />
               </ActionButton>
             </div>
           </header>
@@ -823,6 +913,16 @@ export function MovesPage({
               onClick={onNewTransaction}
             >
               <Plus aria-hidden="true" />
+            </ActionButton>
+            <ActionButton
+              shape="icon"
+              className="moves-new-transaction-button moves-new-group-button"
+              type="button"
+              aria-label="New transaction group"
+              title="New transaction group"
+              onClick={onNewTransactionGroup}
+            >
+              <LayersPlus aria-hidden="true" />
             </ActionButton>
           </div>
         </header>
@@ -971,10 +1071,15 @@ export function MovesPage({
                         date={entry.transaction.date}
                         onSelect={() => selectTransaction(entry.transaction)}
                       />
-                    ) : (
+                    ) : entry.kind === "exchange" ? (
                       <CurrencyExchangeRow
                         exchange={entry.exchange}
                         onSelect={() => setSelectedExchange(entry.exchange)}
+                      />
+                    ) : (
+                      <TransactionGroupRow
+                        group={entry.group}
+                        onSelect={() => onTransactionGroupSelect(entry.group)}
                       />
                     )}
                   </Fragment>

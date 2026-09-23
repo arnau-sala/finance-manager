@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
   Ellipsis,
+  Layers,
   Pencil,
   Share,
   Trash2,
@@ -46,6 +47,7 @@ type TransactionDetailSheetProps = {
   onClose: () => void;
   onDeleted: () => void;
   onEdit: (transaction: TransactionPreview) => void;
+  onAddRelatedTransactions: (transaction: TransactionPreview) => void;
   onSessionExpired: () => void;
 };
 
@@ -364,6 +366,7 @@ export function TransactionDetailSheet({
   onClose,
   onDeleted,
   onEdit,
+  onAddRelatedTransactions,
   onSessionExpired
 }: TransactionDetailSheetProps) {
   const open = transaction !== null;
@@ -966,7 +969,7 @@ export function TransactionDetailSheet({
                 <ActionButton
                   shape="icon"
                   type="button"
-                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--group"
                   role="menuitem"
                   aria-label="Edit transaction"
                   title="Edit"
@@ -986,6 +989,30 @@ export function TransactionDetailSheet({
                   }}
                 >
                   <Pencil aria-hidden="true" />
+                </ActionButton>
+                <ActionButton
+                  shape="icon"
+                  type="button"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
+                  role="menuitem"
+                  aria-label="Add related transactions"
+                  title="Add related"
+                  disabled={!actionsInteractive || deleteConfirmOpen}
+                  onClick={() => {
+                    if (!displayedTransaction) {
+                      return;
+                    }
+
+                    sheetRef.current
+                      ?.querySelector<HTMLElement>(
+                        ".transaction-detail-sheet__action-button"
+                      )
+                      ?.focus({ preventScroll: true });
+                    setActionsOpen(false);
+                    onAddRelatedTransactions(displayedTransaction);
+                  }}
+                >
+                  <Layers aria-hidden="true" />
                 </ActionButton>
                 <ActionButton
                   shape="icon"

@@ -29,7 +29,10 @@ import {
 } from "../transactions/moves-filters";
 import { TransactionComposer } from "../transactions/TransactionComposer";
 import { TransactionDetailSheet } from "../transactions/TransactionDetailSheet";
+import { TransactionGroupComposer } from "../transactions/TransactionGroupComposer";
+import { TransactionGroupDetailSheet } from "../transactions/TransactionGroupDetailSheet";
 import type { TransactionPreview } from "../transactions/transaction-api";
+import type { TransactionGroupListItem } from "../transactions/transaction-groups-api";
 import type { CurrencyExchangeListItem } from "../currency/currency-api";
 import type { TransactionCurrencyCode } from "../transactions/transaction-validation";
 import { AddExchangePage } from "./AddExchangePage";
@@ -99,6 +102,7 @@ type HomeSectionProps = {
     scrollTop: number
   ) => void;
   onNewTransaction: () => void;
+  onNewTransactionGroup: () => void;
   onExchangeEdit: (exchange: CurrencyExchangeListItem) => void;
   onExchangeDeleted: () => void;
   editingExchangeId: string | null;
@@ -108,6 +112,7 @@ type HomeSectionProps = {
     transaction: TransactionPreview,
     viewportOffset?: number | null
   ) => void;
+  onTransactionGroupSelect: (group: TransactionGroupListItem) => void;
   movesScrollTarget: MovesScrollTarget | null;
   onMovesScrollTargetHandled: () => void;
   movesViewState: MovesPageState;
@@ -135,8 +140,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     sectionScrollTops,
     onSectionScrollTopChange,
     onNewTransaction,
+    onNewTransactionGroup,
     onNavigateToMoves,
-    onTransactionSelect
+    onTransactionSelect,
+    onTransactionGroupSelect
   }) => (
     <HomeOverviewPage
       user={user}
@@ -148,8 +155,10 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
         onSectionScrollTopChange("home", scrollTop)
       }
       onNewTransaction={onNewTransaction}
+      onNewTransactionGroup={onNewTransactionGroup}
       onNavigateToMoves={onNavigateToMoves}
       onTransactionSelect={onTransactionSelect}
+      onTransactionGroupSelect={onTransactionGroupSelect}
     />
   ),
   moves: ({
@@ -159,11 +168,13 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
     sectionScrollTops,
     onSectionScrollTopChange,
     onNewTransaction,
+    onNewTransactionGroup,
     onExchangeEdit,
     onExchangeDeleted,
     editingExchangeId,
     updatedExchange,
     onTransactionSelect,
+    onTransactionGroupSelect,
     movesScrollTarget,
     onMovesScrollTargetHandled,
     movesViewState,
@@ -174,11 +185,13 @@ const homeSections: Record<HomeSectionId, (props: HomeSectionProps) => ReactNode
       initialState={movesViewState}
       onStateChange={onMovesViewStateChange}
       onNewTransaction={onNewTransaction}
+      onNewTransactionGroup={onNewTransactionGroup}
       onExchangeEdit={onExchangeEdit}
       onExchangeDeleted={onExchangeDeleted}
       editingExchangeId={editingExchangeId}
       updatedExchange={updatedExchange}
       onTransactionSelect={onTransactionSelect}
+      onTransactionGroupSelect={onTransactionGroupSelect}
       scrollTarget={movesScrollTarget}
       onScrollTargetHandled={onMovesScrollTargetHandled}
       scrollToTopSignal={scrollToTopSignal}
@@ -293,6 +306,8 @@ export function HomePage({
   );
   const [isTransactionComposerOpen, setIsTransactionComposerOpen] =
     useState(false);
+  const [isTransactionGroupComposerOpen, setIsTransactionGroupComposerOpen] =
+    useState(false);
   const [newTransactionInitialCurrency, setNewTransactionInitialCurrency] =
     useState<TransactionCurrencyCode>("EUR");
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
@@ -309,7 +324,13 @@ export function HomePage({
     useState<RecoveryCodeResetResult | null>(null);
   const [selectedTransaction, setSelectedTransaction] =
     useState<TransactionPreview | null>(null);
+  const [selectedTransactionGroup, setSelectedTransactionGroup] =
+    useState<TransactionGroupListItem | null>(null);
   const [transactionBeingEdited, setTransactionBeingEdited] =
+    useState<TransactionPreview | null>(null);
+  const [transactionGroupBeingEdited, setTransactionGroupBeingEdited] =
+    useState<TransactionGroupListItem | null>(null);
+  const [groupSeedTransaction, setGroupSeedTransaction] =
     useState<TransactionPreview | null>(null);
   const [exchangeBeingEdited, setExchangeBeingEdited] =
     useState<CurrencyExchangeListItem | null>(null);
@@ -366,7 +387,9 @@ export function HomePage({
     isAddExchangeOpen ||
     recoveryCodeReset !== null ||
     isTransactionComposerOpen ||
-    selectedTransaction !== null;
+    isTransactionGroupComposerOpen ||
+    selectedTransaction !== null ||
+    selectedTransactionGroup !== null;
 
   useEffect(() => {
     if (activeSection !== "home") {
@@ -390,6 +413,23 @@ export function HomePage({
   function closeTransactionComposer() {
     setIsTransactionComposerOpen(false);
     setNewTransactionInitialCurrency("EUR");
+  }
+
+  function openNewTransactionGroup(seedTransaction: TransactionPreview | null = null) {
+    if (lockSectionNavigation && !allowLockedNewTransaction) {
+      return;
+    }
+
+    prefetchScheduler.prioritizeUserRequest();
+    setTransactionGroupBeingEdited(null);
+    setGroupSeedTransaction(seedTransaction);
+    setIsTransactionGroupComposerOpen(true);
+  }
+
+  function closeTransactionGroupComposer() {
+    setIsTransactionGroupComposerOpen(false);
+    setTransactionGroupBeingEdited(null);
+    setGroupSeedTransaction(null);
   }
 
   function finishFinancialWrite(updatedTransactionId?: string) {
@@ -480,6 +520,11 @@ export function HomePage({
     movesSelectedTransactionViewportOffset.current =
       activeSection === "moves" ? viewportOffset : null;
     setSelectedTransaction(transaction);
+  }
+
+  function openTransactionGroup(group: TransactionGroupListItem) {
+    prefetchScheduler.prioritizeUserRequest();
+    setSelectedTransactionGroup(group);
   }
 
   function openNewExchange() {
@@ -592,12 +637,14 @@ export function HomePage({
           sectionScrollTops,
           onSectionScrollTopChange: updateSectionScrollTop,
           onNewTransaction: () => openNewTransaction(),
+          onNewTransactionGroup: () => openNewTransactionGroup(),
           onExchangeEdit: openExchangeEdit,
           onExchangeDeleted: finishExchangeDelete,
           editingExchangeId: exchangeBeingEdited?.id ?? null,
           updatedExchange: lastSavedExchange,
           onNavigateToMoves: navigateToMoves,
           onTransactionSelect: openTransaction,
+          onTransactionGroupSelect: openTransactionGroup,
           movesScrollTarget,
           onMovesScrollTargetHandled: () =>
             setMovesScrollTarget(null),
@@ -695,6 +742,7 @@ export function HomePage({
         editingExchangeId={exchangeBeingEdited?.id ?? null}
         updatedExchange={lastSavedExchange}
         onTransactionSelect={openTransaction}
+        onTransactionGroupSelect={openTransactionGroup}
         onSessionExpired={onSessionExpired}
       />
 
@@ -716,6 +764,17 @@ export function HomePage({
         onSessionExpired={onSessionExpired}
       />
 
+      <TransactionGroupComposer
+        userId={user.id}
+        open={isTransactionGroupComposerOpen}
+        group={transactionGroupBeingEdited}
+        seedTransaction={groupSeedTransaction}
+        onClose={closeTransactionGroupComposer}
+        onSaved={() => {
+          void invalidateAfterTransactionWrite(user.id);
+        }}
+      />
+
       <TransactionDetailSheet
         ownerId={user.id}
         transaction={selectedTransaction}
@@ -731,7 +790,25 @@ export function HomePage({
           setTransactionBeingEdited(transaction);
           setIsTransactionComposerOpen(true);
         }}
+        onAddRelatedTransactions={(transaction) => {
+          setSelectedTransaction(null);
+          openNewTransactionGroup(transaction);
+        }}
         onSessionExpired={onSessionExpired}
+      />
+
+      <TransactionGroupDetailSheet
+        userId={user.id}
+        group={selectedTransactionGroup}
+        onClose={() => setSelectedTransactionGroup(null)}
+        onEdit={(group) => {
+          setTransactionGroupBeingEdited(group);
+          setIsTransactionGroupComposerOpen(true);
+        }}
+        onDeleted={() => {
+          setSelectedTransactionGroup(null);
+          void invalidateAfterTransactionWrite(user.id);
+        }}
       />
     </main>
   );

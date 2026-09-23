@@ -47,7 +47,7 @@ export const homeRoutes: FastifyPluginAsync = async (app) => {
           getUserBalance(userId),
           getCurrentNetWorth(userId, today),
           db.transaction.findMany({
-            where: { userId },
+            where: { userId, groupId: null },
             orderBy: [
               { occurredOn: "desc" },
               { createdAt: "desc" },
