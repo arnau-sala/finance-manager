@@ -289,6 +289,31 @@ export async function rebuildUsdLedger(
       transactionGroupId === null || transactionGroupId === undefined;
 
     if (transaction.type === "INCOME") {
+      if (!isStandaloneTransaction) {
+        const fallbackRate =
+          lastKnownRateBasePerUsd ??
+          transaction.exchangeRateBasePerUsd ??
+          toDecimal(1);
+        const baseAmountMinor = roundDecimalToMinorUnits(
+          toDecimal(usdAmountMinor).mul(fallbackRate),
+        );
+        const exchangeRateBasePerUsd = normalizeRate(
+          toDecimal(baseAmountMinor).div(usdAmountMinor),
+        );
+
+        usdBalanceMinor += usdAmountMinor;
+        eurCostBasisMinor = eurCostBasisMinor.add(baseAmountMinor);
+        lastKnownRateBasePerUsd = exchangeRateBasePerUsd;
+        if (persistTransactionAllocations) {
+          await applyTransactionAccountingUpdate(client, transaction, {
+            amountCents: baseAmountMinor,
+            originalAmountMinor: usdAmountMinor,
+            exchangeRateBasePerUsd,
+          });
+        }
+        continue;
+      }
+
       const exchangeRateBasePerUsd = getUsdIncomeRateBasePerUsd({
         usdAmountMinor,
         baseAmountMinor: transaction.amountCents,

@@ -211,9 +211,48 @@ async function shareTransactionGroup(group: TransactionGroupListItem) {
 }
 
 function getUsdGroupRateLabels(group: TransactionGroupListItem) {
-  if (group.displayCurrency !== "USD") {
-    return null;
-  }
+  const usdLineTotals = group.transactions.reduce(
+    (totals, transaction) => {
+      if (transaction.currency !== "USD") {
+        return totals;
+      }
+
+      const usdAmount = Number(transaction.originalAmount ?? transaction.amount);
+      const baseAmount = Number(transaction.baseAmount ?? transaction.amount);
+
+      if (
+        Number.isFinite(usdAmount) &&
+        Math.abs(usdAmount) > 0 &&
+        Number.isFinite(baseAmount) &&
+        Math.abs(baseAmount) > 0
+      ) {
+        return {
+          baseAmount: totals.baseAmount + Math.abs(baseAmount),
+          usdAmount: totals.usdAmount + Math.abs(usdAmount)
+        };
+      }
+
+      const explicitLineRate =
+        transaction.exchangeRateBasePerUsd === null ||
+        transaction.exchangeRateBasePerUsd === undefined
+          ? null
+          : Number(transaction.exchangeRateBasePerUsd);
+
+      if (
+        explicitLineRate !== null &&
+        Number.isFinite(explicitLineRate) &&
+        explicitLineRate > 0
+      ) {
+        return {
+          baseAmount: totals.baseAmount + explicitLineRate,
+          usdAmount: totals.usdAmount + 1
+        };
+      }
+
+      return totals;
+    },
+    { baseAmount: 0, usdAmount: 0 }
+  );
 
   const explicitRate =
     group.displayExchangeRateBasePerUsd === null ||
@@ -229,8 +268,14 @@ function getUsdGroupRateLabels(group: TransactionGroupListItem) {
     Math.abs(baseAmount) > 0
       ? Math.abs(baseAmount) / Math.abs(displayAmount)
       : null;
+  const usdLineRate =
+    usdLineTotals.baseAmount > 0 && usdLineTotals.usdAmount > 0
+      ? usdLineTotals.baseAmount / usdLineTotals.usdAmount
+      : null;
   const basePerUsd =
-    explicitRate !== null && Number.isFinite(explicitRate) && explicitRate > 0
+    usdLineRate !== null && Number.isFinite(usdLineRate) && usdLineRate > 0
+      ? usdLineRate
+      : explicitRate !== null && Number.isFinite(explicitRate) && explicitRate > 0
       ? explicitRate
       : calculatedRate;
 
