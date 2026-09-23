@@ -80,6 +80,20 @@ function formatDate(value: string) {
   }).format(date);
 }
 
+function formatShareDate(value: string) {
+  const date = parseLocalDateOnly(value);
+
+  if (!date) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
 function formatPeriodImpact(value: number) {
   if (value > 0 && value < 1) {
     return `${value.toLocaleString("es-ES", {
@@ -102,6 +116,98 @@ function formatRateDecimal(value: number) {
   }
 
   return formattedValue.replace(/0+$/, "").replace(/,$/, "");
+}
+
+function getSignedLineAmount(
+  line: TransactionGroupListItem["transactions"][number]
+) {
+  const currency = line.currency ?? "EUR";
+  const amount = Number(
+    currency === "USD" ? line.originalAmount ?? line.amount : line.amount
+  );
+  const absoluteAmount = Number.isFinite(amount) ? Math.abs(amount) : 0;
+
+  return line.type === "INCOME" ? absoluteAmount : -absoluteAmount;
+}
+
+function buildTransactionGroupShareText(group: TransactionGroupListItem) {
+  const displayCurrency = (group.displayCurrency ?? "EUR") as MoneyCurrencyCode;
+  const displayNetTotal = Number(group.displayNetTotal ?? group.netTotal);
+  const displayNetTotalCents = group.displayNetTotalCents ?? group.netTotalCents;
+  const totalEmoji =
+    displayNetTotalCents > 0 ? "\uD83D\uDCB0" : displayNetTotalCents < 0 ? "\uD83D\uDCB8" : "\u2696\uFE0F";
+  const lineCount = group.transactions.length;
+  const lines = group.transactions.map((line) => {
+    const currency = (line.currency ?? "EUR") as MoneyCurrencyCode;
+    const lineEmoji = line.type === "INCOME" ? "\uD83D\uDCB0" : "\uD83D\uDCB8";
+
+    return `• ${lineEmoji} ${line.description} · ${formatMoneyAmount(
+      getSignedLineAmount(line),
+      {
+        currency,
+        showSign: true
+      }
+    )}`;
+  });
+
+  return [
+    "\uD83E\uDDFE Transaction group",
+    "",
+    `\uD83D\uDCDD ${group.title}`,
+    `${totalEmoji} ${formatMoneyAmount(displayNetTotal, {
+      currency: displayCurrency,
+      showSign: displayNetTotalCents !== 0
+    })}`,
+    "",
+    `\uD83D\uDCCB ${lineCount} ${lineCount === 1 ? "move" : "moves"}`,
+    ...lines,
+    "",
+    `\uD83C\uDFF7\uFE0F ${group.category.name}`,
+    `\uD83D\uDCC5 ${formatShareDate(group.date)}`
+  ].join("\n");
+}
+
+async function copyText(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.setAttribute("readonly", "");
+  textArea.style.position = "fixed";
+  textArea.style.opacity = "0";
+  document.body.append(textArea);
+  textArea.select();
+
+  const copied = document.execCommand("copy");
+  textArea.remove();
+
+  if (!copied) {
+    throw new Error("Clipboard access is unavailable");
+  }
+}
+
+async function shareTransactionGroup(group: TransactionGroupListItem) {
+  const text = buildTransactionGroupShareText(group);
+
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({
+        title: "Finance Manager",
+        text
+      });
+      return "shared";
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return "cancelled";
+      }
+    }
+  }
+
+  await copyText(text);
+  return "copied";
 }
 
 function getUsdGroupRateLabels(group: TransactionGroupListItem) {
@@ -240,14 +346,20 @@ export function TransactionGroupDetailSheet({
   const lastTouchY = useRef<number | null>(null);
   const topOverscrollIntent = useRef(0);
   const topOverscrollResetTimer = useRef<number | null>(null);
+  const shareNoticeTimerRef = useRef<number | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [actionsRendered, setActionsRendered] = useState(false);
   const [actionsExpanded, setActionsExpanded] = useState(false);
   const [actionsInteractive, setActionsInteractive] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [shareNotice, setShareNotice] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -267,8 +379,10 @@ export function TransactionGroupDetailSheet({
     setActionsRendered(false);
     setActionsExpanded(false);
     setActionsInteractive(false);
+    setIsSharing(false);
     setConfirmDelete(false);
     setDeleteError("");
+    setShareNotice(null);
     setDragOffset(0);
     setIsDragging(false);
     setScope("MONTH");
@@ -298,6 +412,10 @@ export function TransactionGroupDetailSheet({
     return () => {
       if (topOverscrollResetTimer.current !== null) {
         window.clearTimeout(topOverscrollResetTimer.current);
+      }
+
+      if (shareNoticeTimerRef.current !== null) {
+        window.clearTimeout(shareNoticeTimerRef.current);
       }
     };
   }, []);
@@ -706,6 +824,47 @@ export function TransactionGroupDetailSheet({
     }
   }
 
+  function showShareNotice(kind: "success" | "error", message: string) {
+    if (shareNoticeTimerRef.current !== null) {
+      window.clearTimeout(shareNoticeTimerRef.current);
+    }
+
+    setShareNotice({ kind, message });
+    shareNoticeTimerRef.current = window.setTimeout(() => {
+      setShareNotice(null);
+      shareNoticeTimerRef.current = null;
+    }, 2800);
+  }
+
+  async function shareDisplayedGroup() {
+    if (!detailGroup || isSharing) {
+      return;
+    }
+
+    setIsSharing(true);
+    setShareNotice(null);
+
+    try {
+      const result = await shareTransactionGroup(detailGroup);
+
+      if (result === "shared" || result === "copied") {
+        setActionsOpen(false);
+      }
+
+      if (result === "copied") {
+        showShareNotice("success", "Group copied to clipboard");
+      }
+    } catch {
+      setActionsOpen(false);
+      showShareNotice(
+        "error",
+        "Unable to share this group\nPlease try again"
+      );
+    } finally {
+      setIsSharing(false);
+    }
+  }
+
   return createPortal(
     <div
       ref={backdropRef}
@@ -785,7 +944,7 @@ export function TransactionGroupDetailSheet({
               aria-haspopup="menu"
               aria-expanded={actionsOpen}
               title="More"
-              disabled={isDeleting}
+              disabled={isSharing || isDeleting}
               onClick={() => {
                 setConfirmDelete(false);
                 setActionsOpen((current) => !current);
@@ -809,8 +968,8 @@ export function TransactionGroupDetailSheet({
                   role="menuitem"
                   aria-label="Share group"
                   title="Share"
-                  disabled={!actionsInteractive || confirmDelete || isDeleting}
-                  onClick={() => {}}
+                  disabled={!actionsInteractive || confirmDelete || isSharing || isDeleting}
+                  onClick={shareDisplayedGroup}
                 >
                   <Share aria-hidden="true" />
                 </ActionButton>
@@ -891,6 +1050,18 @@ export function TransactionGroupDetailSheet({
           <X aria-hidden="true" />
         </ActionButton>
         </div>
+
+        {shareNotice ? (
+          <p
+            className={`transaction-detail-sheet__share-notice transaction-detail-sheet__share-notice--${shareNotice.kind}`}
+            role={shareNotice.kind === "error" ? "alert" : "status"}
+            aria-live="polite"
+          >
+            {shareNotice.kind === "error"
+              ? formatErrorMessage(shareNotice.message)
+              : shareNotice.message}
+          </p>
+        ) : null}
 
         <div
           ref={scrollAreaRef}
