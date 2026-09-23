@@ -1,5 +1,6 @@
 import {
   type CSSProperties,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   useEffect,
   useLayoutEffect,
@@ -57,6 +58,9 @@ const LINE_REORDER_AUTO_SCROLL_MAX_SPEED_PX = 18;
 const LINE_REORDER_MIDPOINT_THRESHOLD_PX = 3;
 const LINE_EDITOR_SCROLL_TOP_MARGIN_PX = 12;
 const LINE_EDITOR_SCROLL_BOTTOM_MARGIN_PX = 28;
+const LINE_DELETE_CONFIRM_GAP_PX = 10;
+const LINE_DELETE_CONFIRM_ESTIMATED_HEIGHT_PX = 118;
+const LINE_DELETE_CONFIRM_EXIT_MS = 120;
 
 type DraftLine = TransactionGroupLineInput & {
   id: string;
@@ -303,9 +307,11 @@ export function TransactionGroupComposer({
   const [editingLineDraft, setEditingLineDraft] = useState<DraftLine | null>(
     null
   );
-  const [linePendingDeleteId, setLinePendingDeleteId] = useState<string | null>(
-    null
-  );
+  const [lineDeleteConfirm, setLineDeleteConfirm] = useState<{
+    lineId: string;
+    bottom: number;
+    closing: boolean;
+  } | null>(null);
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lineReorder, setLineReorder] = useState<LineReorderState | null>(null);
@@ -316,6 +322,7 @@ export function TransactionGroupComposer({
   const releaseLineReorderScrollLock = useRef<(() => void) | null>(null);
   const suppressNextLineClick = useRef(false);
   const suppressNextLineClickTimeout = useRef<number | null>(null);
+  const lineDeleteConfirmCloseTimeout = useRef<number | null>(null);
   const suppressNextCategoryClick = useRef(false);
   const suppressNextCategoryClickTimeout = useRef<number | null>(null);
   const categoryTypeDrag = useRef<{
@@ -347,6 +354,10 @@ export function TransactionGroupComposer({
     if (suppressNextLineClickTimeout.current !== null) {
       window.clearTimeout(suppressNextLineClickTimeout.current);
       suppressNextLineClickTimeout.current = null;
+    }
+    if (lineDeleteConfirmCloseTimeout.current !== null) {
+      window.clearTimeout(lineDeleteConfirmCloseTimeout.current);
+      lineDeleteConfirmCloseTimeout.current = null;
     }
 
     if (group) {
@@ -399,6 +410,9 @@ export function TransactionGroupComposer({
       if (suppressNextLineClickTimeout.current !== null) {
         window.clearTimeout(suppressNextLineClickTimeout.current);
       }
+      if (lineDeleteConfirmCloseTimeout.current !== null) {
+        window.clearTimeout(lineDeleteConfirmCloseTimeout.current);
+      }
     },
     []
   );
@@ -439,34 +453,34 @@ export function TransactionGroupComposer({
   }, [open, title]);
 
   useEffect(() => {
-    if (!open || editingLineId === null) {
+    if (!open || (editingLineId === null && lineDeleteConfirm === null)) {
       return;
     }
 
     const frame = window.requestAnimationFrame(() => {
       const scrollArea = scrollAreaRef.current;
-      const editor = scrollArea?.querySelector<HTMLElement>(
+      const elementToReveal = scrollArea?.querySelector<HTMLElement>(
         ".transaction-group-line-editor"
       );
 
-      if (!scrollArea || !editor) {
+      if (!scrollArea || !elementToReveal) {
         return;
       }
 
       const scrollAreaRect = scrollArea.getBoundingClientRect();
-      const editorRect = editor.getBoundingClientRect();
+      const targetRect = elementToReveal.getBoundingClientRect();
       const topLimit = scrollAreaRect.top + LINE_EDITOR_SCROLL_TOP_MARGIN_PX;
       const bottomLimit =
         scrollAreaRect.bottom - LINE_EDITOR_SCROLL_BOTTOM_MARGIN_PX;
 
-      if (editorRect.top >= topLimit && editorRect.bottom <= bottomLimit) {
+      if (targetRect.top >= topLimit && targetRect.bottom <= bottomLimit) {
         return;
       }
 
       const nextScrollTop =
-        editorRect.bottom > bottomLimit
-          ? scrollArea.scrollTop + editorRect.bottom - bottomLimit
-          : scrollArea.scrollTop + editorRect.top - topLimit;
+        targetRect.bottom > bottomLimit
+          ? scrollArea.scrollTop + targetRect.bottom - bottomLimit
+          : scrollArea.scrollTop + targetRect.top - topLimit;
 
       scrollArea.scrollTo({
         top: Math.max(0, nextScrollTop),
@@ -475,7 +489,7 @@ export function TransactionGroupComposer({
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [editingLineId, open]);
+  }, [editingLineId, lineDeleteConfirm, open]);
 
   const netTotal = getNetTotal(lines);
   const hasTransactionContent = lines.some(
@@ -649,14 +663,14 @@ export function TransactionGroupComposer({
   }
 
   function startEditingLine(line: DraftLine) {
-    setLinePendingDeleteId(null);
+    setLineDeleteConfirm(null);
     setEditingLineId(line.id);
     setEditingLineDraft({ ...line });
   }
 
   function startAddingLine() {
     const line = createEmptyLine();
-    setLinePendingDeleteId(null);
+    setLineDeleteConfirm(null);
     setEditingLineId(line.id);
     setEditingLineDraft(line);
   }
@@ -668,9 +682,55 @@ export function TransactionGroupComposer({
   }
 
   function cancelEditingLine() {
-    setLinePendingDeleteId(null);
+    setLineDeleteConfirm(null);
     setEditingLineId(null);
     setEditingLineDraft(null);
+  }
+
+  function closeLineDeleteConfirm(onClosed?: () => void) {
+    if (!lineDeleteConfirm) {
+      onClosed?.();
+      return;
+    }
+
+    if (lineDeleteConfirmCloseTimeout.current !== null) {
+      window.clearTimeout(lineDeleteConfirmCloseTimeout.current);
+    }
+
+    setLineDeleteConfirm((current) =>
+      current ? { ...current, closing: true } : current
+    );
+    lineDeleteConfirmCloseTimeout.current = window.setTimeout(() => {
+      lineDeleteConfirmCloseTimeout.current = null;
+      setLineDeleteConfirm(null);
+      onClosed?.();
+    }, LINE_DELETE_CONFIRM_EXIT_MS);
+  }
+
+  function openLineDeleteConfirm(
+    event: ReactMouseEvent<HTMLButtonElement>,
+    lineId: string
+  ) {
+    const buttonRect = event.currentTarget.getBoundingClientRect();
+    const preferredBottom =
+      window.innerHeight - buttonRect.top + LINE_DELETE_CONFIRM_GAP_PX;
+    const maxBottom = Math.max(
+      LINE_DELETE_CONFIRM_GAP_PX,
+      window.innerHeight -
+        LINE_DELETE_CONFIRM_GAP_PX -
+        LINE_DELETE_CONFIRM_ESTIMATED_HEIGHT_PX
+    );
+
+    if (lineDeleteConfirmCloseTimeout.current !== null) {
+      window.clearTimeout(lineDeleteConfirmCloseTimeout.current);
+      lineDeleteConfirmCloseTimeout.current = null;
+    }
+
+    setLineDeleteConfirm({
+      lineId,
+      bottom: Math.min(preferredBottom, maxBottom),
+      closing: false
+    });
   }
 
   function confirmEditingLine() {
@@ -1302,12 +1362,25 @@ export function TransactionGroupComposer({
 
   function deleteLine(lineId: string) {
     setLines((current) => current.filter((line) => line.id !== lineId));
-    setLinePendingDeleteId(null);
+    setLineDeleteConfirm(null);
     cancelEditingLine();
   }
 
-  return createPortal(
-    <section
+  const lineDeleteDraft = lineDeleteConfirm
+    ? editingLineDraft?.id === lineDeleteConfirm.lineId
+      ? editingLineDraft
+      : lines.find((line) => line.id === lineDeleteConfirm.lineId) ?? null
+    : null;
+  const lineDeleteSignedAmount = lineDeleteDraft
+    ? lineDeleteDraft.type === "INCOME"
+      ? parseAmount(lineDeleteDraft.amount)
+      : -parseAmount(lineDeleteDraft.amount)
+    : 0;
+
+  return (
+    <>
+      {createPortal(
+        <section
       className={`transaction-composer transaction-composer--group${
         categoryType === "INCOME" ? " transaction-composer--income" : ""
       }${open ? " is-open" : ""}`}
@@ -1531,12 +1604,6 @@ export function TransactionGroupComposer({
                   const editableLine =
                     isEditingLine && editingLineDraft ? editingLineDraft : line;
                   const isEditableLineValid = isDraftLineValid(editableLine);
-                  const isLineDeleteConfirmOpen =
-                    linePendingDeleteId === line.id;
-                  const editableLineSignedAmount =
-                    editableLine.type === "INCOME"
-                      ? parseAmount(editableLine.amount)
-                      : -parseAmount(editableLine.amount);
                   const reorderOffset = getLineReorderOffset(line.id, index);
                   const isReorderingLine = lineReorder?.lineId === line.id;
 
@@ -1628,7 +1695,9 @@ export function TransactionGroupComposer({
                             <ActionButton
                               type="button"
                               className="transaction-group-line-editor__action-delete"
-                              onClick={() => setLinePendingDeleteId(line.id)}
+                              onClick={(event) =>
+                                openLineDeleteConfirm(event, line.id)
+                              }
                             >
                               <Trash2 aria-hidden="true" />
                               Delete
@@ -1642,39 +1711,6 @@ export function TransactionGroupComposer({
                               Save
                             </ActionButton>
                           </div>
-                          {isLineDeleteConfirmOpen ? (
-                            <div
-                              className="transaction-detail-delete-confirm transaction-group-line-delete-confirm"
-                              role="alertdialog"
-                              aria-modal="false"
-                            >
-                              <strong>Delete permanently?</strong>
-                              <span className="transaction-detail-delete-confirm__summary">
-                                <span>{editableLine.title || "Untitled"}</span>
-                                <b>
-                                  {formatMoneyAmount(editableLineSignedAmount, {
-                                    showSign: true,
-                                    currency: editableLine.currency
-                                  })}
-                                </b>
-                              </span>
-                              <div className="transaction-detail-delete-confirm__actions">
-                                <ActionButton
-                                  type="button"
-                                  onClick={() => setLinePendingDeleteId(null)}
-                                >
-                                  Cancel
-                                </ActionButton>
-                                <ActionButton
-                                  type="button"
-                                  className="transaction-detail-delete-confirm__submit"
-                                  onClick={() => deleteLine(line.id)}
-                                >
-                                  Delete
-                                </ActionButton>
-                              </div>
-                            </div>
-                          ) : null}
                         </div>
                       ) : (
                         <button
@@ -1846,7 +1882,62 @@ export function TransactionGroupComposer({
           </div>
         </footer>
       </form>
-    </section>,
-    document.body
+        </section>,
+        document.body
+      )}
+      {lineDeleteConfirm && lineDeleteDraft
+        ? createPortal(
+            <div
+              className="transaction-group-line-delete-confirm-layer"
+              onClick={() => closeLineDeleteConfirm()}
+            >
+              <div
+                className={`transaction-detail-delete-confirm transaction-group-line-delete-confirm${
+                  lineDeleteConfirm.closing
+                    ? " transaction-detail-delete-confirm--closing"
+                    : ""
+                }`}
+                role="alertdialog"
+                aria-modal="false"
+                onClick={(event) => event.stopPropagation()}
+                style={
+                  {
+                    "--line-delete-confirm-bottom": `${lineDeleteConfirm.bottom}px`
+                  } as CSSProperties
+                }
+              >
+                <strong>Delete permanently?</strong>
+                <span className="transaction-detail-delete-confirm__summary">
+                  <span>{lineDeleteDraft.title || "Untitled"}</span>
+                  <b>
+                    {formatMoneyAmount(lineDeleteSignedAmount, {
+                      showSign: true,
+                      currency: lineDeleteDraft.currency
+                    })}
+                  </b>
+                </span>
+                <div className="transaction-detail-delete-confirm__actions">
+                  <ActionButton
+                    type="button"
+                    onClick={() => closeLineDeleteConfirm()}
+                  >
+                    Cancel
+                  </ActionButton>
+                  <ActionButton
+                    type="button"
+                    className="transaction-detail-delete-confirm__submit"
+                    onClick={() =>
+                      closeLineDeleteConfirm(() => deleteLine(lineDeleteDraft.id))
+                    }
+                  >
+                    Delete
+                  </ActionButton>
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
+    </>
   );
 }

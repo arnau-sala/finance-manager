@@ -8378,6 +8378,48 @@ html.desktop-app-route .stats-view-stage {
   animation: profile-summary-card-google-info-out 120ms ease-in forwards;
 }
 
+.transaction-group-line-delete-confirm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 11999;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.transaction-group-line-delete-confirm {
+  position: fixed;
+  top: auto;
+  right: 0;
+  bottom: var(--line-delete-confirm-bottom, 96px);
+  left: 0;
+  z-index: 12000;
+  width: min(248px, calc(100vw - 40px));
+  height: auto;
+  min-height: 0;
+  max-height: calc(100dvh - 40px);
+  margin-inline: auto;
+  padding: 12px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  transform-origin: center;
+}
+
+.transaction-group-line-delete-confirm > strong {
+  padding-inline: 12px;
+  font-size: 14px;
+}
+
+.transaction-group-line-delete-confirm
+  .transaction-detail-delete-confirm__summary {
+  padding-inline: 12px;
+}
+
+.transaction-group-line-delete-confirm
+  .transaction-detail-delete-confirm__actions
+  button {
+  height: 38px;
+}
+
 .transaction-detail-delete-confirm > strong {
   padding-inline: 16px;
   font-size: 15px;
