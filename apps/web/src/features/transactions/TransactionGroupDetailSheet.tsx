@@ -247,7 +247,7 @@ export function TransactionGroupDetailSheet({
   const [dragOffset, setDragOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [scope, setScope] = useState<TransactionDetailScope>("YEAR");
+  const [scope, setScope] = useState<TransactionDetailScope>("MONTH");
   const [renderedGroup, setRenderedGroup] =
     useState<TransactionGroupListItem | null>(group);
 
@@ -264,6 +264,7 @@ export function TransactionGroupDetailSheet({
     setDeleteError("");
     setDragOffset(0);
     setIsDragging(false);
+    setScope("MONTH");
     topOverscrollIntent.current = 0;
 
     if (topOverscrollResetTimer.current !== null) {
