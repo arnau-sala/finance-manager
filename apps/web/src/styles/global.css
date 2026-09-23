@@ -4753,6 +4753,13 @@ body.segmented-drag-scroll-lock .auth-screen--registration-method {
   gap: 5px;
 }
 
+.home-primary-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  align-items: stretch;
+  gap: 10px;
+}
+
 .home-new-transaction {
   width: 100%;
   height: 52px;
@@ -4773,22 +4780,28 @@ body.segmented-drag-scroll-lock .auth-screen--registration-method {
   -webkit-tap-highlight-color: transparent;
 }
 
+.home-primary-actions .home-new-transaction {
+  min-width: 0;
+}
+
+.home-primary-actions .home-new-group {
+  grid-template-columns: 1fr;
+  place-items: center;
+  padding: 0;
+}
+
 .home-new-transaction__icon {
   width: 28px;
   height: 28px;
   display: grid;
   place-items: center;
-  background: color-mix(
-    in srgb,
-    var(--color-on-primary) 14%,
-    transparent
-  );
+  background: transparent;
   border-radius: 50%;
 }
 
 .home-new-transaction__icon svg {
-  width: 17px;
-  height: 17px;
+  width: 21px;
+  height: 21px;
   stroke-width: 2;
 }
 
@@ -4995,6 +5008,61 @@ button.transaction-row__content:focus-visible {
   color: var(--color-danger);
 }
 
+.transaction-row__amount--neutral {
+  color: var(--color-text);
+}
+
+.transaction-group-row-icon {
+  position: relative;
+  width: 38px;
+  height: 36px;
+  display: block;
+  color: var(--color-primary);
+}
+
+.transaction-group-row-icon__circle {
+  position: absolute;
+  top: 50%;
+  width: 31px;
+  height: 31px;
+  display: grid;
+  place-items: center;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.transaction-group-row-icon__circle:nth-child(1) {
+  left: 0;
+  z-index: 1;
+}
+
+.transaction-group-row-icon__circle:nth-child(2) {
+  left: 7px;
+  z-index: 2;
+}
+
+.transaction-group-row-icon__circle:nth-child(3) {
+  left: 7px;
+  z-index: 3;
+}
+
+.transaction-group-row-icon--3 .transaction-group-row-icon__circle:nth-child(2) {
+  left: 3.5px;
+}
+
+.transaction-group-row-icon--3 .transaction-group-row-icon__circle:nth-child(3) {
+  left: 7px;
+}
+
+.transaction-group-row-icon svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.7;
+}
+
 .currency-exchange-row__content {
   grid-template-columns: 38px minmax(0, 1fr) auto;
 }
@@ -5078,6 +5146,29 @@ button.transaction-row__content:focus-visible {
 }
 
 .moves-new-transaction-button:focus-visible {
+  outline: 3px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.moves-new-group-button {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moves-new-group-button svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 1.9;
+}
+
+.moves-new-group-button:focus-visible {
   outline: 3px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
@@ -7991,6 +8082,20 @@ html.desktop-app-route .stats-view-stage {
   transition-delay: 0s;
 }
 
+.transaction-detail-backdrop--sheet-scroll {
+  display: block;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right))
+    0
+    max(8px, env(safe-area-inset-left));
+  touch-action: pan-y;
+}
+
 .transaction-detail-sheet {
   --transaction-detail-drag-offset: 0px;
   --transaction-detail-type-color: var(--color-danger);
@@ -8021,6 +8126,16 @@ html.desktop-app-route .stats-view-stage {
 .transaction-detail-sheet--exchange {
   --transaction-detail-type-color: var(--color-primary);
   border-color: var(--color-border);
+}
+
+.transaction-detail-sheet--neutral {
+  --transaction-detail-type-color: var(--color-text);
+}
+
+.transaction-detail-sheet--group {
+  flex: 0 0 auto;
+  max-height: none;
+  margin: 0 auto;
 }
 
 .transaction-detail-backdrop.is-open .transaction-detail-sheet {
@@ -8196,7 +8311,31 @@ html.desktop-app-route .stats-view-stage {
   transform: translate3d(-42px, -42px, 0) scale(0.2);
 }
 
+.transaction-detail-sheet__floating-action--group {
+  top: 52px;
+  left: 52px;
+  transform: translate3d(-52px, -52px, 0) scale(0.2);
+}
+
 .transaction-detail-sheet__floating-action--delete {
+  top: 52px;
+  left: 0;
+  transform: translate3d(0, -52px, 0) scale(0.2);
+}
+
+.transaction-group-detail-action--share {
+  top: 0;
+  left: 52px;
+  transform: translate3d(-52px, 0, 0) scale(0.2);
+}
+
+.transaction-group-detail-action--edit {
+  top: 42px;
+  left: 42px;
+  transform: translate3d(-42px, -42px, 0) scale(0.2);
+}
+
+.transaction-group-detail-action--delete {
   top: 52px;
   left: 0;
   transform: translate3d(0, -52px, 0) scale(0.2);
@@ -8208,7 +8347,9 @@ html.desktop-app-route .stats-view-stage {
 }
 
 .transaction-detail-sheet__action-menu
-  .transaction-detail-sheet__floating-action--delete {
+  .transaction-detail-sheet__floating-action--delete,
+.transaction-detail-sheet__action-menu
+  .transaction-group-detail-action--delete {
   color: var(--color-danger);
 }
 
@@ -8235,6 +8376,48 @@ html.desktop-app-route .stats-view-stage {
 .transaction-detail-delete-confirm--closing {
   pointer-events: none;
   animation: profile-summary-card-google-info-out 120ms ease-in forwards;
+}
+
+.transaction-group-line-delete-confirm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 11999;
+  background: transparent;
+  pointer-events: auto;
+}
+
+.transaction-group-line-delete-confirm {
+  position: fixed;
+  top: auto;
+  right: 0;
+  bottom: var(--line-delete-confirm-bottom, 96px);
+  left: 0;
+  z-index: 12000;
+  width: min(248px, calc(100vw - 40px));
+  height: auto;
+  min-height: 0;
+  max-height: calc(100dvh - 40px);
+  margin-inline: auto;
+  padding: 12px;
+  overflow-y: auto;
+  box-sizing: border-box;
+  transform-origin: center;
+}
+
+.transaction-group-line-delete-confirm > strong {
+  padding-inline: 12px;
+  font-size: 14px;
+}
+
+.transaction-group-line-delete-confirm
+  .transaction-detail-delete-confirm__summary {
+  padding-inline: 12px;
+}
+
+.transaction-group-line-delete-confirm
+  .transaction-detail-delete-confirm__actions
+  button {
+  height: 38px;
 }
 
 .transaction-detail-delete-confirm > strong {
@@ -8337,6 +8520,12 @@ html.desktop-app-route .stats-view-stage {
   display: none;
 }
 
+.transaction-detail-sheet--group .transaction-detail-sheet__scroll-area {
+  overflow-y: visible;
+  overscroll-behavior: auto;
+  touch-action: pan-y;
+}
+
 .transaction-detail-sheet__content {
   width: min(100%, 440px);
   margin: 0 auto;
@@ -8427,9 +8616,126 @@ html.desktop-app-route .stats-view-stage {
   font-variant-numeric: tabular-nums;
 }
 
+.transaction-group-detail-lines {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.transaction-group-detail-lines h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-group-detail-lines h3 svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.8;
+}
+
+.transaction-group-detail-lines ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.transaction-group-detail-lines li {
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.transaction-group-detail-lines li > span:not(.transaction-group-detail-lines__type) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.transaction-group-detail-lines li > span > strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-group-detail-lines li > span > small {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 400;
+}
+
+.transaction-group-detail-lines li > strong {
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.transaction-group-detail-lines
+  li
+  > strong.transaction-row__amount--income {
+  color: var(--color-success);
+}
+
+.transaction-group-detail-lines
+  li
+  > strong.transaction-row__amount--expense {
+  color: var(--color-danger);
+}
+
+.transaction-group-detail-lines__type {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.transaction-group-detail-lines__type--income {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.transaction-group-detail-lines__type--expense {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.transaction-group-detail-lines__type svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.8;
+}
+
 .transaction-detail-section {
   margin-top: 23px;
   padding-top: 15px;
+}
+
+.transaction-group-detail-balance {
+  border-top: 1px solid var(--color-border);
 }
 
 .transaction-detail-context {
@@ -9218,6 +9524,140 @@ html.desktop-app-route .stats-view-stage {
   font-weight: 400;
 }
 
+.transaction-category-picker__heading {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 6px;
+  padding: 0 var(--text-field-padding);
+}
+
+.transaction-category-picker__heading > span {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-category-picker--group .transaction-category-picker__heading {
+  cursor: grab;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-group-category-drag-surface {
+  cursor: grab;
+  touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.transaction-category-picker--group
+  .transaction-category-picker__heading.is-dragging,
+.transaction-group-category-drag-surface.is-dragging {
+  cursor: grabbing;
+}
+
+.transaction-group-category-type-toggle {
+  position: relative;
+  width: auto;
+  height: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+}
+
+.transaction-group-category-type-toggle--income {
+  --category-type-active-color: var(--color-success);
+}
+
+.transaction-group-category-type-toggle--expense {
+  --category-type-active-color: var(--color-danger);
+}
+
+.transaction-group-category-type-toggle > span {
+  display: none;
+}
+
+.transaction-category-picker__heading.is-dragging
+  .transaction-group-category-type-toggle
+  > span {
+  display: none;
+}
+
+.transaction-group-category-type-toggle button {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.transaction-group-category-type-toggle button[aria-pressed="true"] {
+  color: var(--category-type-active-color);
+}
+
+.transaction-group-category-type-toggle svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 1.9;
+}
+
+.transaction-group-category-window {
+  height: calc(
+    var(--transaction-category-option-height) * 3 +
+      var(--transaction-category-grid-gap) * 2
+  );
+  overflow: hidden;
+}
+
+.transaction-group-category-track {
+  width: 200%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  transform: translate3d(
+    calc(var(--category-track-base, 0%) + var(--category-type-drag-offset, 0px)),
+    0,
+    0
+  );
+  transition: transform 180ms cubic-bezier(0.32, 0.72, 0, 1);
+  will-change: transform;
+}
+
+.transaction-group-category-drag-surface.is-dragging
+  .transaction-group-category-track {
+  transition: none;
+}
+
+.transaction-group-category-panel {
+  height: calc(
+    var(--transaction-category-option-height) * 3 +
+      var(--transaction-category-grid-gap) * 2
+  );
+}
+
+.transaction-group-category-panel--income {
+  align-content: center;
+}
+
+.transaction-group-category-panel--expense {
+  align-content: start;
+}
+
 .transaction-category-picker[aria-invalid="true"] legend {
   color: var(--color-danger);
 }
@@ -9402,6 +9842,267 @@ html.desktop-app-route .stats-view-stage {
   font-weight: 400;
   overflow-wrap: anywhere;
   text-align: center;
+}
+
+.transaction-group-net {
+  min-height: 48px;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 0;
+  color: var(--transaction-type-color);
+  text-align: center;
+}
+
+.transaction-group-net strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 34px;
+  line-height: 1;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-group-lines {
+  display: grid;
+  gap: 10px;
+}
+
+.transaction-group-lines h2 {
+  margin: 0;
+  padding: 0 var(--text-field-padding);
+  color: var(--color-text-muted);
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.transaction-group-lines ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.transaction-group-line-item {
+  --line-reorder-offset: 0px;
+  position: relative;
+  z-index: 0;
+  transform: translate3d(0, var(--line-reorder-offset), 0);
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.transaction-group-lines
+  ul.is-reordering
+  .transaction-group-line-item:not(.is-reordering)
+  .transaction-group-line {
+  pointer-events: none;
+}
+
+.transaction-group-line-item.is-reordering {
+  z-index: 20;
+  transition: none;
+}
+
+.transaction-group-line-item.is-shifted {
+  z-index: 1;
+}
+
+.transaction-group-line-item.is-reordering {
+  z-index: 20;
+}
+
+.transaction-group-line {
+  width: 100%;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 27px;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 180ms ease,
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.transaction-group-line-item.is-reordering .transaction-group-line {
+  cursor: grabbing;
+  background: var(--color-surface);
+  border-color: var(--color-primary-border);
+  box-shadow: 0 14px 30px rgba(17, 24, 39, 0.14);
+  transform: scale(1.012);
+}
+
+.transaction-group-line span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transaction-group-line strong {
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.transaction-group-line--add {
+  grid-template-columns: auto 1fr;
+  justify-content: start;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-border);
+}
+
+.transaction-group-line--add svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
+}
+
+.transaction-group-line-editor {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+}
+
+.transaction-group-line-editor__row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+  align-items: end;
+}
+
+.transaction-group-line-editor .text-field--composer {
+  --text-field-height: 42px;
+  --text-field-padding: 16px;
+  --text-field-radius: 21px;
+  --text-field-font-size: 14px;
+  background: var(--color-surface-muted);
+}
+
+.transaction-group-line-editor__title-field {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.transaction-group-line-editor__field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.transaction-group-line-editor__character-count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.transaction-group-line-editor__switch.sliding-segmented-control {
+  width: 92px;
+  height: 42px;
+  justify-self: stretch;
+  padding: 3px;
+  background: var(--color-surface);
+}
+
+.transaction-group-line-editor__switch.sliding-segmented-control button {
+  padding: 0;
+}
+
+.transaction-group-line-editor__switch.sliding-segmented-control button svg {
+  width: 17px;
+  height: 17px;
+}
+
+.transaction-group-line-editor__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.transaction-group-line-editor__actions--new {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.transaction-group-line-editor__actions button {
+  width: 100%;
+  min-height: 36px;
+  padding: 0 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.transaction-group-line-editor__actions button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.transaction-group-line-editor__actions
+  .transaction-group-line-editor__action-primary {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.transaction-group-line-editor__actions
+  .transaction-group-line-editor__action-primary:disabled {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.transaction-group-line-editor__actions
+  .transaction-group-line-editor__action-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.transaction-group-line-editor__action-delete svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.9;
 }
 
 .transaction-composer__footer button {

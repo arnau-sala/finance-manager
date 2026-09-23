@@ -303,6 +303,7 @@ function getTransactionListWhere(
 ) {
   const conditions: Prisma.Sql[] = [
     Prisma.sql`t."userId" = ${userId}`,
+    Prisma.sql`t."groupId" IS NULL`,
   ];
 
   if (query.search !== undefined) {
@@ -500,6 +501,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         FROM "Transaction" t
         INNER JOIN "Category" c ON c."id" = t."categoryId"
         WHERE t."userId" = ${userId}
+          AND t."groupId" IS NULL
           AND t."categoryId" = ${parsedParams.data.category}
         ORDER BY t."occurredOn" DESC, t."createdAt" DESC, t."id" DESC
         LIMIT ${limit + 1}
@@ -681,6 +683,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         where: {
           id: parsedParams.data.id,
           userId,
+          groupId: null,
         },
         select: { id: true, currency: true },
       });
@@ -741,6 +744,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
         where: {
           id: parsedParams.data.id,
           userId,
+          groupId: null,
         },
         select: {
           id: true,
@@ -846,6 +850,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
             where: {
               id: parsedParams.data.id,
               userId,
+              groupId: null,
             },
             data: updateData,
           });

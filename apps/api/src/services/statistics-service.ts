@@ -1,9 +1,6 @@
 import { Prisma, type TransactionType } from "@prisma/client";
 
-import {
-  parseDateOnly,
-  type DateOnlyRange,
-} from "../dates/date-only.js";
+import type { DateOnlyRange } from "../dates/date-only.js";
 import { db } from "../db/client.js";
 import { centsToDecimal } from "../money/cents.js";
 
@@ -27,6 +24,15 @@ type TransactionMonthRow = {
   month: string;
 };
 
+type BalanceRow = {
+  totalIncomeCents: bigint | number;
+  totalSpentCents: bigint | number;
+};
+
+type ActivityCountRow = {
+  transactionCount: bigint | number;
+};
+
 export async function getUserTransactionMonths(
   userId: string,
   maximumDate: string
@@ -34,12 +40,12 @@ export async function getUserTransactionMonths(
   const months = await db.$queryRaw<TransactionMonthRow[]>(
     Prisma.sql`
       SELECT
-        TO_CHAR(DATE_TRUNC('month', t."occurredOn"), 'YYYY-MM') AS "month"
-      FROM "Transaction" t
-      WHERE t."userId" = ${userId}
-        AND t."occurredOn" <= ${maximumDate}::date
-      GROUP BY DATE_TRUNC('month', t."occurredOn")
-      ORDER BY DATE_TRUNC('month', t."occurredOn") ASC
+        TO_CHAR(DATE_TRUNC('month', operation."occurredOn"), 'YYYY-MM') AS "month"
+      FROM "FinancialOperation" operation
+      WHERE operation."userId" = ${userId}
+        AND operation."occurredOn" <= ${maximumDate}::date
+      GROUP BY DATE_TRUNC('month', operation."occurredOn")
+      ORDER BY DATE_TRUNC('month', operation."occurredOn") ASC
     `
   );
 
@@ -56,22 +62,23 @@ async function getUserCategoryTotals(
       SELECT
         c."id" AS "categoryId",
         c."name" AS "category",
-        t."type" AS "type",
-        SUM(t."amountCents") AS "amountCents",
+        operation."type" AS "type",
+        SUM(operation."amountCents") AS "amountCents",
         COUNT(*) AS "transactionCount"
-      FROM "Transaction" t
-      INNER JOIN "Category" c ON c."id" = t."categoryId"
-      WHERE t."userId" = ${userId}
-      ${type ? Prisma.sql`AND t."type" = ${type}::"TransactionType"` : Prisma.empty}
+      FROM "FinancialOperation" operation
+      INNER JOIN "Category" c ON c."id" = operation."categoryId"
+      WHERE operation."userId" = ${userId}
+        AND operation."type" IS NOT NULL
+      ${type ? Prisma.sql`AND operation."type" = ${type}::"TransactionType"` : Prisma.empty}
       ${
         dateRange
           ? Prisma.sql`
-              AND t."occurredOn" >= ${dateRange.from}::date
-              AND t."occurredOn" < ${dateRange.to}::date
+              AND operation."occurredOn" >= ${dateRange.from}::date
+              AND operation."occurredOn" < ${dateRange.to}::date
             `
           : Prisma.empty
       }
-      GROUP BY c."id", c."name", t."type"
+      GROUP BY c."id", c."name", operation."type"
     `
   );
 
@@ -90,29 +97,36 @@ export async function getUserBalance(
   userId: string,
   dateRange?: DateOnlyRange
 ) {
-  const where: Prisma.TransactionWhereInput = {
-    userId
-  };
+  const [totals] = await db.$queryRaw<BalanceRow[]>(
+    Prisma.sql`
+      SELECT
+        COALESCE(
+          SUM(operation."amountCents") FILTER (
+            WHERE operation."type" = 'INCOME'::"TransactionType"
+          ),
+          0
+        ) AS "totalIncomeCents",
+        COALESCE(
+          SUM(operation."amountCents") FILTER (
+            WHERE operation."type" = 'EXPENSE'::"TransactionType"
+          ),
+          0
+        ) AS "totalSpentCents"
+      FROM "FinancialOperation" operation
+      WHERE operation."userId" = ${userId}
+      ${
+        dateRange
+          ? Prisma.sql`
+              AND operation."occurredOn" >= ${dateRange.from}::date
+              AND operation."occurredOn" < ${dateRange.to}::date
+            `
+          : Prisma.empty
+      }
+    `
+  );
 
-  if (dateRange) {
-    where.occurredOn = {
-      gte: parseDateOnly(dateRange.from),
-      lt: parseDateOnly(dateRange.to)
-    };
-  }
-
-  const totals = await db.transaction.groupBy({
-    by: ["type"],
-    where,
-    _sum: {
-      amountCents: true
-    }
-  });
-
-  const totalIncomeCents =
-    totals.find((total) => total.type === "INCOME")?._sum.amountCents ?? 0;
-  const totalSpentCents =
-    totals.find((total) => total.type === "EXPENSE")?._sum.amountCents ?? 0;
+  const totalIncomeCents = Number(totals?.totalIncomeCents ?? 0);
+  const totalSpentCents = Number(totals?.totalSpentCents ?? 0);
   const totalBalanceCents = totalIncomeCents - totalSpentCents;
 
   return {
@@ -221,7 +235,18 @@ export async function getUserTransactionActivity(
   userId: string,
   dateRange: DateOnlyRange
 ) {
-  const totals = await getUserCategoryTotals(userId, undefined, dateRange);
+  const [totals, countRows] = await Promise.all([
+    getUserCategoryTotals(userId, undefined, dateRange),
+    db.$queryRaw<ActivityCountRow[]>(
+      Prisma.sql`
+        SELECT COUNT(*) AS "transactionCount"
+        FROM "FinancialOperation" operation
+        WHERE operation."userId" = ${userId}
+          AND operation."occurredOn" >= ${dateRange.from}::date
+          AND operation."occurredOn" < ${dateRange.to}::date
+      `
+    )
+  ]);
 
   function getTopCategory(type: TransactionType) {
     const topCategory = totals
@@ -244,10 +269,7 @@ export async function getUserTransactionActivity(
   }
 
   return {
-    transactionCount: totals.reduce(
-      (count, categoryTotal) => count + categoryTotal.transactionCount,
-      0
-    ),
+    transactionCount: Number(countRows[0]?.transactionCount ?? 0),
     topExpenseCategory: getTopCategory("EXPENSE"),
     topIncomeCategory: getTopCategory("INCOME")
   };

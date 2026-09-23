@@ -17,6 +17,8 @@ type TransactionTypeSwitchProps = {
   onChange: (value: TransactionTypeSelection) => void;
   includeAll?: boolean;
   compact?: boolean;
+  iconOnly?: boolean;
+  className?: string;
   disabled?: boolean;
   label?: string;
   externalDragOffset?: number;
@@ -37,6 +39,8 @@ export function TransactionTypeSwitch({
   onChange,
   includeAll = false,
   compact = false,
+  iconOnly = false,
+  className,
   disabled = false,
   label = "Transaction type",
   externalDragOffset,
@@ -51,9 +55,10 @@ export function TransactionTypeSwitch({
       options={includeAll ? FILTER_TYPE_OPTIONS : TRANSACTION_TYPE_OPTIONS}
       onChange={onChange}
       label={label}
-      className="transaction-type-switch"
+      className={`transaction-type-switch${className ? ` ${className}` : ""}`}
       tone={tone}
       compact={compact}
+      iconOnly={iconOnly}
       disabled={disabled}
       externalDragOffset={externalDragOffset}
       externalDragging={externalDragging}

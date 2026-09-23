@@ -6,6 +6,7 @@ import {
   Eye,
   EyeClosed,
   EyeOff,
+  LayersPlus,
   Plus,
   ReceiptEuro,
   RefreshCw,
@@ -21,9 +22,16 @@ import { scheduleHomePrefetches } from "../../cache/financial-prefetch";
 import type { SessionUser } from "../auth/auth-api";
 import type { TransactionPreview } from "../transactions/transaction-api";
 import { TransactionRow } from "../transactions/TransactionRow";
+import { TransactionGroupRow } from "../transactions/TransactionGroupRow";
+import {
+  transactionGroupsQueryOptions,
+  TransactionGroupApiError,
+  type TransactionGroupListItem
+} from "../transactions/transaction-groups-api";
 import {
   homeOverviewQueryOptions,
   HomeApiError,
+  type HomeMove
 } from "./home-api";
 import { getCategoryIcon } from "../transactions/category-catalog";
 import {
@@ -40,9 +48,15 @@ type HomeOverviewPageProps = {
   initialScrollTop: number;
   onScrollTopChange: (scrollTop: number) => void;
   onNewTransaction: () => void;
+  onNewTransactionGroup: () => void;
   onNavigateToMoves: (filters?: MovesFilters) => void;
   onTransactionSelect: (transaction: TransactionPreview) => void;
+  onTransactionGroupSelect: (group: TransactionGroupListItem) => void;
 };
+
+type HomeLatestMoveEntry =
+  | { kind: "transaction"; move: HomeMove }
+  | { kind: "group"; group: TransactionGroupListItem };
 
 function getNetWorthVisibilityStorageKey(userId: string) {
   return `finance-manager:home-net-worth-hidden:${userId}`;
@@ -191,10 +205,13 @@ export function HomeOverviewPage({
   initialScrollTop,
   onScrollTopChange,
   onNewTransaction,
+  onNewTransactionGroup,
   onNavigateToMoves,
-  onTransactionSelect
+  onTransactionSelect,
+  onTransactionGroupSelect
 }: HomeOverviewPageProps) {
   const overviewQuery = useQuery(homeOverviewQueryOptions(user.id));
+  const transactionGroupsQuery = useQuery(transactionGroupsQueryOptions(user.id));
   const overview = overviewQuery.data ?? null;
   const netWorthAnimationTimeout = useRef<number | null>(null);
   const scrollContainer = useRef<HTMLElement>(null);
@@ -254,6 +271,15 @@ export function HomeOverviewPage({
   }, [onSessionExpired, overviewQuery.error]);
 
   useEffect(() => {
+    if (
+      transactionGroupsQuery.error instanceof TransactionGroupApiError &&
+      transactionGroupsQuery.error.status === 401
+    ) {
+      onSessionExpired();
+    }
+  }, [onSessionExpired, transactionGroupsQuery.error]);
+
+  useEffect(() => {
     if (!overviewQuery.isPending) {
       onInitialContentReady();
     }
@@ -280,8 +306,13 @@ export function HomeOverviewPage({
     : overviewQuery.isError
       ? "error"
       : "ready";
+  const hasExpiredSession =
+    (overviewQuery.error instanceof HomeApiError &&
+      overviewQuery.error.status === 401) ||
+    (transactionGroupsQuery.error instanceof TransactionGroupApiError &&
+      transactionGroupsQuery.error.status === 401);
 
-  if (loadingState === "loading") {
+  if (loadingState === "loading" || hasExpiredSession) {
     return <HomeOverviewSkeleton />;
   }
 
@@ -320,7 +351,34 @@ export function HomeOverviewPage({
     );
   }
 
-  const latestMoves = overview.latestMoves;
+  const latestMoves: HomeLatestMoveEntry[] = [
+    ...overview.latestMoves.map((move) => ({
+      kind: "transaction" as const,
+      move
+    })),
+    ...(transactionGroupsQuery.data?.groups ?? []).map((group) => ({
+      kind: "group" as const,
+      group
+    }))
+  ]
+    .sort((left, right) => {
+      const leftDate =
+        left.kind === "transaction" ? left.move.date : left.group.date;
+      const rightDate =
+        right.kind === "transaction" ? right.move.date : right.group.date;
+
+      if (leftDate !== rightDate) {
+        return rightDate.localeCompare(leftDate);
+      }
+
+      const leftCreatedAt =
+        left.kind === "transaction" ? left.move.id : left.group.createdAt;
+      const rightCreatedAt =
+        right.kind === "transaction" ? right.move.id : right.group.createdAt;
+
+      return rightCreatedAt.localeCompare(leftCreatedAt);
+    })
+    .slice(0, 3);
   const hasStartingNetWorth = overview.balance.currentNetWorth !== null;
   const balanceLabel = hasStartingNetWorth ? "Net worth" : "Tracked balance";
   const balanceAmount = formatEuroAmount(
@@ -414,17 +472,30 @@ export function HomeOverviewPage({
           </p>
         </section>
 
-        <ActionButton
-          className="home-new-transaction"
-          type="button"
-          onClick={onNewTransaction}
-        >
-          <span className="home-new-transaction__icon" aria-hidden="true">
-            <Plus />
-          </span>
-          <span>New transaction</span>
-          <ChevronRight aria-hidden="true" />
-        </ActionButton>
+        <div className="home-primary-actions">
+          <ActionButton
+            className="home-new-transaction"
+            type="button"
+            onClick={onNewTransaction}
+          >
+            <span className="home-new-transaction__icon" aria-hidden="true">
+              <Plus />
+            </span>
+            <span>New transaction</span>
+            <ChevronRight aria-hidden="true" />
+          </ActionButton>
+          <ActionButton
+            className="home-new-transaction home-new-group"
+            type="button"
+            aria-label="New transaction group"
+            title="New transaction group"
+            onClick={onNewTransactionGroup}
+          >
+            <span className="home-new-transaction__icon" aria-hidden="true">
+              <LayersPlus />
+            </span>
+          </ActionButton>
+        </div>
 
         <section
           className="home-recent-moves"
@@ -439,10 +510,22 @@ export function HomeOverviewPage({
           </div>
 
           <ul className="home-move-list">
-            {latestMoves.map((move) => {
+            {latestMoves.map((entry) => {
+              if (entry.kind === "group") {
+                return (
+                  <TransactionGroupRow
+                    key={`group-${entry.group.id}`}
+                    group={entry.group}
+                    onSelect={() => onTransactionGroupSelect(entry.group)}
+                  />
+                );
+              }
+
+              const { move } = entry;
+
               return (
                 <TransactionRow
-                  key={move.id}
+                  key={`transaction-${move.id}`}
                   type={move.type}
                   categoryId={move.category.id}
                   categoryName={move.category.name}

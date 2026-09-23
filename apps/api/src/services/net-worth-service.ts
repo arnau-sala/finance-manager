@@ -41,20 +41,14 @@ export async function getCurrentNetWorth(userId: string, today: string) {
           ELSE
             u."startingNetWorthCents"::bigint
             + COALESCE(
-              SUM(
-                CASE
-                  WHEN t."type" = 'INCOME'::"TransactionType"
-                  THEN t."amountCents"
-                  ELSE -t."amountCents"
-                END
-              ),
+              SUM(operation."signedAmountCents"),
               0
             )
         END AS "currentNetWorthCents"
       FROM "User" u
-      LEFT JOIN "Transaction" t
-        ON t."userId" = u."id"
-        AND t."occurredOn" <= ${today}::date
+      LEFT JOIN "FinancialOperation" operation
+        ON operation."userId" = u."id"
+        AND operation."occurredOn" <= ${today}::date
       WHERE u."id" = ${userId}
       GROUP BY u."startingNetWorthCents"
     `
@@ -76,26 +70,20 @@ async function getNetWorthLedger(userId: string, endDate: string) {
     Prisma.sql`
       SELECT
         u."startingNetWorthCents" AS "startingNetWorthCents",
-        TO_CHAR(t."occurredOn", 'YYYY-MM-DD') AS "date",
+        TO_CHAR(operation."occurredOn", 'YYYY-MM-DD') AS "date",
         COALESCE(
-          SUM(
-            CASE
-              WHEN t."type" = 'INCOME'::"TransactionType"
-              THEN t."amountCents"
-              ELSE -t."amountCents"
-            END
-          ),
+          SUM(operation."signedAmountCents"),
           0
         ) AS "deltaCents"
       FROM "User" u
-      LEFT JOIN "Transaction" t
-        ON t."userId" = u."id"
-        AND t."occurredOn" <= ${endDate}::date
+      LEFT JOIN "FinancialOperation" operation
+        ON operation."userId" = u."id"
+        AND operation."occurredOn" <= ${endDate}::date
       WHERE u."id" = ${userId}
       GROUP BY
         u."startingNetWorthCents",
-        t."occurredOn"
-      ORDER BY t."occurredOn" ASC
+        operation."occurredOn"
+      ORDER BY operation."occurredOn" ASC
     `
   );
 }
