@@ -9940,17 +9940,73 @@ html.desktop-app-route .stats-view-stage {
 
 .transaction-group-line-editor {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   padding: 12px;
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 28px;
+  border-radius: 24px;
+}
+
+.transaction-group-line-editor__row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+  align-items: end;
+}
+
+.transaction-group-line-editor .text-field--composer {
+  --text-field-height: 42px;
+  --text-field-padding: 16px;
+  --text-field-radius: 21px;
+  --text-field-font-size: 14px;
+  background: var(--color-surface-muted);
+}
+
+.transaction-group-line-editor__title-field {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.transaction-group-line-editor__field-heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.transaction-group-line-editor__character-count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.transaction-group-line-editor__switch.sliding-segmented-control {
+  width: 92px;
+  height: 42px;
+  justify-self: stretch;
+  padding: 3px;
+  background: var(--color-surface);
+}
+
+.transaction-group-line-editor__switch.sliding-segmented-control button {
+  padding: 0;
+}
+
+.transaction-group-line-editor__switch.sliding-segmented-control button svg {
+  width: 17px;
+  height: 17px;
 }
 
 .transaction-group-line-editor__actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  margin-top: 2px;
 }
 
 .transaction-group-line-editor__actions--new {
@@ -9958,9 +10014,41 @@ html.desktop-app-route .stats-view-stage {
 }
 
 .transaction-group-line-editor__actions button {
-  min-height: 42px;
+  width: 100%;
+  min-height: 36px;
   padding: 0 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
   font-size: 13px;
+  line-height: 1;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.transaction-group-line-editor__actions
+  .transaction-group-line-editor__action-primary {
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.transaction-group-line-editor__actions
+  .transaction-group-line-editor__action-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: color-mix(in srgb, var(--color-danger) 30%, transparent);
+}
+
+.transaction-group-line-editor__action-delete svg {
+  width: 15px;
+  height: 15px;
+  stroke-width: 1.9;
 }
 
 .transaction-composer__footer button {

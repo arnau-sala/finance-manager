@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState
 } from "react";
@@ -37,7 +38,10 @@ import {
 } from "./category-catalog";
 import type { TransactionCurrencyCode } from "./transaction-validation";
 
-const MAX_GROUP_TITLE_LENGTH = 30;
+const MAX_GROUP_TITLE_LENGTH = 50;
+const GROUP_TITLE_COUNT_THRESHOLD = 35;
+const MAX_GROUP_LINE_TITLE_LENGTH = 30;
+const GROUP_LINE_TITLE_COUNT_THRESHOLD = 25;
 const MINIMUM_TRANSACTION_DATE = "2026-01-01";
 const CURRENCY_OPTIONS: readonly SlidingSegmentOption<TransactionCurrencyCode>[] = [
   { value: "EUR", label: "\u20ac" },
@@ -51,6 +55,8 @@ const LINE_REORDER_MOVE_TOLERANCE_PX = 7;
 const LINE_REORDER_AUTO_SCROLL_EDGE_PX = 82;
 const LINE_REORDER_AUTO_SCROLL_MAX_SPEED_PX = 18;
 const LINE_REORDER_MIDPOINT_THRESHOLD_PX = 3;
+const LINE_EDITOR_SCROLL_TOP_MARGIN_PX = 12;
+const LINE_EDITOR_SCROLL_BOTTOM_MARGIN_PX = 28;
 
 type DraftLine = TransactionGroupLineInput & {
   id: string;
@@ -223,6 +229,57 @@ function haveGroupTransactionIdsChanged(
   );
 }
 
+function hasEditedGroupChanged(
+  group: TransactionGroupListItem,
+  title: string,
+  categoryId: string,
+  date: string,
+  lines: readonly DraftLine[]
+) {
+  if (
+    title.trim() !== group.title ||
+    categoryId !== group.categoryId ||
+    date !== group.date
+  ) {
+    return true;
+  }
+
+  if (lines.length !== group.transactions.length) {
+    return true;
+  }
+
+  const existingTransactionsById = new Map(
+    group.transactions.map((transaction) => [transaction.id, transaction])
+  );
+
+  if (
+    lines.some((line) => {
+      if (!line.persistedId) {
+        return true;
+      }
+
+      const existingTransaction = existingTransactionsById.get(line.persistedId);
+      return (
+        !existingTransaction || hasGroupLineChanged(line, existingTransaction)
+      );
+    })
+  ) {
+    return true;
+  }
+
+  const previousTransactionIds = group.transactions.map(
+    (transaction) => transaction.id
+  );
+  const currentTransactionIds = lines.flatMap((line) =>
+    line.persistedId ? [line.persistedId] : []
+  );
+
+  return haveGroupTransactionIdsChanged(
+    previousTransactionIds,
+    currentTransactionIds
+  );
+}
+
 export function TransactionGroupComposer({
   userId,
   open,
@@ -264,6 +321,7 @@ export function TransactionGroupComposer({
   const releaseCategoryTypeScrollLock = useRef<(() => void) | null>(null);
   const [categoryTypeDragOffset, setCategoryTypeDragOffset] = useState(0);
   const [isCategoryTypeDragging, setIsCategoryTypeDragging] = useState(false);
+  const groupTitleInput = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -338,12 +396,86 @@ export function TransactionGroupComposer({
     []
   );
 
+  useLayoutEffect(() => {
+    const input = groupTitleInput.current;
+
+    if (!open || !input) {
+      return;
+    }
+
+    input.style.height = "auto";
+
+    const styles = window.getComputedStyle(input);
+    const minHeight = Number.parseFloat(styles.minHeight);
+    const maxHeight = Number.parseFloat(styles.maxHeight);
+    const borderHeight =
+      Number.parseFloat(styles.borderTopWidth) +
+      Number.parseFloat(styles.borderBottomWidth);
+
+    if (
+      !Number.isFinite(minHeight) ||
+      !Number.isFinite(maxHeight) ||
+      !Number.isFinite(borderHeight)
+    ) {
+      return;
+    }
+
+    const contentHeight = input.scrollHeight + borderHeight;
+    const wrappedContentBuffer = contentHeight > minHeight + 1 ? 1 : 0;
+    const requiredHeight = contentHeight + wrappedContentBuffer;
+    input.style.height = `${Math.min(
+      Math.max(requiredHeight, minHeight),
+      maxHeight
+    )}px`;
+    input.style.overflowY =
+      contentHeight > maxHeight + 1 ? "auto" : "hidden";
+  }, [open, title]);
+
+  useEffect(() => {
+    if (!open || editingLineId === null) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const scrollArea = scrollAreaRef.current;
+      const editor = scrollArea?.querySelector<HTMLElement>(
+        ".transaction-group-line-editor"
+      );
+
+      if (!scrollArea || !editor) {
+        return;
+      }
+
+      const scrollAreaRect = scrollArea.getBoundingClientRect();
+      const editorRect = editor.getBoundingClientRect();
+      const topLimit = scrollAreaRect.top + LINE_EDITOR_SCROLL_TOP_MARGIN_PX;
+      const bottomLimit =
+        scrollAreaRect.bottom - LINE_EDITOR_SCROLL_BOTTOM_MARGIN_PX;
+
+      if (editorRect.top >= topLimit && editorRect.bottom <= bottomLimit) {
+        return;
+      }
+
+      const nextScrollTop =
+        editorRect.bottom > bottomLimit
+          ? scrollArea.scrollTop + editorRect.bottom - bottomLimit
+          : scrollArea.scrollTop + editorRect.top - topLimit;
+
+      scrollArea.scrollTo({
+        top: Math.max(0, nextScrollTop),
+        behavior: "smooth"
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [editingLineId, open]);
+
   const netTotal = getNetTotal(lines);
   const hasTransactionContent = lines.some(
     (line) => line.title.trim().length > 0 || parseAmount(line.amount) > 0
   );
   const canAddLine = lines.length < 10;
-  const canSubmit =
+  const isFormValid =
     title.trim().length > 0 &&
     title.trim().length <= MAX_GROUP_TITLE_LENGTH &&
     categoryId.length > 0 &&
@@ -353,7 +485,12 @@ export function TransactionGroupComposer({
     lines.every(
       (line) => line.title.trim().length > 0 && parseAmount(line.amount) > 0
     ) &&
-    editingLineDraft === null &&
+    editingLineDraft === null;
+  const hasUnsavedGroupChanges =
+    !group || hasEditedGroupChanged(group, title, categoryId, date, lines);
+  const canSubmit =
+    isFormValid &&
+    hasUnsavedGroupChanges &&
     !isSubmitting;
 
   function selectCategoryType(nextType: TransactionType) {
@@ -1201,20 +1338,28 @@ export function TransactionGroupComposer({
                 <span className="text-field-label" id="transaction-group-title-label">
                   Group title
                 </span>
-                {title.length >= 20 ? (
-                  <span className="transaction-composer__character-count">
+                {title.length >= GROUP_TITLE_COUNT_THRESHOLD ? (
+                  <span
+                    className="transaction-composer__character-count"
+                    aria-live="polite"
+                  >
                     {title.length}/{MAX_GROUP_TITLE_LENGTH}
                   </span>
                 ) : null}
               </div>
               <textarea
+                ref={groupTitleInput}
                 className="text-field text-field--composer text-field--multiline"
                 rows={1}
                 maxLength={MAX_GROUP_TITLE_LENGTH}
                 placeholder="What connects these?"
                 value={title}
                 onChange={(event) =>
-                  setTitle(event.target.value.replace(/[\r\n]+/g, " "))
+                  setTitle(
+                    event.target.value
+                      .replace(/[\r\n]+/g, " ")
+                      .slice(0, MAX_GROUP_TITLE_LENGTH)
+                  )
                 }
               />
             </div>
@@ -1390,60 +1535,89 @@ export function TransactionGroupComposer({
                     >
                       {isEditingLine ? (
                         <div className="transaction-group-line-editor">
-                          <input
-                            className="text-field text-field--composer"
-                            placeholder="Title"
-                            value={editableLine.title}
-                            maxLength={50}
-                            onChange={(event) =>
-                              updateEditingLine({ title: event.target.value })
-                            }
-                          />
-                          <TransactionTypeSwitch
-                            value={editableLine.type}
-                            onChange={(nextType) => {
-                              if (nextType !== "ALL") {
-                                updateEditingLine({ type: nextType });
+                          <div className="transaction-group-line-editor__row">
+                            <div className="transaction-group-line-editor__title-field">
+                              {editableLine.title.length >=
+                              GROUP_LINE_TITLE_COUNT_THRESHOLD ? (
+                                <div className="transaction-group-line-editor__field-heading">
+                                  <span
+                                    className="transaction-group-line-editor__character-count"
+                                    aria-live="polite"
+                                  >
+                                    {editableLine.title.length}/
+                                    {MAX_GROUP_LINE_TITLE_LENGTH}
+                                  </span>
+                                </div>
+                              ) : null}
+                              <input
+                                className="text-field text-field--composer"
+                                placeholder="Name"
+                                value={editableLine.title}
+                                maxLength={MAX_GROUP_LINE_TITLE_LENGTH}
+                                onChange={(event) =>
+                                  updateEditingLine({
+                                    title: event.target.value.slice(
+                                      0,
+                                      MAX_GROUP_LINE_TITLE_LENGTH
+                                    )
+                                  })
+                                }
+                              />
+                            </div>
+                            <TransactionTypeSwitch
+                              className="transaction-group-line-editor__switch"
+                              value={editableLine.type}
+                              onChange={(nextType) => {
+                                if (nextType !== "ALL") {
+                                  updateEditingLine({ type: nextType });
+                                }
+                              }}
+                              compact
+                              iconOnly
+                              label="Line type"
+                            />
+                          </div>
+                          <div className="transaction-group-line-editor__row">
+                            <input
+                              className="text-field text-field--composer"
+                              inputMode="decimal"
+                              placeholder="Amount"
+                              value={editableLine.amount}
+                              onChange={(event) =>
+                                updateEditingLine({
+                                  amount: normalizeDecimalInput(event.target.value)
+                                })
                               }
-                            }}
-                            compact
-                            label="Line type"
-                          />
-                          <input
-                            className="text-field text-field--composer"
-                            inputMode="decimal"
-                            placeholder="Amount"
-                            value={editableLine.amount}
-                            onChange={(event) =>
-                              updateEditingLine({
-                                amount: normalizeDecimalInput(event.target.value)
-                              })
-                            }
-                          />
-                          <SlidingSegmentedControl
-                            className="transaction-currency-toggle"
-                            value={editableLine.currency}
-                            options={CURRENCY_OPTIONS}
-                            onChange={(currency) => updateEditingLine({ currency })}
-                            label="Line currency"
-                            compact
-                            allowDrag={false}
-                          />
+                            />
+                            <SlidingSegmentedControl
+                              className="transaction-currency-toggle transaction-group-line-editor__switch"
+                              value={editableLine.currency}
+                              options={CURRENCY_OPTIONS}
+                              onChange={(currency) =>
+                                updateEditingLine({ currency })
+                              }
+                              label="Line currency"
+                              compact
+                              allowDrag={false}
+                            />
+                          </div>
                           <div className="transaction-group-line-editor__actions">
                             <ActionButton type="button" onClick={cancelEditingLine}>
                               Cancel
                             </ActionButton>
-                            {lines.length > 1 ? (
-                              <ActionButton
-                                type="button"
-                                className="transaction-detail-delete-confirm__submit"
-                                onClick={() => deleteLine(line.id)}
-                              >
-                                <Trash2 aria-hidden="true" />
-                                Delete
-                              </ActionButton>
-                            ) : null}
-                            <ActionButton type="button" onClick={confirmEditingLine}>
+                            <ActionButton
+                              type="button"
+                              className="transaction-group-line-editor__action-delete"
+                              onClick={() => deleteLine(line.id)}
+                            >
+                              <Trash2 aria-hidden="true" />
+                              Delete
+                            </ActionButton>
+                            <ActionButton
+                              type="button"
+                              className="transaction-group-line-editor__action-primary"
+                              onClick={confirmEditingLine}
+                            >
                               Save
                             </ActionButton>
                           </div>
@@ -1504,50 +1678,81 @@ export function TransactionGroupComposer({
                 !lines.some((line) => line.id === editingLineDraft.id) ? (
                   <li>
                     <div className="transaction-group-line-editor">
-                      <input
-                        className="text-field text-field--composer"
-                        placeholder="Title"
-                        value={editingLineDraft.title}
-                        maxLength={50}
-                        onChange={(event) =>
-                          updateEditingLine({ title: event.target.value })
-                        }
-                      />
-                      <TransactionTypeSwitch
-                        value={editingLineDraft.type}
-                        onChange={(nextType) => {
-                          if (nextType !== "ALL") {
-                            updateEditingLine({ type: nextType });
+                      <div className="transaction-group-line-editor__row">
+                        <div className="transaction-group-line-editor__title-field">
+                          {editingLineDraft.title.length >=
+                          GROUP_LINE_TITLE_COUNT_THRESHOLD ? (
+                            <div className="transaction-group-line-editor__field-heading">
+                              <span
+                                className="transaction-group-line-editor__character-count"
+                                aria-live="polite"
+                              >
+                                {editingLineDraft.title.length}/
+                                {MAX_GROUP_LINE_TITLE_LENGTH}
+                              </span>
+                            </div>
+                          ) : null}
+                          <input
+                            className="text-field text-field--composer"
+                            placeholder="Name"
+                            value={editingLineDraft.title}
+                            maxLength={MAX_GROUP_LINE_TITLE_LENGTH}
+                            onChange={(event) =>
+                              updateEditingLine({
+                                title: event.target.value.slice(
+                                  0,
+                                  MAX_GROUP_LINE_TITLE_LENGTH
+                                )
+                              })
+                            }
+                          />
+                        </div>
+                        <TransactionTypeSwitch
+                          className="transaction-group-line-editor__switch"
+                          value={editingLineDraft.type}
+                          onChange={(nextType) => {
+                            if (nextType !== "ALL") {
+                              updateEditingLine({ type: nextType });
+                            }
+                          }}
+                          compact
+                          iconOnly
+                          label="Line type"
+                        />
+                      </div>
+                      <div className="transaction-group-line-editor__row">
+                        <input
+                          className="text-field text-field--composer"
+                          inputMode="decimal"
+                          placeholder="Amount"
+                          value={editingLineDraft.amount}
+                          onChange={(event) =>
+                            updateEditingLine({
+                              amount: normalizeDecimalInput(event.target.value)
+                            })
                           }
-                        }}
-                        compact
-                        label="Line type"
-                      />
-                      <input
-                        className="text-field text-field--composer"
-                        inputMode="decimal"
-                        placeholder="Amount"
-                        value={editingLineDraft.amount}
-                        onChange={(event) =>
-                          updateEditingLine({
-                            amount: normalizeDecimalInput(event.target.value)
-                          })
-                        }
-                      />
-                      <SlidingSegmentedControl
-                        className="transaction-currency-toggle"
-                        value={editingLineDraft.currency}
-                        options={CURRENCY_OPTIONS}
-                        onChange={(currency) => updateEditingLine({ currency })}
-                        label="Line currency"
-                        compact
-                        allowDrag={false}
-                      />
+                        />
+                        <SlidingSegmentedControl
+                          className="transaction-currency-toggle transaction-group-line-editor__switch"
+                          value={editingLineDraft.currency}
+                          options={CURRENCY_OPTIONS}
+                          onChange={(currency) =>
+                            updateEditingLine({ currency })
+                          }
+                          label="Line currency"
+                          compact
+                          allowDrag={false}
+                        />
+                      </div>
                       <div className="transaction-group-line-editor__actions transaction-group-line-editor__actions--new">
                         <ActionButton type="button" onClick={cancelEditingLine}>
                           Cancel
                         </ActionButton>
-                        <ActionButton type="button" onClick={confirmEditingLine}>
+                        <ActionButton
+                          type="button"
+                          className="transaction-group-line-editor__action-primary"
+                          onClick={confirmEditingLine}
+                        >
                           Add
                         </ActionButton>
                       </div>

@@ -78,7 +78,8 @@ export function TransactionGroupRow({
         <strong>{group.title}</strong>
         <span>
           {group.category.name} &middot; {formatGroupDate(group.date)} &middot;{" "}
-          {group.transactions.length} lines
+          {group.transactions.length}{" "}
+          {group.transactions.length === 1 ? "move" : "moves"}
         </span>
       </span>
       <span

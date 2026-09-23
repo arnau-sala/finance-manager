@@ -133,8 +133,8 @@ const amountSchema = z
 
 const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 const currencyCodeSchema = z.enum(["EUR", "USD"]);
-const groupTitleSchema = z.string().trim().min(1).max(30);
-const groupTransactionTitleSchema = z.string().trim().min(1).max(50);
+const groupTitleSchema = z.string().trim().min(1).max(50);
+const groupTransactionTitleSchema = z.string().trim().min(1).max(30);
 const transactionGroupDateSchema = z.iso.date().transform(parseDateOnly);
 const groupParamsSchema = z.object({ id: z.string().trim().min(1) }).strict();
 const groupListQuerySchema = z
