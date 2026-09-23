@@ -8341,6 +8341,32 @@ html.desktop-app-route .stats-view-stage {
   transform: translate3d(0, -52px, 0) scale(0.2);
 }
 
+.transaction-detail-sheet--exchange .transaction-detail-sheet__action-menu {
+  width: 100px;
+  height: 100px;
+}
+
+.transaction-detail-sheet--exchange
+  .transaction-detail-sheet__floating-action--share {
+  top: 0;
+  left: 52px;
+  transform: translate3d(-52px, 0, 0) scale(0.2);
+}
+
+.transaction-detail-sheet--exchange
+  .transaction-detail-sheet__floating-action--edit {
+  top: 42px;
+  left: 42px;
+  transform: translate3d(-42px, -42px, 0) scale(0.2);
+}
+
+.transaction-detail-sheet--exchange
+  .transaction-detail-sheet__floating-action--delete {
+  top: 52px;
+  left: 0;
+  transform: translate3d(0, -52px, 0) scale(0.2);
+}
+
 .transaction-detail-sheet__action-menu svg {
   width: 21px;
   height: 21px;
