@@ -59,6 +59,7 @@ type TransactionDetailScope = "MONTH" | "YEAR" | "ALL";
 const CLOSE_DISTANCE_PX = 88;
 const CLOSE_VELOCITY_PX_PER_MS = 0.55;
 const DRAG_ACTIVATION_DISTANCE_PX = 8;
+const ACTIONS_ANIMATION_MS = 220;
 
 const detailScopeOptions = [
   { value: "MONTH", label: "Month" },
@@ -242,6 +243,9 @@ export function TransactionGroupDetailSheet({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [actionsRendered, setActionsRendered] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState(false);
+  const [actionsInteractive, setActionsInteractive] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [dragOffset, setDragOffset] = useState(0);
@@ -260,6 +264,9 @@ export function TransactionGroupDetailSheet({
     setRenderedGroup(group);
     setIsVisible(false);
     setActionsOpen(false);
+    setActionsRendered(false);
+    setActionsExpanded(false);
+    setActionsInteractive(false);
     setConfirmDelete(false);
     setDeleteError("");
     setDragOffset(0);
@@ -294,6 +301,53 @@ export function TransactionGroupDetailSheet({
       }
     };
   }, []);
+
+  useEffect(() => {
+    setActionsInteractive(false);
+
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+
+    if (actionsOpen) {
+      setActionsRendered(true);
+
+      if (reduceMotion) {
+        setActionsExpanded(true);
+        setActionsInteractive(true);
+        return;
+      }
+
+      const expansionFrame = requestAnimationFrame(() => {
+        setActionsExpanded(true);
+      });
+      const interactionTimer = window.setTimeout(() => {
+        setActionsInteractive(true);
+      }, ACTIONS_ANIMATION_MS);
+
+      return () => {
+        cancelAnimationFrame(expansionFrame);
+        window.clearTimeout(interactionTimer);
+      };
+    }
+
+    setActionsExpanded(false);
+
+    if (!actionsRendered) {
+      return;
+    }
+
+    if (reduceMotion) {
+      setActionsRendered(false);
+      return;
+    }
+
+    const unmountTimer = window.setTimeout(() => {
+      setActionsRendered(false);
+    }, ACTIONS_ANIMATION_MS);
+
+    return () => window.clearTimeout(unmountTimer);
+  }, [actionsOpen, actionsRendered]);
 
   useEffect(() => {
     const backdrop = backdropRef.current;
@@ -740,9 +794,11 @@ export function TransactionGroupDetailSheet({
               <Ellipsis aria-hidden="true" />
             </ActionButton>
 
-            {actionsOpen ? (
+            {actionsRendered ? (
               <div
-                className="transaction-detail-sheet__action-menu is-open is-interactive"
+                className={`transaction-detail-sheet__action-menu${
+                  actionsExpanded ? " is-open" : ""
+                }${actionsInteractive ? " is-interactive" : ""}`}
                 role="menu"
                 aria-label="Group actions"
               >
@@ -753,7 +809,7 @@ export function TransactionGroupDetailSheet({
                   role="menuitem"
                   aria-label="Share group"
                   title="Share"
-                  disabled={confirmDelete || isDeleting}
+                  disabled={!actionsInteractive || confirmDelete || isDeleting}
                   onClick={() => {}}
                 >
                   <Share aria-hidden="true" />
@@ -765,7 +821,7 @@ export function TransactionGroupDetailSheet({
                   role="menuitem"
                   aria-label="Edit group"
                   title="Edit"
-                  disabled={confirmDelete || isDeleting}
+                  disabled={!actionsInteractive || confirmDelete || isDeleting}
                   onClick={() => {
                     onEdit(detailGroup);
                     onClose();
@@ -780,7 +836,7 @@ export function TransactionGroupDetailSheet({
                   role="menuitem"
                   aria-label="Delete group"
                   title="Delete"
-                  disabled={confirmDelete || isDeleting}
+                  disabled={!actionsInteractive || confirmDelete || isDeleting}
                   onClick={() => {
                     setConfirmDelete(true);
                   }}
