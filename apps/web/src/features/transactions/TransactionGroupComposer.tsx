@@ -117,10 +117,14 @@ type TransactionGroupComposerProps = {
 };
 
 function normalizeDecimalInput(value: string) {
-  const normalized = value.replace(".", ",").replace(/[^\d,]/g, "");
-  const [whole = "", decimal = ""] = normalized.split(",");
-  return decimal.length > 0
-    ? `${whole.slice(0, 8)},${decimal.slice(0, 2)}`
+  const normalized = value
+    .replace(/\./g, ",")
+    .replace(/\s/g, "")
+    .replace(/[^\d,]/g, "");
+  const [whole = "", ...decimalParts] = normalized.split(",");
+
+  return decimalParts.length > 0
+    ? `${whole.slice(0, 8)},${decimalParts.join("").slice(0, 2)}`
     : whole.slice(0, 8);
 }
 
@@ -1684,9 +1688,13 @@ export function TransactionGroupComposer({
                           <div className="transaction-group-line-editor__row">
                             <input
                               className="text-field text-field--composer"
+                              type="text"
                               inputMode="decimal"
+                              enterKeyHint="done"
+                              autoComplete="off"
                               placeholder="Amount"
                               value={editableLine.amount}
+                              maxLength={11}
                               onChange={(event) =>
                                 updateEditingLine({
                                   amount: normalizeDecimalInput(event.target.value)
@@ -1832,9 +1840,13 @@ export function TransactionGroupComposer({
                       <div className="transaction-group-line-editor__row">
                         <input
                           className="text-field text-field--composer"
+                          type="text"
                           inputMode="decimal"
+                          enterKeyHint="done"
+                          autoComplete="off"
                           placeholder="Amount"
                           value={editingLineDraft.amount}
+                          maxLength={11}
                           onChange={(event) =>
                             updateEditingLine({
                               amount: normalizeDecimalInput(event.target.value)
