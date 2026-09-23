@@ -969,7 +969,7 @@ export function TransactionDetailSheet({
                 <ActionButton
                   shape="icon"
                   type="button"
-                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--group"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
                   role="menuitem"
                   aria-label="Edit transaction"
                   title="Edit"
@@ -993,7 +993,7 @@ export function TransactionDetailSheet({
                 <ActionButton
                   shape="icon"
                   type="button"
-                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--edit"
+                  className="transaction-detail-sheet__floating-action transaction-detail-sheet__floating-action--group"
                   role="menuitem"
                   aria-label="Add related transactions"
                   title="Add related"

@@ -8263,8 +8263,8 @@ html.desktop-app-route .stats-view-stage {
   top: 0;
   left: 0;
   z-index: 2;
-  width: 100px;
-  height: 100px;
+  width: 118px;
+  height: 118px;
   pointer-events: none;
 }
 
@@ -8301,26 +8301,26 @@ html.desktop-app-route .stats-view-stage {
 
 .transaction-detail-sheet__floating-action--share {
   top: 0;
-  left: 52px;
-  transform: translate3d(-52px, 0, 0) scale(0.2);
+  left: 78px;
+  transform: translate3d(-78px, 0, 0) scale(0.2);
 }
 
 .transaction-detail-sheet__floating-action--edit {
-  top: 42px;
-  left: 42px;
-  transform: translate3d(-42px, -42px, 0) scale(0.2);
+  top: 68px;
+  left: 39px;
+  transform: translate3d(-39px, -68px, 0) scale(0.2);
 }
 
 .transaction-detail-sheet__floating-action--group {
-  top: 52px;
-  left: 52px;
-  transform: translate3d(-52px, -52px, 0) scale(0.2);
+  top: 39px;
+  left: 68px;
+  transform: translate3d(-68px, -39px, 0) scale(0.2);
 }
 
 .transaction-detail-sheet__floating-action--delete {
-  top: 52px;
+  top: 78px;
   left: 0;
-  transform: translate3d(0, -52px, 0) scale(0.2);
+  transform: translate3d(0, -78px, 0) scale(0.2);
 }
 
 .transaction-group-detail-action--share {
