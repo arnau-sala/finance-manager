@@ -15,6 +15,7 @@ import {
   parseDateOnly,
 } from "../dates/date-only.js";
 import { db } from "../db/client.js";
+import { writeTransactionOptions } from "../db/transaction-options.js";
 import { centsToDecimal } from "../money/cents.js";
 import {
   financialReadRateLimit,
@@ -1133,7 +1134,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return getTransactionGroup(client, userId, createdGroup.id);
-        });
+        }, writeTransactionOptions);
 
         return reply.code(201).send({
           group: group ? toTransactionGroupResponse(group) : null,
@@ -1243,7 +1244,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return getTransactionGroup(client, userId, createdGroup.id);
-        });
+        }, writeTransactionOptions);
 
         if (!group) {
           return reply.code(404).send({ error: "Transaction not found" });
@@ -1335,7 +1336,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return getTransactionGroup(client, userId, group.id);
-        });
+        }, writeTransactionOptions);
 
         if (!result) {
           return reply.code(404).send({ error: "Transaction group not found" });
@@ -1392,7 +1393,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return group;
-        });
+        }, writeTransactionOptions);
 
         if (!result) {
           return reply.code(404).send({ error: "Transaction group not found" });
@@ -1469,7 +1470,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return getTransactionGroup(client, userId, existingGroup.id);
-        });
+        }, writeTransactionOptions);
 
         if (group === "TOO_MANY_TRANSACTIONS") {
           return reply
@@ -1558,7 +1559,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return getTransactionGroup(client, userId, parsedParams.data.id);
-        });
+        }, writeTransactionOptions);
 
         if (!group) {
           return reply.code(404).send({ error: "Transaction group not found" });
@@ -1634,7 +1635,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return getTransactionGroup(client, userId, group.id);
-        });
+        }, writeTransactionOptions);
 
         if (!result) {
           return reply.code(404).send({ error: "Transaction group not found" });
@@ -1727,7 +1728,7 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
         );
 
         return getTransactionGroup(client, userId, existingGroup.id);
-      });
+      }, writeTransactionOptions);
 
       if (group === "INVALID_ORDER") {
         return reply

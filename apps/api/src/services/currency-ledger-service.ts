@@ -5,6 +5,7 @@ import {
 } from "@prisma/client";
 
 import { db } from "../db/client.js";
+import { writeTransactionOptions } from "../db/transaction-options.js";
 
 export const BASE_CURRENCY = "EUR";
 export const USD_CURRENCY = "USD";
@@ -417,7 +418,7 @@ export async function createCurrencyExchange(input: {
 
     await rebuildUsdLedger(input.userId, transaction);
     return exchange;
-  });
+  }, writeTransactionOptions);
 }
 
 export async function updateCurrencyExchange(input: {
@@ -456,7 +457,7 @@ export async function updateCurrencyExchange(input: {
 
     await rebuildUsdLedger(input.userId, transaction);
     return exchange;
-  });
+  }, writeTransactionOptions);
 }
 
 export async function deleteCurrencyExchange(input: {
@@ -474,5 +475,5 @@ export async function deleteCurrencyExchange(input: {
 
     await rebuildUsdLedger(input.userId, transaction);
     return true;
-  });
+  }, writeTransactionOptions);
 }
