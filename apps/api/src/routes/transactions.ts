@@ -13,6 +13,7 @@ import {
   parseDateOnly,
 } from "../dates/date-only.js";
 import { db } from "../db/client.js";
+import { writeTransactionOptions } from "../db/transaction-options.js";
 import {
   getPaginatedResponse,
   getPaginationQuerySchema,
@@ -632,7 +633,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
               where: { id: createdTransaction.id },
               include: { category: true },
             });
-          });
+          }, writeTransactionOptions);
 
           return reply.code(201).send({
             transaction: toTransactionResponse(transaction),
@@ -701,7 +702,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           if (transaction.currency === USD_CURRENCY) {
             await rebuildUsdLedger(userId, client);
           }
-        });
+        }, writeTransactionOptions);
 
         return reply.send({ message: "Transaction deleted" });
       } catch (error) {
@@ -863,7 +864,7 @@ export const transactionRoutes: FastifyPluginAsync = async (app) => {
           }
 
           return result;
-        });
+        }, writeTransactionOptions);
 
         if (update.count === 0) {
           return reply.code(404).send({ error: "Transaction not found" });
