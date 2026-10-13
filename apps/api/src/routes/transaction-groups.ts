@@ -930,8 +930,8 @@ async function normalizeGroupTransactionOrder(
 
   await Promise.all(
     transactions.map((transaction, index) =>
-      client.transaction.update({
-        where: { id: transaction.id },
+      client.transaction.updateMany({
+        where: { id: transaction.id, groupId },
         data: { groupOrder: index },
       }),
     ),
@@ -959,8 +959,12 @@ async function dissolveGroupIfNeeded(
   }
 
   if (remainingTransactions.length === 1) {
-    await client.transaction.update({
-      where: { id: remainingTransactions[0].id },
+    await client.transaction.updateMany({
+      where: {
+        id: remainingTransactions[0].id,
+        userId: input.userId,
+        groupId: input.groupId,
+      },
       data: {
         groupId: null,
         groupOrder: null,
@@ -970,8 +974,8 @@ async function dissolveGroupIfNeeded(
     });
   }
 
-  await client.transactionGroup.delete({
-    where: { id: input.groupId },
+  await client.transactionGroup.deleteMany({
+    where: { id: input.groupId, userId: input.userId },
   });
 
   return {
@@ -1612,9 +1616,17 @@ export const transactionGroupRoutes: FastifyPluginAsync = async (app) => {
             return null;
           }
 
-          await client.transaction.delete({
-            where: { id: transaction.id },
+          const deletion = await client.transaction.deleteMany({
+            where: {
+              id: transaction.id,
+              groupId: group.id,
+              userId,
+            },
           });
+
+          if (deletion.count === 0) {
+            return null;
+          }
 
           const dissolved = await dissolveGroupIfNeeded(client, {
             userId,

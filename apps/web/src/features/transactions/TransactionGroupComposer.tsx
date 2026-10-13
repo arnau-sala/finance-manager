@@ -1350,8 +1350,6 @@ export function TransactionGroupComposer({
           group.transactions.map((transaction) => [transaction.id, transaction])
         );
         const nextPersistedIdsByDraftId = new Map<string, string>();
-        const updateRequests: Promise<unknown>[] = [];
-
         for (const line of lines) {
           if (line.persistedId) {
             const existingTransaction = existingTransactionsById.get(
@@ -1362,12 +1360,10 @@ export function TransactionGroupComposer({
               existingTransaction &&
               hasGroupLineChanged(line, existingTransaction)
             ) {
-              updateRequests.push(
-                updateGroupTransaction(
-                  group.id,
-                  line.persistedId,
-                  lineToInput(line)
-                )
+              await updateGroupTransaction(
+                group.id,
+                line.persistedId,
+                lineToInput(line)
               );
             }
           } else {
@@ -1386,8 +1382,6 @@ export function TransactionGroupComposer({
           }
         }
 
-        await Promise.all(updateRequests);
-
         const persistedIds = new Set(
           lines.flatMap((line) => {
             const persistedId =
@@ -1395,11 +1389,13 @@ export function TransactionGroupComposer({
             return persistedId ? [persistedId] : [];
           })
         );
-        await Promise.all(
-          group.transactions
-            .filter((existing) => !persistedIds.has(existing.id))
-            .map((existing) => deleteGroupTransaction(group.id, existing.id))
+        const transactionsToDelete = group.transactions.filter(
+          (existing) => !persistedIds.has(existing.id)
         );
+
+        for (const existing of transactionsToDelete) {
+          await deleteGroupTransaction(group.id, existing.id);
+        }
 
         const orderedTransactionIds = lines.flatMap((line) => {
           const persistedId =
