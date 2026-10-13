@@ -11,10 +11,12 @@ const dbMocks = vi.hoisted(() => ({
   transactionGroupFindFirst: vi.fn(),
   transactionGroupCreate: vi.fn(),
   transactionGroupDelete: vi.fn(),
+  transactionGroupDeleteMany: vi.fn(),
   transactionGroupUpdate: vi.fn(),
   transactionCreate: vi.fn(),
   transactionUpdate: vi.fn(),
   transactionDelete: vi.fn(),
+  transactionDeleteMany: vi.fn(),
   transactionFindMany: vi.fn(),
   transactionUpdateMany: vi.fn(),
   transactionFindManyLedger: vi.fn(),
@@ -30,12 +32,14 @@ vi.mock("../src/db/client.js", () => ({
       findFirst: dbMocks.transactionGroupFindFirst,
       create: dbMocks.transactionGroupCreate,
       delete: dbMocks.transactionGroupDelete,
+      deleteMany: dbMocks.transactionGroupDeleteMany,
       update: dbMocks.transactionGroupUpdate,
     },
     transaction: {
       create: dbMocks.transactionCreate,
       update: dbMocks.transactionUpdate,
       delete: dbMocks.transactionDelete,
+      deleteMany: dbMocks.transactionDeleteMany,
       findMany: dbMocks.transactionFindMany,
       updateMany: dbMocks.transactionUpdateMany,
     },
@@ -100,18 +104,23 @@ describe("transaction groups", () => {
     dbMocks.categoryFindUnique.mockResolvedValue(category);
     dbMocks.currencyExchangeFindMany.mockResolvedValue([]);
     dbMocks.transactionFindMany.mockResolvedValue([]);
+    dbMocks.transactionDeleteMany.mockResolvedValue({ count: 1 });
+    dbMocks.transactionGroupDelete.mockResolvedValue({});
+    dbMocks.transactionGroupDeleteMany.mockResolvedValue({ count: 1 });
     dbMocks.transaction.mockImplementation((callback) => callback({
       category: { findUnique: dbMocks.categoryFindUnique },
       transactionGroup: {
         findFirst: dbMocks.transactionGroupFindFirst,
         create: dbMocks.transactionGroupCreate,
         delete: dbMocks.transactionGroupDelete,
+        deleteMany: dbMocks.transactionGroupDeleteMany,
         update: dbMocks.transactionGroupUpdate,
       },
       transaction: {
         create: dbMocks.transactionCreate,
         update: dbMocks.transactionUpdate,
         delete: dbMocks.transactionDelete,
+        deleteMany: dbMocks.transactionDeleteMany,
         findMany: dbMocks.transactionFindMany,
         updateMany: dbMocks.transactionUpdateMany,
       },
@@ -399,14 +408,26 @@ describe("transaction groups", () => {
       message: "Transaction group dissolved",
       promotedTransactionId: "line-2",
     });
-    expect(dbMocks.transactionUpdate).toHaveBeenCalledWith({
-      where: { id: "line-2" },
+    expect(dbMocks.transactionDeleteMany).toHaveBeenCalledWith({
+      where: {
+        id: "line-1",
+        groupId: "group-1",
+        userId: "user-1",
+      },
+    });
+    expect(dbMocks.transactionUpdateMany).toHaveBeenCalledWith({
+      where: {
+        id: "line-2",
+        groupId: "group-1",
+        userId: "user-1",
+      },
       data: expect.objectContaining({
         groupId: null,
         groupOrder: null,
         categoryId: "cat-1",
       }),
     });
+    expect(dbMocks.transactionGroupDelete).not.toHaveBeenCalled();
     await app.close();
   });
 });
